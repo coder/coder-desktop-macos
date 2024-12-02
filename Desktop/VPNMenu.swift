@@ -1,30 +1,45 @@
 import SwiftUI
 
-struct VPNMenu: View {
-    @State private var isVPNOn: Bool = false
-    let workspaces: [WorkspaceRowContents]
+struct VPNMenu<Conn: CoderVPN>: View {
+    @ObservedObject var vpnService: Conn
+
     var body: some View {
         // Main stack
         VStack(alignment: .leading) {
             // CoderVPN Stack
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Toggle(isOn: self.$isVPNOn) {
+                    Toggle(isOn: Binding(
+                        get: { self.vpnService.state == .connected || self.vpnService.state == .connecting },
+                        set: { isOn in Task {
+                                if isOn { await self.vpnService.start() } else { await self.vpnService.stop() }
+                            }
+                        }
+                    )) {
                         Text("CoderVPN")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }.toggleStyle(.switch)
+                    .disabled(self.vpnService.state == .connecting || self.vpnService.state == .disconnecting)
                 }
                 Divider()
-                Text("Workspaces")
+                Text("Workspace Agents")
                     .font(.headline)
                     .foregroundColor(.gray)
-                if !isVPNOn {
-                    Text("Enable CoderVPN to see workspaces").font(.body).foregroundColor(.gray)
+                if self.vpnService.state == .disabled {
+                    Text("Enable CoderVPN to see agents").font(.body).foregroundColor(.gray)
+                } else if self.vpnService.state == .connecting || self.vpnService.state == .disconnecting {
+                    HStack {
+                        Spacer()
+                        ProgressView(
+                            self.vpnService.state == .connecting ? "Starting CoderVPN..." : "Stopping CoderVPN..."
+                        ).padding()
+                        Spacer()
+                    }
                 }
             }.padding([.horizontal, .top], 15)
-            if isVPNOn {
-                ForEach(workspaces) { workspace in
-                    WorkspaceRowView(workspace: workspace).padding(.horizontal, 5)
+            if self.vpnService.state == .connected {
+                ForEach(self.vpnService.data) { workspace in
+                    AgentRowView(workspace: workspace).padding(.horizontal, 5)
                 }
             }
             // Trailing stack
@@ -33,32 +48,39 @@ struct VPNMenu: View {
                 RowButtonView {
                     Text("Create workspace")
                     EmptyView()
+                } action: {
+                    // TODO
                 }
                 Divider().padding([.horizontal], 10).padding(.vertical, 4)
                 RowButtonView {
                     Text("About")
+                } action: {
+                    // TODO
                 }
                 RowButtonView {
                     Text("Preferences")
+                } action: {
+                    // TODO
                 }
                 RowButtonView {
                     Text("Sign out")
+                } action: {
+                    // TODO
                 }
             }.padding([.horizontal, .bottom], 5)
         }.padding(.bottom, 5)
-
     }
 }
 
-struct WorkspaceRowContents: Identifiable {
-    let id = UUID()
+struct AgentRow: Identifiable {
+    let id: UUID
     let name: String
     let status: Color
     let copyableDNS: String
 }
 
-struct WorkspaceRowView: View {
-    let workspace: WorkspaceRowContents
+struct AgentRowView: View {
+    let workspace: AgentRow
     @State private var nameIsSelected: Bool = false
     @State private var copyIsSelected: Bool = false
 
@@ -117,9 +139,11 @@ struct WorkspaceRowView: View {
 struct RowButtonView<Label: View>: View {
     @State private var isSelected: Bool = false
     @ViewBuilder var label: () -> Label
+    var action: () -> Void
+
     var body: some View {
         Button {
-            // TODO: Action
+            action()
         } label: {
             HStack(spacing: 0) {
                 label()
@@ -137,11 +161,5 @@ struct RowButtonView<Label: View>: View {
 }
 
 #Preview {
-    VPNMenu(workspaces: [
-        WorkspaceRowContents(name: "dogfood2", status: .red, copyableDNS: "asdf.coder"),
-        WorkspaceRowContents(name: "testing-a-very-long-name", status: .green, copyableDNS: "asdf.coder"),
-        WorkspaceRowContents(name: "opensrc", status: .yellow, copyableDNS: "asdf.coder"),
-        WorkspaceRowContents(name: "gvisor", status: .gray, copyableDNS: "asdf.coder"),
-        WorkspaceRowContents(name: "example", status: .gray, copyableDNS: "asdf.coder")
-    ]).frame(width: 256)
+    VPNMenu(vpnService: PreviewVPN()).frame(width: 256)
 }
