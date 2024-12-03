@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AgentRow: Identifiable {
+struct AgentRow: Identifiable, Equatable {
     let id: UUID
     let name: String
     let status: Color
@@ -55,11 +55,11 @@ struct AgentRowView: View {
                     .padding(3)
             }.foregroundStyle(copyIsSelected ? Color.white : .primary)
                 .imageScale(.small)
-            .background(copyIsSelected ? Color.accentColor.opacity(0.8) : .clear)
-            .clipShape(.rect(cornerRadius: 4))
-            .onHover { hovering in copyIsSelected = hovering }
-            .buttonStyle(.plain)
-            .padding(.trailing, 5)
+                .background(copyIsSelected ? Color.accentColor.opacity(0.8) : .clear)
+                .clipShape(.rect(cornerRadius: 4))
+                .onHover { hovering in copyIsSelected = hovering }
+                .buttonStyle(.plain)
+                .padding(.trailing, 5)
         }
     }
 }

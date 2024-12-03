@@ -8,9 +8,20 @@ protocol CoderVPN: ObservableObject {
 }
 
 enum CoderVPNState: Equatable {
-        case disabled
-        case connecting
-        case disconnecting
-        case connected
-        case failed(String)
+    case disabled
+    case connecting
+    case disconnecting
+    case connected
+    case failed(CoderVPNError)
+}
+
+enum CoderVPNError: Error {
+    case exampleError
+
+    var description: String {
+        switch self {
+        case .exampleError:
+            return "This is a long error to test the UI with long errors"
+        }
+    }
 }

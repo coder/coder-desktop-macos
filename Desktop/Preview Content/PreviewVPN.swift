@@ -7,39 +7,48 @@ class PreviewVPN: Desktop.CoderVPN {
         AgentRow(id: UUID(), name: "testing-a-very-long-name", status: .green, copyableDNS: "asdf.coder"),
         AgentRow(id: UUID(), name: "opensrc", status: .yellow, copyableDNS: "asdf.coder"),
         AgentRow(id: UUID(), name: "gvisor", status: .gray, copyableDNS: "asdf.coder"),
-        AgentRow(id: UUID(), name: "example", status: .gray, copyableDNS: "asdf.coder")
+        AgentRow(id: UUID(), name: "example", status: .gray, copyableDNS: "asdf.coder"),
+        AgentRow(id: UUID(), name: "dogfood2", status: .red, copyableDNS: "asdf.coder"),
+        AgentRow(id: UUID(), name: "testing-a-very-long-name", status: .green, copyableDNS: "asdf.coder"),
+        AgentRow(id: UUID(), name: "opensrc", status: .yellow, copyableDNS: "asdf.coder"),
+        AgentRow(id: UUID(), name: "gvisor", status: .gray, copyableDNS: "asdf.coder"),
+        AgentRow(id: UUID(), name: "example", status: .gray, copyableDNS: "asdf.coder"),
     ]
-    func start() async {
-            await MainActor.run {
-                state = .connecting
-            }
-            do {
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-            } catch {
-                await MainActor.run {
-                    state = .failed("Timed out starting CoderVPN")
-                }
-                return
-            }
-            await MainActor.run {
-                state = .connected
-            }
-        }
+    let shouldFail: Bool
 
-    func stop() async {
+    init(shouldFail: Bool = false) {
+        self.shouldFail = shouldFail
+    }
+
+    private func setState(_ newState: Desktop.CoderVPNState) async {
         await MainActor.run {
-            state = .disconnecting
+            self.state = newState
         }
+    }
+
+    func start() async {
+        await setState(.connecting)
         do {
-            try await Task.sleep(nanoseconds: 1_000_000_000) // Simulate network delay
+            try await Task.sleep(nanoseconds: 1000000000)
         } catch {
-            await MainActor.run {
-                state = .failed("Timed out stopping CoderVPN")
-            }
+            await setState(.failed(.exampleError))
             return
         }
-        await MainActor.run {
-            state = .disabled
+        if shouldFail {
+            await setState(.failed(.exampleError))
+        } else {
+            await setState(.connected)
         }
+    }
+
+    func stop() async {
+        await setState(.disconnecting)
+        do {
+            try await Task.sleep(nanoseconds: 1000000000) // Simulate network delay
+        } catch {
+            await setState(.failed(.exampleError))
+            return
+        }
+        await setState(.disabled)
     }
 }

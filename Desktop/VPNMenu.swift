@@ -2,24 +2,27 @@ import SwiftUI
 
 struct VPNMenu<VPN: CoderVPN>: View {
     @ObservedObject var vpnService: VPN
+    @State var viewAll = false
+
+    private let defaultVisibleRows = 5
 
     var body: some View {
         // Main stack
-        VStack(alignment: .leading) {
+        VStackLayout(alignment: .leading) {
             // CoderVPN Stack
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Toggle(isOn: Binding(
                         get: { self.vpnService.state == .connected || self.vpnService.state == .connecting },
                         set: { isOn in Task {
-                                if isOn { await self.vpnService.start() } else { await self.vpnService.stop() }
-                            }
+                            if isOn { await self.vpnService.start() } else { await self.vpnService.stop() }
+                        }
                         }
                     )) {
                         Text("CoderVPN")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }.toggleStyle(.switch)
-                    .disabled(self.vpnService.state == .connecting || self.vpnService.state == .disconnecting)
+                        .disabled(self.vpnService.state == .connecting || self.vpnService.state == .disconnecting)
                 }
                 Divider()
                 Text("Workspace Agents")
@@ -35,11 +38,33 @@ struct VPNMenu<VPN: CoderVPN>: View {
                         ).padding()
                         Spacer()
                     }
+                } else if case let .failed(vpnErr) = self.vpnService.state {
+                    Text("\(vpnErr.description)")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 15)
+                        .padding(.top, 5)
+                        .frame(maxWidth: .infinity)
                 }
             }.padding([.horizontal, .top], 15)
+            // Workspaces List
             if self.vpnService.state == .connected {
-                ForEach(self.vpnService.data) { workspace in
+                let visibleData = viewAll ? vpnService.data : Array(vpnService.data.prefix(defaultVisibleRows))
+                ForEach(visibleData) { workspace in
                     AgentRowView(workspace: workspace).padding(.horizontal, 5)
+                }
+                if vpnService.data.count > defaultVisibleRows {
+                    Button(action: {
+                        viewAll.toggle()
+                    }, label: {
+                        Text(viewAll ? "Show Less" : "Show All")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 15)
+                            .padding(.top, 5)
+                    }).buttonStyle(.plain)
                 }
             }
             // Trailing stack
@@ -49,23 +74,23 @@ struct VPNMenu<VPN: CoderVPN>: View {
                     Text("Create workspace")
                     EmptyView()
                 } action: {
-                    // TODO
+                    // TODO:
                 }
                 Divider().padding([.horizontal], 10).padding(.vertical, 4)
                 ButtonRowView {
                     Text("About")
                 } action: {
-                    // TODO
+                    // TODO:
                 }
                 ButtonRowView {
                     Text("Preferences")
                 } action: {
-                    // TODO
+                    // TODO:
                 }
                 ButtonRowView {
                     Text("Sign out")
                 } action: {
-                    // TODO
+                    // TODO:
                 }
             }.padding([.horizontal, .bottom], 5)
         }.padding(.bottom, 5)
@@ -73,5 +98,5 @@ struct VPNMenu<VPN: CoderVPN>: View {
 }
 
 #Preview {
-    VPNMenu(vpnService: PreviewVPN()).frame(width: 256)
+    VPNMenu(vpnService: PreviewVPN(shouldFail: true)).frame(width: 256)
 }
