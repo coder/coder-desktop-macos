@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AA05870A2CFF16CA00A01A13 /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA0587092CFF16CA00A01A13 /* FluidMenuBarExtra */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AA06D4802CF59842002ECE92 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA05870A2CFF16CA00A01A13 /* FluidMenuBarExtra in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,6 +118,7 @@
 			);
 			name = Desktop;
 			packageProductDependencies = (
+				AA0587092CFF16CA00A01A13 /* FluidMenuBarExtra */,
 			);
 			productName = desktop;
 			productReference = AA06D46E2CF59841002ECE92 /* Desktop.app */;
@@ -198,6 +204,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AAED56702CF7326000887B28 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				AA0587082CFF16CA00A01A13 /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA06D46F2CF59841002ECE92 /* Products */;
@@ -557,6 +564,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		AA0587082CFF16CA00A01A13 /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lfroms/fluid-menu-bar-extra";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
 		AAED56702CF7326000887B28 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -568,6 +583,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		AA0587092CFF16CA00A01A13 /* FluidMenuBarExtra */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0587082CFF16CA00A01A13 /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */;
+			productName = FluidMenuBarExtra;
+		};
 		AAED56712CF7332C00887B28 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AAED56702CF7326000887B28 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;

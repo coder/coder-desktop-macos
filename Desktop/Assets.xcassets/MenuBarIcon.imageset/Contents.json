@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "coder_icon.png",
+      "filename" : "coder_icon_16.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "coder_icon.png",
+      "filename" : "coder_icon_32.png",
       "idiom" : "mac",
       "scale" : "2x"
     }

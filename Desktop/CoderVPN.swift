@@ -2,7 +2,8 @@ import SwiftUI
 
 protocol CoderVPN: ObservableObject {
     var state: CoderVPNState { get }
-    var data: [AgentRow] { get }
+    var agents: [AgentRow] { get }
+    var baseAccessURL: URL { get }
     func start() async
     func stop() async
 }

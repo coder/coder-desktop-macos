@@ -1,18 +1,14 @@
 import SwiftUI
+import FluidMenuBarExtra
 
 @main
 struct DesktopApp: App {
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    @State private var hidden: Bool = false
+
     var body: some Scene {
-        MenuBarExtra {
-            VPNMenu(vpnService: PreviewVPN()).frame(width: 256)
-        } label: {
-            let image: NSImage = {
-                let ratio = $0.size.height / $0.size.width
-                $0.size.height = 18
-                $0.size.width = 18 / ratio
-                return $0
-            }(NSImage(named: "MenuBarIcon")!)
-            Image(nsImage: image)
-        }.menuBarExtraStyle(.window)
+        MenuBarExtra("", isInserted: $hidden) {
+            EmptyView()
+        }
     }
 }

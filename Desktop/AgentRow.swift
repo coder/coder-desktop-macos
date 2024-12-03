@@ -5,10 +5,12 @@ struct AgentRow: Identifiable, Equatable {
     let name: String
     let status: Color
     let copyableDNS: String
+    let workspaceName: String
 }
 
 struct AgentRowView: View {
     let workspace: AgentRow
+    let baseAccessURL: URL
     @State private var nameIsSelected: Bool = false
     @State private var copyIsSelected: Bool = false
 
@@ -21,11 +23,14 @@ struct AgentRowView: View {
         return formattedName
     }
 
+    private var wsURL: URL {
+        // TODO: CoderVPN currently only supports owned workspaces
+        return baseAccessURL.appending(path: "@me").appending(path: workspace.workspaceName)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            Button {
-                // TODO: Action
-            } label: {
+            Link(destination: wsURL) {
                 HStack(spacing: 10) {
                     ZStack {
                         Circle()

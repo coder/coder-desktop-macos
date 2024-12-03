@@ -8,15 +8,15 @@ struct VPNMenu<VPN: CoderVPN>: View {
 
     var body: some View {
         // Main stack
-        VStackLayout(alignment: .leading) {
+        VStack(alignment: .leading) {
             // CoderVPN Stack
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Toggle(isOn: Binding(
                         get: { self.vpnService.state == .connected || self.vpnService.state == .connecting },
                         set: { isOn in Task {
-                            if isOn { await self.vpnService.start() } else { await self.vpnService.stop() }
-                        }
+                                if isOn { await self.vpnService.start() } else { await self.vpnService.stop() }
+                            }
                         }
                     )) {
                         Text("CoderVPN")
@@ -28,9 +28,12 @@ struct VPNMenu<VPN: CoderVPN>: View {
                 Text("Workspace Agents")
                     .font(.headline)
                     .foregroundColor(.gray)
-                if self.vpnService.state == .disabled {
-                    Text("Enable CoderVPN to see agents").font(.body).foregroundColor(.gray)
-                } else if self.vpnService.state == .connecting || self.vpnService.state == .disconnecting {
+                switch self.vpnService.state {
+                case .disabled:
+                    Text("Enable CoderVPN to see agents")
+                        .font(.body)
+                        .foregroundColor(.gray)
+                case .connecting, .disconnecting:
                     HStack {
                         Spacer()
                         ProgressView(
@@ -38,7 +41,7 @@ struct VPNMenu<VPN: CoderVPN>: View {
                         ).padding()
                         Spacer()
                     }
-                } else if case let .failed(vpnErr) = self.vpnService.state {
+                case let .failed(vpnErr):
                     Text("\(vpnErr.description)")
                         .font(.headline)
                         .foregroundColor(.red)
@@ -47,15 +50,18 @@ struct VPNMenu<VPN: CoderVPN>: View {
                         .padding(.horizontal, 15)
                         .padding(.top, 5)
                         .frame(maxWidth: .infinity)
+                default:
+                    EmptyView()
                 }
             }.padding([.horizontal, .top], 15)
             // Workspaces List
             if self.vpnService.state == .connected {
-                let visibleData = viewAll ? vpnService.data : Array(vpnService.data.prefix(defaultVisibleRows))
-                ForEach(visibleData) { workspace in
-                    AgentRowView(workspace: workspace).padding(.horizontal, 5)
+                let visibleData = viewAll ? vpnService.agents : Array(vpnService.agents.prefix(defaultVisibleRows))
+                ForEach(visibleData, id: \.id) { workspace in
+                    AgentRowView(workspace: workspace, baseAccessURL: vpnService.baseAccessURL)
+                        .padding(.horizontal, 5)
                 }
-                if vpnService.data.count > defaultVisibleRows {
+                if vpnService.agents.count > defaultVisibleRows {
                     Button(action: {
                         viewAll.toggle()
                     }, label: {
@@ -70,33 +76,34 @@ struct VPNMenu<VPN: CoderVPN>: View {
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
                 Divider().padding([.horizontal], 10).padding(.vertical, 4)
-                ButtonRowView {
-                    Text("Create workspace")
-                    EmptyView()
-                } action: {
-                    // TODO:
+                Link(destination: vpnService.baseAccessURL.appending(path: "templates")) {
+                    ButtonRowView {
+                        Text("Create workspace")
+                        EmptyView()
+                    }
                 }
                 Divider().padding([.horizontal], 10).padding(.vertical, 4)
                 ButtonRowView {
                     Text("About")
-                } action: {
-                    // TODO:
                 }
                 ButtonRowView {
                     Text("Preferences")
-                } action: {
-                    // TODO:
                 }
-                ButtonRowView {
-                    Text("Sign out")
-                } action: {
-                    // TODO:
-                }
+                Divider().padding([.horizontal], 10).padding(.vertical, 4)
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    ButtonRowView {
+                        Text("Quit")
+                    }
+                }.buttonStyle(.plain)
             }.padding([.horizontal, .bottom], 5)
         }.padding(.bottom, 5)
     }
 }
 
 #Preview {
-    VPNMenu(vpnService: PreviewVPN(shouldFail: true)).frame(width: 256)
+    VPNMenu(
+        vpnService: PreviewVPN(shouldFail: false)
+    ).frame(width: 256)
 }
