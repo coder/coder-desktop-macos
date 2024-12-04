@@ -1,0 +1,7 @@
+# Xcode specifics
+.DS_Store
+UserInterfaceState.xcuserstate
+xcuserdata/
+
+# JetBrains
+.idea/
