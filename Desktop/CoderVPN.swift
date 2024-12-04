@@ -17,6 +17,7 @@ enum CoderVPNState: Equatable {
 }
 
 enum CoderVPNError: Error {
+    // TODO: 
     case exampleError
 
     var description: String {

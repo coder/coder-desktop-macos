@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA05870A2CFF16CA00A01A13 /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA0587092CFF16CA00A01A13 /* FluidMenuBarExtra */; };
+		AA05887D2D0028F200A01A13 /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA05887C2D0028F200A01A13 /* ViewInspector */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA05887D2D0028F200A01A13 /* ViewInspector in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -142,6 +144,7 @@
 			);
 			name = DesktopTests;
 			packageProductDependencies = (
+				AA05887C2D0028F200A01A13 /* ViewInspector */,
 			);
 			productName = desktopTests;
 			productReference = AA06D47F2CF59842002ECE92 /* DesktopTests.xctest */;
@@ -205,6 +208,7 @@
 			packageReferences = (
 				AAED56702CF7326000887B28 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				AA0587082CFF16CA00A01A13 /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
+				AA05887B2D0028F200A01A13 /* XCRemoteSwiftPackageReference "ViewInspector" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA06D46F2CF59841002ECE92 /* Products */;
@@ -408,11 +412,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = desktop/desktop.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Desktop/Desktop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"desktop/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Desktop/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Coder Desktop";
@@ -436,11 +440,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = desktop/desktop.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Desktop/Desktop.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"desktop/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Desktop/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Coder Desktop";
@@ -503,7 +507,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = desktop;
+				TEST_TARGET_NAME = Desktop;
 			};
 			name = Debug;
 		};
@@ -518,7 +522,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = desktop;
+				TEST_TARGET_NAME = Desktop;
 			};
 			name = Release;
 		};
@@ -572,6 +576,14 @@
 				minimumVersion = 1.1.0;
 			};
 		};
+		AA05887B2D0028F200A01A13 /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nalexn/ViewInspector?tab=readme-ov-file";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.0;
+			};
+		};
 		AAED56702CF7326000887B28 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -587,6 +599,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0587082CFF16CA00A01A13 /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */;
 			productName = FluidMenuBarExtra;
+		};
+		AA05887C2D0028F200A01A13 /* ViewInspector */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA05887B2D0028F200A01A13 /* XCRemoteSwiftPackageReference "ViewInspector" */;
+			productName = ViewInspector;
 		};
 		AAED56712CF7332C00887B28 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

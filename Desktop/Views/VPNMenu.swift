@@ -8,9 +8,9 @@ struct VPNMenu<VPN: CoderVPN>: View {
 
     var body: some View {
         // Main stack
-        VStack(alignment: .leading) {
+        VStackLayout(alignment: .leading) {
             // CoderVPN Stack
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
                 HStack {
                     Toggle(isOn: Binding(
                         get: { self.vpnService.state == .connected || self.vpnService.state == .connecting },
@@ -23,6 +23,7 @@ struct VPNMenu<VPN: CoderVPN>: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }.toggleStyle(.switch)
                         .disabled(self.vpnService.state == .connecting || self.vpnService.state == .disconnecting)
+                        .accessibilityIdentifier("coderVPNToggle")
                 }
                 Divider()
                 Text("Workspace Agents")
@@ -47,49 +48,47 @@ struct VPNMenu<VPN: CoderVPN>: View {
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 15)
-                        .padding(.top, 5)
+                        .padding(.horizontal, Theme.Size.trayInset)
+                        .padding(.vertical, Theme.Size.trayPadding)
                         .frame(maxWidth: .infinity)
                 default:
                     EmptyView()
                 }
-            }.padding([.horizontal, .top], 15)
+            }.padding([.horizontal, .top], Theme.Size.trayInset)
             // Workspaces List
             if self.vpnService.state == .connected {
                 let visibleData = viewAll ? vpnService.agents : Array(vpnService.agents.prefix(defaultVisibleRows))
                 ForEach(visibleData, id: \.id) { workspace in
                     AgentRowView(workspace: workspace, baseAccessURL: vpnService.baseAccessURL)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, Theme.Size.trayMargin)
                 }
                 if vpnService.agents.count > defaultVisibleRows {
-                    Button(action: {
-                        viewAll.toggle()
-                    }, label: {
+                    Toggle(isOn: $viewAll) {
                         Text(viewAll ? "Show Less" : "Show All")
                             .font(.headline)
                             .foregroundColor(.gray)
-                            .padding(.horizontal, 15)
-                            .padding(.top, 5)
-                    }).buttonStyle(.plain)
+                            .padding(.horizontal, Theme.Size.trayInset)
+                            .padding(.top, 2)
+                    }.toggleStyle(.button).buttonStyle(.plain)
                 }
             }
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
-                Divider().padding([.horizontal], 10).padding(.vertical, 4)
+                TrayDivider()
                 Link(destination: vpnService.baseAccessURL.appending(path: "templates")) {
                     ButtonRowView {
                         Text("Create workspace")
                         EmptyView()
                     }
                 }
-                Divider().padding([.horizontal], 10).padding(.vertical, 4)
+                TrayDivider()
                 ButtonRowView {
                     Text("About")
                 }
                 ButtonRowView {
                     Text("Preferences")
                 }
-                Divider().padding([.horizontal], 10).padding(.vertical, 4)
+                TrayDivider()
                 Button {
                     NSApp.terminate(nil)
                 } label: {
@@ -97,8 +96,8 @@ struct VPNMenu<VPN: CoderVPN>: View {
                         Text("Quit")
                     }
                 }.buttonStyle(.plain)
-            }.padding([.horizontal, .bottom], 5)
-        }.padding(.bottom, 5)
+            }.padding([.horizontal, .bottom], Theme.Size.trayMargin)
+        }.padding(.bottom, Theme.Size.trayMargin)
     }
 }
 

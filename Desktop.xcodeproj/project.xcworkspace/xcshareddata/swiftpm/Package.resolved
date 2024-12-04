@@ -1,5 +1,5 @@
 {
-  "originHash" : "ba5cc6c48f18a191bfc7dfa34832790cdb9026b6a8f9b71b6dfe43cd35602671",
+  "originHash" : "d39a8b95e058413544f0c950992976311c18db0f67bd754d563e7affcecf57f0",
   "pins" : [
     {
       "identity" : "fluid-menu-bar-extra",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "f9731bef175c3eea3a0ca960f1be78fcc2bc7853",
         "version" : "0.57.1"
+      }
+    },
+    {
+      "identity" : "viewinspector?tab=readme-ov-file",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nalexn/ViewInspector?tab=readme-ov-file",
+      "state" : {
+        "revision" : "5acfa0a3c095ac9ad050abe51c60d1831e8321da",
+        "version" : "0.10.0"
       }
     }
   ],

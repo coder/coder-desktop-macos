@@ -31,7 +31,7 @@ struct AgentRowView: View {
     var body: some View {
         HStack(spacing: 0) {
             Link(destination: wsURL) {
-                HStack(spacing: 10) {
+                HStack(spacing: Theme.Size.trayPadding) {
                     ZStack {
                         Circle()
                             .fill(workspace.status.opacity(0.4))
@@ -42,12 +42,12 @@ struct AgentRowView: View {
                     }
                     Text(fmtWsName).lineLimit(1).truncationMode(.tail)
                     Spacer()
-                }.padding(.horizontal, 10)
+                }.padding(.horizontal, Theme.Size.trayPadding)
                     .frame(minHeight: 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .foregroundStyle(nameIsSelected ? Color.white : .primary)
                     .background(nameIsSelected ? Color.accentColor.opacity(0.8) : .clear)
-                    .clipShape(.rect(cornerRadius: 4))
+                    .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
                     .onHover { hovering in nameIsSelected = hovering }
                 Spacer()
             }.buttonStyle(.plain)
@@ -61,10 +61,10 @@ struct AgentRowView: View {
             }.foregroundStyle(copyIsSelected ? Color.white : .primary)
                 .imageScale(.small)
                 .background(copyIsSelected ? Color.accentColor.opacity(0.8) : .clear)
-                .clipShape(.rect(cornerRadius: 4))
+                .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
                 .onHover { hovering in copyIsSelected = hovering }
                 .buttonStyle(.plain)
-                .padding(.trailing, 5)
+                .padding(.trailing, Theme.Size.trayMargin)
         }
     }
 }
