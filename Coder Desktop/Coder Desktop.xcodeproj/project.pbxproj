@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 961679322CFF117300B2B6DF /* NetworkExtension.framework */; };
 		9616793D2CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
+		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
+		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +101,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
+				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +110,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,6 +178,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */,
 				9616793C2CFF117300B2B6DF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -179,6 +186,8 @@
 			);
 			name = "Coder Desktop";
 			packageProductDependencies = (
+				AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */,
+				AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */,
 			);
 			productName = "Coder Desktop";
 			productReference = 961678FC2CFF100D00B2B6DF /* Coder Desktop.app */;
@@ -202,6 +211,7 @@
 			);
 			name = "Coder DesktopTests";
 			packageProductDependencies = (
+				AA8BC3382D0060A900E1ABAA /* ViewInspector */,
 			);
 			productName = "Coder DesktopTests";
 			productReference = 9616790F2CFF100E00B2B6DF /* Coder DesktopTests.xctest */;
@@ -287,6 +297,12 @@
 			);
 			mainGroup = 961678F32CFF100D00B2B6DF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */,
+				AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
+				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
 			projectDirPath = "";
@@ -377,6 +393,10 @@
 			isa = PBXTargetDependency;
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 			targetProxy = 9616793B2CFF117300B2B6DF /* PBXContainerItemProxy */;
+		};
+		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -724,6 +744,64 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nalexn/ViewInspector";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.0;
+			};
+		};
+		AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.57.1;
+			};
+		};
+		AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lfroms/fluid-menu-bar-extra";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+		AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				branch = e0c7eebc5a4465a3c4680764f26b7a61f567cdaf;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA8BC3382D0060A900E1ABAA /* ViewInspector */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */;
+			productName = ViewInspector;
+		};
+		AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */;
+			productName = FluidMenuBarExtra;
+		};
+		AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 961678F42CFF100D00B2B6DF /* Project object */;
 }

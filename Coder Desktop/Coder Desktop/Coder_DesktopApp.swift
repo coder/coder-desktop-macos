@@ -1,25 +1,30 @@
 import SwiftUI
-import SwiftData
+import FluidMenuBarExtra
 
 @main
-struct Coder_DesktopApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+struct DesktopApp: App {
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    @State private var hidden: Bool = false
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra("", isInserted: $hidden) {
+            EmptyView()
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var menuBarExtra: FluidMenuBarExtra?
+    // TODO: Replace with real implementations
+    private var vpn = PreviewVPN()
+    private var session = PreviewSession()
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        self.menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
+            VPNMenu(
+                vpn: self.vpn,
+                session: self.session
+            ).frame(width: 256)
+        }
     }
 }

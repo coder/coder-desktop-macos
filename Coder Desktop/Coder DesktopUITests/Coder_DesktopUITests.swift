@@ -16,12 +16,10 @@ final class Coder_DesktopUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testStatusItemExists() throws {
         let app = XCUIApplication()
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        app.statusItems.firstMatch.tap()
     }
 
     @MainActor
