@@ -4,7 +4,7 @@ import SwiftUI
 class MockVPNService: VPNService, ObservableObject {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var baseAccessURL: URL = URL(string: "https://dev.coder.com")!
-    @Published var agents: [Coder_Desktop.AgentRow] = []
+    @Published var agents: [Coder_Desktop.Agent] = []
     var onStart: (() async -> Void)?
     var onStop: (() async -> Void)?
 

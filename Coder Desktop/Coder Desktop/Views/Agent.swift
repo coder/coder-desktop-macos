@@ -1,15 +1,31 @@
 import SwiftUI
 
-struct AgentRow: Identifiable, Equatable {
+struct Agent: Identifiable, Equatable {
     let id: UUID
     let name: String
-    let status: Color
+    let status: AgentStatus
     let copyableDNS: String
     let workspaceName: String
 }
 
+enum AgentStatus: Equatable {
+    case okay
+    case warn
+    case error
+    case off
+
+    public var color: Color {
+        switch self {
+        case .okay: return .green
+        case .warn: return .yellow
+        case .error: return .red
+        case .off: return .gray
+        }
+    }
+}
+
 struct AgentRowView: View {
-    let workspace: AgentRow
+    let workspace: Agent
     let baseAccessURL: URL
     @State private var nameIsSelected: Bool = false
     @State private var copyIsSelected: Bool = false
@@ -34,10 +50,10 @@ struct AgentRowView: View {
                 HStack(spacing: Theme.Size.trayPadding) {
                     ZStack {
                         Circle()
-                            .fill(workspace.status.opacity(0.4))
+                            .fill(workspace.status.color.opacity(0.4))
                             .frame(width: 12, height: 12)
                         Circle()
-                            .fill(workspace.status.opacity(1.0))
+                            .fill(workspace.status.color.opacity(1.0))
                             .frame(width: 7, height: 7)
                     }
                     Text(fmtWsName).lineLimit(1).truncationMode(.tail)

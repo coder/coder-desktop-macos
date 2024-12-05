@@ -2,7 +2,7 @@ import SwiftUI
 
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
-    var agents: [AgentRow] { get }
+    var agents: [Agent] { get }
     func start() async
     // Stop must be idempotent
     func stop() async

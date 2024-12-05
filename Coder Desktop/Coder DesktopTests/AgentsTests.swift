@@ -3,12 +3,12 @@ import ViewInspector
 import XCTest
 
 final class AgentsTests: XCTestCase {
-    private func createMockAgents(count: Int) -> [AgentRow] {
+    private func createMockAgents(count: Int) -> [Agent] {
         return (1...count).map {
-            AgentRow(
+            Agent(
                 id: UUID(),
                 name: "a\($0)",
-                status: .green,
+                status: .okay,
                 copyableDNS: "a\($0).example.com",
                 workspaceName: "w\($0)"
             )

@@ -2,21 +2,21 @@ import SwiftUI
 
 class PreviewVPN: Coder_Desktop.VPNService {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
-    @Published var agents: [Coder_Desktop.AgentRow] = [
-        AgentRow(id: UUID(), name: "dogfood2", status: .red, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
-        AgentRow(id: UUID(), name: "testing-a-very-long-name", status: .green, copyableDNS: "asdf.coder",
+    @Published var agents: [Coder_Desktop.Agent] = [
+        Agent(id: UUID(), name: "dogfood2", status: .error, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
+        Agent(id: UUID(), name: "testing-a-very-long-name", status: .okay, copyableDNS: "asdf.coder",
                  workspaceName: "testing-a-very-long-name"
         ),
-        AgentRow(id: UUID(), name: "opensrc", status: .yellow, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
-        AgentRow(id: UUID(), name: "gvisor", status: .gray, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
-        AgentRow(id: UUID(), name: "example", status: .gray, copyableDNS: "asdf.coder", workspaceName: "example"),
-        AgentRow(id: UUID(), name: "dogfood2", status: .red, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
-        AgentRow(id: UUID(), name: "testing-a-very-long-name", status: .green, copyableDNS: "asdf.coder",
+        Agent(id: UUID(), name: "opensrc", status: .warn, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
+        Agent(id: UUID(), name: "gvisor", status: .off, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
+        Agent(id: UUID(), name: "example", status: .off, copyableDNS: "asdf.coder", workspaceName: "example"),
+        Agent(id: UUID(), name: "dogfood2", status: .error, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
+        Agent(id: UUID(), name: "testing-a-very-long-name", status: .okay, copyableDNS: "asdf.coder",
                  workspaceName: "testing-a-very-long-name"
         ),
-        AgentRow(id: UUID(), name: "opensrc", status: .yellow, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
-        AgentRow(id: UUID(), name: "gvisor", status: .gray, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
-        AgentRow(id: UUID(), name: "example", status: .gray, copyableDNS: "asdf.coder", workspaceName: "example"),
+        Agent(id: UUID(), name: "opensrc", status: .warn, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
+        Agent(id: UUID(), name: "gvisor", status: .off, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
+        Agent(id: UUID(), name: "example", status: .off, copyableDNS: "asdf.coder", workspaceName: "example"),
     ]
     let shouldFail: Bool
 
