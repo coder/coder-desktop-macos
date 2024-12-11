@@ -3,7 +3,6 @@ import ViewInspector
 import XCTest
 
 final class VPNStateTests: XCTestCase {
-
     func testDisabledState() throws {
         let vpn = MockVPNService()
         vpn.state = .disabled

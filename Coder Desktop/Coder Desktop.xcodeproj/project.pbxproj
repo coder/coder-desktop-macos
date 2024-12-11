@@ -12,6 +12,7 @@
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
+		AAD720D02D0816B200F6304D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = AAD720CF2D0816B200F6304D /* Alamofire */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +102,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAD720D02D0816B200F6304D /* Alamofire in Frameworks */,
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
 			);
@@ -188,6 +190,7 @@
 			packageProductDependencies = (
 				AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */,
 				AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */,
+				AAD720CF2D0816B200F6304D /* Alamofire */,
 			);
 			productName = "Coder Desktop";
 			productReference = 961678FC2CFF100D00B2B6DF /* Coder Desktop.app */;
@@ -302,6 +305,7 @@
 				AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
 				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -533,6 +537,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -561,6 +566,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -778,6 +784,14 @@
 				kind = branch;
 			};
 		};
+		AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -800,6 +814,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */;
 			productName = KeychainAccess;
+		};
+		AAD720CF2D0816B200F6304D /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
