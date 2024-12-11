@@ -39,18 +39,18 @@ struct LoginForm<C: Client, S: Session>: View {
                 loginError = nil
                 baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
                 sessionToken = ""
-            }
-            ZStack {
+            }.padding(.top, 35)
+            VStack(alignment: .center) {
                 if let loginError {
                     Text("\(loginError.description)")
                         .font(.headline)
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                 } else if loading {
-                    ProgressView()
+                    ProgressView().controlSize(.small)
                 }
             }
-            .frame(height: 30)
+            .frame(height: 35)
         }.padding()
             .frame(width: 450, height: 220)
             .disabled(loading)
@@ -196,5 +196,7 @@ enum LoginField: Hashable {
 }
 
 #Preview {
-    LoginForm<PreviewClient, PreviewSession>().environmentObject(PreviewSession())
+    LoginForm<PreviewClient, PreviewSession>()
+        .environmentObject(PreviewSession())
+        .environmentObject(PreviewClient())
 }
