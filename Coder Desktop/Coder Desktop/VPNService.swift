@@ -17,7 +17,7 @@ enum VPNServiceState: Equatable {
 }
 
 enum VPNServiceError: Error, Equatable {
-    // TODO: 
+    // TODO:
     case exampleError
 
     var description: String {

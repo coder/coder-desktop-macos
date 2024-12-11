@@ -1,7 +1,6 @@
 import XCTest
 
 final class Coder_DesktopUITestsLaunchTests: XCTestCase {
-
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
     }

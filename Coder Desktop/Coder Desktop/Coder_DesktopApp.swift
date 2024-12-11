@@ -1,5 +1,5 @@
-import SwiftUI
 import FluidMenuBarExtra
+import SwiftUI
 
 @main
 struct DesktopApp: App {
@@ -10,21 +10,39 @@ struct DesktopApp: App {
         MenuBarExtra("", isInserted: $hidden) {
             EmptyView()
         }
+        Window("Sign In", id: Windows.login.rawValue) {
+            LoginForm<PreviewClient, PreviewSession>()
+        }.environmentObject(appDelegate.session)
+            .environmentObject(appDelegate.client)
+            .windowResizability(.contentSize)
     }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
-    // TODO: Replace with real implementations
-    private var vpn = PreviewVPN()
-    private var session = PreviewSession()
+    let vpn: PreviewVPN
+    let session: PreviewSession
+    let client: PreviewClient
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        self.menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
-            VPNMenu(
-                vpn: self.vpn,
-                session: self.session
-            ).frame(width: 256)
+    override init() {
+        // TODO: Replace with real implementations
+        client = PreviewClient()
+        vpn = PreviewVPN()
+        session = PreviewSession()
+    }
+
+    func applicationDidFinishLaunching(_: Notification) {
+        if session.hasSession {
+            client.initialise(url: session.baseAccessURL!, token: session.sessionToken)
         }
+        menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
+            VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
+                .environmentObject(self.vpn)
+                .environmentObject(self.session)
+        }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
+        false
     }
 }

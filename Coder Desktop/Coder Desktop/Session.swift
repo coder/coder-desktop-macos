@@ -1,64 +1,73 @@
-import KeychainAccess
 import Foundation
+import KeychainAccess
 
 protocol Session: ObservableObject {
     var hasSession: Bool { get }
-    var sessionToken: String? { get }
     var baseAccessURL: URL? { get }
+    var sessionToken: String? { get }
 
-    func login(baseAccessURL: URL, sessionToken: String)
-    func logout()
+    func store(baseAccessURL: URL, sessionToken: String)
+    func clear()
 }
 
 class SecureSession: ObservableObject {
+    // Stored in UserDefaults
     @Published private(set) var hasSession: Bool {
         didSet {
-            UserDefaults.standard.set(hasSession, forKey: "hasSession")
+            UserDefaults.standard.set(hasSession, forKey: Keys.hasSession)
         }
     }
-    @Published private(set) var sessionToken: String? {
-        didSet {
-            setValue(sessionToken, for: "sessionToken")
-        }
-    }
+
     @Published private(set) var baseAccessURL: URL? {
         didSet {
-            setValue(baseAccessURL?.absoluteString, for: "baseAccessURL")
+            UserDefaults.standard.set(baseAccessURL, forKey: Keys.baseAccessURL)
         }
     }
+
+    // Stored in Keychain
+    @Published private(set) var sessionToken: String? {
+        didSet {
+            keychainSet(sessionToken, for: Keys.sessionToken)
+        }
+    }
+
     private let keychain: Keychain
 
     public init() {
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
-        _hasSession = Published(initialValue: UserDefaults.standard.bool(forKey: "hasSession"))
+        _hasSession = Published(initialValue: UserDefaults.standard.bool(forKey: Keys.hasSession))
+        _baseAccessURL = Published(initialValue: UserDefaults.standard.url(forKey: Keys.baseAccessURL))
         if hasSession {
-            _sessionToken = Published(initialValue: getValue(for: "sessionToken"))
-            _baseAccessURL = Published(initialValue: getValue(for: "baseAccessURL").flatMap(URL.init))
+            _sessionToken = Published(initialValue: keychainGet(for: Keys.sessionToken))
         }
     }
 
-    public func login(baseAccessURL: URL, sessionToken: String) {
+    public func store(baseAccessURL: URL, sessionToken: String) {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
     }
 
-    // Called when the user logs out, or if we find out the token has expired
-    public func logout() {
+    public func clear() {
         hasSession = false
         sessionToken = nil
-        baseAccessURL = nil
     }
 
-    private func getValue(for key: String) -> String? {
+    private func keychainGet(for key: String) -> String? {
         try? keychain.getString(key)
     }
 
-    private func setValue(_ value: String?, for key: String) {
+    private func keychainSet(_ value: String?, for key: String) {
         if let value = value {
             try? keychain.set(value, key: key)
         } else {
             try? keychain.remove(key)
         }
+    }
+
+    enum Keys {
+        static let hasSession = "hasSession"
+        static let baseAccessURL = "baseAccessURL"
+        static let sessionToken = "sessionToken"
     }
 }

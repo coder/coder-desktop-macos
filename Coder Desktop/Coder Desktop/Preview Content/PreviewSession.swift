@@ -11,15 +11,14 @@ class PreviewSession: Session {
         baseAccessURL = nil
     }
 
-    func login(baseAccessURL: URL, sessionToken: String) {
+    func store(baseAccessURL: URL, sessionToken: String) {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
     }
 
-    func logout() {
+    func clear() {
         hasSession = false
-        self.baseAccessURL = nil
-        self.sessionToken = nil
+        sessionToken = nil
     }
 }
