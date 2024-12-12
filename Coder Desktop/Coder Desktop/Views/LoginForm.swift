@@ -47,8 +47,6 @@ struct LoginForm<C: Client, S: Session>: View {
                         .font(.headline)
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
-                } else if loading {
-                    ProgressView().controlSize(.small)
                 }
             }
             .frame(height: 35)

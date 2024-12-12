@@ -1,19 +1,29 @@
 @testable import Coder_Desktop
 import Testing
 import ViewInspector
+import SwiftUI
 
 @Suite(.timeLimit(.minutes(1)))
 struct VPNMenuTests {
+    let vpn: MockVPNService
+    let session: MockSession
+    let sut: VPNMenu<MockVPNService, MockSession>
+    let view: any View
+
+    init() {
+        vpn = MockVPNService()
+        session = MockSession()
+        sut = VPNMenu<MockVPNService, MockSession>()
+        view = sut.environmentObject(vpn).environmentObject(session)
+    }
+
     @Test
     @MainActor
     func testVPNLoggedOut() async throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
         session.hasSession = false
-        let view = VPNMenu<MockVPNService, MockSession>()
 
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
                 #expect(toggle.isDisabled())
                 #expect(throws: Never.self) { try view.find(text: "Sign in to use CoderVPN") }
@@ -25,12 +35,8 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testStartStopCalled() async throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
-        let view = VPNMenu<MockVPNService, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
 
@@ -54,13 +60,10 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testVPNDisabledWhileConnecting() async throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
         vpn.state = .disabled
-        let view = VPNMenu<MockVPNService, MockSession>()
 
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
 
@@ -78,13 +81,10 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testVPNDisabledWhileDisconnecting() async throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
         vpn.state = .disabled
-        let view = VPNMenu<MockVPNService, MockSession>()
 
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
 
@@ -108,12 +108,8 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testOffWhenFailed() async throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
-        let view = VPNMenu<MockVPNService, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
 

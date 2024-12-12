@@ -1,17 +1,25 @@
 @testable import Coder_Desktop
 import ViewInspector
 import Testing
+import SwiftUI
 
 @Suite(.timeLimit(.minutes(1)))
 struct LoginTests {
+    let session: MockSession
+    let sut: LoginForm<MockClient, MockSession>
+    let view: any View
+
+    init() {
+        session = MockSession()
+        sut = LoginForm<MockClient, MockSession>()
+        view = sut.environmentObject(session)
+    }
+
     @Test
     @MainActor
     func testInitialView() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) { try view.find(text: "Coder Desktop") }
                 #expect(throws: Never.self) { try view.find(text: "Server URL") }
                 #expect(throws: Never.self) { try view.find(button: "Next") }
@@ -22,11 +30,8 @@ struct LoginTests {
     @Test
     @MainActor
     func testInvalidServerURL() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("")
                 try view.find(button: "Next").tap()
                 #expect(throws: Never.self) { try view.find(text: "Invalid URL") }
@@ -37,11 +42,8 @@ struct LoginTests {
     @Test
     @MainActor
     func testValidServerURL() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
 
@@ -55,11 +57,8 @@ struct LoginTests {
     @Test
     @MainActor
     func testBackButton() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
                 try view.find(button: "Back").tap()
@@ -73,11 +72,8 @@ struct LoginTests {
     @Test
     @MainActor
     func testInvalidSessionToken() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
                 try view.find(ViewType.SecureField.self).setInput("")
@@ -90,7 +86,6 @@ struct LoginTests {
     @Test
     @MainActor
     func testFailedAuthentication() async throws {
-        let session = MockSession()
         let login = LoginForm<MockErrorClient, MockSession>()
 
         try await ViewHosting.host(login.environmentObject(session)) { _ in
@@ -108,11 +103,8 @@ struct LoginTests {
     @Test
     @MainActor
     func testSuccessfulLogin() async throws {
-        let session = MockSession()
-        let view = LoginForm<MockClient, MockSession>()
-
-        try await ViewHosting.host(view.environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
                 try view.find(ViewType.SecureField.self).setInput("valid-token")

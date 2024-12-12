@@ -1,11 +1,22 @@
 @testable import Coder_Desktop
 import Testing
 import ViewInspector
-import Foundation
+import SwiftUI
 
 @Suite(.timeLimit(.minutes(1)))
 struct AgentsTests {
-    @MainActor
+    let vpn: MockVPNService
+    let session: MockSession
+    let sut: Agents<MockVPNService, MockSession>
+    let view: any View
+
+    init() {
+        vpn = MockVPNService()
+        session = MockSession()
+        sut = Agents<MockVPNService, MockSession>()
+        view = sut.environmentObject(vpn).environmentObject(session)
+    }
+
     private func createMockAgents(count: Int) -> [Agent] {
         return (1 ... count).map {
             Agent(
@@ -21,10 +32,7 @@ struct AgentsTests {
     @Test
     @MainActor
     func agentsWhenVPNOff() throws {
-        let vpn = MockVPNService()
         vpn.state = .disabled
-        let session = MockSession()
-        let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
         #expect(throws: (any Error).self) {
             _ = try view.inspect().find(ViewType.ForEach.self)
@@ -34,11 +42,8 @@ struct AgentsTests {
     @Test
     @MainActor
     func agentsWhenVPNOn() throws {
-        let vpn = MockVPNService()
         vpn.state = .connected
         vpn.agents = createMockAgents(count: Theme.defaultVisibleAgents + 2)
-        let session = MockSession()
-        let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
@@ -48,14 +53,11 @@ struct AgentsTests {
     @Test
     @MainActor
     func showAllToggle() async throws {
-        let vpn = MockVPNService()
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 7)
-        let session = MockSession()
-        let view = Agents<MockVPNService, MockSession>()
 
-        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
-            try await view.inspection.inspect { view in
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try toggle.labelView().text().string() == "Show All")
                 #expect(try !toggle.isOn())
@@ -78,11 +80,8 @@ struct AgentsTests {
     @Test
     @MainActor
     func noToggleFewAgents() throws {
-        let vpn = MockVPNService()
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 3)
-        let session = MockSession()
-        let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
         #expect(throws: (any Error).self) {
             _ = try view.inspect().find(ViewType.Toggle.self)
