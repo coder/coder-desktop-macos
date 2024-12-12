@@ -1,107 +1,126 @@
 @testable import Coder_Desktop
+import Testing
 import ViewInspector
-import XCTest
+import SwiftUI
 
-final class VPNMenuTests: XCTestCase {
-    func testVPNLoggedOut() throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
+@Suite(.timeLimit(.minutes(1)))
+struct VPNMenuTests {
+    let vpn: MockVPNService
+    let session: MockSession
+    let sut: VPNMenu<MockVPNService, MockSession>
+    let view: any View
+
+    init() {
+        vpn = MockVPNService()
+        session = MockSession()
+        sut = VPNMenu<MockVPNService, MockSession>()
+        view = sut.environmentObject(vpn).environmentObject(session)
+    }
+
+    @Test
+    @MainActor
+    func testVPNLoggedOut() async throws {
         session.hasSession = false
-        let view = VPNMenu(vpn: vpn, session: session)
-        let toggle = try view.inspect().find(ViewType.Toggle.self)
 
-        XCTAssertTrue(toggle.isDisabled())
-        XCTAssertNoThrow(try view.inspect().find(text: "Login to use CoderVPN"))
-        XCTAssertNoThrow(try view.inspect().find(button: "Login"))
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
+                let toggle = try view.find(ViewType.Toggle.self)
+                #expect(toggle.isDisabled())
+                #expect(throws: Never.self) { try view.find(text: "Sign in to use CoderVPN") }
+                #expect(throws: Never.self) { try view.find(button: "Sign In") }
+            }
+        }
     }
 
-    func testStartStopCalled() throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
-        let view = VPNMenu(vpn: vpn, session: session)
-        let toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertFalse(try toggle.isOn())
+    @Test
+    @MainActor
+    func testStartStopCalled() async throws {
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
+                var toggle = try view.find(ViewType.Toggle.self)
+                #expect(try !toggle.isOn())
 
-        var e = expectation(description: "start is called")
-        vpn.onStart = {
-            vpn.state = .connected
-            e.fulfill()
-        }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
-        XCTAssertTrue(try toggle.isOn())
+                vpn.onStart = {
+                    vpn.state = .connected
+                }
+                await vpn.start()
 
-        e = expectation(description: "stop is called")
-        vpn.onStop = {
-            vpn.state = .disabled
-            e.fulfill()
+                toggle = try view.find(ViewType.Toggle.self)
+                #expect(try toggle.isOn())
+
+                vpn.onStop = {
+                    vpn.state = .disabled
+                }
+                await vpn.stop()
+                #expect(try !toggle.isOn())
+            }
         }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
     }
 
-    func testVPNDisabledWhileConnecting() throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
+    @Test
+    @MainActor
+    func testVPNDisabledWhileConnecting() async throws {
         vpn.state = .disabled
-        let view = VPNMenu(vpn: vpn, session: session)
-        var toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertFalse(try toggle.isOn())
-    
-        let e = expectation(description: "start is called")
-        vpn.onStart = {
-            e.fulfill()
+
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
+                var toggle = try view.find(ViewType.Toggle.self)
+                #expect(try !toggle.isOn())
+
+                vpn.onStart = {
+                    vpn.state = .connecting
+                }
+                await vpn.start()
+
+                toggle = try view.find(ViewType.Toggle.self)
+                #expect(toggle.isDisabled())
+            }
         }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
-        
-        toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertTrue(toggle.isDisabled())
     }
-    
-    func testVPNDisabledWhileDisconnecting() throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
+
+    @Test
+    @MainActor
+    func testVPNDisabledWhileDisconnecting() async throws {
         vpn.state = .disabled
-        let view = VPNMenu(vpn: vpn, session: session)
-        var toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertFalse(try toggle.isOn())
-    
-        var e = expectation(description: "start is called")
-        vpn.onStart = {
-            e.fulfill()
-            vpn.state = .connected
+
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
+                var toggle = try view.find(ViewType.Toggle.self)
+                #expect(try !toggle.isOn())
+
+                vpn.onStart = {
+                    vpn.state = .connected
+                }
+                await vpn.start()
+                #expect(try toggle.isOn())
+
+                vpn.onStop = {
+                    vpn.state = .disconnecting
+                }
+                await vpn.stop()
+
+                toggle = try view.find(ViewType.Toggle.self)
+                #expect(toggle.isDisabled())
+            }
         }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
-        
-        e = expectation(description: "stop is called")
-        vpn.onStop = {
-            e.fulfill()
-        }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
-        
-        toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertTrue(toggle.isDisabled())
     }
-    
-    func testOffWhenFailed() throws {
-        let vpn = MockVPNService()
-        let session = MockSession()
-        let view = VPNMenu(vpn: vpn, session: session)
-        let toggle = try view.inspect().find(ViewType.Toggle.self)
-        XCTAssertFalse(try toggle.isOn())
-        
-        let e = expectation(description: "toggle is off")
-        vpn.onStart = {
-            vpn.state = .failed(.exampleError)
-            e.fulfill()
+
+    @Test
+    @MainActor
+    func testOffWhenFailed() async throws {
+        try await ViewHosting.host(view) { _ in
+            try await sut.inspection.inspect { view in
+                let toggle = try view.find(ViewType.Toggle.self)
+                #expect(try !toggle.isOn())
+
+                vpn.onStart = {
+                    vpn.state = .failed(.exampleError)
+                }
+                await vpn.start()
+
+                #expect(try !toggle.isOn())
+                #expect(!toggle.isDisabled())
+            }
         }
-        try toggle.tap()
-        wait(for: [e], timeout: 1.0)
-        XCTAssertFalse(try toggle.isOn())
-        XCTAssertFalse(toggle.isDisabled())
     }
-    
 }

@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct VPNMenu<VPN: VPNService, S: Session>: View {
-    @ObservedObject var vpn: VPN
-    @ObservedObject var session: S
+    @EnvironmentObject var vpn: VPN
+    @EnvironmentObject var session: S
+
+    internal let inspection = Inspection<Self>()
 
     var body: some View {
         // Main stack
@@ -13,15 +15,14 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     Toggle(isOn: Binding(
                         get: { self.vpn.state == .connected || self.vpn.state == .connecting },
                         set: { isOn in Task {
-                                if isOn { await self.vpn.start() } else { await self.vpn.stop() }
-                            }
+                            if isOn { await self.vpn.start() } else { await self.vpn.stop() }
+                        }
                         }
                     )) {
                         Text("CoderVPN")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }.toggleStyle(.switch)
                         .disabled(vpnDisabled)
-                        .accessibilityIdentifier("coderVPNToggle")
                 }
                 Divider()
                 Text("Workspace Agents")
@@ -30,7 +31,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                 if session.hasSession {
                     VPNState<VPN>()
                 } else {
-                    Text("Login to use CoderVPN")
+                    Text("Sign in to use CoderVPN")
                         .font(.body)
                         .foregroundColor(.gray)
                 }
@@ -49,8 +50,12 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     TrayDivider()
                 }
                 AuthButton<VPN, S>()
-                ButtonRowView {
-                    Text("About")
+                Button {
+                    About.open()
+                } label: {
+                    ButtonRowView {
+                        Text("About")
+                    }
                 }.buttonStyle(.plain)
                 TrayDivider()
                 Button {
@@ -67,18 +72,18 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
         }.padding(.bottom, Theme.Size.trayMargin)
             .environmentObject(vpn)
             .environmentObject(session)
+            .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
     }
 
     private var vpnDisabled: Bool {
         return !session.hasSession ||
-        vpn.state == .connecting ||
-        vpn.state == .disconnecting
+            vpn.state == .connecting ||
+            vpn.state == .disconnecting
     }
 }
 
 #Preview {
-    VPNMenu(
-        vpn: PreviewVPN(shouldFail: false),
-        session: PreviewSession()
-    ).frame(width: 256)
+    VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
+        .environmentObject(PreviewVPN())
+        .environmentObject(PreviewSession())
 }
