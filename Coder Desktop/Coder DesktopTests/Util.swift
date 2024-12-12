@@ -44,11 +44,8 @@ class MockSession: Session {
     }
 }
 
-class MockClient: Client {
-    var shouldFail: Bool = false
-    required init() {}
-
-    func initialise(url _: URL, token _: String?) {}
+struct MockClient: Client {
+    init(url _: URL, token _: String? = nil) {}
 
     func user(_: String) async throws -> Coder_Desktop.User {
         User(
@@ -69,35 +66,11 @@ class MockClient: Client {
     }
 }
 
-public let TEST_ID = "wrapped"
-
-// This wrapper allows stateful views to be inspected
-struct TestWrapperView<Wrapped: View>: View {
-    let inspection = Inspection<Self>()
-    var wrapped: Wrapped
-
-    init(wrapped: Wrapped) {
-        self.wrapped = wrapped
-    }
-
-    var body: some View {
-        wrapped
-            .id(TEST_ID)
-            .onReceive(inspection.notice) {
-                self.inspection.visit(self, $0)
-            }
+struct MockErrorClient: Client {
+    init(url: URL, token: String?) {}
+    func user(_ ident: String) async throws -> Coder_Desktop.User {
+        throw ClientError.badResponse
     }
 }
 
-final class Inspection<V> {
-    let notice = PassthroughSubject<UInt, Never>()
-    var callbacks = [UInt: (V) -> Void]()
-
-    func visit(_ view: V, _ line: UInt) {
-        if let callback = callbacks.removeValue(forKey: line) {
-            callback(view)
-        }
-    }
-}
-
-extension Inspection: InspectionEmissary {}
+extension Inspection: @retroactive InspectionEmissary { }

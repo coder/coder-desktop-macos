@@ -8,4 +8,5 @@ enum Theme {
 
         static let rectCornerRadius: CGFloat = 4
     }
+    static let defaultVisibleAgents = 5
 }

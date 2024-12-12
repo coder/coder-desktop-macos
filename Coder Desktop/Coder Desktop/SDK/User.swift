@@ -9,7 +9,7 @@ extension CoderClient {
         guard let data = resp.data else {
             throw ClientError.badResponse
         }
-        return try decoder.decode(User.self, from: data)
+        return try CoderClient.decoder.decode(User.self, from: data)
     }
 }
 

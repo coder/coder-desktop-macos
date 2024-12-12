@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LoginForm<C: Client, S: Session>: View {
     @EnvironmentObject var session: S
-    @EnvironmentObject var client: C
     @Environment(\.dismiss) private var dismiss
 
     @State private var baseAccessURL: String = ""
@@ -11,6 +10,8 @@ struct LoginForm<C: Client, S: Session>: View {
     @State private var currentPage: LoginPage = .serverURL
     @State private var loading: Bool = false
     @FocusState private var focusedField: LoginField?
+
+    internal let inspection = Inspection<Self>()
 
     var body: some View {
         VStack {
@@ -54,6 +55,31 @@ struct LoginForm<C: Client, S: Session>: View {
         }.padding()
             .frame(width: 450, height: 220)
             .disabled(loading)
+            .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+    }
+
+    internal func submit() async {
+        loginError = nil
+        guard sessionToken != "" else {
+            loginError = .invalidToken
+            return
+        }
+        guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
+            loginError = .invalidURL
+            return
+        }
+        loading = true
+        defer { loading = false}
+        let client = C(url: url, token: sessionToken)
+        do {
+            _ = try await client.user("me")
+        } catch {
+            loginError = .failedAuth
+            print("Set error")
+            return
+        }
+        session.store(baseAccessURL: url, sessionToken: sessionToken)
+        dismiss()
     }
 
     private var serverURLPage: some View {
@@ -71,7 +97,7 @@ struct LoginForm<C: Client, S: Session>: View {
                 }
             }
             HStack {
-                actionButton(title: "Next", action: next)
+                Button("Next", action: next)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
@@ -107,17 +133,13 @@ struct LoginForm<C: Client, S: Session>: View {
                 ).font(.callout).foregroundColor(.blue).underline()
             }.padding()
             HStack {
-                actionButton(title: "Back", action: back)
-                actionButton(title: "Sign In", action: signIn)
+                Button("Back", action: back)
+                Button("Sign In") {
+                    Task { await submit() }
+                }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }.padding(.top, 5)
-        }
-    }
-
-    private func actionButton(title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
         }
     }
 
@@ -138,32 +160,6 @@ struct LoginForm<C: Client, S: Session>: View {
             loginError = nil
             currentPage = .serverURL
             focusedField = .baseAccessURL
-        }
-    }
-
-    private func signIn() {
-        loginError = nil
-        guard sessionToken != "" else {
-            loginError = .invalidToken
-            return
-        }
-        guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
-            loginError = .invalidURL
-            return
-        }
-        loading = true
-        client.initialise(url: url, token: sessionToken)
-        Task {
-            do {
-                _ = try await client.user("me")
-            } catch {
-                loginError = .failedAuth
-                loading = false
-                return
-            }
-            session.store(baseAccessURL: url, sessionToken: sessionToken)
-            loading = false
-            dismiss()
         }
     }
 }
@@ -198,5 +194,4 @@ enum LoginField: Hashable {
 #Preview {
     LoginForm<PreviewClient, PreviewSession>()
         .environmentObject(PreviewSession())
-        .environmentObject(PreviewClient())
 }

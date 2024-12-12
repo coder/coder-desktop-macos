@@ -1,47 +1,83 @@
 @testable import Coder_Desktop
 import ViewInspector
-import XCTest
+import Testing
 
-final class VPNStateTests: XCTestCase {
-    func testDisabledState() throws {
+@Suite(.timeLimit(.minutes(1)))
+struct VPNStateTests {
+    @Test
+    @MainActor
+    func testDisabledState() async throws {
         let vpn = MockVPNService()
         vpn.state = .disabled
-        let view = VPNState<MockVPNService>().environmentObject(vpn)
-        _ = try view.inspect().find(text: "Enable CoderVPN to see agents")
+        let view = VPNState<MockVPNService>()
+
+        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+            try await view.inspection.inspect { view in
+                #expect(throws: Never.self) {
+                    try view.find(text: "Enable CoderVPN to see agents")
+                }
+            }
+        }
     }
 
-    func testConnectingState() throws {
+    @Test
+    @MainActor
+    func testConnectingState() async throws {
         let vpn = MockVPNService()
         vpn.state = .connecting
-        let view = VPNState<MockVPNService>().environmentObject(vpn)
+        let view = VPNState<MockVPNService>()
 
-        let progressView = try view.inspect().find(ViewType.ProgressView.self)
-        XCTAssertEqual(try progressView.labelView().text().string(), "Starting CoderVPN...")
+        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+            try await view.inspection.inspect { view in
+                let progressView = try view.find(ViewType.ProgressView.self)
+                #expect(try progressView.labelView().text().string() == "Starting CoderVPN...")
+            }
+        }
     }
 
-    func testDisconnectingState() throws {
+    @Test
+    @MainActor
+    func testDisconnectingState() async throws {
         let vpn = MockVPNService()
         vpn.state = .disconnecting
-        let view = VPNState<MockVPNService>().environmentObject(vpn)
+        let view = VPNState<MockVPNService>()
 
-        let progressView = try view.inspect().find(ViewType.ProgressView.self)
-        XCTAssertEqual(try progressView.labelView().text().string(), "Stopping CoderVPN...")
+        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+            try await view.inspection.inspect { view in
+                let progressView = try view.find(ViewType.ProgressView.self)
+                #expect(try progressView.labelView().text().string() == "Stopping CoderVPN...")
+            }
+        }
     }
 
-    func testFailedState() throws {
+    @Test
+    @MainActor
+    func testFailedState() async throws {
         let vpn = MockVPNService()
         vpn.state = .failed(.exampleError)
-        let view = VPNState<MockVPNService>().environmentObject(vpn)
+        let view = VPNState<MockVPNService>()
 
-        let text = try view.inspect().find(ViewType.Text.self)
-        XCTAssertEqual(try text.string(), VPNServiceError.exampleError.description)
+        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+            try await view.inspection.inspect { view in
+                let text = try view.find(ViewType.Text.self)
+                #expect(try text.string() == VPNServiceError.exampleError.description)
+            }
+        }
     }
 
-    func testDefaultState() throws {
+    @Test
+    @MainActor
+    func testDefaultState() async throws {
         let vpn = MockVPNService()
         vpn.state = .connected
-        let view = VPNState<MockVPNService>().environmentObject(vpn)
+        let view = VPNState<MockVPNService>()
 
-        XCTAssertThrowsError(try view.inspect().find(ViewType.Text.self))
+        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+            try await view.inspection.inspect { view in
+                #expect(throws: (any Error).self) {
+                    _ = try view.find(ViewType.Text.self)
+                }
+            }
+        }
     }
 }

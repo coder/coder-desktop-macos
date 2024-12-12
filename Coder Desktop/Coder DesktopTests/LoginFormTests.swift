@@ -1,133 +1,125 @@
 @testable import Coder_Desktop
 import ViewInspector
-import XCTest
+import Testing
 
-final class LoginTests: XCTestCase {
+@Suite(.timeLimit(.minutes(1)))
+struct LoginTests {
+    @Test
     @MainActor
-    func testInitialView() throws {
+    func testInitialView() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            XCTAssertNoThrow(try wrapped.find(text: "Coder Desktop"))
-            XCTAssertNoThrow(try wrapped.find(ViewType.TextField.self).labelView().text().string(), "Server URL")
-            XCTAssertNoThrow(try wrapped.find(button: "Next"))
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                #expect(throws: Never.self) { try view.find(text: "Coder Desktop") }
+                #expect(throws: Never.self) { try view.find(text: "Server URL") }
+                #expect(throws: Never.self) { try view.find(button: "Next") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testInvalidServerURL() throws {
+    func testInvalidServerURL() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            let button = try wrapped.find(button: "Next")
-            try button.tap()
-            XCTAssertNoThrow(try wrapped.find(text: "Invalid URL"))
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("")
+                try view.find(button: "Next").tap()
+                #expect(throws: Never.self) { try view.find(text: "Invalid URL") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testValidServerURL() throws {
+    func testValidServerURL() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            try wrapped.find(ViewType.TextField.self).setInput("https://coder.example.com")
-            try wrapped.find(button: "Next").tap()
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
+                try view.find(button: "Next").tap()
 
-            XCTAssertNoThrow(try wrapped.find(text: "Session Token"))
-            XCTAssertNoThrow(try wrapped.find(ViewType.SecureField.self))
-            XCTAssertNoThrow(try wrapped.find(button: "Sign In"))
+                #expect(throws: Never.self) { try view.find(text: "Session Token") }
+                #expect(throws: Never.self) { try view.find(ViewType.SecureField.self) }
+                #expect(throws: Never.self) { try view.find(button: "Sign In") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testBackButton() throws {
+    func testBackButton() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            try wrapped.find(ViewType.TextField.self).setInput("https://coder.example.com")
-            try wrapped.find(button: "Next").tap()
-            try wrapped.find(button: "Back").tap()
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
+                try view.find(button: "Next").tap()
+                try view.find(button: "Back").tap()
 
-            XCTAssertNoThrow(try wrapped.find(text: "Coder Desktop"))
-            XCTAssertNoThrow(try wrapped.find(button: "Next"))
+                #expect(throws: Never.self) { try view.find(text: "Coder Desktop") }
+                #expect(throws: Never.self) { try view.find(button: "Next") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testInvalidSessionToken() throws {
+    func testInvalidSessionToken() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            try wrapped.find(ViewType.TextField.self).setInput("https://coder.example.com")
-            try wrapped.find(button: "Next").tap()
-            try wrapped.find(ViewType.SecureField.self).setInput("")
-            try wrapped.find(button: "Sign In").tap()
-
-            XCTAssertNoThrow(try wrapped.find(text: "Invalid Session Token"))
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
+                try view.find(button: "Next").tap()
+                try view.find(ViewType.SecureField.self).setInput("")
+                try await view.actualView().submit()
+                #expect(throws: Never.self) { try view.find(text: "Invalid Session Token") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testFailedAuthentication() throws {
+    func testFailedAuthentication() async throws {
         let session = MockSession()
-        let client = MockClient()
-        client.shouldFail = true
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let login = LoginForm<MockErrorClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            try wrapped.find(ViewType.TextField.self).setInput("https://coder.example.com")
-            try wrapped.find(button: "Next").tap()
-            try wrapped.find(ViewType.SecureField.self).setInput("valid-token")
-            try wrapped.find(button: "Sign In").tap()
-
-            XCTAssertNoThrow(try wrapped.find(text: "Could not authenticate with Coder deployment"))
+        try await ViewHosting.host(login.environmentObject(session)) { _ in
+            try await login.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
+                try view.find(button: "Next").tap()
+                #expect(throws: Never.self) { try view.find(text: "Session Token") }
+                try view.find(ViewType.SecureField.self).setInput("valid-token")
+                try await view.actualView().submit()
+                #expect(throws: Never.self) { try view.find(text: "Could not authenticate with Coder deployment") }
+            }
         }
     }
 
+    @Test
     @MainActor
-    func testSuccessfulLogin() throws {
+    func testSuccessfulLogin() async throws {
         let session = MockSession()
-        let client = MockClient()
-        let view = TestWrapperView(wrapped: LoginForm<MockClient, MockSession>()
-            .environmentObject(session)
-            .environmentObject(client))
+        let view = LoginForm<MockClient, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
-            try wrapped.find(ViewType.TextField.self).setInput("https://coder.example.com")
-            try wrapped.find(button: "Next").tap()
-            try wrapped.find(ViewType.SecureField.self).setInput("valid-token")
-            try wrapped.find(button: "Sign In").tap()
+        try await ViewHosting.host(view.environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
+                try view.find(button: "Next").tap()
+                try view.find(ViewType.SecureField.self).setInput("valid-token")
+                try view.find(button: "Sign In").tap()
 
-            XCTAssertTrue(session.hasSession)
+                #expect(session.hasSession)
+            }
         }
     }
 }

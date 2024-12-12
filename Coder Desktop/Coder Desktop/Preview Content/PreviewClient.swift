@@ -1,8 +1,7 @@
 import SwiftUI
 
-class PreviewClient: Client {
-    required init() {}
-    func initialise(url _: URL, token _: String?) {}
+struct PreviewClient: Client {
+    init(url _: URL, token _: String? = nil) {}
 
     func user(_: String) async throws -> User {
         try await Task.sleep(for: .seconds(1))

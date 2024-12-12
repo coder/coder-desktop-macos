@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "BB7F7563-199E-4896-BCDE-1F751C24B71F",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Coder Desktop.xcodeproj",
+      "identifier" : "961678FB2CFF100D00B2B6DF",
+      "name" : "Coder Desktop"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "identifier" : "9616790E2CFF100E00B2B6DF",
+        "name" : "Coder DesktopTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "identifier" : "961679182CFF100E00B2B6DF",
+        "name" : "Coder DesktopUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

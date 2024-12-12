@@ -1,8 +1,11 @@
 @testable import Coder_Desktop
+import Testing
 import ViewInspector
-import XCTest
+import Foundation
 
-final class AgentsTests: XCTestCase {
+@Suite(.timeLimit(.minutes(1)))
+struct AgentsTests {
+    @MainActor
     private func createMockAgents(count: Int) -> [Agent] {
         return (1 ... count).map {
             Agent(
@@ -15,62 +18,74 @@ final class AgentsTests: XCTestCase {
         }
     }
 
-    func testAgentsWhenVPNOff() throws {
+    @Test
+    @MainActor
+    func agentsWhenVPNOff() throws {
         let vpn = MockVPNService()
         vpn.state = .disabled
         let session = MockSession()
         let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
-        XCTAssertThrowsError(try view.inspect().find(ViewType.ForEach.self))
+        #expect(throws: (any Error).self) {
+            _ = try view.inspect().find(ViewType.ForEach.self)
+        }
     }
 
-    func testAgentsWhenVPNOn() throws {
+    @Test
+    @MainActor
+    func agentsWhenVPNOn() throws {
         let vpn = MockVPNService()
         vpn.state = .connected
-        vpn.agents = createMockAgents(count: 7)
+        vpn.agents = createMockAgents(count: Theme.defaultVisibleAgents + 2)
         let session = MockSession()
         let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
-        XCTAssertEqual(forEach.count, 5)
-        let _ = try view.inspect().find(link: "a1.coder")
+        #expect(forEach.count == Theme.defaultVisibleAgents)
+        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder")}
     }
 
+    @Test
     @MainActor
-    func testShowAllToggle() throws {
+    func showAllToggle() async throws {
         let vpn = MockVPNService()
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 7)
         let session = MockSession()
-        let view = TestWrapperView(wrapped: Agents<MockVPNService, MockSession>()
-            .environmentObject(vpn)
-            .environmentObject(session))
+        let view = Agents<MockVPNService, MockSession>()
 
-        _ = view.inspection.inspect { view in
-            let wrapped = try view.find(viewWithId: TEST_ID)
+        try await ViewHosting.host(view.environmentObject(vpn).environmentObject(session)) { _ in
+            try await view.inspection.inspect { view in
+                var toggle = try view.find(ViewType.Toggle.self)
+                #expect(try toggle.labelView().text().string() == "Show All")
+                #expect(try !toggle.isOn())
 
-            let toggle = try wrapped.find(ViewType.Toggle.self)
-            XCTAssertEqual(try toggle.labelView().text().string(), "Show All")
-            XCTAssertFalse(try toggle.isOn())
+                try toggle.tap()
+                toggle = try view.find(ViewType.Toggle.self)
+                var forEach = try view.find(ViewType.ForEach.self)
+                #expect(forEach.count == Theme.defaultVisibleAgents + 2)
+                #expect(try toggle.labelView().text().string() == "Show Less")
 
-            try toggle.tap()
-
-            let forEach = try wrapped.find(ViewType.ForEach.self)
-            XCTAssertEqual(forEach.count, 7)
-
-            try toggle.tap()
-            XCTAssertEqual(try toggle.labelView().text().string(), "Show Less")
-            XCTAssertEqual(forEach.count, 5)
+                try toggle.tap()
+                toggle = try view.find(ViewType.Toggle.self)
+                forEach = try view.find(ViewType.ForEach.self)
+                #expect(try toggle.labelView().text().string() == "Show All")
+                #expect(forEach.count == Theme.defaultVisibleAgents)
+            }
         }
     }
 
-    func testNoToggleFewAgents() throws {
+    @Test
+    @MainActor
+    func noToggleFewAgents() throws {
         let vpn = MockVPNService()
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 3)
         let session = MockSession()
         let view = Agents<MockVPNService, MockSession>().environmentObject(vpn).environmentObject(session)
 
-        XCTAssertThrowsError(try view.inspect().find(ViewType.Toggle.self))
+        #expect(throws: (any Error).self) {
+            _ = try view.inspect().find(ViewType.Toggle.self)
+        }
     }
 }

@@ -4,6 +4,8 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var session: S
 
+    internal let inspection = Inspection<Self>()
+
     var body: some View {
         // Main stack
         VStackLayout(alignment: .leading) {
@@ -21,7 +23,6 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }.toggleStyle(.switch)
                         .disabled(vpnDisabled)
-                        .accessibilityIdentifier("coderVPNToggle")
                 }
                 Divider()
                 Text("Workspace Agents")
@@ -71,6 +72,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
         }.padding(.bottom, Theme.Size.trayMargin)
             .environmentObject(vpn)
             .environmentObject(session)
+            .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
     }
 
     private var vpnDisabled: Bool {

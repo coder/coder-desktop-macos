@@ -1,29 +1,26 @@
 import Alamofire
 import Foundation
 
-protocol Client: ObservableObject {
-    func initialise(url: URL, token: String?)
+protocol Client {
+    init(url: URL, token: String?)
     func user(_ ident: String) async throws -> User
 }
 
-class CoderClient: Client {
-    public var url: URL!
+struct CoderClient: Client {
+    public let url: URL
     public var token: String?
 
-    let decoder: JSONDecoder
-    let encoder: JSONEncoder
+    static let decoder: JSONDecoder = {
+        var dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601withOptionalFractionalSeconds
+        return dec
+    }()
 
-    required init() {
-        encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601withFractionalSeconds
-        decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601withOptionalFractionalSeconds
-    }
-
-    func initialise(url: URL, token: String? = nil) {
-        self.token = token
-        self.url = url
-    }
+    let encoder: JSONEncoder = {
+        var enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601withFractionalSeconds
+        return enc
+    }()
 
     func request<T: Encodable>(
         _ path: String,
