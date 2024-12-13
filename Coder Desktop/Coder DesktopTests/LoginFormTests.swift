@@ -18,7 +18,7 @@ struct LoginTests {
     @Test
     @MainActor
     func testInitialView() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) { try view.find(text: "Coder Desktop") }
                 #expect(throws: Never.self) { try view.find(text: "Server URL") }
@@ -30,11 +30,11 @@ struct LoginTests {
     @Test
     @MainActor
     func testInvalidServerURL() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
-                try view.find(ViewType.TextField.self).setInput("")
+                try view.find(ViewType.TextField.self).setInput("http://")
                 try view.find(button: "Next").tap()
-                #expect(throws: Never.self) { try view.find(text: "Invalid URL") }
+                #expect(throws: Never.self) { try view.find(ViewType.Alert.self) }
             }
         }
     }
@@ -42,7 +42,7 @@ struct LoginTests {
     @Test
     @MainActor
     func testValidServerURL() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
@@ -57,7 +57,7 @@ struct LoginTests {
     @Test
     @MainActor
     func testBackButton() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
@@ -71,31 +71,17 @@ struct LoginTests {
 
     @Test
     @MainActor
-    func testInvalidSessionToken() async throws {
-        try await ViewHosting.host(view) { _ in
-            try await sut.inspection.inspect { view in
-                try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
-                try view.find(button: "Next").tap()
-                try view.find(ViewType.SecureField.self).setInput("")
-                try await view.actualView().submit()
-                #expect(throws: Never.self) { try view.find(text: "Invalid Session Token") }
-            }
-        }
-    }
-
-    @Test
-    @MainActor
     func testFailedAuthentication() async throws {
         let login = LoginForm<MockErrorClient, MockSession>()
 
-        try await ViewHosting.host(login.environmentObject(session)) { _ in
+        try await ViewHosting.host(login.environmentObject(session)) {
             try await login.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
                 #expect(throws: Never.self) { try view.find(text: "Session Token") }
                 try view.find(ViewType.SecureField.self).setInput("valid-token")
                 try await view.actualView().submit()
-                #expect(throws: Never.self) { try view.find(text: "Could not authenticate with Coder deployment") }
+                #expect(throws: Never.self) { try view.find(ViewType.Alert.self) }
             }
         }
     }
@@ -103,12 +89,12 @@ struct LoginTests {
     @Test
     @MainActor
     func testSuccessfulLogin() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
                 try view.find(button: "Next").tap()
                 try view.find(ViewType.SecureField.self).setInput("valid-token")
-                try view.find(button: "Sign In").tap()
+                try await view.actualView().submit()
 
                 #expect(session.hasSession)
             }

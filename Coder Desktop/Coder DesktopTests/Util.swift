@@ -47,7 +47,7 @@ class MockSession: Session {
 struct MockClient: Client {
     init(url _: URL, token _: String? = nil) {}
 
-    func user(_: String) async throws -> Coder_Desktop.User {
+    func user(_: String) async throws(ClientError) -> Coder_Desktop.User {
         User(
             id: UUID(),
             username: "admin",
@@ -68,9 +68,9 @@ struct MockClient: Client {
 
 struct MockErrorClient: Client {
     init(url: URL, token: String?) {}
-    func user(_ ident: String) async throws -> Coder_Desktop.User {
+    func user(_ ident: String) async throws(ClientError) -> Coder_Desktop.User {
         throw ClientError.badResponse
     }
 }
 
-extension Inspection: @retroactive InspectionEmissary { }
+extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary { }

@@ -1,15 +1,17 @@
 import Foundation
 
 extension CoderClient {
-    func user(_ ident: String) async throws -> User {
-        let resp = await request("/api/v2/users/\(ident)", method: .get)
-        guard let response = resp.response, response.statusCode == 200 else {
-            throw ClientError.unexpectedStatusCode
+    func user(_ ident: String) async throws(ClientError) -> User {
+        let res = try await request("/api/v2/users/\(ident)", method: .get)
+        guard res.resp.statusCode == 200 else {
+            let error = try responseAsError(res)
+            throw ClientError.apiError(error)
         }
-        guard let data = resp.data else {
+        do {
+            return try CoderClient.decoder.decode(User.self, from: res.data)
+        } catch {
             throw ClientError.badResponse
         }
-        return try CoderClient.decoder.decode(User.self, from: data)
     }
 }
 
