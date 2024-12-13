@@ -13,6 +13,8 @@
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
 		AAD720D02D0816B200F6304D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = AAD720CF2D0816B200F6304D /* Alamofire */; };
+		961679532CFF207900B2B6DF /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679522CFF207900B2B6DF /* SwiftProtobuf */; };
+		961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +39,13 @@
 			remoteGlobalIDString = 9616792F2CFF117300B2B6DF;
 			remoteInfo = VPN;
 		};
+		961679DD2D030E1D00B2B6DF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 961678FB2CFF100D00B2B6DF;
+			remoteInfo = "Coder Desktop";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -59,6 +68,7 @@
 		961679192CFF100E00B2B6DF /* Coder DesktopUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Coder DesktopUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = "com.coder.Coder-Desktop.VPN.systemextension"; sourceTree = BUILT_PRODUCTS_DIR; };
 		961679322CFF117300B2B6DF /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
+		961679D92D030E1D00B2B6DF /* ProtoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ProtoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,6 +76,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = 9616792F2CFF117300B2B6DF /* VPN */;
+		};
+		961679472CFF14EA00B2B6DF /* Exceptions for "Proto" folder in "VPN" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Sender.swift,
 			);
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 		};
@@ -95,6 +112,19 @@
 			path = VPN;
 			sourceTree = "<group>";
 		};
+		961679432CFF149000B2B6DF /* Proto */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				961679472CFF14EA00B2B6DF /* Exceptions for "Proto" folder in "VPN" target */,
+			);
+			path = Proto;
+			sourceTree = "<group>";
+		};
+		961679DA2D030E1D00B2B6DF /* ProtoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ProtoTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +135,8 @@
 				AAD720D02D0816B200F6304D /* Alamofire in Frameworks */,
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
+				961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */,
+				961679532CFF207900B2B6DF /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,7 +159,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				961679E52D03144C00B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */,
 				961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */,
+				961679E32D03144900B2B6DF /* SwiftProtobuf in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		961679D62D030E1D00B2B6DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +178,8 @@
 		961678F32CFF100D00B2B6DF = {
 			isa = PBXGroup;
 			children = (
+				961679432CFF149000B2B6DF /* Proto */,
+				961679DA2D030E1D00B2B6DF /* ProtoTests */,
 				961678FE2CFF100D00B2B6DF /* Coder Desktop */,
 				961679122CFF100E00B2B6DF /* Coder DesktopTests */,
 				9616791C2CFF100E00B2B6DF /* Coder DesktopUITests */,
@@ -153,6 +196,7 @@
 				9616790F2CFF100E00B2B6DF /* Coder DesktopTests.xctest */,
 				961679192CFF100E00B2B6DF /* Coder DesktopUITests.xctest */,
 				961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */,
+				961679D92D030E1D00B2B6DF /* ProtoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,12 +229,15 @@
 			);
 			fileSystemSynchronizedGroups = (
 				961678FE2CFF100D00B2B6DF /* Coder Desktop */,
+				961679432CFF149000B2B6DF /* Proto */,
 			);
 			name = "Coder Desktop";
 			packageProductDependencies = (
 				AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */,
 				AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */,
 				AAD720CF2D0816B200F6304D /* Alamofire */,
+				961679522CFF207900B2B6DF /* SwiftProtobuf */,
+				961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */,
 			);
 			productName = "Coder Desktop";
 			productReference = 961678FC2CFF100D00B2B6DF /* Coder Desktop.app */;
@@ -260,10 +307,35 @@
 			);
 			name = VPN;
 			packageProductDependencies = (
+				961679E22D03144900B2B6DF /* SwiftProtobuf */,
+				961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */,
 			);
 			productName = VPN;
 			productReference = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */;
 			productType = "com.apple.product-type.system-extension";
+		};
+		961679D82D030E1D00B2B6DF /* ProtoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 961679DF2D030E1D00B2B6DF /* Build configuration list for PBXNativeTarget "ProtoTests" */;
+			buildPhases = (
+				961679D52D030E1D00B2B6DF /* Sources */,
+				961679D62D030E1D00B2B6DF /* Frameworks */,
+				961679D72D030E1D00B2B6DF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				961679DE2D030E1D00B2B6DF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				961679DA2D030E1D00B2B6DF /* ProtoTests */,
+			);
+			name = ProtoTests;
+			packageProductDependencies = (
+			);
+			productName = ProtoTests;
+			productReference = 961679D92D030E1D00B2B6DF /* ProtoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -289,6 +361,10 @@
 					9616792F2CFF117300B2B6DF = {
 						CreatedOnToolsVersion = 16.1;
 					};
+					961679D82D030E1D00B2B6DF = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = 961678FB2CFF100D00B2B6DF;
+					};
 				};
 			};
 			buildConfigurationList = 961678F72CFF100D00B2B6DF /* Build configuration list for PBXProject "Coder Desktop" */;
@@ -306,6 +382,7 @@
 				AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
 				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 				AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */,
+				961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -316,6 +393,7 @@
 				9616790E2CFF100E00B2B6DF /* Coder DesktopTests */,
 				961679182CFF100E00B2B6DF /* Coder DesktopUITests */,
 				9616792F2CFF117300B2B6DF /* VPN */,
+				961679D82D030E1D00B2B6DF /* ProtoTests */,
 			);
 		};
 /* End PBXProject section */
@@ -343,6 +421,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9616792E2CFF117300B2B6DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		961679D72D030E1D00B2B6DF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -380,6 +465,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		961679D52D030E1D00B2B6DF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -401,6 +493,11 @@
 		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			productRef = AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */;
+		};
+		961679DE2D030E1D00B2B6DF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
+			targetProxy = 961679DD2D030E1D00B2B6DF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -701,6 +798,40 @@
 			};
 			name = Release;
 		};
+		961679E02D030E1D00B2B6DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.ProtoTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Coder Desktop.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Coder Desktop";
+			};
+			name = Debug;
+		};
+		961679E12D030E1D00B2B6DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.ProtoTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Coder Desktop.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Coder Desktop";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -749,6 +880,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		961679DF2D030E1D00B2B6DF /* Build configuration list for PBXNativeTarget "ProtoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				961679E02D030E1D00B2B6DF /* Debug */,
+				961679E12D030E1D00B2B6DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -792,6 +932,14 @@
 				minimumVersion = 5.10.2;
 			};
 		};
+		961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.28.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -819,6 +967,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
+		};
+		961679522CFF207900B2B6DF /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobufPluginLibrary;
+		};
+		961679E22D03144900B2B6DF /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobufPluginLibrary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
