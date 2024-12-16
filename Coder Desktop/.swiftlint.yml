@@ -1,7 +1,10 @@
 disabled_rules:
   - todo
   - trailing_comma
+  - blanket_disable_command # Used by Protobuf
+  - opening_brace # Handled by SwiftFormat
 type_name:
   allowed_symbols: "_"
 identifier_name:
   allowed_symbols: "_"
+  min_length: 1

@@ -1,7 +1,7 @@
 import Combine
 
 // This is required for inspecting stateful views
-internal final class Inspection<V> {
+final class Inspection<V> {
     let notice = PassthroughSubject<UInt, Never>()
     var callbacks = [UInt: (V) -> Void]()
 

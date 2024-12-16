@@ -1,19 +1,19 @@
-import Testing
-import Foundation
 @testable import Coder_Desktop
+import Foundation
+import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct SenderReceiverTests {
     let pipe = Pipe()
     let dispatch: DispatchIO
     let queue: DispatchQueue = .global(qos: .utility)
-    
+
     init() {
-        self.dispatch = DispatchIO(
+        dispatch = DispatchIO(
             type: .stream,
             fileDescriptor: pipe.fileHandleForReading.fileDescriptor,
             queue: queue,
-            cleanupHandler: {error in print("cleanupHandler: \(error)")}
+            cleanupHandler: { error in print("cleanupHandler: \(error)") }
         )
     }
 
@@ -34,14 +34,14 @@ struct SenderReceiverTests {
         }
         #expect(count == 1)
     }
-    
+
     @Test func sendMany() async throws {
         let s = Sender<Vpn_ManagerMessage>(writeFD: pipe.fileHandleForWriting)
         let r = Receiver<Vpn_ManagerMessage>(dispatch: dispatch, queue: queue)
         var msg = Vpn_ManagerMessage()
         msg.networkSettings.errorMessage = "test error"
         Task {
-            for _ in 0..<10 {
+            for _ in 0 ..< 10 {
                 try await s.send(msg)
             }
             try await s.close()
@@ -62,28 +62,30 @@ struct HandshakerTests {
     let dispatchT: DispatchIO
     let dispatchM: DispatchIO
     let queue: DispatchQueue = .global(qos: .utility)
-    
+
     init() {
-        self.dispatchT = DispatchIO(
+        dispatchT = DispatchIO(
             type: .stream,
             fileDescriptor: pipeMT.fileHandleForReading.fileDescriptor,
             queue: queue,
-            cleanupHandler: {error in print("cleanupHandler: \(error)")}
+            cleanupHandler: { error in print("cleanupHandler: \(error)") }
         )
-        self.dispatchM = DispatchIO(
+        dispatchM = DispatchIO(
             type: .stream,
             fileDescriptor: pipeTM.fileHandleForReading.fileDescriptor,
             queue: queue,
-            cleanupHandler: {error in print("cleanupHandler: \(error)")}
+            cleanupHandler: { error in print("cleanupHandler: \(error)") }
         )
     }
-    
+
     @Test("Default versions")
     func mainline() async throws {
         let uutTun = Handshaker(
-            writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel)
+            writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel
+        )
         let uutMgr = Handshaker(
-            writeFD: pipeMT.fileHandleForWriting, dispatch: dispatchM, queue: queue, role: .manager)
+            writeFD: pipeMT.fileHandleForWriting, dispatch: dispatchM, queue: queue, role: .manager
+        )
         let taskTun = Task {
             try await uutTun.handshake()
         }
@@ -95,41 +97,45 @@ struct HandshakerTests {
         let versionMgr = try await taskMgr.value
         #expect(versionMgr == ProtoVersion(1, 0))
     }
-    
-    
-    struct versionCase : CustomStringConvertible {
+
+    struct VersionCase: CustomStringConvertible {
         let tun: [ProtoVersion]
         let mgr: [ProtoVersion]
         let result: ProtoVersion
-        
+
         var description: String {
             return "\(tun) vs \(mgr) -> \(result)"
         }
     }
-    
+
     @Test("explicit versions", arguments: [
-        versionCase(
+        VersionCase(
             tun: [ProtoVersion(1, 0)],
             mgr: [ProtoVersion(1, 1)],
-            result: ProtoVersion(1,0)),
-        versionCase(
+            result: ProtoVersion(1, 0)
+        ),
+        VersionCase(
             tun: [ProtoVersion(1, 1)],
             mgr: [ProtoVersion(1, 7)],
-            result: ProtoVersion(1,1)),
-        versionCase(
+            result: ProtoVersion(1, 1)
+        ),
+        VersionCase(
             tun: [ProtoVersion(1, 7), ProtoVersion(2, 1)],
             mgr: [ProtoVersion(1, 7)],
-            result: ProtoVersion(1, 7)),
-        versionCase(
+            result: ProtoVersion(1, 7)
+        ),
+        VersionCase(
             tun: [ProtoVersion(1, 7)],
             mgr: [ProtoVersion(1, 7), ProtoVersion(2, 1)],
-            result: ProtoVersion(1, 7)),
-        versionCase(
+            result: ProtoVersion(1, 7)
+        ),
+        VersionCase(
             tun: [ProtoVersion(1, 3), ProtoVersion(2, 1)],
             mgr: [ProtoVersion(1, 7)],
-            result: ProtoVersion(1, 3)),
+            result: ProtoVersion(1, 3)
+        ),
     ])
-    func explictVersions(tc: versionCase) async throws {
+    func explictVersions(tc: VersionCase) async throws {
         let uutTun = Handshaker(
             writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel,
             versions: tc.tun
@@ -149,16 +155,16 @@ struct HandshakerTests {
         let versionMgr = try await taskMgr.value
         #expect(versionMgr == tc.result)
     }
-    
+
     @Test
     func incompatible() async throws {
         let uutTun = Handshaker(
             writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel,
-            versions: [ProtoVersion(1,8)]
+            versions: [ProtoVersion(1, 8)]
         )
         let uutMgr = Handshaker(
             writeFD: pipeMT.fileHandleForWriting, dispatch: dispatchM, queue: queue, role: .manager,
-            versions: [ProtoVersion(2,8)]
+            versions: [ProtoVersion(2, 8)]
         )
         let taskTun = Task {
             try await uutTun.handshake()
@@ -182,19 +188,19 @@ struct OneSidedHandshakerTests {
     let queue: DispatchQueue = .global(qos: .utility)
     let dispatchT: DispatchIO
     let uut: Handshaker
-    
+
     init() {
-        self.dispatchT =  DispatchIO(
+        dispatchT = DispatchIO(
             type: .stream,
             fileDescriptor: pipeMT.fileHandleForReading.fileDescriptor,
             queue: queue,
-            cleanupHandler: {error in print("cleanupHandler: \(error)")}
+            cleanupHandler: { error in print("cleanupHandler: \(error)") }
         )
-        self.uut = Handshaker(
+        uut = Handshaker(
             writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel
         )
     }
-    
+
     @Test()
     func badPreamble() async throws {
         let taskTun = Task {
@@ -207,7 +213,7 @@ struct OneSidedHandshakerTests {
             try await taskTun.value
         }
     }
-    
+
     @Test(.timeLimit(.minutes(1)))
     func badRole() async throws {
         let taskTun = Task {
@@ -220,7 +226,7 @@ struct OneSidedHandshakerTests {
             try await taskTun.value
         }
     }
-    
+
     @Test(.timeLimit(.minutes(1)))
     func badVersion() async throws {
         let taskTun = Task {
@@ -233,7 +239,7 @@ struct OneSidedHandshakerTests {
             try await taskTun.value
         }
     }
-    
+
     @Test(.timeLimit(.minutes(1)))
     func mainline() async throws {
         let taskTun = Task {
@@ -245,9 +251,8 @@ struct OneSidedHandshakerTests {
         pipeMT.fileHandleForWriting.write(Data("codervpn manager 1.0\n".utf8))
         let tunHdr = try pipeTM.fileHandleForReading.readToEnd()
         #expect(tunHdr == Data("codervpn tunnel 1.0\n".utf8))
-        
+
         let v = try await taskTun.value
-        #expect(v == ProtoVersion(1,0))
+        #expect(v == ProtoVersion(1, 0))
     }
 }
-

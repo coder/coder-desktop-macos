@@ -4,7 +4,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var session: S
 
-    internal let inspection = Inspection<Self>()
+    let inspection = Inspection<Self>()
 
     var body: some View {
         // Main stack

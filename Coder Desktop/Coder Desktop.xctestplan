@@ -25,6 +25,7 @@
       }
     },
     {
+      "enabled" : false,
       "parallelizable" : true,
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",

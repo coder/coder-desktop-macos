@@ -1,6 +1,6 @@
 import Foundation
-import SwiftProtobuf
 import os
+import SwiftProtobuf
 
 /// An actor that reads data from a `DispatchIO` channel, and deserializes it into VPN protocol messages.
 actor Receiver<RecvMsg: Message> {
@@ -19,7 +19,7 @@ actor Receiver<RecvMsg: Message> {
     private func readLen() async throws -> UInt32 {
         let lenD: Data = try await withCheckedThrowingContinuation { continuation in
             var lenData = Data()
-            dispatch.read(offset: 0, length: 4, queue: queue) {done, data, error in
+            dispatch.read(offset: 0, length: 4, queue: queue) { done, data, error in
                 guard error == 0 else {
                     let errStrPtr = strerror(error)
                     let errStr = String(validatingUTF8: errStrPtr!)!
@@ -39,7 +39,7 @@ actor Receiver<RecvMsg: Message> {
     private func readMsg(_ length: UInt32) async throws -> RecvMsg {
         let msgData: Data = try await withCheckedThrowingContinuation { continuation in
             var msgData = Data()
-            dispatch.read(offset: 0, length: Int(length), queue: queue) {done, data, error in
+            dispatch.read(offset: 0, length: Int(length), queue: queue) { done, data, error in
                 guard error == 0 else {
                     let errStrPtr = strerror(error)
                     let errStr = String(validatingUTF8: errStrPtr!)!

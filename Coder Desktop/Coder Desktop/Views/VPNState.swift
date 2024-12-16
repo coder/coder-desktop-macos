@@ -3,7 +3,7 @@ import SwiftUI
 struct VPNState<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
 
-    internal let inspection = Inspection<Self>()
+    let inspection = Inspection<Self>()
 
     var body: some View {
         Group {

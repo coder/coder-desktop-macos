@@ -1,15 +1,15 @@
 import Foundation
-import SwiftProtobuf
 import os
+import SwiftProtobuf
 
-let newLine = 0x0a
+let newLine = 0x0A
 let headerPreamble = "codervpn"
 
 /// A message that has the `rpc` property for recording participation in a unary RPC.
 protocol RPCMessage {
-    var rpc: Vpn_RPC {get set}
+    var rpc: Vpn_RPC { get set }
     /// Returns true if `rpc` has been explicitly set.
-    var hasRpc: Bool {get}
+    var hasRpc: Bool { get }
 }
 
 extension Vpn_TunnelMessage: RPCMessage {}
@@ -26,7 +26,7 @@ struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
     let major: Int
     let minor: Int
 
-    var description: String {"\(major).\(minor)"}
+    var description: String { "\(major).\(minor)" }
 
     init(_ major: Int, _ minor: Int) {
         self.major = major
@@ -34,7 +34,7 @@ struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
     }
 
     init(parse str: String) throws {
-        let parts = str.split(separator: ".").map({Int($0)})
+        let parts = str.split(separator: ".").map { Int($0) }
         if parts.count != 2 {
             throw HandshakeError.invalidVersion(str)
         }
@@ -65,23 +65,24 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     init(writeFD: FileHandle, readFD: FileHandle) {
         self.writeFD = writeFD
         self.readFD = readFD
-        self.sender = Sender(writeFD: writeFD)
-        self.dispatch = DispatchIO(
+        sender = Sender(writeFD: writeFD)
+        dispatch = DispatchIO(
             type: .stream,
             fileDescriptor: readFD.fileDescriptor,
             queue: queue,
-            cleanupHandler: {_ in
-            do {
-                try readFD.close()
-            } catch {
-                // TODO
+            cleanupHandler: { _ in
+                do {
+                    try readFD.close()
+                } catch {
+                    // TODO:
+                }
             }
-        })
-        self.receiver = Receiver(dispatch: self.dispatch, queue: self.queue)
+        )
+        receiver = Receiver(dispatch: dispatch, queue: queue)
         if SendMsg.self == Vpn_TunnelMessage.self {
-            self.role = .tunnel
+            role = .tunnel
         } else {
-            self.role = .manager
+            role = .manager
         }
     }
 
@@ -94,22 +95,22 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
 
     /// Reads and handles protocol messages.
     func readLoop() async throws {
-        for try await msg in try await self.receiver.messages() {
+        for try await msg in try await receiver.messages() {
             guard msg.hasRpc else {
-                self.handleMessage(msg)
+                handleMessage(msg)
                 continue
             }
             guard msg.rpc.msgID == 0 else {
-                let req = RPCRequest<SendMsg, RecvMsg>(req: msg, sender: self.sender)
-                self.handleRPC(req)
+                let req = RPCRequest<SendMsg, RecvMsg>(req: msg, sender: sender)
+                handleRPC(req)
                 continue
             }
             guard msg.rpc.responseTo == 0 else {
-                self.logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
+                logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
                 do throws(RPCError) {
                     try await self.secretary.route(reply: msg)
                 } catch {
-                    self.logger.error(
+                    logger.error(
                         "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
                 }
                 continue
@@ -120,13 +121,13 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     /// Handles a single non-RPC message. It is expected that subclasses override this method with their own handlers.
     func handleMessage(_ msg: RecvMsg) {
         // just log
-        self.logger.debug("got non-RPC message \(msg.textFormatString())")
+        logger.debug("got non-RPC message \(msg.textFormatString())")
     }
 
     /// Handle a single RPC request. It is expected that subclasses override this method with their own handlers.
     func handleRPC(_ req: RPCRequest<SendMsg, RecvMsg>) {
         // just log
-        self.logger.debug("got RPC message \(req.msg.textFormatString())")
+        logger.debug("got RPC message \(req.msg.textFormatString())")
     }
 
     /// Send a unary RPC message and handle the response
@@ -152,7 +153,7 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
 
     func closeWrite() {
         do {
-            try self.writeFD.close()
+            try writeFD.close()
         } catch {
             logger.error("failed to close write file handle: \(error)")
         }
@@ -160,7 +161,7 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
 
     func closeRead() {
         do {
-            try self.readFD.close()
+            try readFD.close()
         } catch {
             logger.error("failed to close read file handle: \(error)")
         }
@@ -171,16 +172,16 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
 class Handshaker {
     private let writeFD: FileHandle
     private let dispatch: DispatchIO
-    private var theirData: Data = Data()
+    private var theirData: Data = .init()
     private let versions: [ProtoVersion]
     private let role: ProtoRole
     private var continuation: CheckedContinuation<Data, any Error>?
     private let queue: DispatchQueue
 
-    init (writeFD: FileHandle, dispatch: DispatchIO, queue: DispatchQueue,
-          role: ProtoRole,
-          versions: [ProtoVersion] = [.init(1, 0)]
-    ) {
+    init(writeFD: FileHandle, dispatch: DispatchIO, queue: DispatchQueue,
+         role: ProtoRole,
+         versions: [ProtoVersion] = [.init(1, 0)])
+    {
         self.writeFD = writeFD
         self.dispatch = dispatch
         self.role = role
@@ -198,7 +199,7 @@ class Handshaker {
             handleRead(false, nil, 0)
         }
 
-        let vStr = versions.map({$0.description}).joined(separator: ",")
+        let vStr = versions.map { $0.description }.joined(separator: ",")
         let ours = String(format: "\(headerPreamble) \(role) \(vStr)\n")
         try writeFD.write(contentsOf: ours.data(using: .utf8)!)
 
@@ -222,12 +223,12 @@ class Handshaker {
             continuation?.resume(throwing: HandshakeError.readError(errStr))
             return
         }
-        if let ddd = data, !ddd.isEmpty {
-            guard ddd[0] != newLine else {
+        if let d = data, !d.isEmpty {
+            guard d[0] != newLine else {
                 continuation?.resume(returning: theirData)
                 return
             }
-            theirData.append(contentsOf: ddd)
+            theirData.append(contentsOf: d)
         }
 
         // read another byte, one at a time, so we don't read beyond the header.
@@ -243,7 +244,7 @@ class Handshaker {
             throw HandshakeError.invalidHeader("expected \(headerPreamble) but got \(parts[0])")
         }
         var expectedRole = ProtoRole.manager
-        if self.role == .manager {
+        if role == .manager {
             expectedRole = .tunnel
         }
         guard parts[1] == expectedRole.rawValue else {
@@ -251,7 +252,7 @@ class Handshaker {
         }
         let theirVersions = try parts[2]
             .split(separator: ",")
-            .map({try ProtoVersion(parse: String($0))})
+            .map { try ProtoVersion(parse: String($0)) }
         return try pickVersion(ours: versions, theirs: theirVersions)
     }
 }
@@ -281,7 +282,7 @@ struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage> {
     private let sender: Sender<SendMsg>
 
     public init(req: RecvMsg, sender: Sender<SendMsg>) {
-        self.msg = req
+        msg = req
         self.sender = sender
     }
 

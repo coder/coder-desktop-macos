@@ -11,7 +11,7 @@ struct LoginForm<C: Client, S: Session>: View {
     @State private var loading: Bool = false
     @FocusState private var focusedField: LoginField?
 
-    internal let inspection = Inspection<Self>()
+    let inspection = Inspection<Self>()
 
     var body: some View {
         VStack {
@@ -58,7 +58,8 @@ struct LoginForm<C: Client, S: Session>: View {
             .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
     }
 
-    internal func submit() async {
+    func submit() async {
+        loginError = nil
         guard sessionToken != "" else {
             return
         }
@@ -67,7 +68,7 @@ struct LoginForm<C: Client, S: Session>: View {
             return
         }
         loading = true
-        defer { loading = false}
+        defer { loading = false }
         let client = C(url: url, token: sessionToken)
         do throws(ClientError) {
             _ = try await client.user("me")
@@ -134,8 +135,8 @@ struct LoginForm<C: Client, S: Session>: View {
                 Button("Sign In") {
                     Task { await submit() }
                 }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
             }.padding(.top, 5)
         }
     }

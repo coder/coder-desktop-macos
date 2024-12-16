@@ -1,7 +1,7 @@
 @testable import Coder_Desktop
+import SwiftUI
 import Testing
 import ViewInspector
-import SwiftUI
 
 @Suite(.timeLimit(.minutes(1)))
 struct AgentsTests {
@@ -47,7 +47,7 @@ struct AgentsTests {
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
-        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder")}
+        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder") }
     }
 
     @Test

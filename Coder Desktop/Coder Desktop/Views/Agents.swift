@@ -6,7 +6,7 @@ struct Agents<VPN: VPNService, S: Session>: View {
     @State private var viewAll = false
     private let defaultVisibleRows = 5
 
-    internal let inspection = Inspection<Self>()
+    let inspection = Inspection<Self>()
 
     var body: some View {
         Group {

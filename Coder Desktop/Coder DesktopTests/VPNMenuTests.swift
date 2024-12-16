@@ -1,7 +1,7 @@
 @testable import Coder_Desktop
+import SwiftUI
 import Testing
 import ViewInspector
-import SwiftUI
 
 @Suite(.timeLimit(.minutes(1)))
 struct VPNMenuTests {
