@@ -35,14 +35,11 @@ struct CoderClient: Client {
             parameters: body,
             headers: headers
         ).serializingData().response
-        guard let response = out.response else {
-            throw ClientError.noResponse
-        }
         switch out.result {
         case .success(let data):
-            return HTTPResponse(resp: response, data: data, req: out.request)
-        case .failure:
-            throw ClientError.badResponse
+            return HTTPResponse(resp: out.response!, data: data, req: out.request)
+        case .failure(let error):
+            throw ClientError.reqError(error)
         }
     }
 
@@ -57,28 +54,26 @@ struct CoderClient: Client {
             method: method,
             headers: headers
         ).serializingData().response
-        guard let response = out.response else {
-            throw ClientError.noResponse
-        }
         switch out.result {
         case .success(let data):
-            return HTTPResponse(resp: response, data: data, req: out.request)
-        case .failure:
-            throw ClientError.badResponse
+            return HTTPResponse(resp: out.response!, data: data, req: out.request)
+        case .failure(let error):
+            throw ClientError.reqError(error)
         }
     }
 
-    func responseAsError(_ resp: HTTPResponse) throws(ClientError) -> APIError {
+    func responseAsError(_ resp: HTTPResponse) -> ClientError {
         do {
             let body = try CoderClient.decoder.decode(Response.self, from: resp.data)
-            return APIError(
+            let out = APIError(
                 response: body,
                 statusCode: resp.resp.statusCode,
                 method: resp.req?.httpMethod,
                 url: resp.req?.url
             )
+            return ClientError.apiError(out)
         } catch {
-            throw ClientError.badResponse
+            return ClientError.unexpectedResponse(resp.data[...1024])
         }
     }
 
@@ -130,17 +125,17 @@ struct ValidationError: Decodable {
 
 enum ClientError: Error {
     case apiError(APIError)
-    case badResponse
-    case noResponse
+    case reqError(AFError)
+    case unexpectedResponse(Data)
 
     var description: String {
         switch self {
         case .apiError(let error):
             return error.description
-        case .badResponse:
-            return "Bad response"
-        case .noResponse:
-            return "No response"
+        case .reqError(let error):
+            return error.localizedDescription
+        case .unexpectedResponse(let data):
+            return "Unexpected response: \(data)"
         }
     }
 }

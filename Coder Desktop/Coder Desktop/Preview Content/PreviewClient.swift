@@ -1,4 +1,5 @@
 import SwiftUI
+import Alamofire
 
 struct PreviewClient: Client {
     init(url _: URL, token _: String? = nil) {}
@@ -22,7 +23,7 @@ struct PreviewClient: Client {
                 roles: []
             )
         } catch {
-            throw ClientError.badResponse
+            throw ClientError.reqError(AFError.explicitlyCancelled)
         }
     }
 }

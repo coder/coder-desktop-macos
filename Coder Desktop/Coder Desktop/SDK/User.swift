@@ -4,13 +4,12 @@ extension CoderClient {
     func user(_ ident: String) async throws(ClientError) -> User {
         let res = try await request("/api/v2/users/\(ident)", method: .get)
         guard res.resp.statusCode == 200 else {
-            let error = try responseAsError(res)
-            throw ClientError.apiError(error)
+            throw responseAsError(res)
         }
         do {
             return try CoderClient.decoder.decode(User.self, from: res.data)
         } catch {
-            throw ClientError.badResponse
+            throw ClientError.unexpectedResponse(res.data[...1024])
         }
     }
 }
