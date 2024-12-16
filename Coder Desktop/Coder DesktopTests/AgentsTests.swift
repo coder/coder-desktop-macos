@@ -56,7 +56,7 @@ struct AgentsTests {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 7)
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try toggle.labelView().text().string() == "Show All")

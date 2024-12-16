@@ -37,19 +37,21 @@ struct LoginForm<C: Client, S: Session>: View {
             }
             .animation(.easeInOut, value: currentPage)
             .onAppear {
-                loginError = nil
                 baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
                 sessionToken = ""
-            }.padding(.top, 35)
-            VStack(alignment: .center) {
-                if let loginError {
-                    Text("\(loginError.description)")
-                        .font(.headline)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
+            }.padding(.vertical, 35)
+                .alert("Error", isPresented: Binding(
+                    get: { loginError != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            loginError = nil
+                        }
+                    }
+                )) {
+                    Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
+                } message: {
+                    Text(loginError?.description ?? "")
                 }
-            }
-            .frame(height: 35)
         }.padding()
             .frame(width: 450, height: 220)
             .disabled(loading)
@@ -57,9 +59,7 @@ struct LoginForm<C: Client, S: Session>: View {
     }
 
     internal func submit() async {
-        loginError = nil
         guard sessionToken != "" else {
-            loginError = .invalidToken
             return
         }
         guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
@@ -69,11 +69,10 @@ struct LoginForm<C: Client, S: Session>: View {
         loading = true
         defer { loading = false}
         let client = C(url: url, token: sessionToken)
-        do {
+        do throws(ClientError) {
             _ = try await client.user("me")
         } catch {
-            loginError = .failedAuth
-            print("Set error")
+            loginError = .failedAuth(error)
             return
         }
         session.store(baseAccessURL: url, sessionToken: sessionToken)
@@ -142,7 +141,9 @@ struct LoginForm<C: Client, S: Session>: View {
     }
 
     private func next() {
-        loginError = nil
+        guard baseAccessURL != "" else {
+            return
+        }
         guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
             loginError = .invalidURL
             return
@@ -155,7 +156,6 @@ struct LoginForm<C: Client, S: Session>: View {
 
     private func back() {
         withAnimation {
-            loginError = nil
             currentPage = .serverURL
             focusedField = .baseAccessURL
         }
@@ -164,17 +164,14 @@ struct LoginForm<C: Client, S: Session>: View {
 
 enum LoginError {
     case invalidURL
-    case invalidToken
-    case failedAuth
+    case failedAuth(ClientError)
 
     var description: String {
         switch self {
         case .invalidURL:
             return "Invalid URL"
-        case .invalidToken:
-            return "Invalid Session Token"
-        case .failedAuth:
-            return "Could not authenticate with Coder deployment"
+        case .failedAuth(let err):
+            return "Could not authenticate with Coder deployment:\n\(err.description)"
         }
     }
 }

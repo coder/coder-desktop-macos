@@ -22,7 +22,7 @@ struct VPNMenuTests {
     func testVPNLoggedOut() async throws {
         session.hasSession = false
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
                 #expect(toggle.isDisabled())
@@ -35,7 +35,7 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testStartStopCalled() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
@@ -62,7 +62,7 @@ struct VPNMenuTests {
     func testVPNDisabledWhileConnecting() async throws {
         vpn.state = .disabled
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
@@ -83,7 +83,7 @@ struct VPNMenuTests {
     func testVPNDisabledWhileDisconnecting() async throws {
         vpn.state = .disabled
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
@@ -108,7 +108,7 @@ struct VPNMenuTests {
     @Test
     @MainActor
     func testOffWhenFailed() async throws {
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())

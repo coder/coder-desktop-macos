@@ -20,7 +20,7 @@ struct VPNStateTests {
     func testDisabledState() async throws {
         vpn.state = .disabled
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) {
                     try view.find(text: "Enable CoderVPN to see agents")
@@ -34,7 +34,7 @@ struct VPNStateTests {
     func testConnectingState() async throws {
         vpn.state = .connecting
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let progressView = try view.find(ViewType.ProgressView.self)
                 #expect(try progressView.labelView().text().string() == "Starting CoderVPN...")
@@ -47,7 +47,7 @@ struct VPNStateTests {
     func testDisconnectingState() async throws {
         vpn.state = .disconnecting
 
-        try await ViewHosting.host(view) { _ in
+        try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let progressView = try view.find(ViewType.ProgressView.self)
                 #expect(try progressView.labelView().text().string() == "Stopping CoderVPN...")
@@ -60,7 +60,7 @@ struct VPNStateTests {
     func testFailedState() async throws {
         vpn.state = .failed(.exampleError)
 
-        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+        try await ViewHosting.host(view.environmentObject(vpn)) {
             try await sut.inspection.inspect { view in
                 let text = try view.find(ViewType.Text.self)
                 #expect(try text.string() == VPNServiceError.exampleError.description)
@@ -73,7 +73,7 @@ struct VPNStateTests {
     func testDefaultState() async throws {
         vpn.state = .connected
 
-        try await ViewHosting.host(view.environmentObject(vpn)) { _ in
+        try await ViewHosting.host(view.environmentObject(vpn)) {
             try await sut.inspection.inspect { view in
                 #expect(throws: (any Error).self) {
                     _ = try view.find(ViewType.Text.self)
