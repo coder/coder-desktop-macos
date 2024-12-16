@@ -9,12 +9,14 @@
 /* Begin PBXBuildFile section */
 		961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 961679322CFF117300B2B6DF /* NetworkExtension.framework */; };
 		9616793D2CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		961679532CFF207900B2B6DF /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679522CFF207900B2B6DF /* SwiftProtobuf */; };
+		961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */; };
+		AA071D2C2D1041A7008D0B72 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679E22D03144900B2B6DF /* SwiftProtobuf */; };
+		AA071D2D2D1041A7008D0B72 /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */; };
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
 		AAD720D02D0816B200F6304D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = AAD720CF2D0816B200F6304D /* Alamofire */; };
-		961679532CFF207900B2B6DF /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679522CFF207900B2B6DF /* SwiftProtobuf */; };
-		961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,6 +88,13 @@
 			);
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 		};
+		AA071D842D1041E9008D0B72 /* Exceptions for "Proto" folder in "Coder Desktop" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				vpn.proto,
+			);
+			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -115,6 +124,7 @@
 		961679432CFF149000B2B6DF /* Proto */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				AA071D842D1041E9008D0B72 /* Exceptions for "Proto" folder in "Coder Desktop" target */,
 				961679472CFF14EA00B2B6DF /* Exceptions for "Proto" folder in "VPN" target */,
 			);
 			path = Proto;
@@ -159,9 +169,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				961679E52D03144C00B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */,
+				AA071D2D2D1041A7008D0B72 /* SwiftProtobufPluginLibrary in Frameworks */,
+				AA071D2C2D1041A7008D0B72 /* SwiftProtobuf in Frameworks */,
 				961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */,
-				961679E32D03144900B2B6DF /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -490,14 +500,14 @@
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 			targetProxy = 9616793B2CFF117300B2B6DF /* PBXContainerItemProxy */;
 		};
-		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */;
-		};
 		961679DE2D030E1D00B2B6DF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
 			targetProxy = 961679DD2D030E1D00B2B6DF /* PBXContainerItemProxy */;
+		};
+		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -894,6 +904,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.28.2;
+			};
+		};
 		AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/nalexn/ViewInspector";
@@ -934,17 +952,29 @@
 				minimumVersion = 5.10.2;
 			};
 		};
-		961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-protobuf.git";
-			requirement = {
-				kind = exactVersion;
-				version = 1.28.2;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		961679522CFF207900B2B6DF /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobufPluginLibrary;
+		};
+		961679E22D03144900B2B6DF /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobufPluginLibrary;
+		};
 		AA8BC3382D0060A900E1ABAA /* ViewInspector */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */;
@@ -969,26 +999,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
-		};
-		961679522CFF207900B2B6DF /* SwiftProtobuf */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
-			productName = SwiftProtobuf;
-		};
-		961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
-			productName = SwiftProtobufPluginLibrary;
-		};
-		961679E22D03144900B2B6DF /* SwiftProtobuf */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
-			productName = SwiftProtobuf;
-		};
-		961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
-			productName = SwiftProtobufPluginLibrary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

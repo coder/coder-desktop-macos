@@ -40,18 +40,18 @@ struct LoginForm<C: Client, S: Session>: View {
                 baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
                 sessionToken = ""
             }.padding(.vertical, 35)
-                .alert("Error", isPresented: Binding(
-                    get: { loginError != nil },
-                    set: { isPresented in
-                        if !isPresented {
-                            loginError = nil
-                        }
+            .alert("Error", isPresented: Binding(
+                get: { loginError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        loginError = nil
                     }
-                )) {
-                    Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
-                } message: {
-                    Text(loginError?.description ?? "")
                 }
+            )) {
+                Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
+            } message: {
+                Text(loginError?.description ?? "")
+            }
         }.padding()
             .frame(width: 450, height: 220)
             .disabled(loading)
@@ -171,7 +171,7 @@ enum LoginError {
         switch self {
         case .invalidURL:
             return "Invalid URL"
-        case .failedAuth(let err):
+        case let .failedAuth(err):
             return "Could not authenticate with Coder deployment:\n\(err.description)"
         }
     }

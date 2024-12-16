@@ -1,5 +1,5 @@
-import SwiftUI
 import Alamofire
+import SwiftUI
 
 struct PreviewClient: Client {
     init(url _: URL, token _: String? = nil) {}
