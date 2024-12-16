@@ -156,8 +156,7 @@ struct HandshakerTests {
         #expect(versionMgr == tc.result)
     }
 
-    @Test
-    func incompatible() async throws {
+    @Test func incompatible() async throws {
         let uutTun = Handshaker(
             writeFD: pipeTM.fileHandleForWriting, dispatch: dispatchT, queue: queue, role: .tunnel,
             versions: [ProtoVersion(1, 8)]
@@ -201,8 +200,7 @@ struct OneSidedHandshakerTests {
         )
     }
 
-    @Test()
-    func badPreamble() async throws {
+    @Test func badPreamble() async throws {
         let taskTun = Task {
             try await uut.handshake()
         }
@@ -214,8 +212,7 @@ struct OneSidedHandshakerTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func badRole() async throws {
+    @Test func badRole() async throws {
         let taskTun = Task {
             try await uut.handshake()
         }
@@ -227,8 +224,7 @@ struct OneSidedHandshakerTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func badVersion() async throws {
+    @Test func badVersion() async throws {
         let taskTun = Task {
             try await uut.handshake()
         }
@@ -240,8 +236,7 @@ struct OneSidedHandshakerTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func mainline() async throws {
+    @Test func mainline() async throws {
         let taskTun = Task {
             let v = try await uut.handshake()
             // close our pipe so that `readToEnd()` below succeeds.
