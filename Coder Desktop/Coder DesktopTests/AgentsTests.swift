@@ -3,6 +3,7 @@ import SwiftUI
 import Testing
 import ViewInspector
 
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct AgentsTests {
     let vpn: MockVPNService
@@ -30,7 +31,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func agentsWhenVPNOff() throws {
         vpn.state = .disabled
 
@@ -40,7 +40,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func agentsWhenVPNOn() throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: Theme.defaultVisibleAgents + 2)
@@ -51,7 +50,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func showAllToggle() async throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 7)
@@ -78,7 +76,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func noToggleFewAgents() throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 3)

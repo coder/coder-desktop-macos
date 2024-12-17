@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
     var agents: [Agent] { get }

@@ -30,6 +30,7 @@ enum About {
         return coder
     }
 
+    @MainActor
     static func open() {
         #if compiler(>=5.9) && canImport(AppKit)
             if #available(macOS 14, *) {

@@ -22,7 +22,7 @@ struct CoderClient: Client {
         return enc
     }()
 
-    func request<T: Encodable>(
+    func request<T: Encodable & Sendable>(
         _ path: String,
         method: HTTPMethod,
         body: T? = nil
