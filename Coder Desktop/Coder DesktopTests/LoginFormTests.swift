@@ -1,8 +1,9 @@
 @testable import Coder_Desktop
-import ViewInspector
-import Testing
 import SwiftUI
+import Testing
+import ViewInspector
 
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct LoginTests {
     let session: MockSession
@@ -16,7 +17,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testInitialView() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -28,7 +28,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testInvalidServerURL() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -40,7 +39,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testValidServerURL() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -55,7 +53,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testBackButton() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -70,7 +67,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testFailedAuthentication() async throws {
         let login = LoginForm<MockErrorClient, MockSession>()
 
@@ -87,7 +83,6 @@ struct LoginTests {
     }
 
     @Test
-    @MainActor
     func testSuccessfulLogin() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in

@@ -22,7 +22,7 @@ struct CoderClient: Client {
         return enc
     }()
 
-    func request<T: Encodable>(
+    func request<T: Encodable & Sendable>(
         _ path: String,
         method: HTTPMethod,
         body: T? = nil
@@ -36,9 +36,9 @@ struct CoderClient: Client {
             headers: headers
         ).serializingData().response
         switch out.result {
-        case .success(let data):
+        case let .success(data):
             return HTTPResponse(resp: out.response!, data: data, req: out.request)
-        case .failure(let error):
+        case let .failure(error):
             throw ClientError.reqError(error)
         }
     }
@@ -55,9 +55,9 @@ struct CoderClient: Client {
             headers: headers
         ).serializingData().response
         switch out.result {
-        case .success(let data):
+        case let .success(data):
             return HTTPResponse(resp: out.response!, data: data, req: out.request)
-        case .failure(let error):
+        case let .failure(error):
             throw ClientError.reqError(error)
         }
     }
@@ -80,7 +80,6 @@ struct CoderClient: Client {
     enum Headers {
         static let sessionToken = "Coder-Session-Token"
     }
-
 }
 
 struct HTTPResponse {
@@ -130,11 +129,11 @@ enum ClientError: Error {
 
     var description: String {
         switch self {
-        case .apiError(let error):
+        case let .apiError(error):
             return error.description
-        case .reqError(let error):
+        case let .reqError(error):
             return error.localizedDescription
-        case .unexpectedResponse(let data):
+        case let .unexpectedResponse(data):
             return "Unexpected response: \(data)"
         }
     }

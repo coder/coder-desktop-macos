@@ -1,8 +1,9 @@
 @testable import Coder_Desktop
+import SwiftUI
 import Testing
 import ViewInspector
-import SwiftUI
 
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct VPNMenuTests {
     let vpn: MockVPNService
@@ -18,7 +19,6 @@ struct VPNMenuTests {
     }
 
     @Test
-    @MainActor
     func testVPNLoggedOut() async throws {
         session.hasSession = false
 
@@ -33,7 +33,6 @@ struct VPNMenuTests {
     }
 
     @Test
-    @MainActor
     func testStartStopCalled() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -58,7 +57,6 @@ struct VPNMenuTests {
     }
 
     @Test
-    @MainActor
     func testVPNDisabledWhileConnecting() async throws {
         vpn.state = .disabled
 
@@ -79,7 +77,6 @@ struct VPNMenuTests {
     }
 
     @Test
-    @MainActor
     func testVPNDisabledWhileDisconnecting() async throws {
         vpn.state = .disabled
 
@@ -106,7 +103,6 @@ struct VPNMenuTests {
     }
 
     @Test
-    @MainActor
     func testOffWhenFailed() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in

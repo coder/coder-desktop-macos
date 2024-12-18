@@ -17,6 +17,7 @@ struct DesktopApp: App {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
     let vpn: PreviewVPN

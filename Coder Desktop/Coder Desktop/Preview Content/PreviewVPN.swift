@@ -1,6 +1,7 @@
 import SwiftUI
 
-class PreviewVPN: Coder_Desktop.VPNService {
+@MainActor
+final class PreviewVPN: Coder_Desktop.VPNService {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var agents: [Coder_Desktop.Agent] = [
         Agent(id: UUID(), name: "dogfood2", status: .error, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
@@ -22,36 +23,26 @@ class PreviewVPN: Coder_Desktop.VPNService {
         self.shouldFail = shouldFail
     }
 
-    private func setState(_ newState: Coder_Desktop.VPNServiceState) async {
-        await MainActor.run {
-            self.state = newState
-        }
-    }
-
     func start() async {
-        await setState(.connecting)
+        state = .connecting
         do {
-            try await Task.sleep(for: .seconds(1))
+            try await Task.sleep(for: .seconds(10))
         } catch {
-            await setState(.failed(.exampleError))
+            state = .failed(.exampleError)
             return
         }
-        if shouldFail {
-            await setState(.failed(.exampleError))
-        } else {
-            await setState(.connected)
-        }
+        state = shouldFail ? .failed(.exampleError) : .connected
     }
 
     func stop() async {
         guard state == .connected else { return }
-        await setState(.disconnecting)
+        state = .disconnecting
         do {
-            try await Task.sleep(for: .seconds(1))
+            try await Task.sleep(for: .seconds(10))
         } catch {
-            await setState(.failed(.exampleError))
+            state = .failed(.exampleError)
             return
         }
-        await setState(.disabled)
+        state = .disabled
     }
 }

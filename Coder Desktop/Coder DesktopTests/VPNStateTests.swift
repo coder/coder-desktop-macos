@@ -1,8 +1,9 @@
 @testable import Coder_Desktop
-import ViewInspector
-import Testing
 import SwiftUI
+import Testing
+import ViewInspector
 
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct VPNStateTests {
     let vpn: MockVPNService
@@ -16,7 +17,6 @@ struct VPNStateTests {
     }
 
     @Test
-    @MainActor
     func testDisabledState() async throws {
         vpn.state = .disabled
 
@@ -30,7 +30,6 @@ struct VPNStateTests {
     }
 
     @Test
-    @MainActor
     func testConnectingState() async throws {
         vpn.state = .connecting
 
@@ -43,7 +42,6 @@ struct VPNStateTests {
     }
 
     @Test
-    @MainActor
     func testDisconnectingState() async throws {
         vpn.state = .disconnecting
 
@@ -56,7 +54,6 @@ struct VPNStateTests {
     }
 
     @Test
-    @MainActor
     func testFailedState() async throws {
         vpn.state = .failed(.exampleError)
 
@@ -69,7 +66,6 @@ struct VPNStateTests {
     }
 
     @Test
-    @MainActor
     func testDefaultState() async throws {
         vpn.state = .connected
 

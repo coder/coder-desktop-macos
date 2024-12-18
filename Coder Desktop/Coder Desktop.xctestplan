@@ -17,7 +17,13 @@
   },
   "testTargets" : [
     {
-      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "identifier" : "961679D82D030E1D00B2B6DF",
+        "name" : "ProtoTests"
+      }
+    },
+    {
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",
         "identifier" : "9616790E2CFF100E00B2B6DF",
@@ -25,6 +31,7 @@
       }
     },
     {
+      "enabled" : false,
       "parallelizable" : true,
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",

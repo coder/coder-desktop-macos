@@ -1,8 +1,9 @@
 @testable import Coder_Desktop
+import SwiftUI
 import Testing
 import ViewInspector
-import SwiftUI
 
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct AgentsTests {
     let vpn: MockVPNService
@@ -30,7 +31,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func agentsWhenVPNOff() throws {
         vpn.state = .disabled
 
@@ -40,18 +40,16 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func agentsWhenVPNOn() throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: Theme.defaultVisibleAgents + 2)
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
-        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder")}
+        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder") }
     }
 
     @Test
-    @MainActor
     func showAllToggle() async throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 7)
@@ -78,7 +76,6 @@ struct AgentsTests {
     }
 
     @Test
-    @MainActor
     func noToggleFewAgents() throws {
         vpn.state = .connected
         vpn.agents = createMockAgents(count: 3)

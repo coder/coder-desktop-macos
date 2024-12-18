@@ -3,6 +3,7 @@ import Combine
 import SwiftUI
 import ViewInspector
 
+@MainActor
 class MockVPNService: VPNService, ObservableObject {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var baseAccessURL: URL = .init(string: "https://dev.coder.com")!
@@ -10,13 +11,11 @@ class MockVPNService: VPNService, ObservableObject {
     var onStart: (() async -> Void)?
     var onStop: (() async -> Void)?
 
-    @MainActor
     func start() async {
         state = .connecting
         await onStart?()
     }
 
-    @MainActor
     func stop() async {
         state = .disconnecting
         await onStop?()
@@ -67,10 +66,10 @@ struct MockClient: Client {
 }
 
 struct MockErrorClient: Client {
-    init(url: URL, token: String?) {}
-    func user(_ ident: String) async throws(ClientError) -> Coder_Desktop.User {
+    init(url _: URL, token _: String?) {}
+    func user(_: String) async throws(ClientError) -> Coder_Desktop.User {
         throw ClientError.reqError(.explicitlyCancelled)
     }
 }
 
-extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary { }
+extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
