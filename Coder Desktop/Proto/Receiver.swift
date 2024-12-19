@@ -22,7 +22,7 @@ actor Receiver<RecvMsg: Message> {
             dispatch.read(offset: 0, length: 4, queue: queue) { done, data, error in
                 guard error == 0 else {
                     let errStrPtr = strerror(error)
-                    let errStr = String(validatingUTF8: errStrPtr!)!
+                    let errStr = String(validatingCString: errStrPtr!)!
                     continuation.resume(throwing: ReceiveError.readError(errStr))
                     return
                 }
@@ -42,7 +42,7 @@ actor Receiver<RecvMsg: Message> {
             dispatch.read(offset: 0, length: Int(length), queue: queue) { done, data, error in
                 guard error == 0 else {
                     let errStrPtr = strerror(error)
-                    let errStr = String(validatingUTF8: errStrPtr!)!
+                    let errStr = String(validatingCString: errStrPtr!)!
                     continuation.resume(throwing: ReceiveError.readError(errStr))
                     return
                 }
@@ -57,7 +57,7 @@ actor Receiver<RecvMsg: Message> {
 
     /// Starts reading protocol messages from the `DispatchIO` channel and returns them as an `AsyncStream` of messages.
     /// On read or decoding error, it logs and closes the stream.
-    func messages() throws -> AsyncStream<RecvMsg> {
+    func messages() throws(ReceiveError) -> AsyncStream<RecvMsg> {
         if running {
             throw ReceiveError.alreadyRunning
         }
