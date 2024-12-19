@@ -4,20 +4,45 @@ import Testing
 
 /// A concrete, test class for the abstract Speaker, which overrides the handlers to send things to
 /// continuations we set in the test.
-class TestTunnel: Speaker<Vpn_TunnelMessage, Vpn_ManagerMessage> {
-    var msgHandler: CheckedContinuation<Vpn_ManagerMessage, Error>?
+class TestTunnel: Speaker<Vpn_TunnelMessage, Vpn_ManagerMessage>, @unchecked Sendable {
+    private var msgHandler: CheckedContinuation<Vpn_ManagerMessage, Error>?
     override func handleMessage(_ msg: Vpn_ManagerMessage) {
         msgHandler?.resume(returning: msg)
     }
 
-    var rpcHandler: CheckedContinuation<RPCRequest<Vpn_TunnelMessage, Vpn_ManagerMessage>, Error>?
+    /// Runs the given closure asynchronously and returns the next non-RPC message received.
+    func expectMessage(with closure:
+        @escaping @Sendable () async -> Void) async throws -> Vpn_ManagerMessage
+    {
+        return try await withCheckedThrowingContinuation { continuation in
+            msgHandler = continuation
+            Task {
+                await closure()
+            }
+        }
+    }
+
+    private var rpcHandler: CheckedContinuation<RPCRequest<Vpn_TunnelMessage, Vpn_ManagerMessage>, Error>?
     override func handleRPC(_ req: RPCRequest<Vpn_TunnelMessage, Vpn_ManagerMessage>) {
         rpcHandler?.resume(returning: req)
+    }
+
+    /// Runs the given closure asynchronously and return the next non-RPC message received
+    func expectRPC(with closure:
+        @escaping @Sendable () async -> Void) async throws ->
+        RPCRequest<Vpn_TunnelMessage, Vpn_ManagerMessage>
+    {
+        return try await withCheckedThrowingContinuation { continuation in
+            rpcHandler = continuation
+            Task {
+                await closure()
+            }
+        }
     }
 }
 
 @Suite(.timeLimit(.minutes(1)))
-struct SpeakerTests {
+struct SpeakerTests: Sendable {
     let pipeMT = Pipe()
     let pipeTM = Pipe()
     let uut: TestTunnel
@@ -56,14 +81,11 @@ struct SpeakerTests {
     @Test func handleSingleMessage() async throws {
         async let readDone: () = try uut.readLoop()
 
-        let got = try await withCheckedThrowingContinuation { continuation in
-            uut.msgHandler = continuation
-            Task {
-                var s = Vpn_ManagerMessage()
-                s.start = Vpn_StartRequest()
-                await #expect(throws: Never.self) {
-                    try await sender.send(s)
-                }
+        let got = try await uut.expectMessage {
+            var s = Vpn_ManagerMessage()
+            s.start = Vpn_StartRequest()
+            await #expect(throws: Never.self) {
+                try await sender.send(s)
             }
         }
         #expect(got.msg == .start(Vpn_StartRequest()))
@@ -74,16 +96,13 @@ struct SpeakerTests {
     @Test func handleRPC() async throws {
         async let readDone: () = try uut.readLoop()
 
-        let got = try await withCheckedThrowingContinuation { continuation in
-            uut.rpcHandler = continuation
-            Task {
-                var s = Vpn_ManagerMessage()
-                s.start = Vpn_StartRequest()
-                s.rpc = Vpn_RPC()
-                s.rpc.msgID = 33
-                await #expect(throws: Never.self) {
-                    try await sender.send(s)
-                }
+        let got = try await uut.expectRPC {
+            var s = Vpn_ManagerMessage()
+            s.start = Vpn_StartRequest()
+            s.rpc = Vpn_RPC()
+            s.rpc.msgID = 33
+            await #expect(throws: Never.self) {
+                try await sender.send(s)
             }
         }
         #expect(got.msg.msg == .start(Vpn_StartRequest()))

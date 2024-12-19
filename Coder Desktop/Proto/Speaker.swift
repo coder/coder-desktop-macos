@@ -133,20 +133,20 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     /// Send a unary RPC message and handle the response
     func unaryRPC(_ req: SendMsg) async throws -> RecvMsg {
         return try await withCheckedThrowingContinuation { continuation in
-            Task {
-                let msgID = await self.secretary.record(continuation: continuation)
+            Task { [sender, secretary, logger] in
+                let msgID = await secretary.record(continuation: continuation)
                 var req = req
                 req.rpc = Vpn_RPC()
                 req.rpc.msgID = msgID
                 do {
-                    self.logger.debug("sending RPC with msgID: \(msgID)")
-                    try await self.sender.send(req)
+                    logger.debug("sending RPC with msgID: \(msgID)")
+                    try await sender.send(req)
                 } catch {
-                    self.logger.warning("failed to send RPC with msgID: \(msgID): \(error)")
-                    await self.secretary.erase(id: req.rpc.msgID)
+                    logger.warning("failed to send RPC with msgID: \(msgID): \(error)")
+                    await secretary.erase(id: req.rpc.msgID)
                     continuation.resume(throwing: error)
                 }
-                self.logger.debug("sent RPC with msgID: \(msgID)")
+                logger.debug("sent RPC with msgID: \(msgID)")
             }
         }
     }
@@ -169,7 +169,7 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
 }
 
 /// A class that performs the initial VPN protocol handshake and version negotiation.
-class Handshaker {
+class Handshaker: @unchecked Sendable {
     private let writeFD: FileHandle
     private let dispatch: DispatchIO
     private var theirData: Data = .init()
@@ -219,7 +219,7 @@ class Handshaker {
     private func handleRead(_: Bool, _ data: DispatchData?, _ error: Int32) {
         guard error == 0 else {
             let errStrPtr = strerror(error)
-            let errStr = String(validatingUTF8: errStrPtr!)!
+            let errStr = String(validatingCString: errStrPtr!)!
             continuation?.resume(throwing: HandshakeError.readError(errStr))
             return
         }
@@ -277,7 +277,7 @@ enum HandshakeError: Error {
     case unsupportedVersion([ProtoVersion])
 }
 
-struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage> {
+struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
     let msg: RecvMsg
     private let sender: Sender<SendMsg>
 
@@ -302,7 +302,7 @@ enum RPCError: Error {
 }
 
 /// An actor to record outgoing RPCs and route their replies to the original sender
-actor RPCSecretary<RecvMsg: RPCMessage> {
+actor RPCSecretary<RecvMsg: RPCMessage & Sendable> {
     private var continuations: [UInt64: CheckedContinuation<RecvMsg, Error>] = [:]
     private var nextMsgID: UInt64 = 1
 
