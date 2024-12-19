@@ -57,7 +57,7 @@ actor Receiver<RecvMsg: Message> {
 
     /// Starts reading protocol messages from the `DispatchIO` channel and returns them as an `AsyncStream` of messages.
     /// On read or decoding error, it logs and closes the stream.
-    func messages() throws -> AsyncStream<RecvMsg> {
+    func messages() throws(ReceiveError) -> AsyncStream<RecvMsg> {
         if running {
             throw ReceiveError.alreadyRunning
         }

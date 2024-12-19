@@ -6,7 +6,7 @@ let newLine = 0x0A
 let headerPreamble = "codervpn"
 
 /// A message that has the `rpc` property for recording participation in a unary RPC.
-protocol RPCMessage {
+protocol RPCMessage: Sendable {
     var rpc: Vpn_RPC { get set }
     /// Returns true if `rpc` has been explicitly set.
     var hasRpc: Bool { get }
@@ -49,8 +49,8 @@ struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
     }
 }
 
-/// An abstract base class for implementations that need to communicate using the VPN protocol.
-class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
+/// An actor that communicates using the VPN protocol
+actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     private let logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "proto")
     private let writeFD: FileHandle
     private let readFD: FileHandle
@@ -59,6 +59,8 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     private let sender: Sender<SendMsg>
     private let receiver: Receiver<RecvMsg>
     private let secretary = RPCSecretary<RecvMsg>()
+    private var messageBuffer: MessageBuffer = .init()
+    private var readLoopTask: Task<Void, any Error>?
     let role: ProtoRole
 
     /// Creates an instance that communicates over the provided file handles.
@@ -93,41 +95,45 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
         try _ = await hndsh.handshake()
     }
 
-    /// Reads and handles protocol messages.
-    func readLoop() async throws {
-        for try await msg in try await receiver.messages() {
-            guard msg.hasRpc else {
-                handleMessage(msg)
-                continue
-            }
-            guard msg.rpc.msgID == 0 else {
-                let req = RPCRequest<SendMsg, RecvMsg>(req: msg, sender: sender)
-                handleRPC(req)
-                continue
-            }
-            guard msg.rpc.responseTo == 0 else {
-                logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
-                do throws(RPCError) {
-                    try await self.secretary.route(reply: msg)
-                } catch {
-                    logger.error(
-                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
+    public func start() {
+        guard readLoopTask == nil else {
+            logger.error("speaker is already running")
+            return
+        }
+        readLoopTask = Task {
+            do throws(ReceiveError) {
+                for try await msg in try await self.receiver.messages() {
+                    guard msg.hasRpc else {
+                        await messageBuffer.push(.message(msg))
+                        continue
+                    }
+                    guard msg.rpc.msgID == 0 else {
+                        let req = RPCRequest<SendMsg, RecvMsg>(req: msg, sender: self.sender)
+                        await messageBuffer.push(.RPC(req))
+                        continue
+                    }
+                    guard msg.rpc.responseTo == 0 else {
+                        self.logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
+                        do throws(RPCError) {
+                            try await self.secretary.route(reply: msg)
+                        } catch {
+                            self.logger.error(
+                                "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
+                        }
+                        continue
+                    }
                 }
-                continue
+            } catch {
+                self.logger.error("failed to receive messages: \(error)")
             }
         }
     }
 
-    /// Handles a single non-RPC message. It is expected that subclasses override this method with their own handlers.
-    func handleMessage(_ msg: RecvMsg) {
-        // just log
-        logger.debug("got non-RPC message \(msg.textFormatString())")
-    }
-
-    /// Handle a single RPC request. It is expected that subclasses override this method with their own handlers.
-    func handleRPC(_ req: RPCRequest<SendMsg, RecvMsg>) {
-        // just log
-        logger.debug("got RPC message \(req.msg.textFormatString())")
+    func wait() async throws {
+        guard let task = readLoopTask else {
+            return
+        }
+        try await task.value
     }
 
     /// Send a unary RPC message and handle the response
@@ -166,10 +172,51 @@ class Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
             logger.error("failed to close read file handle: \(error)")
         }
     }
+
+    enum IncomingMessage {
+        case message(RecvMsg)
+        case RPC(RPCRequest<SendMsg, RecvMsg>)
+    }
+
+    private actor MessageBuffer {
+        private var messages: [IncomingMessage] = []
+        private var continuations: [CheckedContinuation<IncomingMessage?, Never>] = []
+
+        func push(_ message: IncomingMessage?) {
+            if let continuation = continuations.first {
+                continuations.removeFirst()
+                continuation.resume(returning: message)
+            } else if let message = message {
+                messages.append(message)
+            }
+        }
+
+        func next() async -> IncomingMessage? {
+            if let message = messages.first {
+                messages.removeFirst()
+                return message
+            }
+            return await withCheckedContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+    }
 }
 
-/// A class that performs the initial VPN protocol handshake and version negotiation.
-class Handshaker: @unchecked Sendable {
+extension Speaker: AsyncSequence, AsyncIteratorProtocol {
+    typealias Element = IncomingMessage
+
+    public nonisolated func makeAsyncIterator() -> Speaker<SendMsg, RecvMsg> {
+        self
+    }
+
+    func next() async throws -> IncomingMessage? {
+        return await messageBuffer.next()
+    }
+}
+
+/// An actor performs the initial VPN protocol handshake and version negotiation.
+actor Handshaker {
     private let writeFD: FileHandle
     private let dispatch: DispatchIO
     private var theirData: Data = .init()
@@ -193,17 +240,19 @@ class Handshaker: @unchecked Sendable {
     func handshake() async throws -> ProtoVersion {
         // kick off the read async before we try to write, synchronously, so we don't deadlock, both
         // waiting to write with nobody reading.
-        async let theirs = try withCheckedThrowingContinuation { cont in
-            continuation = cont
-            // send in a nil read to kick us off
-            handleRead(false, nil, 0)
+        let readTask = Task {
+            try await withCheckedThrowingContinuation { cont in
+                self.continuation = cont
+                // send in a nil read to kick us off
+                self.handleRead(false, nil, 0)
+            }
         }
 
         let vStr = versions.map { $0.description }.joined(separator: ",")
         let ours = String(format: "\(headerPreamble) \(role) \(vStr)\n")
         try writeFD.write(contentsOf: ours.data(using: .utf8)!)
 
-        let theirData = try await theirs
+        let theirData = try await readTask.value
         guard let theirsString = String(bytes: theirData, encoding: .utf8) else {
             throw HandshakeError.invalidHeader("<unparsable: \(theirData)")
         }
