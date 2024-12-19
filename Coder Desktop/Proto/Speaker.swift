@@ -125,6 +125,7 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
                 }
             } catch {
                 self.logger.error("failed to receive messages: \(error)")
+                throw error
             }
         }
     }
