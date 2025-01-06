@@ -88,7 +88,7 @@ struct SpeakerTests: Sendable {
 
     @Test func sendRPCs() async throws {
         // Speaker must be reading from the receiver for `unaryRPC` to return
-        Task {
+        let readDone = Task {
             for try await _ in uut {}
         }
         async let managerDone = Task {
@@ -114,5 +114,6 @@ struct SpeakerTests: Sendable {
         await uut.closeWrite()
         _ = await managerDone
         try await sender.close()
+        try await readDone.value
     }
 }
