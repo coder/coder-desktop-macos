@@ -59,8 +59,6 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     private let sender: Sender<SendMsg>
     private let receiver: Receiver<RecvMsg>
     private let secretary = RPCSecretary<RecvMsg>()
-    private var messageBuffer: MessageBuffer = .init()
-    private var readLoopTask: Task<Void, any Error>?
     let role: ProtoRole
 
     /// Creates an instance that communicates over the provided file handles.
@@ -135,30 +133,6 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     enum IncomingMessage {
         case message(RecvMsg)
         case RPC(RPCRequest<SendMsg, RecvMsg>)
-    }
-
-    private actor MessageBuffer {
-        private var messages: [IncomingMessage] = []
-        private var continuations: [CheckedContinuation<IncomingMessage?, Never>] = []
-
-        func push(_ message: IncomingMessage?) {
-            if let continuation = continuations.first {
-                continuations.removeFirst()
-                continuation.resume(returning: message)
-            } else if let message = message {
-                messages.append(message)
-            }
-        }
-
-        func next() async -> IncomingMessage? {
-            if let message = messages.first {
-                messages.removeFirst()
-                return message
-            }
-            return await withCheckedContinuation { continuation in
-                continuations.append(continuation)
-            }
-        }
     }
 }
 
