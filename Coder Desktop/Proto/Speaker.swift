@@ -95,48 +95,6 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
         try _ = await hndsh.handshake()
     }
 
-    public func start() {
-        guard readLoopTask == nil else {
-            logger.error("speaker is already running")
-            return
-        }
-        readLoopTask = Task {
-            do throws(ReceiveError) {
-                for try await msg in try await self.receiver.messages() {
-                    guard msg.hasRpc else {
-                        await messageBuffer.push(.message(msg))
-                        continue
-                    }
-                    guard msg.rpc.msgID == 0 else {
-                        let req = RPCRequest<SendMsg, RecvMsg>(req: msg, sender: self.sender)
-                        await messageBuffer.push(.RPC(req))
-                        continue
-                    }
-                    guard msg.rpc.responseTo == 0 else {
-                        self.logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
-                        do throws(RPCError) {
-                            try await self.secretary.route(reply: msg)
-                        } catch {
-                            self.logger.error(
-                                "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
-                        }
-                        continue
-                    }
-                }
-            } catch {
-                self.logger.error("failed to receive messages: \(error)")
-                throw error
-            }
-        }
-    }
-
-    func wait() async throws {
-        guard let task = readLoopTask else {
-            return
-        }
-        try await task.value
-    }
-
     /// Send a unary RPC message and handle the response
     func unaryRPC(_ req: SendMsg) async throws -> RecvMsg {
         return try await withCheckedThrowingContinuation { continuation in
@@ -212,7 +170,25 @@ extension Speaker: AsyncSequence, AsyncIteratorProtocol {
     }
 
     func next() async throws -> IncomingMessage? {
-        return await messageBuffer.next()
+        for try await msg in try await receiver.messages() {
+            guard msg.hasRpc else {
+                return .message(msg)
+            }
+            guard msg.rpc.msgID == 0 else {
+                return .RPC(RPCRequest<SendMsg, RecvMsg>(req: msg, sender: sender))
+            }
+            guard msg.rpc.responseTo == 0 else {
+                logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
+                do throws(RPCError) {
+                    try await self.secretary.route(reply: msg)
+                } catch {
+                    logger.error(
+                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
+                }
+                continue
+            }
+        }
+        return nil
     }
 }
 

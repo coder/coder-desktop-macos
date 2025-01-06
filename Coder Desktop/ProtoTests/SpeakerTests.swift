@@ -40,8 +40,6 @@ struct SpeakerTests: Sendable {
     }
 
     @Test func handleSingleMessage() async throws {
-        await uut.start()
-
         var s = Vpn_ManagerMessage()
         s.start = Vpn_StartRequest()
         await #expect(throws: Never.self) {
@@ -54,12 +52,9 @@ struct SpeakerTests: Sendable {
         }
         #expect(msg.msg == .start(Vpn_StartRequest()))
         try await sender.close()
-        try await uut.wait()
     }
 
     @Test func handleRPC() async throws {
-        await uut.start()
-
         var s = Vpn_ManagerMessage()
         s.start = Vpn_StartRequest()
         s.rpc = Vpn_RPC()
@@ -89,12 +84,13 @@ struct SpeakerTests: Sendable {
             #expect(count == 1)
         }
         try await sender.close()
-        try await uut.wait()
     }
 
     @Test func sendRPCs() async throws {
-        await uut.start()
-
+        // Speaker must be reading from the receiver for `unaryRPC` to return
+        Task {
+            for try await _ in uut {}
+        }
         async let managerDone = Task {
             var count = 0
             for try await req in try await receiver.messages() {
@@ -118,6 +114,5 @@ struct SpeakerTests: Sendable {
         await uut.closeWrite()
         _ = await managerDone
         try await sender.close()
-        try await uut.wait()
     }
 }
