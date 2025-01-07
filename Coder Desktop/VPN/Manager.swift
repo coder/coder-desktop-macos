@@ -6,8 +6,8 @@ actor Manager {
     let ptp: PacketTunnelProvider
     let downloader: Downloader
 
-    var tunnelHandle: TunnelHandle? = nil
-    var speaker: Speaker<Vpn_TunnelMessage, Vpn_ManagerMessage>? = nil
+    var tunnelHandle: TunnelHandle?
+    var speaker: Speaker<Vpn_TunnelMessage, Vpn_ManagerMessage>?
     // TODO: XPC Speaker
 
     private let dest = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -15,6 +15,6 @@ actor Manager {
 
     init(with: PacketTunnelProvider) {
         ptp = with
-        self.downloader = Downloader()
+        downloader = Downloader()
     }
 }
