@@ -6,6 +6,22 @@
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9616792F2CFF117300B2B6DF"
+               BuildableName = "com.coder.Coder-Desktop.VPN.systemextension"
+               BlueprintName = "VPN"
+               ReferencedContainer = "container:Coder Desktop.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
@@ -13,19 +29,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "961679D82D030E1D00B2B6DF"
-               BuildableName = "ProtoTests.xctest"
-               BlueprintName = "ProtoTests"
-               ReferencedContainer = "container:Coder Desktop.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -37,16 +40,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "961678FB2CFF100D00B2B6DF"
-            BuildableName = "Coder Desktop.app"
-            BlueprintName = "Coder Desktop"
-            ReferencedContainer = "container:Coder Desktop.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -57,9 +50,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "961678FB2CFF100D00B2B6DF"
-            BuildableName = "Coder Desktop.app"
-            BlueprintName = "Coder Desktop"
+            BlueprintIdentifier = "9616792F2CFF117300B2B6DF"
+            BuildableName = "com.coder.Coder-Desktop.VPN.systemextension"
+            BlueprintName = "VPN"
             ReferencedContainer = "container:Coder Desktop.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

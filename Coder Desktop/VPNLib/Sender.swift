@@ -3,7 +3,7 @@ import SwiftProtobuf
 
 /// A actor that serializes and sends VPN protocol messages over a `FileHandle`, which is typically
 /// the write-side of a `Pipe`.
-actor Sender<SendMsg: Message> {
+public actor Sender<SendMsg: Message> {
     private let writeFD: FileHandle
 
     init(writeFD: FileHandle) {

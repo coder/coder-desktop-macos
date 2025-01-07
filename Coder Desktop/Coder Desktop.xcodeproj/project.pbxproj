@@ -11,8 +11,14 @@
 		9616793D2CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		961679532CFF207900B2B6DF /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679522CFF207900B2B6DF /* SwiftProtobuf */; };
 		961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679542CFF207900B2B6DF /* SwiftProtobufPluginLibrary */; };
-		AA071D2C2D1041A7008D0B72 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 961679E22D03144900B2B6DF /* SwiftProtobuf */; };
-		AA071D2D2D1041A7008D0B72 /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */; };
+		AA3B3DA92D2D23860099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
+		AA3B3DB42D2D23860099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
+		AA3B3DB52D2D23860099996A /* VPNLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AA3B3DBF2D2D23AB0099996A /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DBE2D2D23AB0099996A /* SwiftProtobuf */; };
+		AA3B3DC12D2D23AB0099996A /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DC02D2D23AB0099996A /* SwiftProtobufPluginLibrary */; };
+		AA3B3DCD2D2D249F0099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
+		AA3B3DCE2D2D249F0099996A /* VPNLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AA3B3DD22D2D26700099996A /* Swifter in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DD12D2D26700099996A /* Swifter */; };
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
@@ -41,12 +47,33 @@
 			remoteGlobalIDString = 9616792F2CFF117300B2B6DF;
 			remoteInfo = VPN;
 		};
-		961679DD2D030E1D00B2B6DF /* PBXContainerItemProxy */ = {
+		AA3B3DAA2D2D23860099996A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA3B3DA02D2D23860099996A;
+			remoteInfo = VPNLib;
+		};
+		AA3B3DAC2D2D23860099996A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 961678FB2CFF100D00B2B6DF;
 			remoteInfo = "Coder Desktop";
+		};
+		AA3B3DB22D2D23860099996A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA3B3DA02D2D23860099996A;
+			remoteInfo = VPNLib;
+		};
+		AA3B3DCF2D2D249F0099996A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA3B3DA02D2D23860099996A;
+			remoteInfo = VPNLib;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -62,6 +89,28 @@
 			name = "Embed System Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA32A0E32D2D21A3004D6733 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AA3B3DCE2D2D249F0099996A /* VPNLib.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA3B3D922D2D233E0099996A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AA3B3DB52D2D23860099996A /* VPNLib.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -70,30 +119,27 @@
 		961679192CFF100E00B2B6DF /* Coder DesktopUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Coder DesktopUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = "com.coder.Coder-Desktop.VPN.systemextension"; sourceTree = BUILT_PRODUCTS_DIR; };
 		961679322CFF117300B2B6DF /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
-		961679D92D030E1D00B2B6DF /* ProtoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ProtoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA3B3DA12D2D23860099996A /* VPNLib.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = VPNLib.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA3B3DA82D2D23860099996A /* VPNLibTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPNLibTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		9616793E2CFF117300B2B6DF /* Exceptions for "VPN" folder in "VPN" target */ = {
+		AA3B3DB62D2D23860099996A /* Exceptions for "VPNLib" folder in "VPNLib" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				vpn.proto,
+			);
+			publicHeaders = (
+				VPNLib.h,
+			);
+			target = AA3B3DA02D2D23860099996A /* VPNLib */;
+		};
+		AA3C69C12D2D15D200A45481 /* Exceptions for "VPN" folder in "VPN" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
-		};
-		961679472CFF14EA00B2B6DF /* Exceptions for "Proto" folder in "VPN" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Sender.swift,
-			);
-			target = 9616792F2CFF117300B2B6DF /* VPN */;
-		};
-		AA071D842D1041E9008D0B72 /* Exceptions for "Proto" folder in "Coder Desktop" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				vpn.proto,
-			);
-			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -113,26 +159,25 @@
 			path = "Coder DesktopUITests";
 			sourceTree = "<group>";
 		};
-		961679342CFF117300B2B6DF /* VPN */ = {
+		AA3B3DA22D2D23860099996A /* VPNLib */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				9616793E2CFF117300B2B6DF /* Exceptions for "VPN" folder in "VPN" target */,
+				AA3B3DB62D2D23860099996A /* Exceptions for "VPNLib" folder in "VPNLib" target */,
+			);
+			path = VPNLib;
+			sourceTree = "<group>";
+		};
+		AA3B3DAE2D2D23860099996A /* VPNLibTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VPNLibTests;
+			sourceTree = "<group>";
+		};
+		AA3C69AD2D2D143400A45481 /* VPN */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA3C69C12D2D15D200A45481 /* Exceptions for "VPN" folder in "VPN" target */,
 			);
 			path = VPN;
-			sourceTree = "<group>";
-		};
-		961679432CFF149000B2B6DF /* Proto */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				AA071D842D1041E9008D0B72 /* Exceptions for "Proto" folder in "Coder Desktop" target */,
-				961679472CFF14EA00B2B6DF /* Exceptions for "Proto" folder in "VPN" target */,
-			);
-			path = Proto;
-			sourceTree = "<group>";
-		};
-		961679DA2D030E1D00B2B6DF /* ProtoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ProtoTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -143,6 +188,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAD720D02D0816B200F6304D /* Alamofire in Frameworks */,
+				AA3B3DB42D2D23860099996A /* VPNLib.framework in Frameworks */,
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
 				961679552CFF207900B2B6DF /* SwiftProtobufPluginLibrary in Frameworks */,
@@ -169,16 +215,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA071D2D2D1041A7008D0B72 /* SwiftProtobufPluginLibrary in Frameworks */,
-				AA071D2C2D1041A7008D0B72 /* SwiftProtobuf in Frameworks */,
 				961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */,
+				AA3B3DCD2D2D249F0099996A /* VPNLib.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		961679D62D030E1D00B2B6DF /* Frameworks */ = {
+		AA3B3D9E2D2D23860099996A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA3B3DC12D2D23AB0099996A /* SwiftProtobufPluginLibrary in Frameworks */,
+				AA3B3DBF2D2D23AB0099996A /* SwiftProtobuf in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA3B3DA52D2D23860099996A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA3B3DA92D2D23860099996A /* VPNLib.framework in Frameworks */,
+				AA3B3DD22D2D26700099996A /* Swifter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -188,12 +244,12 @@
 		961678F32CFF100D00B2B6DF = {
 			isa = PBXGroup;
 			children = (
-				961679432CFF149000B2B6DF /* Proto */,
-				961679DA2D030E1D00B2B6DF /* ProtoTests */,
 				961678FE2CFF100D00B2B6DF /* Coder Desktop */,
+				AA3C69AD2D2D143400A45481 /* VPN */,
 				961679122CFF100E00B2B6DF /* Coder DesktopTests */,
 				9616791C2CFF100E00B2B6DF /* Coder DesktopUITests */,
-				961679342CFF117300B2B6DF /* VPN */,
+				AA3B3DA22D2D23860099996A /* VPNLib */,
+				AA3B3DAE2D2D23860099996A /* VPNLibTests */,
 				961679312CFF117300B2B6DF /* Frameworks */,
 				961678FD2CFF100D00B2B6DF /* Products */,
 			);
@@ -206,7 +262,8 @@
 				9616790F2CFF100E00B2B6DF /* Coder DesktopTests.xctest */,
 				961679192CFF100E00B2B6DF /* Coder DesktopUITests.xctest */,
 				961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */,
-				961679D92D030E1D00B2B6DF /* ProtoTests.xctest */,
+				AA3B3DA12D2D23860099996A /* VPNLib.framework */,
+				AA3B3DA82D2D23860099996A /* VPNLibTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -221,6 +278,16 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		AA3B3D9C2D2D23860099996A /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		961678FB2CFF100D00B2B6DF /* Coder Desktop */ = {
 			isa = PBXNativeTarget;
@@ -230,16 +297,17 @@
 				961678F92CFF100D00B2B6DF /* Frameworks */,
 				961678FA2CFF100D00B2B6DF /* Resources */,
 				961679422CFF117300B2B6DF /* Embed System Extensions */,
+				AA3B3D922D2D233E0099996A /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */,
 				9616793C2CFF117300B2B6DF /* PBXTargetDependency */,
+				AA3B3DB32D2D23860099996A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				961678FE2CFF100D00B2B6DF /* Coder Desktop */,
-				961679432CFF149000B2B6DF /* Proto */,
 			);
 			name = "Coder Desktop";
 			packageProductDependencies = (
@@ -307,44 +375,71 @@
 				9616792C2CFF117300B2B6DF /* Sources */,
 				9616792D2CFF117300B2B6DF /* Frameworks */,
 				9616792E2CFF117300B2B6DF /* Resources */,
+				AA32A0E32D2D21A3004D6733 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AA3B3DD02D2D249F0099996A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				961679342CFF117300B2B6DF /* VPN */,
+				AA3C69AD2D2D143400A45481 /* VPN */,
 			);
 			name = VPN;
 			packageProductDependencies = (
-				961679E22D03144900B2B6DF /* SwiftProtobuf */,
-				961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */,
 			);
 			productName = VPN;
 			productReference = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */;
 			productType = "com.apple.product-type.system-extension";
 		};
-		961679D82D030E1D00B2B6DF /* ProtoTests */ = {
+		AA3B3DA02D2D23860099996A /* VPNLib */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 961679DF2D030E1D00B2B6DF /* Build configuration list for PBXNativeTarget "ProtoTests" */;
+			buildConfigurationList = AA3B3DB72D2D23860099996A /* Build configuration list for PBXNativeTarget "VPNLib" */;
 			buildPhases = (
-				961679D52D030E1D00B2B6DF /* Sources */,
-				961679D62D030E1D00B2B6DF /* Frameworks */,
-				961679D72D030E1D00B2B6DF /* Resources */,
+				AA3B3D9C2D2D23860099996A /* Headers */,
+				AA3B3D9D2D2D23860099996A /* Sources */,
+				AA3B3D9E2D2D23860099996A /* Frameworks */,
+				AA3B3D9F2D2D23860099996A /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				961679DE2D030E1D00B2B6DF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				961679DA2D030E1D00B2B6DF /* ProtoTests */,
+				AA3B3DA22D2D23860099996A /* VPNLib */,
 			);
-			name = ProtoTests;
+			name = VPNLib;
 			packageProductDependencies = (
+				AA3B3DBE2D2D23AB0099996A /* SwiftProtobuf */,
+				AA3B3DC02D2D23AB0099996A /* SwiftProtobufPluginLibrary */,
 			);
-			productName = ProtoTests;
-			productReference = 961679D92D030E1D00B2B6DF /* ProtoTests.xctest */;
+			productName = VPNLib;
+			productReference = AA3B3DA12D2D23860099996A /* VPNLib.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		AA3B3DA72D2D23860099996A /* VPNLibTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA3B3DBA2D2D23860099996A /* Build configuration list for PBXNativeTarget "VPNLibTests" */;
+			buildPhases = (
+				AA3B3DA42D2D23860099996A /* Sources */,
+				AA3B3DA52D2D23860099996A /* Frameworks */,
+				AA3B3DA62D2D23860099996A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA3B3DAB2D2D23860099996A /* PBXTargetDependency */,
+				AA3B3DAD2D2D23860099996A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA3B3DAE2D2D23860099996A /* VPNLibTests */,
+			);
+			name = VPNLibTests;
+			packageProductDependencies = (
+				AA3B3DD12D2D26700099996A /* Swifter */,
+			);
+			productName = VPNLibTests;
+			productReference = AA3B3DA82D2D23860099996A /* VPNLibTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -354,7 +449,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1610;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					961678FB2CFF100D00B2B6DF = {
@@ -371,8 +466,11 @@
 					9616792F2CFF117300B2B6DF = {
 						CreatedOnToolsVersion = 16.1;
 					};
-					961679D82D030E1D00B2B6DF = {
-						CreatedOnToolsVersion = 16.1;
+					AA3B3DA02D2D23860099996A = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					AA3B3DA72D2D23860099996A = {
+						CreatedOnToolsVersion = 16.2;
 						TestTargetID = 961678FB2CFF100D00B2B6DF;
 					};
 				};
@@ -393,6 +491,7 @@
 				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 				AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */,
 				961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+				AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -403,7 +502,8 @@
 				9616790E2CFF100E00B2B6DF /* Coder DesktopTests */,
 				961679182CFF100E00B2B6DF /* Coder DesktopUITests */,
 				9616792F2CFF117300B2B6DF /* VPN */,
-				961679D82D030E1D00B2B6DF /* ProtoTests */,
+				AA3B3DA02D2D23860099996A /* VPNLib */,
+				AA3B3DA72D2D23860099996A /* VPNLibTests */,
 			);
 		};
 /* End PBXProject section */
@@ -437,7 +537,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		961679D72D030E1D00B2B6DF /* Resources */ = {
+		AA3B3D9F2D2D23860099996A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA3B3DA62D2D23860099996A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -475,7 +582,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		961679D52D030E1D00B2B6DF /* Sources */ = {
+		AA3B3D9D2D2D23860099996A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA3B3DA42D2D23860099996A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -500,10 +614,25 @@
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 			targetProxy = 9616793B2CFF117300B2B6DF /* PBXContainerItemProxy */;
 		};
-		961679DE2D030E1D00B2B6DF /* PBXTargetDependency */ = {
+		AA3B3DAB2D2D23860099996A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA3B3DA02D2D23860099996A /* VPNLib */;
+			targetProxy = AA3B3DAA2D2D23860099996A /* PBXContainerItemProxy */;
+		};
+		AA3B3DAD2D2D23860099996A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
-			targetProxy = 961679DD2D030E1D00B2B6DF /* PBXContainerItemProxy */;
+			targetProxy = AA3B3DAC2D2D23860099996A /* PBXContainerItemProxy */;
+		};
+		AA3B3DB32D2D23860099996A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA3B3DA02D2D23860099996A /* VPNLib */;
+			targetProxy = AA3B3DB22D2D23860099996A /* PBXContainerItemProxy */;
+		};
+		AA3B3DD02D2D249F0099996A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA3B3DA02D2D23860099996A /* VPNLib */;
+			targetProxy = AA3B3DCF2D2D249F0099996A /* PBXContainerItemProxy */;
 		};
 		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -655,7 +784,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -669,7 +798,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Coder Desktop/Coder_Desktop.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Coder Desktop/Coder DesktopRelease.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -685,7 +814,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -703,7 +832,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -722,7 +851,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -740,7 +869,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -758,7 +887,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -775,6 +904,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
+				DEFINES_MODULE = NO;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -786,11 +916,14 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPN";
+				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
 				PRODUCT_NAME = "$(inherited)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VPN/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
@@ -802,6 +935,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
+				DEFINES_MODULE = NO;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -813,26 +947,100 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPN";
+				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
 				PRODUCT_NAME = "$(inherited)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VPN/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
-		961679E02D030E1D00B2B6DF /* Debug */ = {
+		AA3B3DB82D2D23860099996A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = coder.VPNLib;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 6.0;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		AA3B3DB92D2D23860099996A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = coder.VPNLib;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 6.0;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		AA3B3DBB2D2D23860099996A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.ProtoTests";
+				PRODUCT_BUNDLE_IDENTIFIER = coder.VPNLibTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
@@ -840,17 +1048,16 @@
 			};
 			name = Debug;
 		};
-		961679E12D030E1D00B2B6DF /* Release */ = {
+		AA3B3DBC2D2D23860099996A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.ProtoTests";
+				PRODUCT_BUNDLE_IDENTIFIER = coder.VPNLibTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 6.0;
@@ -906,11 +1113,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		961679DF2D030E1D00B2B6DF /* Build configuration list for PBXNativeTarget "ProtoTests" */ = {
+		AA3B3DB72D2D23860099996A /* Build configuration list for PBXNativeTarget "VPNLib" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				961679E02D030E1D00B2B6DF /* Debug */,
-				961679E12D030E1D00B2B6DF /* Release */,
+				AA3B3DB82D2D23860099996A /* Debug */,
+				AA3B3DB92D2D23860099996A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA3B3DBA2D2D23860099996A /* Build configuration list for PBXNativeTarget "VPNLibTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA3B3DBB2D2D23860099996A /* Debug */,
+				AA3B3DBC2D2D23860099996A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -924,6 +1140,14 @@
 			requirement = {
 				kind = exactVersion;
 				version = 1.28.2;
+			};
+		};
+		AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/httpswift/swifter";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
 			};
 		};
 		AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
@@ -979,15 +1203,20 @@
 			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobufPluginLibrary;
 		};
-		961679E22D03144900B2B6DF /* SwiftProtobuf */ = {
+		AA3B3DBE2D2D23AB0099996A /* SwiftProtobuf */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
 		};
-		961679E42D03144C00B2B6DF /* SwiftProtobufPluginLibrary */ = {
+		AA3B3DC02D2D23AB0099996A /* SwiftProtobufPluginLibrary */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobufPluginLibrary;
+		};
+		AA3B3DD12D2D26700099996A /* Swifter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */;
+			productName = Swifter;
 		};
 		AA8BC3382D0060A900E1ABAA /* ViewInspector */ = {
 			isa = XCSwiftPackageProductDependency;

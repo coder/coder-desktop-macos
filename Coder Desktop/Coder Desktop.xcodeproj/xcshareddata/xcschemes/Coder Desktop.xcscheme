@@ -62,9 +62,20 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "961679D82D030E1D00B2B6DF"
-               BuildableName = "ProtoTests.xctest"
-               BlueprintName = "ProtoTests"
+               BlueprintIdentifier = "AA3B3DA02D2D23860099996A"
+               BuildableName = "VPNLib.framework"
+               BlueprintName = "VPNLib"
+               ReferencedContainer = "container:Coder Desktop.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AA3B3DA72D2D23860099996A"
+               BuildableName = "VPNLibTests.xctest"
+               BlueprintName = "VPNLibTests"
                ReferencedContainer = "container:Coder Desktop.xcodeproj">
             </BuildableReference>
          </TestableReference>

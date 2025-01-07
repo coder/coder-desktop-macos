@@ -1,6 +1,6 @@
-@testable import Coder_Desktop
 import Foundation
 import Testing
+@testable import VPNLib
 
 @Suite(.timeLimit(.minutes(1)))
 struct SpeakerTests: Sendable {

@@ -19,15 +19,15 @@
     {
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",
-        "identifier" : "961679D82D030E1D00B2B6DF",
-        "name" : "ProtoTests"
+        "identifier" : "9616790E2CFF100E00B2B6DF",
+        "name" : "Coder DesktopTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",
-        "identifier" : "9616790E2CFF100E00B2B6DF",
-        "name" : "Coder DesktopTests"
+        "identifier" : "AA3B3DA72D2D23860099996A",
+        "name" : "VPNLibTests"
       }
     },
     {
