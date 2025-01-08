@@ -117,10 +117,7 @@ public actor Downloader {
         var req = URLRequest(url: src)
         if FileManager.default.fileExists(atPath: dest.path) {
             if let existingFileData = try? Data(contentsOf: dest) {
-                let sha1Hash = Insecure.SHA1.hash(data: existingFileData)
-                let etag = sha1Hash.map { String(format: "%02x", $0) }.joined()
-                // ETag header needs to be quoted
-                req.setValue("\"\(etag)\"", forHTTPHeaderField: "If-None-Match")
+                req.setValue(etag(data: existingFileData), forHTTPHeaderField: "If-None-Match")
             }
         }
         // TODO: Add Content-Length headers to coderd, add download progress delegate
