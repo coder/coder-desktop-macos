@@ -12,7 +12,7 @@ actor Manager {
 
     private let dest = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         .first!.appending(path: "coder-vpn.dylib")
-    private let logger = Logger(subsystem: "com.coder.Coder.CoderPacketTunnelProvider", category: "manager")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
     init(with: PacketTunnelProvider) {
         ptp = with

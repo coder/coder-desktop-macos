@@ -51,7 +51,7 @@ struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
 
 /// An actor that communicates using the VPN protocol
 public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
-    private let logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "proto")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "proto")
     private let writeFD: FileHandle
     private let readFD: FileHandle
     private let dispatch: DispatchIO

@@ -5,7 +5,7 @@ import os
 let CTLIOCGINFO: UInt = 0xC064_4E03
 
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
-    private let logger = Logger(subsystem: "com.coder.Coder.CoderPacketTunnelProvider", category: "network-extension")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "network-extension")
     private var manager: Manager?
 
     private var tunnelFileDescriptor: Int32? {

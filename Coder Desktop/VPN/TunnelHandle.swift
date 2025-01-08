@@ -4,7 +4,7 @@ import os
 let startSymbol = "OpenTunnel"
 
 actor TunnelHandle {
-    private let logger = Logger(subsystem: "com.coder.Coder.CoderPacketTunnelProvider", category: "tunnel-handle")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "tunnel-handle")
 
     private let tunnelWritePipe: Pipe
     private let tunnelReadPipe: Pipe
