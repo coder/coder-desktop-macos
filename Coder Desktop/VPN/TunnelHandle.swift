@@ -14,10 +14,17 @@ actor TunnelHandle {
     var readFD: Int32 { tunnelWritePipe.fileHandleForReading.fileDescriptor }
 
     init(dylibPath: URL) throws(TunnelHandleError) {
-        dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL)
+        guard let dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL) else {
+            var errStr = "UNKNOWN"
+            let e = dlerror()
+            if e != nil {
+                errStr = String(cString: e!)
+            }
+            throw .dylib(errStr)
+        }
+        self.dylibHandle = dylibHandle
 
-        let startSym = dlsym(dylibHandle, startSymbol)
-        guard startSym != nil else {
+        guard let startSym = dlsym(dylibHandle, startSymbol) else {
             var errStr = "UNKNOWN"
             let e = dlerror()
             if e != nil {
@@ -41,11 +48,13 @@ actor TunnelHandle {
 }
 
 enum TunnelHandleError: Error {
+    case dylib(String)
     case symbol(String, String)
     case openTunnel(OpenTunnelError)
 
     var description: String {
         switch self {
+        case let .dylib(d): return d
         case let .symbol(symbol, message): return "\(symbol): \(message)"
         case let .openTunnel(error): return "OpenTunnel: \(error.message)"
         }
