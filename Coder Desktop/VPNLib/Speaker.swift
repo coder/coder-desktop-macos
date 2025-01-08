@@ -62,7 +62,7 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     let role: ProtoRole
 
     /// Creates an instance that communicates over the provided file handles.
-    init(writeFD: FileHandle, readFD: FileHandle) {
+    public init(writeFD: FileHandle, readFD: FileHandle) {
         self.writeFD = writeFD
         self.readFD = readFD
         sender = Sender(writeFD: writeFD)

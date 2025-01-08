@@ -10,8 +10,8 @@ actor TunnelHandle {
     private let tunnelReadPipe: Pipe
     private let dylibHandle: UnsafeMutableRawPointer
 
-    var writeFD: Int32 { tunnelReadPipe.fileHandleForWriting.fileDescriptor }
-    var readFD: Int32 { tunnelWritePipe.fileHandleForReading.fileDescriptor }
+    var writeHandle: FileHandle { tunnelReadPipe.fileHandleForWriting }
+    var readHandle: FileHandle { tunnelWritePipe.fileHandleForReading }
 
     init(dylibPath: URL) throws(TunnelHandleError) {
         guard let dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL) else {
