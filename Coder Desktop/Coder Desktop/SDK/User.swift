@@ -9,7 +9,7 @@ extension CoderClient {
         do {
             return try CoderClient.decoder.decode(User.self, from: res.data)
         } catch {
-            throw ClientError.unexpectedResponse(res.data[...1024])
+            throw .unexpectedResponse(res.data[...1024])
         }
     }
 }

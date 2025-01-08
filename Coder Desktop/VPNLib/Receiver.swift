@@ -59,7 +59,7 @@ actor Receiver<RecvMsg: Message> {
     /// On read or decoding error, it logs and closes the stream.
     func messages() throws(ReceiveError) -> AsyncStream<RecvMsg> {
         if running {
-            throw ReceiveError.alreadyRunning
+            throw .alreadyRunning
         }
         running = true
         return AsyncStream(

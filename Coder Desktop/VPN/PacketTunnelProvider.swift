@@ -5,10 +5,10 @@ import os
 let CTLIOCGINFO: UInt = 0xC064_4E03
 
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "network-extension")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "packet-tunnel-provider")
     private var manager: Manager?
 
-    private var tunnelFileDescriptor: Int32? {
+    public var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
         withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
             $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
@@ -46,7 +46,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             completionHandler(nil)
             return
         }
-        manager = Manager(with: self)
+        Task {
+            // TODO: Retrieve access URL & Token via Keychain
+            manager = try await Manager(
+                with: self,
+                cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
+            )
+        }
         completionHandler(nil)
     }
 

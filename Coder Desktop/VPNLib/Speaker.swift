@@ -22,27 +22,27 @@ enum ProtoRole: String {
 }
 
 /// A version of the VPN protocol that can be negotiated.
-struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
+public struct ProtoVersion: CustomStringConvertible, Equatable, Codable, Sendable {
     let major: Int
     let minor: Int
 
-    var description: String { "\(major).\(minor)" }
+    public var description: String { "\(major).\(minor)" }
 
     init(_ major: Int, _ minor: Int) {
         self.major = major
         self.minor = minor
     }
 
-    init(parse str: String) throws {
+    init(parse str: String) throws(HandshakeError) {
         let parts = str.split(separator: ".").map { Int($0) }
         if parts.count != 2 {
-            throw HandshakeError.invalidVersion(str)
+            throw .invalidVersion(str)
         }
         guard let major = parts[0] else {
-            throw HandshakeError.invalidVersion(str)
+            throw .invalidVersion(str)
         }
         guard let minor = parts[1] else {
-            throw HandshakeError.invalidVersion(str)
+            throw .invalidVersion(str)
         }
         self.major = major
         self.minor = minor
@@ -87,14 +87,14 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     }
 
     /// Does the VPN Protocol handshake and validates the result
-    func handshake() async throws {
+    public func handshake() async throws(HandshakeError) {
         let hndsh = Handshaker(writeFD: writeFD, dispatch: dispatch, queue: queue, role: role)
         // ignore the version for now because we know it can only be 1.0
         try _ = await hndsh.handshake()
     }
 
     /// Send a unary RPC message and handle the response
-    func unaryRPC(_ req: SendMsg) async throws -> RecvMsg {
+    public func unaryRPC(_ req: SendMsg) async throws -> RecvMsg {
         return try await withCheckedThrowingContinuation { continuation in
             Task { [sender, secretary, logger] in
                 let msgID = await secretary.record(continuation: continuation)
@@ -114,7 +114,7 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
         }
     }
 
-    func closeWrite() {
+    public func closeWrite() {
         do {
             try writeFD.close()
         } catch {
@@ -122,7 +122,7 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
         }
     }
 
-    func closeRead() {
+    public func closeRead() {
         do {
             try readFD.close()
         } catch {
@@ -188,7 +188,7 @@ actor Handshaker {
     }
 
     /// Performs the initial VPN protocol handshake, returning the negotiated `ProtoVersion` that we should use.
-    func handshake() async throws -> ProtoVersion {
+    func handshake() async throws(HandshakeError) -> ProtoVersion {
         // kick off the read async before we try to write, synchronously, so we don't deadlock, both
         // waiting to write with nobody reading.
         let readTask = Task {
@@ -201,9 +201,22 @@ actor Handshaker {
 
         let vStr = versions.map { $0.description }.joined(separator: ",")
         let ours = String(format: "\(headerPreamble) \(role) \(vStr)\n")
-        try writeFD.write(contentsOf: ours.data(using: .utf8)!)
+        do {
+            try writeFD.write(contentsOf: ours.data(using: .utf8)!)
+        } catch {
+            throw HandshakeError.writeError(error)
+        }
 
-        let theirData = try await readTask.value
+        do {
+            theirData = try await readTask.value
+        } catch let error as HandshakeError {
+            throw error
+        } catch {
+            // This can't be checked at compile-time, as both Tasks & Continuations can only ever throw
+            // a type-erased `Error`
+            fatalError("handleRead must always throw HandshakeError")
+        }
+
         guard let theirsString = String(bytes: theirData, encoding: .utf8) else {
             throw HandshakeError.invalidHeader("<unparsable: \(theirData)")
         }
@@ -216,6 +229,7 @@ actor Handshaker {
         }
     }
 
+    // resumes must only ever throw HandshakeError
     private func handleRead(_: Bool, _ data: DispatchData?, _ error: Int32) {
         guard error == 0 else {
             let errStrPtr = strerror(error)
@@ -235,7 +249,7 @@ actor Handshaker {
         dispatch.read(offset: 0, length: 1, queue: queue, ioHandler: handleRead)
     }
 
-    private func validateHeader(_ header: String) throws -> ProtoVersion {
+    private func validateHeader(_ header: String) throws(HandshakeError) -> ProtoVersion {
         let parts = header.split(separator: " ")
         guard parts.count == 3 else {
             throw HandshakeError.invalidHeader("expected 3 parts: \(header)")
@@ -252,12 +266,12 @@ actor Handshaker {
         }
         let theirVersions = try parts[2]
             .split(separator: ",")
-            .map { try ProtoVersion(parse: String($0)) }
+            .map { v throws(HandshakeError) in try ProtoVersion(parse: String(v)) }
         return try pickVersion(ours: versions, theirs: theirVersions)
     }
 }
 
-func pickVersion(ours: [ProtoVersion], theirs: [ProtoVersion]) throws -> ProtoVersion {
+func pickVersion(ours: [ProtoVersion], theirs: [ProtoVersion]) throws(HandshakeError) -> ProtoVersion {
     for our in ours.reversed() {
         for their in theirs.reversed() where our.major == their.major {
             if our.minor < their.minor {
@@ -266,11 +280,12 @@ func pickVersion(ours: [ProtoVersion], theirs: [ProtoVersion]) throws -> ProtoVe
             return their
         }
     }
-    throw HandshakeError.unsupportedVersion(theirs)
+    throw .unsupportedVersion(theirs)
 }
 
-enum HandshakeError: Error {
+public enum HandshakeError: Error {
     case readError(String)
+    case writeError(any Error)
     case invalidHeader(String)
     case wrongRole(String)
     case invalidVersion(String)
@@ -278,7 +293,7 @@ enum HandshakeError: Error {
 }
 
 public struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
-    let msg: RecvMsg
+    public let msg: RecvMsg
     private let sender: Sender<SendMsg>
 
     public init(req: RecvMsg, sender: Sender<SendMsg>) {
@@ -286,7 +301,7 @@ public struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Se
         self.sender = sender
     }
 
-    func sendReply(_ reply: SendMsg) async throws {
+    public func sendReply(_ reply: SendMsg) async throws {
         var reply = reply
         reply.rpc.responseTo = msg.rpc.msgID
         try await sender.send(reply)
@@ -303,10 +318,10 @@ enum RPCError: Error {
 
 /// An actor to record outgoing RPCs and route their replies to the original sender
 actor RPCSecretary<RecvMsg: RPCMessage & Sendable> {
-    private var continuations: [UInt64: CheckedContinuation<RecvMsg, Error>] = [:]
+    private var continuations: [UInt64: CheckedContinuation<RecvMsg, any Error>] = [:]
     private var nextMsgID: UInt64 = 1
 
-    func record(continuation: CheckedContinuation<RecvMsg, Error>) -> UInt64 {
+    func record(continuation: CheckedContinuation<RecvMsg, any Error>) -> UInt64 {
         let id = nextMsgID
         nextMsgID += 1
         continuations[id] = continuation
@@ -326,13 +341,13 @@ actor RPCSecretary<RecvMsg: RPCMessage & Sendable> {
 
     func route(reply: RecvMsg) throws(RPCError) {
         guard reply.hasRpc else {
-            throw RPCError.missingRPC
+            throw .missingRPC
         }
         guard reply.rpc.responseTo != 0 else {
-            throw RPCError.notAResponse
+            throw .notAResponse
         }
         guard let cont = continuations[reply.rpc.responseTo] else {
-            throw RPCError.unknownResponseID(reply.rpc.responseTo)
+            throw .unknownResponseID(reply.rpc.responseTo)
         }
         continuations[reply.rpc.responseTo] = nil
         cont.resume(returning: reply)
