@@ -18,7 +18,7 @@
 		AA3B3DC12D2D23AB0099996A /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DC02D2D23AB0099996A /* SwiftProtobufPluginLibrary */; };
 		AA3B3DCD2D2D249F0099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
 		AA3B3DCE2D2D249F0099996A /* VPNLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AA3B3DD22D2D26700099996A /* Swifter in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DD12D2D26700099996A /* Swifter */; };
+		AA3B3E8E2D2E0FF40099996A /* Mocker in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3E8D2D2E0FF40099996A /* Mocker */; };
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
@@ -234,7 +234,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA3B3DA92D2D23860099996A /* VPNLib.framework in Frameworks */,
-				AA3B3DD22D2D26700099996A /* Swifter in Frameworks */,
+				AA3B3E8E2D2E0FF40099996A /* Mocker in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,7 +436,7 @@
 			);
 			name = VPNLibTests;
 			packageProductDependencies = (
-				AA3B3DD12D2D26700099996A /* Swifter */,
+				AA3B3E8D2D2E0FF40099996A /* Mocker */,
 			);
 			productName = VPNLibTests;
 			productReference = AA3B3DA82D2D23860099996A /* VPNLibTests.xctest */;
@@ -491,7 +491,7 @@
 				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 				AAD720CE2D0816B200F6304D /* XCRemoteSwiftPackageReference "Alamofire" */,
 				961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */,
-				AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */,
+				AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -1142,12 +1142,12 @@
 				version = 1.28.2;
 			};
 		};
-		AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */ = {
+		AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/httpswift/swifter";
+			repositoryURL = "https://github.com/WeTransfer/Mocker";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.0;
+				minimumVersion = 3.0.2;
 			};
 		};
 		AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */ = {
@@ -1213,10 +1213,10 @@
 			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobufPluginLibrary;
 		};
-		AA3B3DD12D2D26700099996A /* Swifter */ = {
+		AA3B3E8D2D2E0FF40099996A /* Mocker */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA03806B2D2CD853002C2285 /* XCRemoteSwiftPackageReference "swifter" */;
-			productName = Swifter;
+			package = AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */;
+			productName = Mocker;
 		};
 		AA8BC3382D0060A900E1ABAA /* ViewInspector */ = {
 			isa = XCSwiftPackageProductDependency;
