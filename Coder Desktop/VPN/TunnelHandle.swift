@@ -6,21 +6,15 @@ let startSymbol = "OpenTunnel"
 actor TunnelHandle {
     private let logger = Logger(subsystem: "com.coder.Coder.CoderPacketTunnelProvider", category: "tunnel-handle")
 
-    private var openTunnelFn: OpenTunnel!
-    private var tunnelPipe: Pipe!
-    private var dylibHandle: UnsafeMutableRawPointer!
+    private let tunnelWritePipe: Pipe
+    private let tunnelReadPipe: Pipe
+    private let dylibHandle: UnsafeMutableRawPointer
+
+    var writeFD: Int32 { tunnelReadPipe.fileHandleForWriting.fileDescriptor }
+    var readFD: Int32 { tunnelWritePipe.fileHandleForReading.fileDescriptor }
 
     init(dylibPath: URL) throws(TunnelHandleError) {
         dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL)
-
-        guard dylibHandle != nil else {
-            var errStr = "UNKNOWN"
-            let e = dlerror()
-            if e != nil {
-                errStr = String(cString: e!)
-            }
-            throw TunnelHandleError.dylib(errStr)
-        }
 
         let startSym = dlsym(dylibHandle, startSymbol)
         guard startSym != nil else {
@@ -29,14 +23,15 @@ actor TunnelHandle {
             if e != nil {
                 errStr = String(cString: e!)
             }
-            throw TunnelHandleError.symbol(startSymbol, errStr)
+            throw .symbol(startSymbol, errStr)
         }
-        openTunnelFn = unsafeBitCast(startSym, to: OpenTunnel.self)
-        tunnelPipe = Pipe()
-        let res = openTunnelFn(tunnelPipe.fileHandleForReading.fileDescriptor,
-                               tunnelPipe.fileHandleForWriting.fileDescriptor)
+        let openTunnelFn = unsafeBitCast(startSym, to: OpenTunnel.self)
+        tunnelReadPipe = Pipe()
+        tunnelWritePipe = Pipe()
+        let res = openTunnelFn(tunnelReadPipe.fileHandleForReading.fileDescriptor,
+                               tunnelWritePipe.fileHandleForWriting.fileDescriptor)
         guard res == 0 else {
-            throw TunnelHandleError.openTunnel(OpenTunnelError(rawValue: res) ?? .unknown)
+            throw .openTunnel(OpenTunnelError(rawValue: res) ?? .unknown)
         }
     }
 
@@ -46,13 +41,11 @@ actor TunnelHandle {
 }
 
 enum TunnelHandleError: Error {
-    case dylib(String)
     case symbol(String, String)
     case openTunnel(OpenTunnelError)
 
     var description: String {
         switch self {
-        case let .dylib(d): return d
         case let .symbol(symbol, message): return "\(symbol): \(message)"
         case let .openTunnel(error): return "OpenTunnel: \(error.message)"
         }
