@@ -7,7 +7,7 @@ actor Receiver<RecvMsg: Message> {
     private let dispatch: DispatchIO
     private let queue: DispatchQueue
     private var running = false
-    private let logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "proto")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "proto")
 
     /// Creates an instance using the given `DispatchIO` channel and queue.
     init(dispatch: DispatchIO, queue: DispatchQueue) {
