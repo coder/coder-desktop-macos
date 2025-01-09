@@ -5,7 +5,7 @@ public protocol Validator: Sendable {
     func validate(path: URL) async throws
 }
 
-public enum ValidationError: LocalizedError {
+public enum ValidationError: Error {
     case fileNotFound
     case unableToCreateStaticCode
     case invalidSignature
@@ -154,7 +154,7 @@ func etag(data: Data) -> String {
     return "\"\(etag)\""
 }
 
-enum DownloadError: LocalizedError {
+enum DownloadError: Error {
     case unexpectedStatusCode(Int)
     case invalidResponse
 
