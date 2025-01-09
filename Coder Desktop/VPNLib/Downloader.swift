@@ -107,7 +107,7 @@ public struct SignatureValidator: Validator {
     }
 }
 
-public struct Downloader {
+public struct Downloader: Sendable {
     let validator: Validator
     public init(validator: Validator = SignatureValidator()) {
         self.validator = validator
