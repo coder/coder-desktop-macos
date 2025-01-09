@@ -43,11 +43,17 @@ struct DownloaderTests {
         let downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == testData)
 
-        Mock(url: fileURL, contentType: .html, statusCode: 304, data: [.get: Data()]).register()
+        var mock = Mock(url: fileURL, contentType: .html, statusCode: 304, data: [.get: Data()])
+        var etagIncluded = false
+        mock.onRequestHandler = OnRequestHandler { request in
+            etagIncluded = request.value(forHTTPHeaderField: "If-None-Match") == etag(data: testData)
+        }
+        mock.register()
 
         try await downloader.download(src: fileURL, dest: destinationURL)
         let unchangedData = try Data(contentsOf: destinationURL)
         #expect(unchangedData == testData)
+        #expect(etagIncluded)
     }
 
     @Test
@@ -66,10 +72,16 @@ struct DownloaderTests {
         var downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == ogData)
 
-        Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: newData]).register()
+        var mock = Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: newData])
+        var etagIncluded = false
+        mock.onRequestHandler = OnRequestHandler { request in
+            etagIncluded = request.value(forHTTPHeaderField: "If-None-Match") == etag(data: ogData)
+        }
+        mock.register()
 
         try await downloader.download(src: fileURL, dest: destinationURL)
         downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == newData)
+        #expect(etagIncluded)
     }
 }

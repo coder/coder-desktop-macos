@@ -107,7 +107,7 @@ public struct SignatureValidator: Validator {
     }
 }
 
-public actor Downloader {
+public struct Downloader {
     let validator: Validator
     public init(validator: Validator = SignatureValidator()) {
         self.validator = validator
@@ -116,14 +116,14 @@ public actor Downloader {
     public func download(src: URL, dest: URL) async throws {
         var req = URLRequest(url: src)
         if FileManager.default.fileExists(atPath: dest.path) {
-            if let existingFileData = try? Data(contentsOf: dest) {
+            if let existingFileData = try? Data(contentsOf: dest, options: .mappedIfSafe) {
                 req.setValue(etag(data: existingFileData), forHTTPHeaderField: "If-None-Match")
             }
         }
         // TODO: Add Content-Length headers to coderd, add download progress delegate
         let (tempURL, response) = try await URLSession.shared.download(for: req)
         defer {
-            if FileManager.default.fileExists(atPath: dest.path) {
+            if FileManager.default.fileExists(atPath: tempURL.path) {
                 do { try FileManager.default.removeItem(at: tempURL) } catch {}
             }
         }
@@ -132,6 +132,7 @@ public actor Downloader {
             throw DownloadError.invalidResponse
         }
         guard httpResponse.statusCode != 304 else {
+            // We already have the latest dylib downloaded on disk
             return
         }
         guard (200 ..< 300).contains(httpResponse.statusCode) else {
