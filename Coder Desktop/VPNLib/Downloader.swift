@@ -135,7 +135,8 @@ public struct Downloader {
             // We already have the latest dylib downloaded on disk
             return
         }
-        guard (200 ..< 300).contains(httpResponse.statusCode) else {
+
+        guard httpResponse.statusCode == 200 else {
             throw DownloadError.unexpectedStatusCode(httpResponse.statusCode)
         }
 
