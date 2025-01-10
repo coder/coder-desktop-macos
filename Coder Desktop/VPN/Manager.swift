@@ -1,3 +1,4 @@
+import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
@@ -30,8 +31,18 @@ actor Manager {
         } catch {
             throw .download(error)
         }
+        let client = Client(url: cfg.serverUrl)
+        let buildInfo: BuildInfoResponse
         do {
-            try SignatureValidator.validate(path: dest)
+            buildInfo = try await client.buildInfo()
+        } catch {
+            throw .serverInfo(error.description)
+        }
+        guard let semver = buildInfo.semver else {
+            throw .serverInfo("invalid version: \(buildInfo.version)")
+        }
+        do {
+            try SignatureValidator.validate(path: dest, expectedVersion: semver)
         } catch {
             throw .validation(error)
         }
@@ -181,6 +192,7 @@ enum ManagerError: Error {
     case validation(ValidationError)
     case incorrectResponse(Vpn_TunnelMessage)
     case failedRPC(any Error)
+    case serverInfo(String)
     case errorResponse(msg: String)
     case noTunnelFileDescriptor
 }

@@ -79,6 +79,17 @@
                ReferencedContainer = "container:Coder Desktop.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AA3B40972D2FC8560099996A"
+               BuildableName = "CoderSDKTests.xctest"
+               BlueprintName = "CoderSDKTests"
+               ReferencedContainer = "container:Coder Desktop.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

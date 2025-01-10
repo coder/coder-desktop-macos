@@ -1,6 +1,7 @@
+import CoderSDK
 import SwiftUI
 
-struct LoginForm<C: Client, S: Session>: View {
+struct LoginForm<S: Session>: View {
     @EnvironmentObject var session: S
     @Environment(\.dismiss) private var dismiss
 
@@ -69,7 +70,7 @@ struct LoginForm<C: Client, S: Session>: View {
         }
         loading = true
         defer { loading = false }
-        let client = C(url: url, token: sessionToken)
+        let client = Client(url: url, token: sessionToken)
         do {
             _ = try await client.user("me")
         } catch {
@@ -188,6 +189,6 @@ enum LoginField: Hashable {
 }
 
 #Preview {
-    LoginForm<PreviewClient, PreviewSession>()
+    LoginForm<PreviewSession>()
         .environmentObject(PreviewSession())
 }

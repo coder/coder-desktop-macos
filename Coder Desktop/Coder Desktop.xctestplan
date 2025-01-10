@@ -19,8 +19,17 @@
     {
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",
-        "identifier" : "9616790E2CFF100E00B2B6DF",
-        "name" : "Coder DesktopTests"
+        "identifier" : "AA3B40972D2FC8560099996A",
+        "name" : "CoderSDKTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "identifier" : "961679182CFF100E00B2B6DF",
+        "name" : "Coder DesktopUITests"
       }
     },
     {
@@ -31,12 +40,10 @@
       }
     },
     {
-      "enabled" : false,
-      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:Coder Desktop.xcodeproj",
-        "identifier" : "961679182CFF100E00B2B6DF",
-        "name" : "Coder DesktopUITests"
+        "identifier" : "9616790E2CFF100E00B2B6DF",
+        "name" : "Coder DesktopTests"
       }
     }
   ],

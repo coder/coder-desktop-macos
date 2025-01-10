@@ -28,3 +28,9 @@ extension JSONEncoder.DateEncodingStrategy {
         try container.encode($0.formatted(.iso8601withFractionalSeconds))
     }
 }
+
+public extension Date {
+    static func == (lhs: Date, rhs: Date) -> Bool {
+        abs(lhs.timeIntervalSince1970 - rhs.timeIntervalSince1970) < 0.001
+    }
+}
