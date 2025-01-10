@@ -55,12 +55,12 @@ struct VPNStateTests {
 
     @Test
     func testFailedState() async throws {
-        vpn.state = .failed(.exampleError)
+        vpn.state = .failed(.longTestError)
 
         try await ViewHosting.host(view.environmentObject(vpn)) {
             try await sut.inspection.inspect { view in
                 let text = try view.find(ViewType.Text.self)
-                #expect(try text.string() == VPNServiceError.exampleError.description)
+                #expect(try text.string() == VPNServiceError.longTestError.description)
             }
         }
     }

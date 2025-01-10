@@ -11,7 +11,7 @@ struct DesktopApp: App {
             EmptyView()
         }
         Window("Sign In", id: Windows.login.rawValue) {
-            LoginForm<PreviewClient, PreviewSession>()
+            LoginForm<CoderClient, SecureSession>()
         }.environmentObject(appDelegate.session)
             .windowResizability(.contentSize)
     }
@@ -20,18 +20,17 @@ struct DesktopApp: App {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
-    let vpn: PreviewVPN
-    let session: PreviewSession
+    let vpn: CoderVPNService
+    let session: SecureSession
 
     override init() {
-        // TODO: Replace with real implementations
-        vpn = PreviewVPN()
-        session = PreviewSession()
+        vpn = CoderVPNService()
+        session = SecureSession(onChange: vpn.configureTunnelProviderProtocol)
     }
 
     func applicationDidFinishLaunching(_: Notification) {
         menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
-            VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
+            VPNMenu<CoderVPNService, SecureSession>().frame(width: 256)
                 .environmentObject(self.vpn)
                 .environmentObject(self.session)
         }
