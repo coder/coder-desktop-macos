@@ -15,22 +15,12 @@ actor TunnelHandle {
 
     init(dylibPath: URL) throws(TunnelHandleError) {
         guard let dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL) else {
-            var errStr = "UNKNOWN"
-            let e = dlerror()
-            if e != nil {
-                errStr = String(cString: e!)
-            }
-            throw .dylib(errStr)
+            throw .dylib(dlerror().flatMap { String(cString: $0) } ?? "UNKNOWN")
         }
         self.dylibHandle = dylibHandle
 
         guard let startSym = dlsym(dylibHandle, startSymbol) else {
-            var errStr = "UNKNOWN"
-            let e = dlerror()
-            if e != nil {
-                errStr = String(cString: e!)
-            }
-            throw .symbol(startSymbol, errStr)
+            throw .symbol(startSymbol, dlerror().flatMap { String(cString: $0) } ?? "UNKNOWN")
         }
         let openTunnelFn = unsafeBitCast(startSym, to: OpenTunnel.self)
         tunnelReadPipe = Pipe()
@@ -42,8 +32,25 @@ actor TunnelHandle {
         }
     }
 
-    func close() throws {
-        dlclose(dylibHandle)
+    // This could be an isolated deinit in Swift 6.1
+    func close() throws(TunnelHandleError) {
+        var errs: [Error] = []
+        if dlclose(dylibHandle) == 0 {
+            errs.append(TunnelHandleError.dylib(dlerror().flatMap { String(cString: $0) } ?? "UNKNOWN"))
+        }
+        do {
+            try writeHandle.close()
+        } catch {
+            errs.append(error)
+        }
+        do {
+            try readHandle.close()
+        } catch {
+            errs.append(error)
+        }
+        if !errs.isEmpty {
+            throw .close(errs)
+        }
     }
 }
 
@@ -51,12 +58,16 @@ enum TunnelHandleError: Error {
     case dylib(String)
     case symbol(String, String)
     case openTunnel(OpenTunnelError)
+    case pipe(any Error)
+    case close([any Error])
 
     var description: String {
         switch self {
+        case let .pipe(err): return "pipe error: \(err)"
         case let .dylib(d): return d
         case let .symbol(symbol, message): return "\(symbol): \(message)"
         case let .openTunnel(error): return "OpenTunnel: \(error.message)"
+        case let .close(errs): return "close tunnel: \(errs.map(\.localizedDescription).joined(separator: ", "))"
         }
     }
 }
