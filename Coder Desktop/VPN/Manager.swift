@@ -4,7 +4,6 @@ import VPNLib
 
 actor Manager {
     let ptp: PacketTunnelProvider
-    let downloader: Downloader
 
     var tunnelHandle: TunnelHandle?
     var speaker: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>?
@@ -16,6 +15,5 @@ actor Manager {
 
     init(with: PacketTunnelProvider) {
         ptp = with
-        downloader = Downloader()
     }
 }

@@ -3,14 +3,8 @@ import Mocker
 import Testing
 @testable import VPNLib
 
-struct NoopValidator: Validator {
-    func validate(path _: URL) async throws {}
-}
-
-@Suite
-struct DownloaderTests {
-    let downloader = Downloader(validator: NoopValidator())
-
+@Suite(.timeLimit(.minutes(1)))
+struct DownloadTests {
     @Test
     func downloadFile() async throws {
         let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -19,7 +13,7 @@ struct DownloaderTests {
         let fileURL = URL(string: "http://example.com/test1.txt")!
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: testData]).register()
 
-        try await downloader.download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL)
 
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         defer { try? FileManager.default.removeItem(at: destinationURL) }
@@ -38,7 +32,7 @@ struct DownloaderTests {
 
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: testData]).register()
 
-        try await downloader.download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL)
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         let downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == testData)
@@ -50,7 +44,7 @@ struct DownloaderTests {
         }
         mock.register()
 
-        try await downloader.download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL)
         let unchangedData = try Data(contentsOf: destinationURL)
         #expect(unchangedData == testData)
         #expect(etagIncluded)
@@ -67,7 +61,7 @@ struct DownloaderTests {
 
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: ogData]).register()
 
-        try await downloader.download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL)
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         var downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == ogData)
@@ -79,7 +73,7 @@ struct DownloaderTests {
         }
         mock.register()
 
-        try await downloader.download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL)
         downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == newData)
         #expect(etagIncluded)
