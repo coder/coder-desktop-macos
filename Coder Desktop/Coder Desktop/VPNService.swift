@@ -42,7 +42,7 @@ enum VPNServiceError: Error, Equatable {
 
 @MainActor
 final class CoderVPNService: NSObject, VPNService {
-    var logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "vpn")
+    var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured

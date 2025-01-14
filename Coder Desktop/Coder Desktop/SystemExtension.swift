@@ -82,7 +82,7 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
 class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
     NSObject, OSSystemExtensionRequestDelegate
 {
-    private var logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "vpn-installer")
+    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn-installer")
     private var asyncDelegate: AsyncDelegate
 
     init(asyncDelegate: AsyncDelegate) {
@@ -128,9 +128,8 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         actionForReplacingExtension existing: OSSystemExtensionProperties,
         withExtension extension: OSSystemExtensionProperties
     ) -> OSSystemExtensionRequest.ReplacementAction {
-        // swiftlint: disable line_length
+        // swiftlint:disable:next line_length
         logger.info("Replacing \(request.identifier) v\(existing.bundleShortVersion) with v\(`extension`.bundleShortVersion)")
-        // swiftlint: enable line_length
         return .replace
     }
 }

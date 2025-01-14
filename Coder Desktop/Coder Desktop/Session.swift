@@ -12,7 +12,7 @@ protocol Session: ObservableObject {
     func tunnelProviderProtocol() -> NETunnelProviderProtocol?
 }
 
-class SecureSession: ObservableObject & Session {
+class SecureSession: ObservableObject, Session {
     let appId = Bundle.main.bundleIdentifier!
 
     // Stored in UserDefaults
