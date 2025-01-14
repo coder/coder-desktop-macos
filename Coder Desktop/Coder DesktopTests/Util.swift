@@ -68,7 +68,7 @@ struct MockClient: Client {
 struct MockErrorClient: Client {
     init(url _: URL, token _: String?) {}
     func user(_: String) async throws(ClientError) -> Coder_Desktop.User {
-        throw ClientError.reqError(.explicitlyCancelled)
+        throw .reqError(.explicitlyCancelled)
     }
 }
 

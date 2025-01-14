@@ -23,7 +23,7 @@ struct PreviewClient: Client {
                 roles: []
             )
         } catch {
-            throw ClientError.reqError(AFError.explicitlyCancelled)
+            throw .reqError(.explicitlyCancelled)
         }
     }
 }

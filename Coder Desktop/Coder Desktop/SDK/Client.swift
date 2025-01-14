@@ -39,7 +39,7 @@ struct CoderClient: Client {
         case let .success(data):
             return HTTPResponse(resp: out.response!, data: data, req: out.request)
         case let .failure(error):
-            throw ClientError.reqError(error)
+            throw .reqError(error)
         }
     }
 
@@ -58,7 +58,7 @@ struct CoderClient: Client {
         case let .success(data):
             return HTTPResponse(resp: out.response!, data: data, req: out.request)
         case let .failure(error):
-            throw ClientError.reqError(error)
+            throw .reqError(error)
         }
     }
 
@@ -71,9 +71,9 @@ struct CoderClient: Client {
                 method: resp.req?.httpMethod,
                 url: resp.req?.url
             )
-            return ClientError.apiError(out)
+            return .apiError(out)
         } catch {
-            return ClientError.unexpectedResponse(resp.data[...1024])
+            return .unexpectedResponse(resp.data[...1024])
         }
     }
 

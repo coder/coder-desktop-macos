@@ -70,7 +70,7 @@ struct LoginForm<C: Client, S: Session>: View {
         loading = true
         defer { loading = false }
         let client = C(url: url, token: sessionToken)
-        do throws(ClientError) {
+        do {
             _ = try await client.user("me")
         } catch {
             loginError = .failedAuth(error)
