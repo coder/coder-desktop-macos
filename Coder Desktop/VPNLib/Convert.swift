@@ -1,7 +1,7 @@
 import NetworkExtension
 import os
 
-// swiftlint:disable function_body_length
+// swiftlint:disable:next function_body_length
 public func convertNetworkSettingsRequest(_ req: Vpn_NetworkSettingsRequest) -> NEPacketTunnelNetworkSettings {
     let networkSettings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: req.tunnelRemoteAddress)
     networkSettings.tunnelOverheadBytes = NSNumber(value: req.tunnelOverheadBytes)

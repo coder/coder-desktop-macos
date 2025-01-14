@@ -4,7 +4,7 @@ import Testing
 @Suite(.timeLimit(.minutes(1)))
 struct ConvertTests {
     @Test
-    // swiftlint:disable function_body_length
+    // swiftlint:disable:next function_body_length
     func convertProtoNetworkSettingsRequest() async throws {
         let req: Vpn_NetworkSettingsRequest = .with { req in
             req.tunnelRemoteAddress = "10.0.0.1"
