@@ -154,7 +154,7 @@ extension Speaker: AsyncSequence, AsyncIteratorProtocol {
             guard msg.rpc.responseTo == 0 else {
                 logger.debug("got RPC reply for msgID \(msg.rpc.responseTo)")
                 do {
-                    try await self.secretary.route(reply: msg)
+                    try await secretary.route(reply: msg)
                 } catch {
                     logger.error(
                         "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
