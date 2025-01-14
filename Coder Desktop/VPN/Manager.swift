@@ -30,7 +30,7 @@ actor Manager {
         } catch {
             throw .download(error)
         }
-        do throws(ValidationError) {
+        do {
             try SignatureValidator.validate(path: dest)
         } catch {
             throw .validation(error)
@@ -44,7 +44,7 @@ actor Manager {
             writeFD: tunnelHandle.writeHandle,
             readFD: tunnelHandle.readHandle
         )
-        do throws(HandshakeError) {
+        do {
             try await speaker.handshake()
         } catch {
             throw .handshake(error)
