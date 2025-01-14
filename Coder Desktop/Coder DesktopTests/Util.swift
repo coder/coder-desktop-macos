@@ -1,5 +1,6 @@
 @testable import Coder_Desktop
 import Combine
+import NetworkExtension
 import SwiftUI
 import ViewInspector
 
@@ -20,6 +21,8 @@ class MockVPNService: VPNService, ObservableObject {
         state = .disconnecting
         await onStop?()
     }
+
+    func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
 }
 
 class MockSession: Session {
@@ -40,6 +43,10 @@ class MockSession: Session {
         hasSession = false
         sessionToken = nil
         baseAccessURL = nil
+    }
+
+    func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
+        return nil
     }
 }
 

@@ -15,7 +15,7 @@ fmt:
 		$(FMTFLAGS) .
 
 test:
-	xcodebuild test \
+	set -o pipefail && xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-testPlan $(SCHEME) \
