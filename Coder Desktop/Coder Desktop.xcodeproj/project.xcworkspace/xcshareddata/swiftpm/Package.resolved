@@ -1,5 +1,5 @@
 {
-  "originHash" : "aa8dd97dc6e28dedc4a5c45c435467a247486474bf3c1caf5e67085d52325132",
+  "originHash" : "1cd4f7368eeddbaa35ef829e13093bc7081a4e6d3da9492d22db0757464ad473",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -25,6 +25,15 @@
       "location" : "https://github.com/kishikawakatsumi/KeychainAccess",
       "state" : {
         "revision" : "e0c7eebc5a4465a3c4680764f26b7a61f567cdaf"
+      }
+    },
+    {
+      "identity" : "mocker",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/WeTransfer/Mocker",
+      "state" : {
+        "revision" : "95fa785c751f6bc40c49e112d433c3acf8417a97",
+        "version" : "3.0.2"
       }
     },
     {

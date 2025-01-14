@@ -6,7 +6,7 @@ let newLine = 0x0A
 let headerPreamble = "codervpn"
 
 /// A message that has the `rpc` property for recording participation in a unary RPC.
-protocol RPCMessage: Sendable {
+public protocol RPCMessage: Sendable {
     var rpc: Vpn_RPC { get set }
     /// Returns true if `rpc` has been explicitly set.
     var hasRpc: Bool { get }
@@ -50,8 +50,8 @@ struct ProtoVersion: CustomStringConvertible, Equatable, Codable {
 }
 
 /// An actor that communicates using the VPN protocol
-actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
-    private let logger = Logger(subsystem: "com.coder.Coder-Desktop", category: "proto")
+public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "proto")
     private let writeFD: FileHandle
     private let readFD: FileHandle
     private let dispatch: DispatchIO
@@ -62,7 +62,7 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
     let role: ProtoRole
 
     /// Creates an instance that communicates over the provided file handles.
-    init(writeFD: FileHandle, readFD: FileHandle) {
+    public init(writeFD: FileHandle, readFD: FileHandle) {
         self.writeFD = writeFD
         self.readFD = readFD
         sender = Sender(writeFD: writeFD)
@@ -130,20 +130,20 @@ actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Message> {
         }
     }
 
-    enum IncomingMessage {
+    public enum IncomingMessage: Sendable {
         case message(RecvMsg)
         case RPC(RPCRequest<SendMsg, RecvMsg>)
     }
 }
 
 extension Speaker: AsyncSequence, AsyncIteratorProtocol {
-    typealias Element = IncomingMessage
+    public typealias Element = IncomingMessage
 
     public nonisolated func makeAsyncIterator() -> Speaker<SendMsg, RecvMsg> {
         self
     }
 
-    func next() async throws -> IncomingMessage? {
+    public func next() async throws -> IncomingMessage? {
         for try await msg in try await receiver.messages() {
             guard msg.hasRpc else {
                 return .message(msg)
@@ -277,7 +277,7 @@ enum HandshakeError: Error {
     case unsupportedVersion([ProtoVersion])
 }
 
-struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
+public struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
     let msg: RecvMsg
     private let sender: Sender<SendMsg>
 

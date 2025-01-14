@@ -34,4 +34,4 @@ clean:
 		-project $(PROJECT)
 
 proto:
-	protoc --swift_out=. 'Coder Desktop/Proto/vpn.proto'
+	protoc --swift_opt=Visibility=public --swift_out=. 'Coder Desktop/VPNLib/vpn.proto'

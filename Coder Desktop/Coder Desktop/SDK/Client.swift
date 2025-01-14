@@ -1,7 +1,7 @@
 import Alamofire
 import Foundation
 
-protocol Client {
+protocol Client: Sendable {
     init(url: URL, token: String?)
     func user(_ ident: String) async throws(ClientError) -> User
 }
@@ -114,10 +114,10 @@ struct APIError: Decodable {
 struct Response: Decodable {
     let message: String
     let detail: String?
-    let validations: [ValidationError]?
+    let validations: [FieldValidation]?
 }
 
-struct ValidationError: Decodable {
+struct FieldValidation: Decodable {
     let field: String
     let detail: String
 }
