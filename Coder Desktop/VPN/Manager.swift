@@ -103,7 +103,7 @@ actor Manager {
     }
 
     // TODO: Call via XPC
-    func startVPN(apiToken: String, server: URL) async throws(ManagerError) {
+    func startVPN() async throws(ManagerError) {
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
             throw .noTunnelFileDescriptor
@@ -113,8 +113,8 @@ actor Manager {
             resp = try await speaker.unaryRPC(.with { msg in
                 msg.start = .with { req in
                     req.tunnelFileDescriptor = tunFd
-                    req.apiToken = apiToken
-                    req.coderURL = server.absoluteString
+                    req.apiToken = cfg.apiToken
+                    req.coderURL = cfg.serverUrl.absoluteString
                 }
             })
         } catch {
