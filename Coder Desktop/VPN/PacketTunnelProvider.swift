@@ -5,7 +5,7 @@ import os
 let CTLIOCGINFO: UInt = 0xC064_4E03
 
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "packet-tunnel-provider")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
     private var manager: Manager?
 
     public var tunnelFileDescriptor: Int32? {
@@ -41,6 +41,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func startTunnel(options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+        logger.debug("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
             completionHandler(nil)
@@ -57,6 +58,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func stopTunnel(with _: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+        logger.debug("stopTunnel called")
         guard manager == nil else {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
@@ -75,10 +77,12 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
 
     override func sleep(completionHandler: @escaping () -> Void) {
         // Add code here to get ready to sleep.
+        logger.debug("sleep called")
         completionHandler()
     }
 
     override func wake() {
         // Add code here to wake up.
+        logger.debug("wake called")
     }
 }

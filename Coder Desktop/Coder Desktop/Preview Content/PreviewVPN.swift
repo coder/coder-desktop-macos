@@ -1,3 +1,4 @@
+import NetworkExtension
 import SwiftUI
 
 @MainActor
@@ -28,10 +29,10 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         do {
             try await Task.sleep(for: .seconds(10))
         } catch {
-            state = .failed(.exampleError)
+            state = .failed(.longTestError)
             return
         }
-        state = shouldFail ? .failed(.exampleError) : .connected
+        state = shouldFail ? .failed(.longTestError) : .connected
     }
 
     func stop() async {
@@ -40,9 +41,13 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         do {
             try await Task.sleep(for: .seconds(10))
         } catch {
-            state = .failed(.exampleError)
+            state = .failed(.longTestError)
             return
         }
         state = .disabled
+    }
+
+    func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {
+        state = .connecting
     }
 }

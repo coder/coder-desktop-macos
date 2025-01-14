@@ -1,5 +1,6 @@
 import Foundation
 import KeychainAccess
+import NetworkExtension
 
 protocol Session: ObservableObject {
     var hasSession: Bool { get }
@@ -8,9 +9,12 @@ protocol Session: ObservableObject {
 
     func store(baseAccessURL: URL, sessionToken: String)
     func clear()
+    func tunnelProviderProtocol() -> NETunnelProviderProtocol?
 }
 
-class SecureSession: ObservableObject {
+class SecureSession: ObservableObject, Session {
+    let appId = Bundle.main.bundleIdentifier!
+
     // Stored in UserDefaults
     @Published private(set) var hasSession: Bool {
         didSet {
@@ -31,9 +35,21 @@ class SecureSession: ObservableObject {
         }
     }
 
+    func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
+        if !hasSession { return nil }
+        let proto = NETunnelProviderProtocol()
+        proto.providerBundleIdentifier = "\(appId).VPN"
+        proto.passwordReference = keychain[attributes: Keys.sessionToken]?.persistentRef
+        proto.serverAddress = baseAccessURL!.absoluteString
+        return proto
+    }
+
     private let keychain: Keychain
 
-    public init() {
+    let onChange: ((NETunnelProviderProtocol?) -> Void)?
+
+    public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil) {
+        self.onChange = onChange
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
         _hasSession = Published(initialValue: UserDefaults.standard.bool(forKey: Keys.hasSession))
         _baseAccessURL = Published(initialValue: UserDefaults.standard.url(forKey: Keys.baseAccessURL))
@@ -46,11 +62,13 @@ class SecureSession: ObservableObject {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
+        if let onChange { onChange(tunnelProviderProtocol()) }
     }
 
     public func clear() {
         hasSession = false
         sessionToken = nil
+        if let onChange { onChange(tunnelProviderProtocol()) }
     }
 
     private func keychainGet(for key: String) -> String? {

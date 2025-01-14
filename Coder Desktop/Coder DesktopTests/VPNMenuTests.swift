@@ -110,7 +110,7 @@ struct VPNMenuTests {
                 #expect(try !toggle.isOn())
 
                 vpn.onStart = {
-                    vpn.state = .failed(.exampleError)
+                    vpn.state = .failed(.longTestError)
                 }
                 await vpn.start()
 

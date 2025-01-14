@@ -1,3 +1,4 @@
+import NetworkExtension
 import SwiftUI
 
 class PreviewSession: Session {
@@ -20,5 +21,9 @@ class PreviewSession: Session {
     func clear() {
         hasSession = false
         sessionToken = nil
+    }
+
+    func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
+        return nil
     }
 }
