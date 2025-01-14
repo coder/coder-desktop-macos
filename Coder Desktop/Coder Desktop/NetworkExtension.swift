@@ -56,7 +56,7 @@ extension CoderVPNService {
                 try await tunnel.removeFromPreferences()
             }
         } catch {
-            throw VPNServiceError.internalError("couldn't remove tunnels: \(error)")
+            throw .internalError("couldn't remove tunnels: \(error)")
         }
     }
 
@@ -99,10 +99,10 @@ extension CoderVPNService {
         do {
             tunnels = try await NETunnelProviderManager.loadAllFromPreferences()
         } catch {
-            throw VPNServiceError.internalError("couldn't load tunnels: \(error)")
+            throw .internalError("couldn't load tunnels: \(error)")
         }
         if tunnels.isEmpty {
-            throw VPNServiceError.internalError("no tunnels found")
+            throw .internalError("no tunnels found")
         }
         return tunnels.first!
     }
