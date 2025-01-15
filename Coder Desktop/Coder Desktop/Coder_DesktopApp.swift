@@ -11,9 +11,9 @@ struct DesktopApp: App {
             EmptyView()
         }
         Window("Sign In", id: Windows.login.rawValue) {
-            LoginForm<PreviewSession>()
-        }.environmentObject(appDelegate.session)
-            .windowResizability(.contentSize)
+            LoginForm<PreviewSession>().environmentObject(appDelegate.session)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
