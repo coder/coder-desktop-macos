@@ -4,9 +4,13 @@ public struct HTTPResponse {
     let req: URLRequest
 }
 
-public struct HTTPHeader {
-    let header: String
-    let value: String
+public struct HTTPHeader: Sendable {
+    public let header: String
+    public let value: String
+    public init(header: String, value: String) {
+        self.header = header
+        self.value = value
+    }
 }
 
 enum HTTPMethod: String, Equatable, Hashable, Sendable {
