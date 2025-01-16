@@ -4,6 +4,11 @@ public struct HTTPResponse {
     let req: URLRequest
 }
 
+public struct HTTPHeader {
+    let header: String
+    let value: String
+}
+
 enum HTTPMethod: String, Equatable, Hashable, Sendable {
     case get = "GET"
     case post = "POST"

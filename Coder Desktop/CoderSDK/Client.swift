@@ -3,10 +3,12 @@ import Foundation
 public struct Client {
     public let url: URL
     public var token: String?
+    public var headers: [HTTPHeader]
 
-    public init(url: URL, token: String? = nil) {
+    public init(url: URL, token: String? = nil, headers: [HTTPHeader] = []) {
         self.url = url
         self.token = token
+        self.headers = headers
     }
 
     static let decoder: JSONDecoder = {
@@ -21,20 +23,17 @@ public struct Client {
         return enc
     }()
 
-    func request<T: Encodable & Sendable>(
-        _ path: String,
+    private func doRequest(
+        path: String,
         method: HTTPMethod,
-        body: T? = nil
+        body: Data? = nil
     ) async throws(ClientError) -> HTTPResponse {
         let url = self.url.appendingPathComponent(path)
         var req = URLRequest(url: url)
         if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
         req.httpMethod = method.rawValue
-        do {
-            if let body { req.httpBody = try Client.encoder.encode(body) }
-        } catch {
-            throw .encodeFailure
-        }
+        for header in headers { req.addValue(header.value, forHTTPHeaderField: header.header) }
+        req.httpBody = body
         let data: Data
         let resp: URLResponse
         do {
@@ -48,25 +47,25 @@ public struct Client {
         return HTTPResponse(resp: httpResponse, data: data, req: req)
     }
 
+    func request<T: Encodable & Sendable>(
+        _ path: String,
+        method: HTTPMethod,
+        body: T
+    ) async throws(ClientError) -> HTTPResponse {
+        let encodedBody: Data?
+        do {
+            encodedBody = try Client.encoder.encode(body)
+        } catch {
+            throw .encodeFailure(error)
+        }
+        return try await doRequest(path: path, method: method, body: encodedBody)
+    }
+
     func request(
         _ path: String,
         method: HTTPMethod
     ) async throws(ClientError) -> HTTPResponse {
-        let url = self.url.appendingPathComponent(path)
-        var req = URLRequest(url: url)
-        if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
-        req.httpMethod = method.rawValue
-        let data: Data
-        let resp: URLResponse
-        do {
-            (data, resp) = try await URLSession.shared.data(for: req)
-        } catch {
-            throw .network(error)
-        }
-        guard let httpResponse = resp as? HTTPURLResponse else {
-            throw .unexpectedResponse(data)
-        }
-        return HTTPResponse(resp: httpResponse, data: data, req: req)
+        return try await doRequest(path: path, method: method)
     }
 
     func responseAsError(_ resp: HTTPResponse) -> ClientError {
@@ -119,7 +118,7 @@ public enum ClientError: Error {
     case api(APIError)
     case network(any Error)
     case unexpectedResponse(Data)
-    case encodeFailure
+    case encodeFailure(any Error)
 
     public var description: String {
         switch self {
@@ -129,8 +128,8 @@ public enum ClientError: Error {
             return error.localizedDescription
         case let .unexpectedResponse(data):
             return "Unexpected or non HTTP response: \(data)"
-        case .encodeFailure:
-            return "Failed to encode body"
+        case let .encodeFailure(error):
+            return "Failed to encode body: \(error)"
         }
     }
 }

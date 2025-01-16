@@ -27,22 +27,23 @@ struct CoderSDKTests {
 
         let url = URL(string: "https://example.com")!
         let token = "fake-token"
-        let client = Client(url: url, token: token)
+        let client = Client(url: url, token: token, headers: [.init(header: "X-Test-Header", value: "foo")])
         var mock = try Mock(
             url: url.appending(path: "api/v2/users/johndoe"),
             contentType: .json,
             statusCode: 200,
             data: [.get: Client.encoder.encode(user)]
         )
-        var tokenSent = false
+        var correctHeaders = false
         mock.onRequestHandler = OnRequestHandler { req in
-            tokenSent = req.value(forHTTPHeaderField: Headers.sessionToken) == token
+            correctHeaders = req.value(forHTTPHeaderField: Headers.sessionToken) == token &&
+            req.value(forHTTPHeaderField: "X-Test-Header") == "foo"
         }
         mock.register()
 
         let retUser = try await client.user(user.username)
         #expect(user == retUser)
-        #expect(tokenSent)
+        #expect(correctHeaders)
     }
 
     @Test
