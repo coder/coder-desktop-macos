@@ -32,7 +32,9 @@ public struct Client {
         var req = URLRequest(url: url)
         if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
         req.httpMethod = method.rawValue
-        for header in headers { req.addValue(header.value, forHTTPHeaderField: header.header) }
+        for header in headers {
+            req.addValue(header.value, forHTTPHeaderField: header.header)
+        }
         req.httpBody = body
         let data: Data
         let resp: URLResponse

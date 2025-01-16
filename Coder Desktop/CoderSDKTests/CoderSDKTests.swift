@@ -37,7 +37,7 @@ struct CoderSDKTests {
         var correctHeaders = false
         mock.onRequestHandler = OnRequestHandler { req in
             correctHeaders = req.value(forHTTPHeaderField: Headers.sessionToken) == token &&
-            req.value(forHTTPHeaderField: "X-Test-Header") == "foo"
+                req.value(forHTTPHeaderField: "X-Test-Header") == "foo"
         }
         mock.register()
 
