@@ -14,6 +14,11 @@ struct DesktopApp: App {
             LoginForm<PreviewSession>().environmentObject(appDelegate.session)
         }
         .windowResizability(.contentSize)
+        SwiftUI.Settings { SettingsView<PreviewVPN>()
+            .environmentObject(appDelegate.vpn)
+            .environmentObject(appDelegate.settings)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -22,10 +27,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
     let vpn: PreviewVPN
     let session: PreviewSession
+    let settings: Settings
 
     override init() {
-        // TODO: Replace with real implementations
+        // TODO: Replace with real implementation
         vpn = PreviewVPN()
+        settings = Settings()
         session = PreviewSession()
     }
 
@@ -34,6 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
                 .environmentObject(self.vpn)
                 .environmentObject(self.session)
+                .environmentObject(self.settings)
         }
     }
 
@@ -48,4 +56,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
+}
+
+@MainActor
+func appActivate() {
+    #if compiler(>=5.9) && canImport(AppKit)
+        if #available(macOS 14, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    #else
+        NSApp.activate(ignoringOtherApps: true)
+    #endif
 }

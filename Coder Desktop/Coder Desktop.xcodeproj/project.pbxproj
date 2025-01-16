@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 961679322CFF117300B2B6DF /* NetworkExtension.framework */; };
 		9616793D2CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA2C690F2D34F6920059AFAF /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = AA2C690E2D34F6920059AFAF /* LaunchAtLogin */; };
 		AA3B3DA92D2D23860099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
 		AA3B3DBF2D2D23AB0099996A /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DBE2D2D23AB0099996A /* SwiftProtobuf */; };
 		AA3B3DC12D2D23AB0099996A /* SwiftProtobufPluginLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3DC02D2D23AB0099996A /* SwiftProtobufPluginLibrary */; };
@@ -24,6 +25,7 @@
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
+		AA8EECF72D3A22320049DD09 /* SettingsAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8EECF62D3A22320049DD09 /* SettingsAccess */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -229,7 +231,9 @@
 			files = (
 				AA3B40A42D2FC8560099996A /* CoderSDK.framework in Frameworks */,
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
+				AA2C690F2D34F6920059AFAF /* LaunchAtLogin in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
+				AA8EECF72D3A22320049DD09 /* SettingsAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -368,7 +372,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */,
+				AA2C698C2D354A800059AFAF /* PBXTargetDependency */,
 				9616793C2CFF117300B2B6DF /* PBXTargetDependency */,
 				AA3B40A32D2FC8560099996A /* PBXTargetDependency */,
 			);
@@ -379,6 +383,8 @@
 			packageProductDependencies = (
 				AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */,
 				AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */,
+				AA2C690E2D34F6920059AFAF /* LaunchAtLogin */,
+				AA8EECF62D3A22320049DD09 /* SettingsAccess */,
 			);
 			productName = "Coder Desktop";
 			productReference = 961678FC2CFF100D00B2B6DF /* Coder Desktop.app */;
@@ -395,6 +401,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C698E2D354A840059AFAF /* PBXTargetDependency */,
 				961679112CFF100E00B2B6DF /* PBXTargetDependency */,
 				AA3B40BA2D2FDA5C0099996A /* PBXTargetDependency */,
 			);
@@ -421,6 +428,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C69902D354A880059AFAF /* PBXTargetDependency */,
 				9616791B2CFF100E00B2B6DF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -445,6 +453,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C69922D354A8B0059AFAF /* PBXTargetDependency */,
 				AA3B3DD02D2D249F0099996A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -469,6 +478,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C69942D354A8E0059AFAF /* PBXTargetDependency */,
 				AA3B40C32D2FE7760099996A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -494,6 +504,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C69962D354A910059AFAF /* PBXTargetDependency */,
 				AA3B3DAB2D2D23860099996A /* PBXTargetDependency */,
 				AA3B3DAD2D2D23860099996A /* PBXTargetDependency */,
 			);
@@ -520,6 +531,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C69982D354A940059AFAF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA3B40922D2FC8560099996A /* CoderSDK */,
@@ -542,6 +554,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AA2C699A2D354A970059AFAF /* PBXTargetDependency */,
 				AA3B409B2D2FC8560099996A /* PBXTargetDependency */,
 				AA3B409D2D2FC8560099996A /* PBXTargetDependency */,
 			);
@@ -607,11 +620,13 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */,
-				AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */,
 				AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 				961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */,
 				AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */,
+				AA2C690D2D34F6920059AFAF /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */,
+				AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -764,6 +779,38 @@
 			target = 9616792F2CFF117300B2B6DF /* VPN */;
 			targetProxy = 9616793B2CFF117300B2B6DF /* PBXContainerItemProxy */;
 		};
+		AA2C698C2D354A800059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C698B2D354A800059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C698E2D354A840059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C698D2D354A840059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C69902D354A880059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C698F2D354A880059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C69922D354A8B0059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C69912D354A8B0059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C69942D354A8E0059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C69932D354A8E0059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C69962D354A910059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C69952D354A910059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C69982D354A940059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C69972D354A940059AFAF /* SwiftLintBuildToolPlugin */;
+		};
+		AA2C699A2D354A970059AFAF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA2C69992D354A970059AFAF /* SwiftLintBuildToolPlugin */;
+		};
 		AA3B3DAB2D2D23860099996A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AA3B3DA02D2D23860099996A /* VPNLib */;
@@ -803,10 +850,6 @@
 			isa = PBXTargetDependency;
 			target = AA3B40902D2FC8560099996A /* CoderSDK */;
 			targetProxy = AA3B40C22D2FE7760099996A /* PBXContainerItemProxy */;
-		};
-		AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -955,7 +998,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -987,7 +1030,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1006,7 +1049,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1025,7 +1068,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1043,7 +1086,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1061,7 +1104,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-DesktopUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1091,7 +1134,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPN";
 				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
@@ -1123,7 +1166,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPN";
 				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
@@ -1157,7 +1200,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
@@ -1194,7 +1237,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
@@ -1216,7 +1259,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPNLibTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1233,7 +1276,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPNLibTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1265,7 +1308,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
@@ -1302,7 +1345,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
@@ -1324,7 +1367,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.CoderSDKTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1341,7 +1384,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4399GN35BJ;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.CoderSDKTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1446,6 +1489,22 @@
 				version = 1.28.2;
 			};
 		};
+		AA2C690D2D34F6920059AFAF /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-modern";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.0;
+			};
+		};
+		AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.58.0;
+			};
+		};
 		AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/WeTransfer/Mocker";
@@ -1460,14 +1519,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.10.0;
-			};
-		};
-		AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.57.1;
 			};
 		};
 		AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */ = {
@@ -1486,9 +1537,62 @@
 				kind = branch;
 			};
 		};
+		AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/orchetect/SettingsAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		AA2C690E2D34F6920059AFAF /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C690D2D34F6920059AFAF /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */;
+			productName = LaunchAtLogin;
+		};
+		AA2C698B2D354A800059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C698D2D354A840059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C698F2D354A880059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C69912D354A8B0059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C69932D354A8E0059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C69952D354A910059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C69972D354A940059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		AA2C69992D354A970059AFAF /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
 		AA3B3DBE2D2D23AB0099996A /* SwiftProtobuf */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 961679512CFF207900B2B6DF /* XCRemoteSwiftPackageReference "swift-protobuf" */;
@@ -1519,11 +1623,6 @@
 			package = AA8BC3372D00609700E1ABAA /* XCRemoteSwiftPackageReference "ViewInspector" */;
 			productName = ViewInspector;
 		};
-		AA8BC33B2D0060E700E1ABAA /* SwiftLintBuildToolPlugin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA8BC33A2D0060C500E1ABAA /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
-			productName = "plugin:SwiftLintBuildToolPlugin";
-		};
 		AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AA8BC33D2D0061F200E1ABAA /* XCRemoteSwiftPackageReference "fluid-menu-bar-extra" */;
@@ -1533,6 +1632,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */;
 			productName = KeychainAccess;
+		};
+		AA8EECF62D3A22320049DD09 /* SettingsAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */;
+			productName = SettingsAccess;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

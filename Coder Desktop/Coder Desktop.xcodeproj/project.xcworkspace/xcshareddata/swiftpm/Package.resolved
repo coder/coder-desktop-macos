@@ -1,5 +1,5 @@
 {
-  "originHash" : "ec40e522ec1a2416e8e8f5cbe97424ab3e4a614e6ef453c10ea28e84e88b6771",
+  "originHash" : "b52ef58779afac669f0b78fbf402855ebb45d016ab69ee39b5470c9442c12823",
   "pins" : [
     {
       "identity" : "fluid-menu-bar-extra",
@@ -19,12 +19,30 @@
       }
     },
     {
+      "identity" : "launchatlogin-modern",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/LaunchAtLogin-modern",
+      "state" : {
+        "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc",
+        "version" : "1.1.0"
+      }
+    },
+    {
       "identity" : "mocker",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/WeTransfer/Mocker",
       "state" : {
         "revision" : "95fa785c751f6bc40c49e112d433c3acf8417a97",
         "version" : "3.0.2"
+      }
+    },
+    {
+      "identity" : "settingsaccess",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/orchetect/SettingsAccess",
+      "state" : {
+        "revision" : "08e80c35501f273afa2f5d6f737429bbe395ff81",
+        "version" : "2.1.0"
       }
     },
     {
@@ -41,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SimplyDanny/SwiftLintPlugins",
       "state" : {
-        "revision" : "f9731bef175c3eea3a0ca960f1be78fcc2bc7853",
-        "version" : "0.57.1"
+        "revision" : "fac0c3d3ac69b15ea5382275dbbd5e583a2e05fa",
+        "version" : "0.58.0"
       }
     },
     {

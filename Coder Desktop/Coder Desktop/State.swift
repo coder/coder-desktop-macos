@@ -1,6 +1,8 @@
+import CoderSDK
 import Foundation
 import KeychainAccess
 import NetworkExtension
+import SwiftUI
 
 protocol Session: ObservableObject {
     var hasSession: Bool { get }
@@ -87,5 +89,49 @@ class SecureSession: ObservableObject, Session {
         static let hasSession = "hasSession"
         static let baseAccessURL = "baseAccessURL"
         static let sessionToken = "sessionToken"
+    }
+}
+
+class Settings: ObservableObject {
+    let store: UserDefaults
+    @AppStorage(Keys.useLiteralHeaders) var useLiteralHeaders = false
+
+    @Published var literalHeaders: [LiteralHeader] {
+        didSet {
+            try? store.set(JSONEncoder().encode(literalHeaders), forKey: Keys.literalHeaders)
+        }
+    }
+
+    init(store: UserDefaults = UserDefaults.standard) {
+        self.store = store
+        _literalHeaders = Published(
+            initialValue: UserDefaults.standard.data(
+                forKey: Keys.literalHeaders
+            ).flatMap { try? JSONDecoder().decode([LiteralHeader].self, from: $0) } ?? []
+        )
+    }
+
+    enum Keys {
+        static let useLiteralHeaders = "UseLiteralHeaders"
+        static let literalHeaders = "LiteralHeaders"
+    }
+}
+
+struct LiteralHeader: Hashable, Identifiable, Equatable, Codable {
+    var header: String
+    var value: String
+    var id: String {
+        "\(header):\(value)"
+    }
+
+    init(header: String, value: String) {
+        self.header = header
+        self.value = value
+    }
+}
+
+extension LiteralHeader {
+    func toSDKHeader() -> HTTPHeader {
+        return .init(header: header, value: value)
     }
 }

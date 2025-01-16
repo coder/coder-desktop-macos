@@ -1,3 +1,4 @@
+import SettingsAccess
 import SwiftUI
 
 struct VPNMenu<VPN: VPNService, S: Session>: View {
@@ -21,6 +22,8 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     )) {
                         Text("CoderVPN")
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.body.bold())
+                            .foregroundColor(.primary)
                     }.toggleStyle(.switch)
                         .disabled(vpnDisabled)
                 }
@@ -50,6 +53,11 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     TrayDivider()
                 }
                 AuthButton<VPN, S>()
+                SettingsLink {
+                    ButtonRowView { Text("Settings") }
+                } preAction: {} postAction: {
+                    appActivate()
+                }.buttonStyle(.plain)
                 Button {
                     About.open()
                 } label: {

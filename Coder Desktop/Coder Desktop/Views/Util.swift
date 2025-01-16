@@ -1,4 +1,5 @@
 import Combine
+import SwiftUI
 
 // This is required for inspecting stateful views
 final class Inspection<V> {

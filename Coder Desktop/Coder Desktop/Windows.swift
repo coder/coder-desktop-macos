@@ -8,15 +8,7 @@ enum Windows: String {
 extension OpenWindowAction {
     // Type-safe wrapper for opening windows that also focuses the new window
     func callAsFunction(id: Windows) {
-        #if compiler(>=5.9) && canImport(AppKit)
-            if #available(macOS 14, *) {
-                NSApp.activate()
-            } else {
-                NSApp.activate(ignoringOtherApps: true)
-            }
-        #else
-            NSApp.activate(ignoringOtherApps: true)
-        #endif
+        appActivate()
         callAsFunction(id: id.rawValue)
         // The arranging behaviour is flakey without this
         NSApp.arrangeInFront(nil)
