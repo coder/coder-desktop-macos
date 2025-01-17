@@ -47,7 +47,7 @@ final class PreviewVPN: Coder_Desktop.VPNService {
     var stopTask: Task<Void, Never>?
     func stop() async {
         await startTask?.value
-        guard state == .connected else { return}
+        guard state == .connected else { return }
         if await stopTask?.value != nil {
             return
         }
