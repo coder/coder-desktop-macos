@@ -63,20 +63,40 @@ final class CoderVPNService: NSObject, VPNService {
         installSystemExtension()
     }
 
+    var startTask: Task<Void, Never>?
     func start() async {
-        tunnelState = .connecting
-        await enableNetworkExtension()
+        if await startTask?.value != nil {
+            return
+        }
+        startTask = Task {
+            tunnelState = .connecting
+            await enableNetworkExtension()
 
-        // TODO: enable communication with the NetworkExtension to track state and agents. For
-        //       now, just pretend it worked...
-        tunnelState = .connected
+            // TODO: enable communication with the NetworkExtension to track state and agents. For
+            //       now, just pretend it worked...
+            tunnelState = .connected
+        }
+        defer { startTask = nil }
+        await startTask?.value
     }
 
+    var stopTask: Task<Void, Never>?
     func stop() async {
-        tunnelState = .disconnecting
-        await disableNetworkExtension()
-        // TODO: determine when the NetworkExtension is completely disconnected
-        tunnelState = .disabled
+        // Wait for a start operation to finish first
+        await startTask?.value
+        guard state == .connected else { return }
+        if await stopTask?.value != nil {
+            return
+        }
+        stopTask = Task {
+            tunnelState = .disconnecting
+            await disableNetworkExtension()
+
+            // TODO: determine when the NetworkExtension is completely disconnected
+            tunnelState = .disabled
+        }
+        defer { stopTask = nil }
+        await stopTask?.value
     }
 
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?) {

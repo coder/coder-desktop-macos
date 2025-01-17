@@ -24,27 +24,46 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         self.shouldFail = shouldFail
     }
 
+    var startTask: Task<Void, Never>?
     func start() async {
-        state = .connecting
-        do {
-            try await Task.sleep(for: .seconds(10))
-        } catch {
-            state = .failed(.longTestError)
+        if await startTask?.value != nil {
             return
         }
-        state = shouldFail ? .failed(.longTestError) : .connected
+
+        startTask = Task {
+            state = .connecting
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                state = .failed(.longTestError)
+                return
+            }
+            state = shouldFail ? .failed(.longTestError) : .connected
+        }
+        defer { startTask = nil }
+        await startTask?.value
     }
 
+    var stopTask: Task<Void, Never>?
     func stop() async {
-        guard state == .connected else { return }
-        state = .disconnecting
-        do {
-            try await Task.sleep(for: .seconds(10))
-        } catch {
-            state = .failed(.longTestError)
+        await startTask?.value
+        guard state == .connected else { return}
+        if await stopTask?.value != nil {
             return
         }
-        state = .disabled
+
+        stopTask = Task {
+            state = .disconnecting
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                state = .failed(.longTestError)
+                return
+            }
+            state = .disabled
+        }
+        defer { stopTask = nil }
+        await stopTask?.value
     }
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {
