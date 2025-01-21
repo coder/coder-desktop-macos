@@ -29,6 +29,10 @@ protocol SystemExtensionAsyncRecorder: Sendable {
 extension CoderVPNService: SystemExtensionAsyncRecorder {
     func recordSystemExtensionState(_ state: SystemExtensionState) async {
         sysExtnState = state
+        if state == .installed {
+            // system extension was successfully installed, so we don't need the delegate any more
+            systemExtnDelegate = nil
+        }
     }
 
     var extensionBundle: Bundle {
@@ -71,6 +75,7 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
             queue: .main
         )
         let delegate = SystemExtensionDelegate(asyncDelegate: self)
+        systemExtnDelegate = delegate
         request.delegate = delegate
         OSSystemExtensionManager.shared.submitRequest(request)
         logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
@@ -87,6 +92,7 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
 
     init(asyncDelegate: AsyncDelegate) {
         self.asyncDelegate = asyncDelegate
+        super.init()
         logger.info("SystemExtensionDelegate initialized")
     }
 
