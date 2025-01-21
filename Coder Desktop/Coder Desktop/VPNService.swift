@@ -58,6 +58,11 @@ final class CoderVPNService: NSObject, VPNService {
 
     @Published var agents: [Agent] = []
 
+    // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
+    // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
+    // only stores a weak reference to the delegate.
+    var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
+
     override init() {
         super.init()
         installSystemExtension()
