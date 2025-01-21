@@ -93,7 +93,7 @@ class SecureSession: ObservableObject, Session {
 }
 
 class Settings: ObservableObject {
-    let store: UserDefaults
+    private let store: UserDefaults
     @AppStorage(Keys.useLiteralHeaders) var useLiteralHeaders = false
 
     @Published var literalHeaders: [LiteralHeader] {
@@ -102,10 +102,10 @@ class Settings: ObservableObject {
         }
     }
 
-    init(store: UserDefaults = UserDefaults.standard) {
+    init(store: UserDefaults = .standard) {
         self.store = store
         _literalHeaders = Published(
-            initialValue: UserDefaults.standard.data(
+            initialValue: store.data(
                 forKey: Keys.literalHeaders
             ).flatMap { try? JSONDecoder().decode([LiteralHeader].self, from: $0) } ?? []
         )
