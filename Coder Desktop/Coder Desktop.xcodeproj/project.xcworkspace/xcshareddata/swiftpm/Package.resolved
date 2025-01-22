@@ -1,5 +1,5 @@
 {
-  "originHash" : "b52ef58779afac669f0b78fbf402855ebb45d016ab69ee39b5470c9442c12823",
+  "originHash" : "c41f63aa01c78f450e2232efbefcd30874995ad120db77fa5942062d6f813891",
   "pins" : [
     {
       "identity" : "fluid-menu-bar-extra",
@@ -34,15 +34,6 @@
       "state" : {
         "revision" : "95fa785c751f6bc40c49e112d433c3acf8417a97",
         "version" : "3.0.2"
-      }
-    },
-    {
-      "identity" : "settingsaccess",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/orchetect/SettingsAccess",
-      "state" : {
-        "revision" : "08e80c35501f273afa2f5d6f737429bbe395ff81",
-        "version" : "2.1.0"
       }
     },
     {

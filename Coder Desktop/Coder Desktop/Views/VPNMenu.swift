@@ -1,9 +1,9 @@
-import SettingsAccess
 import SwiftUI
 
 struct VPNMenu<VPN: VPNService, S: Session>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var session: S
+    @Environment(\.openSettings) private var openSettings
 
     let inspection = Inspection<Self>()
 
@@ -53,10 +53,11 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     TrayDivider()
                 }
                 AuthButton<VPN, S>()
-                SettingsLink {
-                    ButtonRowView { Text("Settings") }
-                } preAction: {} postAction: {
+                Button {
+                    openSettings()
                     appActivate()
+                } label: {
+                    ButtonRowView { Text("Settings") }
                 }.buttonStyle(.plain)
                 Button {
                     About.open()

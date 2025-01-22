@@ -25,7 +25,6 @@
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
-		AA8EECF72D3A22320049DD09 /* SettingsAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8EECF62D3A22320049DD09 /* SettingsAccess */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -233,7 +232,6 @@
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
 				AA2C690F2D34F6920059AFAF /* LaunchAtLogin in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
-				AA8EECF72D3A22320049DD09 /* SettingsAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -384,7 +382,6 @@
 				AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */,
 				AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */,
 				AA2C690E2D34F6920059AFAF /* LaunchAtLogin */,
-				AA8EECF62D3A22320049DD09 /* SettingsAccess */,
 			);
 			productName = "Coder Desktop";
 			productReference = 961678FC2CFF100D00B2B6DF /* Coder Desktop.app */;
@@ -626,7 +623,6 @@
 				AA3B3E8A2D2E0FE10099996A /* XCRemoteSwiftPackageReference "Mocker" */,
 				AA2C690D2D34F6920059AFAF /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */,
 				AA2C698A2D354A600059AFAF /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
-				AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 961678FD2CFF100D00B2B6DF /* Products */;
@@ -1537,14 +1533,6 @@
 				kind = branch;
 			};
 		};
-		AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/orchetect/SettingsAccess";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.1.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1632,11 +1620,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA8BC4CD2D00A4B700E1ABAA /* XCRemoteSwiftPackageReference "KeychainAccess" */;
 			productName = KeychainAccess;
-		};
-		AA8EECF62D3A22320049DD09 /* SettingsAccess */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA8EECF52D3A22320049DD09 /* XCRemoteSwiftPackageReference "SettingsAccess" */;
-			productName = SettingsAccess;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
