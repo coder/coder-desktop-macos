@@ -60,13 +60,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 @MainActor
 func appActivate() {
-    #if compiler(>=5.9) && canImport(AppKit)
-        if #available(macOS 14, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    #else
-        NSApp.activate(ignoringOtherApps: true)
-    #endif
+    NSApp.activate()
 }
