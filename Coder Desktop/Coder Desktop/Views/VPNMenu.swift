@@ -59,10 +59,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                 }.buttonStyle(.plain)
                 TrayDivider()
                 Button {
-                    Task {
-                        await vpn.stop()
-                        NSApp.terminate(nil)
-                    }
+                    NSApp.terminate(nil)
                 } label: {
                     ButtonRowView {
                         Text("Quit")

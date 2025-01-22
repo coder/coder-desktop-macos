@@ -37,6 +37,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
+        Task {
+            await vpn.stop()
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
