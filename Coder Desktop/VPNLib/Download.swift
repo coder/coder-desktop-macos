@@ -37,7 +37,6 @@ public class SignatureValidator {
     private static let expectedName = "CoderVPN"
     private static let expectedIdentifier = "com.coder.Coder-Desktop.VPN.dylib"
     private static let expectedTeamIdentifier = "4399GN35BJ"
-    private static let minDylibVersion = "2.18.1"
 
     private static let infoIdentifierKey = "CFBundleIdentifier"
     private static let infoNameKey = "CFBundleName"
@@ -45,7 +44,8 @@ public class SignatureValidator {
 
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
 
-    public static func validate(path: URL) throws(ValidationError) {
+    // `expectedVersion` must be of the form `[0-9]+.[0-9]+.[0-9]+`
+    public static func validate(path: URL, expectedVersion: String) throws(ValidationError) {
         guard FileManager.default.fileExists(atPath: path.path) else {
             throw .fileNotFound
         }
@@ -94,7 +94,7 @@ public class SignatureValidator {
         }
 
         guard let dylibVersion = infoPlist[infoShortVersionKey] as? String,
-              minDylibVersion.compare(dylibVersion, options: .numeric) != .orderedDescending
+              expectedVersion.compare(dylibVersion, options: .numeric) != .orderedDescending
         else {
             throw .invalidVersion(version: infoPlist[infoShortVersionKey] as? String)
         }

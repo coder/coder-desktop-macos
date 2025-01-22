@@ -104,6 +104,7 @@ struct VPNMenuTests {
 
     @Test
     func testOffWhenFailed() async throws {
+        session.hasSession = true
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)

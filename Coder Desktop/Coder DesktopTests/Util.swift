@@ -27,7 +27,7 @@ class MockVPNService: VPNService, ObservableObject {
 
 class MockSession: Session {
     @Published
-    var hasSession: Bool = true
+    var hasSession: Bool = false
     @Published
     var sessionToken: String? = "fake-token"
     @Published
@@ -47,35 +47,6 @@ class MockSession: Session {
 
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         return nil
-    }
-}
-
-struct MockClient: Client {
-    init(url _: URL, token _: String? = nil) {}
-
-    func user(_: String) async throws(ClientError) -> Coder_Desktop.User {
-        User(
-            id: UUID(),
-            username: "admin",
-            avatar_url: "",
-            name: "admin",
-            email: "admin@coder.com",
-            created_at: Date.now,
-            updated_at: Date.now,
-            last_seen_at: Date.now,
-            status: "active",
-            login_type: "none",
-            theme_preference: "dark",
-            organization_ids: [],
-            roles: []
-        )
-    }
-}
-
-struct MockErrorClient: Client {
-    init(url _: URL, token _: String?) {}
-    func user(_: String) async throws(ClientError) -> Coder_Desktop.User {
-        throw .reqError(.explicitlyCancelled)
     }
 }
 
