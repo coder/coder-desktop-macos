@@ -1,6 +1,6 @@
 import NetworkExtension
-import SwiftUI
 import os
+import SwiftUI
 import VPNXPC
 
 @MainActor
@@ -84,7 +84,7 @@ final class CoderVPNService: NSObject, VPNService {
             await enableNetworkExtension()
             logger.debug("network extension enabled")
             if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
-                proxy.start() { result in
+                proxy.start { _ in
                     self.tunnelState = .connected
                 }
             }
@@ -103,9 +103,8 @@ final class CoderVPNService: NSObject, VPNService {
         }
         stopTask = Task {
             tunnelState = .disconnecting
-            
             if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
-                proxy.stop() { result in }
+                proxy.stop { _ in }
             }
             await disableNetworkExtension()
             logger.info("network extension stopped")

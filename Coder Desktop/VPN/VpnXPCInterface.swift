@@ -25,7 +25,7 @@ final class CallbackWrapper: @unchecked Sendable {
         manager = newManager
         managerLock.unlock()
     }
-    
+
     func getManager() -> Manager? {
         managerLock.lock()
         let m = manager
@@ -37,15 +37,15 @@ final class CallbackWrapper: @unchecked Sendable {
         // Convert Obj-C block to a Swift @Sendable closure.
         let safeReply = CallbackWrapper(reply)
         let manager = getManager()
-        
+
         guard let manager = manager else {
             // If somehow `start(...)` is called but no Manager is set
             reply(NSError(domain: "VPNXPC", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Manager not set"
+                NSLocalizedDescriptionKey: "Manager not set",
             ]))
             return
         }
-        
+
         // We must call the async actor method from a Task.
         Task {
             do {
@@ -69,11 +69,11 @@ final class CallbackWrapper: @unchecked Sendable {
         guard let manager = manager else {
             // If somehow `start(...)` is called but no Manager is set
             reply(NSError(domain: "VPNXPC", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Manager not set"
+                NSLocalizedDescriptionKey: "Manager not set",
             ]))
             return
         }
-        
+
         Task {
             do {
                 try await manager.stopVPN()

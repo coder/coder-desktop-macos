@@ -24,4 +24,4 @@ import Foundation
  And, when you are finished with the service, clean up the connection like this:
 
      connectionToService.invalidate()
-*/
+ */
