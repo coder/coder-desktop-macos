@@ -1,5 +1,6 @@
 import NetworkExtension
 import os
+import VPNLib
 
 /* From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
@@ -8,7 +9,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
     private var manager: Manager?
 
-    public var tunnelFileDescriptor: Int32? {
+    var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
         withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
             $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
@@ -47,19 +48,25 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             completionHandler(nil)
             return
         }
+        let completionHandler = CallbackWrapper(completionHandler)
         Task {
             // TODO: Retrieve access URL & Token via Keychain
-            manager = try await Manager(
-                with: self,
-                cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
-            )
+            do throws(ManagerError) {
+                manager = try await Manager(
+                    with: self,
+                    cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
+                )
+                completionHandler(nil)
+            } catch {
+                completionHandler(error)
+                logger.error("error starting manager: \(error.description, privacy: .public)")
+            }
         }
-        completionHandler(nil)
     }
 
     override func stopTunnel(with _: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         logger.debug("stopTunnel called")
-        guard manager == nil else {
+        guard manager != nil else {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
             return

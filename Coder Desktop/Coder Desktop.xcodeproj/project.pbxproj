@@ -17,7 +17,6 @@
 		AA3B3DCE2D2D249F0099996A /* VPNLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AA3B3E8E2D2E0FF40099996A /* Mocker in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B3E8D2D2E0FF40099996A /* Mocker */; };
 		AA3B40992D2FC8560099996A /* CoderSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; };
-		AA3B40A42D2FC8560099996A /* CoderSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; };
 		AA3B40B62D2FD9DD0099996A /* Mocker in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B40B52D2FD9DD0099996A /* Mocker */; };
 		AA3B40B72D2FDA5C0099996A /* CoderSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; };
 		AA3B40BD2D2FDFBA0099996A /* Mocker in Frameworks */ = {isa = PBXBuildFile; productRef = AA3B40BC2D2FDFBA0099996A /* Mocker */; };
@@ -25,6 +24,10 @@
 		AA8BC3392D0060A900E1ABAA /* ViewInspector in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC3382D0060A900E1ABAA /* ViewInspector */; };
 		AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC33E2D0061F200E1ABAA /* FluidMenuBarExtra */; };
 		AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = AA8BC4CE2D00A4B700E1ABAA /* KeychainAccess */; };
+		AAC382352D427B7600F6DFB4 /* CoderSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; };
+		AAC382362D427B7600F6DFB4 /* CoderSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AAC382392D427B8300F6DFB4 /* CoderSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; };
+		AAC3823A2D427B8300F6DFB4 /* CoderSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B40912D2FC8560099996A /* CoderSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +108,13 @@
 			remoteGlobalIDString = AA3B40902D2FC8560099996A;
 			remoteInfo = CoderSDK;
 		};
+		AAC382372D427B7600F6DFB4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA3B40902D2FC8560099996A;
+			remoteInfo = CoderSDK;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -126,6 +136,18 @@
 			dstSubfolderSpec = 10;
 			files = (
 				AA3B3DCE2D2D249F0099996A /* VPNLib.framework in Embed Frameworks */,
+				AAC382362D427B7600F6DFB4 /* CoderSDK.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAC3823B2D427B8300F6DFB4 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AAC3823A2D427B8300F6DFB4 /* CoderSDK.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -228,8 +250,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA3B40A42D2FC8560099996A /* CoderSDK.framework in Frameworks */,
 				AA8BC4CF2D00A4B700E1ABAA /* KeychainAccess in Frameworks */,
+				AAC382392D427B8300F6DFB4 /* CoderSDK.framework in Frameworks */,
 				AA2C690F2D34F6920059AFAF /* LaunchAtLogin in Frameworks */,
 				AA8BC33F2D0061F200E1ABAA /* FluidMenuBarExtra in Frameworks */,
 			);
@@ -257,6 +279,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */,
+				AAC382352D427B7600F6DFB4 /* CoderSDK.framework in Frameworks */,
 				AA3B3DCD2D2D249F0099996A /* VPNLib.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -366,6 +389,7 @@
 				961678F92CFF100D00B2B6DF /* Frameworks */,
 				961678FA2CFF100D00B2B6DF /* Resources */,
 				961679422CFF117300B2B6DF /* Embed System Extensions */,
+				AAC3823B2D427B8300F6DFB4 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -452,6 +476,7 @@
 			dependencies = (
 				AA2C69922D354A8B0059AFAF /* PBXTargetDependency */,
 				AA3B3DD02D2D249F0099996A /* PBXTargetDependency */,
+				AAC382382D427B7600F6DFB4 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA3C69AD2D2D143400A45481 /* VPN */,
@@ -847,6 +872,11 @@
 			target = AA3B40902D2FC8560099996A /* CoderSDK */;
 			targetProxy = AA3B40C22D2FE7760099996A /* PBXContainerItemProxy */;
 		};
+		AAC382382D427B7600F6DFB4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA3B40902D2FC8560099996A /* CoderSDK */;
+			targetProxy = AAC382372D427B7600F6DFB4 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1216,6 +1246,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1324,6 +1355,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
