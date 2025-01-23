@@ -23,7 +23,7 @@ actor Manager {
         #if arch(arm64)
             let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-arm64.dylib")
         #elseif arch(x86_64)
-            let dylibPath = cfg.serverUrl.appending(path: "bincoder-vpn-darwin-amd64.dylib")
+            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-amd64.dylib")
         #else
             fatalError("unknown architecture")
         #endif
