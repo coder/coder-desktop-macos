@@ -34,10 +34,10 @@ final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sen
 }
 
 guard
-  let netExt = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any],
-  let serviceName = netExt["NEMachServiceName"] as? String
+    let netExt = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any],
+    let serviceName = netExt["NEMachServiceName"] as? String
 else {
-  fatalError("Missing NEMachServiceName in Info.plist")
+    fatalError("Missing NEMachServiceName in Info.plist")
 }
 
 print(serviceName)

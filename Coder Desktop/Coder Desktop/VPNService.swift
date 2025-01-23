@@ -139,6 +139,7 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
 
     func onPeerUpdate(_ data: Data) {
         // TODO: handle peer update
+        logger.info("network extension peer update")
         do {
             let msg = try Vpn_TunnelMessage(serializedBytes: data)
             debugPrint(msg)
@@ -157,5 +158,7 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
         tunnelState = .disabled
     }
 
-    func onError(_: NSError) {}
+    func onError(_ error: NSError) {
+        logger.info("network extension reported error: \(error)")
+    }
 }

@@ -54,6 +54,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         Task {
             // TODO: Retrieve access URL & Token via Keychain
             do throws(ManagerError) {
+                logger.debug("creating manager")
                 manager = try await Manager(
                     with: self,
                     cfg: .init(
@@ -61,7 +62,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                     )
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
-                try await manager?.startVPN()
+                logger.debug("calling manager.startVPN")
+                try await manager!.startVPN()
+                logger.debug("vpn started")
                 completionHandler.callAsFunction(nil)
             } catch {
                 completionHandler.callAsFunction(error as NSError)
