@@ -83,13 +83,11 @@ final class CoderVPNService: NSObject, VPNService {
             tunnelState = .connecting
             await enableNetworkExtension()
             logger.debug("network extension enabled")
-            
             if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
                 proxy.start() { result in
                     self.tunnelState = .connected
                 }
             }
-
         }
         defer { startTask = nil }
         await startTask?.value
