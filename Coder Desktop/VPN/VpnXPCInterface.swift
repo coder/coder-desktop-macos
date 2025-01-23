@@ -1,19 +1,7 @@
 import Foundation
 import os.log
+import VPNLib
 import VPNXPC
-
-final class CallbackWrapper: @unchecked Sendable {
-    private let block: (NSError?) -> Void
-
-    init(_ block: @escaping (NSError?) -> Void) {
-        self.block = block
-    }
-
-    func call(_ error: NSError?) {
-        // Just forward to the original block
-        block(error)
-    }
-}
 
 @objc final class VPNXPCInterface: NSObject, VPNXPCProtocol, @unchecked Sendable {
     private var manager: Manager?
@@ -51,11 +39,11 @@ final class CallbackWrapper: @unchecked Sendable {
             do {
                 try await manager.startVPN()
                 await MainActor.run {
-                    safeReply.call(nil)
+                    safeReply.callAsFunction(nil)
                 }
             } catch {
                 await MainActor.run {
-                    safeReply.call(error as NSError)
+                    safeReply.callAsFunction(error as NSError)
                 }
             }
         }
@@ -78,11 +66,11 @@ final class CallbackWrapper: @unchecked Sendable {
             do {
                 try await manager.stopVPN()
                 await MainActor.run {
-                    safeReply.call(nil)
+                    safeReply.callAsFunction(nil)
                 }
             } catch {
                 await MainActor.run {
-                    safeReply.call(error as NSError)
+                    safeReply.callAsFunction(error as NSError)
                 }
             }
         }

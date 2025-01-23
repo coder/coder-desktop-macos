@@ -1,6 +1,7 @@
 import NetworkExtension
 import os
 import SwiftUI
+import VPNLib
 import VPNXPC
 
 @MainActor
@@ -42,7 +43,7 @@ enum VPNServiceError: Error, Equatable {
 }
 
 @MainActor
-final class CoderVPNService: NSObject, VPNService {
+final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientCallbackProtocol {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     var xpcConn: NSXPCConnection
     @Published var tunnelState: VPNServiceState = .disabled
@@ -66,11 +67,19 @@ final class CoderVPNService: NSObject, VPNService {
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     override init() {
-        xpcConn = NSXPCConnection(serviceName: "com.coder.Coder-Desktop.VPNXPC")
+        let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
+        let machServiceName = networkExtDict?["NEMachServiceName"] as? String
+        xpcConn = NSXPCConnection(serviceName: machServiceName!)
         xpcConn.remoteObjectInterface = NSXPCInterface(with: VPNXPCProtocol.self)
-        xpcConn.resume()
+        xpcConn.exportedInterface = NSXPCInterface(with: VPNXPCClientCallbackProtocol.self)
 
         super.init()
+        xpcConn.exportedObject = self
+//        xpcConn.invalidationHandler = {
+//        //            self.logger.error("XPC connection invalidated.")
+//            print("XPC connection invalidated")
+//        }
+        xpcConn.resume()
         installSystemExtension()
         Task {
             await loadNetworkExtension()
@@ -86,11 +95,6 @@ final class CoderVPNService: NSObject, VPNService {
             tunnelState = .connecting
             await enableNetworkExtension()
             logger.debug("network extension enabled")
-            if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
-                proxy.start { _ in
-                    self.tunnelState = .connected
-                }
-            }
         }
         defer { startTask = nil }
         await startTask?.value
@@ -106,9 +110,6 @@ final class CoderVPNService: NSObject, VPNService {
         }
         stopTask = Task {
             tunnelState = .disconnecting
-            if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
-                proxy.stop { _ in }
-            }
             await disableNetworkExtension()
             logger.info("network extension stopped")
             tunnelState = .disabled
@@ -135,4 +136,26 @@ final class CoderVPNService: NSObject, VPNService {
             }
         }
     }
+
+    func onPeerUpdate(_ data: Data) {
+        // TODO: handle peer update
+        do {
+            let msg = try Vpn_TunnelMessage(serializedBytes: data)
+            debugPrint(msg)
+        } catch {
+            logger.error("failed to decode peer update \(error)")
+        }
+    }
+
+    func onStart() {
+        logger.info("network extension reported started")
+        tunnelState = .connected
+    }
+
+    func onStop() {
+        logger.info("network extension reported stopped")
+        tunnelState = .disabled
+    }
+
+    func onError(_: NSError) {}
 }

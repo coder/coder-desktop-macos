@@ -1,6 +1,6 @@
 import NetworkExtension
-import VPNLib
 import os
+import VPNLib
 
 /* From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
@@ -16,7 +16,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 _ = strcpy($0, "com.apple.net.utun_control")
             }
         }
-        for fd: Int32 in 0...1024 {
+        for fd: Int32 in 0 ... 1024 {
             var addr = sockaddr_ctl()
             var ret: Int32 = -1
             var len = socklen_t(MemoryLayout.size(ofValue: addr))
@@ -57,12 +57,14 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 manager = try await Manager(
                     with: self,
                     cfg: .init(
-                        apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
+                        apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!
+                    )
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
-                completionHandler(nil)
+                try await manager?.startVPN()
+                completionHandler.callAsFunction(nil)
             } catch {
-                completionHandler(error)
+                completionHandler.callAsFunction(error as NSError)
                 logger.error("error starting manager: \(error.description, privacy: .public)")
             }
         }
@@ -77,6 +79,16 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             completionHandler()
             return
         }
+
+        let managerCopy = manager
+        Task {
+            do throws(ManagerError) {
+                try await managerCopy?.stopVPN()
+            } catch {
+                logger.error("error stopping manager: \(error.description, privacy: .public)")
+            }
+        }
+
         manager = nil
         globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
         completionHandler()

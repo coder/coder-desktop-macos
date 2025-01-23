@@ -2,6 +2,7 @@ import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
+import VPNXPC
 
 actor Manager {
     let ptp: PacketTunnelProvider
@@ -10,7 +11,6 @@ actor Manager {
     let tunnelHandle: TunnelHandle
     let speaker: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>
     var readLoop: Task<Void, any Error>!
-    // TODO: XPC Speaker
 
     private let dest = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         .first!.appending(path: "coder-vpn.dylib")
@@ -85,12 +85,18 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error)")
             try await tunnelHandle.close()
-            // TODO: Notify app over XPC
+            if let connection = globalXPCListenerDelegate.getActiveConnection() {
+                let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
+                client?.onError(error as NSError)
+            }
             return
         }
         logger.info("tunnel read loop exited")
         try await tunnelHandle.close()
-        // TODO: Notify app over XPC
+        if let connection = globalXPCListenerDelegate.getActiveConnection() {
+            let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
+            client?.onStop()
+        }
     }
 
     func handleMessage(_ msg: Vpn_TunnelMessage) {
@@ -100,7 +106,16 @@ actor Manager {
         }
         switch msgType {
         case .peerUpdate:
-            {}() // TODO: Send over XPC
+            if let connection = globalXPCListenerDelegate.getActiveConnection() {
+                // We can call back to the client
+                do {
+                    let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
+                    let data = try msg.peerUpdate.serializedData()
+                    client!.onPeerUpdate(data)
+                } catch {
+                    logger.error("failed to send peer update to client: \(error)")
+                }
+            }
         case let .log(logMsg):
             writeVpnLog(logMsg)
         case .networkSettings, .start, .stop:
@@ -165,10 +180,9 @@ actor Manager {
         }
     }
 
-    // TODO: Call via XPC
     // Retrieves the current state of all peers,
     // as required when starting the app whilst the network extension is already running
-    func getPeerInfo() async throws(ManagerError) {
+    func getPeerInfo() async throws(ManagerError) -> Vpn_PeerUpdate {
         logger.info("sending peer state request")
         let resp: Vpn_TunnelMessage
         do {
@@ -181,7 +195,7 @@ actor Manager {
         guard case .peerUpdate = resp.msg else {
             throw .incorrectResponse(resp)
         }
-        // TODO: pass to app over XPC
+        return resp.peerUpdate
     }
 }
 
