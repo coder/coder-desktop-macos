@@ -1,10 +1,3 @@
-//
-//  VPNXPC.h
-//  VPNXPC
-//
-//  Created by Colin Adler on 1/22/25.
-//
-
 #import <Foundation/Foundation.h>
 
 //! Project version number for VPNXPC.
