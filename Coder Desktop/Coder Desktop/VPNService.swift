@@ -52,7 +52,7 @@ final class CoderVPNService: NSObject, VPNService {
         guard sysExtnState == .installed else {
             return .failed(.systemExtensionError(sysExtnState))
         }
-        guard neState == .enabled || neState == .disbled else {
+        guard neState == .enabled || neState == .disabled else {
             return .failed(.networkExtensionError(neState))
         }
         return tunnelState
@@ -72,6 +72,9 @@ final class CoderVPNService: NSObject, VPNService {
 
         super.init()
         installSystemExtension()
+        Task {
+            await loadNetworkExtension()
+        }
     }
 
     var startTask: Task<Void, Never>?

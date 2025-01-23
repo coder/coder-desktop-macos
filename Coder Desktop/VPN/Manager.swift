@@ -16,13 +16,14 @@ actor Manager {
         .first!.appending(path: "coder-vpn.dylib")
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
+    // swiftlint:disable:next function_body_length
     init(with: PacketTunnelProvider, cfg: ManagerConfig) async throws(ManagerError) {
         ptp = with
         self.cfg = cfg
         #if arch(arm64)
-            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-arm64.dylib")
+            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-arm64.dylib")
         #elseif arch(x86_64)
-            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-amd64.dylib")
+            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-amd64.dylib")
         #else
             fatalError("unknown architecture")
         #endif
@@ -59,6 +60,14 @@ actor Manager {
             try await speaker.handshake()
         } catch {
             throw .handshake(error)
+        }
+        do {
+            try await tunnelHandle.openTunnelTask?.value
+        } catch let error as TunnelHandleError {
+            logger.error("failed to wait for dylib to open tunnel: \(error, privacy: .public) ")
+            throw .tunnelSetup(error)
+        } catch {
+            fatalError("openTunnelTask must only throw TunnelHandleError")
         }
         readLoop = Task { try await run() }
     }
@@ -176,7 +185,7 @@ actor Manager {
     }
 }
 
-public struct ManagerConfig {
+struct ManagerConfig {
     let apiToken: String
     let serverUrl: URL
 }
@@ -191,6 +200,29 @@ enum ManagerError: Error {
     case serverInfo(String)
     case errorResponse(msg: String)
     case noTunnelFileDescriptor
+
+    var description: String {
+        switch self {
+        case let .download(err):
+            return "Download error: \(err)"
+        case let .tunnelSetup(err):
+            return "Tunnel setup error: \(err)"
+        case let .handshake(err):
+            return "Handshake error: \(err)"
+        case let .validation(err):
+            return "Validation error: \(err)"
+        case .incorrectResponse:
+            return "Received unexpected response over tunnel"
+        case let .failedRPC(err):
+            return "Failed rpc: \(err)"
+        case let .serverInfo(msg):
+            return msg
+        case let .errorResponse(msg):
+            return msg
+        case .noTunnelFileDescriptor:
+            return "Could not find a tunnel file descriptor"
+        }
+    }
 }
 
 func writeVpnLog(_ log: Vpn_Log) {

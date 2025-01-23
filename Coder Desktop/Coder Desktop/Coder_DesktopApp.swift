@@ -11,9 +11,17 @@ struct DesktopApp: App {
             EmptyView()
         }
         Window("Sign In", id: Windows.login.rawValue) {
-            LoginForm<PreviewSession>()
-        }.environmentObject(appDelegate.session)
-            .windowResizability(.contentSize)
+            LoginForm<SecureSession>()
+                .environmentObject(appDelegate.session)
+                .environmentObject(appDelegate.settings)
+        }
+        .windowResizability(.contentSize)
+        SwiftUI.Settings {
+            SettingsView<CoderVPNService>()
+                .environmentObject(appDelegate.vpn)
+                .environmentObject(appDelegate.settings)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -21,19 +29,21 @@ struct DesktopApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
     let vpn: CoderVPNService
-    let session: PreviewSession
+    let session: SecureSession
+    let settings: Settings
 
     override init() {
         vpn = CoderVPNService()
-        // TODO: Replace with real implementations
-        session = PreviewSession()
+        settings = Settings()
+        session = SecureSession(onChange: vpn.configureTunnelProviderProtocol)
     }
 
     func applicationDidFinishLaunching(_: Notification) {
         menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
-            VPNMenu<CoderVPNService, PreviewSession>().frame(width: 256)
+            VPNMenu<CoderVPNService, SecureSession>().frame(width: 256)
                 .environmentObject(self.vpn)
                 .environmentObject(self.session)
+                .environmentObject(self.settings)
         }
     }
 
@@ -48,4 +58,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
+}
+
+@MainActor
+func appActivate() {
+    NSApp.activate()
 }

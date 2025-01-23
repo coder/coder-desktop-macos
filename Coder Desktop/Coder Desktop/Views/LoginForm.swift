@@ -3,6 +3,7 @@ import SwiftUI
 
 struct LoginForm<S: Session>: View {
     @EnvironmentObject var session: S
+    @EnvironmentObject var settings: Settings
     @Environment(\.dismiss) private var dismiss
 
     @State private var baseAccessURL: String = ""
@@ -15,48 +16,46 @@ struct LoginForm<S: Session>: View {
     let inspection = Inspection<Self>()
 
     var body: some View {
-        VStack {
-            VStack {
-                switch currentPage {
-                case .serverURL:
-                    serverURLPage
-                        .transition(.move(edge: .leading))
-                        .onAppear {
-                            DispatchQueue.main.async {
-                                focusedField = .baseAccessURL
-                            }
+        Group {
+            switch currentPage {
+            case .serverURL:
+                serverURLPage
+                    .transition(.move(edge: .leading))
+                    .onAppear {
+                        DispatchQueue.main.async {
+                            focusedField = .baseAccessURL
                         }
-                case .sessionToken:
-                    sessionTokenPage
-                        .transition(.move(edge: .trailing))
-                        .onAppear {
-                            DispatchQueue.main.async {
-                                focusedField = .sessionToken
-                            }
-                        }
-                }
-            }
-            .animation(.easeInOut, value: currentPage)
-            .onAppear {
-                baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
-                sessionToken = ""
-            }.padding(.vertical, 35)
-            .alert("Error", isPresented: Binding(
-                get: { loginError != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        loginError = nil
                     }
-                }
-            )) {
-                Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
-            } message: {
-                Text(loginError?.description ?? "")
+            case .sessionToken:
+                sessionTokenPage
+                    .transition(.move(edge: .trailing))
+                    .onAppear {
+                        DispatchQueue.main.async {
+                            focusedField = .sessionToken
+                        }
+                    }
             }
-        }.padding()
-            .frame(width: 450, height: 220)
-            .disabled(loading)
-            .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+        }
+        .animation(.easeInOut, value: currentPage)
+        .onAppear {
+            baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
+            sessionToken = ""
+        }
+        .alert("Error", isPresented: Binding(
+            get: { loginError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    loginError = nil
+                }
+            }
+        )) {
+            Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
+        } message: {
+            Text(loginError?.description ?? "")
+        }.disabled(loading)
+        .frame(width: 550)
+        .fixedSize()
+        .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
     }
 
     func submit() async {
@@ -70,7 +69,7 @@ struct LoginForm<S: Session>: View {
         }
         loading = true
         defer { loading = false }
-        let client = Client(url: url, token: sessionToken)
+        let client = Client(url: url, token: sessionToken, headers: settings.literalHeaders.map { $0.toSDKHeader() })
         do {
             _ = try await client.user("me")
         } catch {
@@ -82,63 +81,70 @@ struct LoginForm<S: Session>: View {
     }
 
     private var serverURLPage: some View {
-        VStack(spacing: 15) {
-            Text("Coder Desktop").font(.title).padding(.bottom, 15)
-            VStack(alignment: .leading) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Server URL")
-                    Spacer()
-                    TextField("https://coder.example.com", text: $baseAccessURL)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .disableAutocorrection(true)
-                        .frame(width: 290, alignment: .leading)
+        VStack(spacing: 0) {
+            Spacer()
+            Text("Coder Desktop").font(.title).padding(.top, 10)
+            Form {
+                Section {
+                    TextField(
+                        "Server URL",
+                        text: $baseAccessURL,
+                        prompt: Text("https://coder.example.com")
+                    ).autocorrectionDisabled()
                         .focused($focusedField, equals: .baseAccessURL)
                 }
-            }
+            }.formStyle(.grouped).scrollDisabled(true).padding(.horizontal)
+            Divider()
             HStack {
+                Spacer()
+                Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button("Next", action: next)
-                    .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
-            .padding(.top, 10)
-        }.padding(.horizontal, 15)
+            .padding(20)
+        }
+    }
+
+    private var cliAuthURL: URL {
+        URL(string: baseAccessURL)!.appendingPathComponent("cli-auth")
     }
 
     private var sessionTokenPage: some View {
-        VStack {
-            VStack(alignment: .leading) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Server URL")
-                    Spacer()
-                    TextField("https://coder.example.com", text: $baseAccessURL)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .disableAutocorrection(true)
-                        .frame(width: 290, alignment: .leading)
-                        .disabled(true)
+        VStack(alignment: .leading, spacing: 0) {
+            Form {
+                Section {
+                    TextField(
+                        "Server URL",
+                        text: $baseAccessURL,
+                        prompt: Text("https://coder.example.com")
+                    ).disabled(true)
                 }
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Session Token")
-                    Spacer()
-                    SecureField("", text: $sessionToken)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .disableAutocorrection(true)
-                        .frame(width: 290, alignment: .leading)
+                Section {
+                    SecureField("Session Token", text: $sessionToken, prompt: Text("●●●●●●●●"))
+                        .autocorrectionDisabled()
                         .privacySensitive()
                         .focused($focusedField, equals: .sessionToken)
+                    HStack(spacing: 0) {
+                        Text("Generate a session token at ")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Link(cliAuthURL.absoluteString, destination: cliAuthURL)
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
                 }
-                Link(
-                    "Generate a token via the Web UI",
-                    destination: URL(string: baseAccessURL)!.appendingPathComponent("cli-auth")
-                ).font(.callout).foregroundColor(.blue).underline()
-            }.padding()
+            }.formStyle(.grouped).scrollDisabled(true).padding(.horizontal)
+            Divider()
             HStack {
-                Button("Back", action: back)
+                Spacer()
+                Button("Back", action: back).keyboardShortcut(.cancelAction)
                 Button("Sign In") {
                     Task { await submit() }
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-            }.padding(.top, 5)
+            }
+            .padding(20)
         }
     }
 

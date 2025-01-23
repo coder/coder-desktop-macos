@@ -13,6 +13,9 @@ actor TunnelHandle {
     var writeHandle: FileHandle { tunnelReadPipe.fileHandleForWriting }
     var readHandle: FileHandle { tunnelWritePipe.fileHandleForReading }
 
+    // MUST only ever throw TunnelHandleError
+    var openTunnelTask: Task<Void, any Error>?
+
     init(dylibPath: URL) throws(TunnelHandleError) {
         guard let dylibHandle = dlopen(dylibPath.path, RTLD_NOW | RTLD_LOCAL) else {
             throw .dylib(dlerror().flatMap { String(cString: $0) } ?? "UNKNOWN")
@@ -22,13 +25,22 @@ actor TunnelHandle {
         guard let startSym = dlsym(dylibHandle, startSymbol) else {
             throw .symbol(startSymbol, dlerror().flatMap { String(cString: $0) } ?? "UNKNOWN")
         }
-        let openTunnelFn = unsafeBitCast(startSym, to: OpenTunnel.self)
+        let openTunnelFn = SendableOpenTunnel(unsafeBitCast(startSym, to: OpenTunnel.self))
         tunnelReadPipe = Pipe()
         tunnelWritePipe = Pipe()
-        let res = openTunnelFn(tunnelReadPipe.fileHandleForReading.fileDescriptor,
-                               tunnelWritePipe.fileHandleForWriting.fileDescriptor)
-        guard res == 0 else {
-            throw .openTunnel(OpenTunnelError(rawValue: res) ?? .unknown)
+        let rfd = tunnelReadPipe.fileHandleForReading.fileDescriptor
+        let wfd = tunnelWritePipe.fileHandleForWriting.fileDescriptor
+        openTunnelTask = Task { [openTunnelFn] in
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, any Error>) in
+                DispatchQueue.global().async {
+                    let res = openTunnelFn(rfd, wfd)
+                    guard res == 0 else {
+                        cont.resume(throwing: TunnelHandleError.openTunnel(OpenTunnelError(rawValue: res) ?? .unknown))
+                        return
+                    }
+                    cont.resume()
+                }
+            }
         }
     }
 
@@ -87,5 +99,16 @@ enum OpenTunnelError: Int32 {
         case .errNewTunnel: return "Failed to create a new tunnel"
         case .unknown: return "Unknown error code"
         }
+    }
+}
+
+struct SendableOpenTunnel: @unchecked Sendable {
+    let fn: OpenTunnel
+    init(_ function: OpenTunnel) {
+        fn = function
+    }
+
+    func callAsFunction(_ lhs: Int32, _ rhs: Int32) -> Int32 {
+        fn(lhs, rhs)
     }
 }

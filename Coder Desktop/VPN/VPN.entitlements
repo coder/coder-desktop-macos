@@ -12,5 +12,7 @@
 	<array>
 		<string>$(TeamIdentifierPrefix)com.coder.Coder-Desktop</string>
 	</array>
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

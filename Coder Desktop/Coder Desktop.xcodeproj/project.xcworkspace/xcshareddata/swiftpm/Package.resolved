@@ -1,5 +1,5 @@
 {
-  "originHash" : "ec40e522ec1a2416e8e8f5cbe97424ab3e4a614e6ef453c10ea28e84e88b6771",
+  "originHash" : "c41f63aa01c78f450e2232efbefcd30874995ad120db77fa5942062d6f813891",
   "pins" : [
     {
       "identity" : "fluid-menu-bar-extra",
@@ -16,6 +16,15 @@
       "location" : "https://github.com/kishikawakatsumi/KeychainAccess",
       "state" : {
         "revision" : "e0c7eebc5a4465a3c4680764f26b7a61f567cdaf"
+      }
+    },
+    {
+      "identity" : "launchatlogin-modern",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/LaunchAtLogin-modern",
+      "state" : {
+        "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc",
+        "version" : "1.1.0"
       }
     },
     {
@@ -41,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SimplyDanny/SwiftLintPlugins",
       "state" : {
-        "revision" : "f9731bef175c3eea3a0ca960f1be78fcc2bc7853",
-        "version" : "0.57.1"
+        "revision" : "fac0c3d3ac69b15ea5382275dbbd5e583a2e05fa",
+        "version" : "0.58.0"
       }
     },
     {

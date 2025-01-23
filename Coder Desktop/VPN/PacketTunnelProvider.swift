@@ -1,4 +1,5 @@
 import NetworkExtension
+import VPNLib
 import os
 
 /* From <sys/kern_control.h> */
@@ -8,14 +9,14 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
     private var manager: Manager?
 
-    public var tunnelFileDescriptor: Int32? {
+    var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
         withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
             $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
                 _ = strcpy($0, "com.apple.net.utun_control")
             }
         }
-        for fd: Int32 in 0 ... 1024 {
+        for fd: Int32 in 0...1024 {
             var addr = sockaddr_ctl()
             var ret: Int32 = -1
             var len = socklen_t(MemoryLayout.size(ofValue: addr))
@@ -40,27 +41,38 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         return nil
     }
 
-    override func startTunnel(options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+    override func startTunnel(
+        options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
+    ) {
         logger.debug("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
             completionHandler(nil)
             return
         }
+        let completionHandler = CallbackWrapper(completionHandler)
         Task {
             // TODO: Retrieve access URL & Token via Keychain
-            manager = try await Manager(
-                with: self,
-                cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
-            )
-            globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
+            do throws(ManagerError) {
+                manager = try await Manager(
+                    with: self,
+                    cfg: .init(
+                        apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
+                )
+                globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
+                completionHandler(nil)
+            } catch {
+                completionHandler(error)
+                logger.error("error starting manager: \(error.description, privacy: .public)")
+            }
         }
-        completionHandler(nil)
     }
 
-    override func stopTunnel(with _: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+    override func stopTunnel(
+        with _: NEProviderStopReason, completionHandler: @escaping () -> Void
+    ) {
         logger.debug("stopTunnel called")
-        guard manager !== nil else {
+        guard manager != nil else {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
             return
