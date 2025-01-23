@@ -113,7 +113,6 @@ actor Manager {
         }
     }
 
-    // TODO: Call via XPC
     func startVPN() async throws(ManagerError) {
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
@@ -137,10 +136,8 @@ actor Manager {
         if !startResp.success {
             throw .errorResponse(msg: startResp.errorMessage)
         }
-        // TODO: notify app over XPC
     }
 
-    // TODO: Call via XPC
     func stopVPN() async throws(ManagerError) {
         logger.info("sending stop rpc")
         let resp: Vpn_TunnelMessage
@@ -157,7 +154,6 @@ actor Manager {
         if !stopResp.success {
             throw .errorResponse(msg: stopResp.errorMessage)
         }
-        // TODO: notify app over XPC
     }
 
     // TODO: Call via XPC
