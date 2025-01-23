@@ -21,8 +21,7 @@ test:
 		-testPlan $(SCHEME) \
 		-skipPackagePluginValidation \
 		CODE_SIGNING_REQUIRED=NO \
-		CODE_SIGNING_ALLOWED=NO \
-		| LC_ALL="en_US.UTF-8" xcpretty
+		CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 lint:
 	swiftlint \

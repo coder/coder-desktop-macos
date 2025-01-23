@@ -32,15 +32,7 @@ enum About {
 
     @MainActor
     static func open() {
-        #if compiler(>=5.9) && canImport(AppKit)
-            if #available(macOS 14, *) {
-                NSApp.activate()
-            } else {
-                NSApp.activate(ignoringOtherApps: true)
-            }
-        #else
-            NSApp.activate(ignoringOtherApps: true)
-        #endif
+        appActivate()
         NSApp.orderFrontStandardAboutPanel(options: [
             .credits: credits,
         ])

@@ -15,7 +15,9 @@ struct LoginTests {
     init() {
         session = MockSession()
         sut = LoginForm<MockSession>()
-        view = sut.environmentObject(session)
+        let store = UserDefaults(suiteName: #file)!
+        store.removePersistentDomain(forName: #file)
+        view = sut.environmentObject(session).environmentObject(Settings(store: store))
     }
 
     @Test
@@ -70,12 +72,11 @@ struct LoginTests {
 
     @Test
     func testFailedAuthentication() async throws {
-        let login = LoginForm<MockSession>()
         let url = URL(string: "https://testFailedAuthentication.com")!
         Mock(url: url.appendingPathComponent("/api/v2/users/me"), statusCode: 401, data: [.get: Data()]).register()
 
-        try await ViewHosting.host(login.environmentObject(session)) {
-            try await login.inspection.inspect { view in
+        try await ViewHosting.host(view) {
+            try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput(url.absoluteString)
                 try view.find(button: "Next").tap()
                 #expect(throws: Never.self) { try view.find(text: "Session Token") }

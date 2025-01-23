@@ -3,6 +3,7 @@ import SwiftUI
 
 struct LoginForm<S: Session>: View {
     @EnvironmentObject var session: S
+    @EnvironmentObject var settings: Settings
     @Environment(\.dismiss) private var dismiss
 
     @State private var baseAccessURL: String = ""
@@ -68,7 +69,7 @@ struct LoginForm<S: Session>: View {
         }
         loading = true
         defer { loading = false }
-        let client = Client(url: url, token: sessionToken)
+        let client = Client(url: url, token: sessionToken, headers: settings.literalHeaders.map { $0.toSDKHeader() })
         do {
             _ = try await client.user("me")
         } catch {
