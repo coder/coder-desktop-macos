@@ -3,17 +3,17 @@ import os
 
 enum NetworkExtensionState: Equatable {
     case unconfigured
-    case disbled
+    case disabled
     case enabled
     case failed(String)
 
     var description: String {
         switch self {
         case .unconfigured:
-            return "Not logged in to Coder"
+            return "NetworkExtension not configured, try logging in again"
         case .enabled:
             return "NetworkExtension tunnel enabled"
-        case .disbled:
+        case .disabled:
             return "NetworkExtension tunnel disabled"
         case let .failed(error):
             return "NetworkExtension config failed: \(error)"
@@ -24,6 +24,16 @@ enum NetworkExtensionState: Equatable {
 /// An actor that handles configuring, enabling, and disabling the VPN tunnel via the
 /// NetworkExtension APIs.
 extension CoderVPNService {
+    // Updates the UI if a previous configuration exists
+    func loadNetworkExtension() async {
+        do {
+            try await getTunnelManager()
+            neState = .disabled
+        } catch {
+            neState = .unconfigured
+        }
+    }
+
     func configureNetworkExtension(proto: NETunnelProviderProtocol) async {
         // removing the old tunnels, rather than reconfiguring ensures that configuration changes
         // are picked up.
@@ -47,6 +57,7 @@ extension CoderVPNService {
             logger.error("save tunnel failed: \(error)")
             neState = .failed(error.localizedDescription)
         }
+        neState = .disabled
     }
 
     func removeNetworkExtension() async throws(VPNServiceError) {
@@ -91,9 +102,10 @@ extension CoderVPNService {
             return
         }
         logger.debug("saved tunnel with enabled=false")
-        neState = .disbled
+        neState = .disabled
     }
 
+    @discardableResult
     private func getTunnelManager() async throws(VPNServiceError) -> NETunnelProviderManager {
         var tunnels: [NETunnelProviderManager] = []
         do {
