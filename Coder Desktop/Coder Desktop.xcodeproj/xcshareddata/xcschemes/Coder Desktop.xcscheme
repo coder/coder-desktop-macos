@@ -90,6 +90,17 @@
                ReferencedContainer = "container:Coder Desktop.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3B0916742D41C8010064DEA8"
+               BuildableName = "VPNXPCTests.xctest"
+               BlueprintName = "VPNXPCTests"
+               ReferencedContainer = "container:Coder Desktop.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -53,7 +53,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 with: self,
                 cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
             )
-            GlobalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
+            globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
         }
         completionHandler(nil)
     }
@@ -66,7 +66,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             return
         }
         manager = nil
-        GlobalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
+        globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
         completionHandler()
     }
 

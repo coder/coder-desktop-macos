@@ -14,9 +14,9 @@ final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, Sendable {
     }
 }
 
-let GlobalXPCListenerDelegate = XPCListenerDelegate()
+let globalXPCListenerDelegate = XPCListenerDelegate()
 let xpcListener = NSXPCListener(machServiceName: "com.coder.Coder-Desktop.VPNXPC")
-xpcListener.delegate = GlobalXPCListenerDelegate
+xpcListener.delegate = globalXPCListenerDelegate
 xpcListener.resume()
 
 autoreleasepool {
