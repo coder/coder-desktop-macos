@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3B0916612D41B9690064DEA8 /* VPNXPC.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 3B0916552D41B9690064DEA8 /* VPNXPC.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		961679332CFF117300B2B6DF /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 961679322CFF117300B2B6DF /* NetworkExtension.framework */; };
 		9616793D2CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = 961679302CFF117300B2B6DF /* com.coder.Coder-Desktop.VPN.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA3B3DA92D2D23860099996A /* VPNLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA3B3DA12D2D23860099996A /* VPNLib.framework */; };
@@ -27,6 +28,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		3B09165F2D41B9690064DEA8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3B0916542D41B9690064DEA8;
+			remoteInfo = VPNXPC;
+		};
 		961679102CFF100E00B2B6DF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 961678F42CFF100D00B2B6DF /* Project object */;
@@ -107,6 +115,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		3B0916622D41B9690064DEA8 /* Embed XPC Services */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+			dstSubfolderSpec = 16;
+			files = (
+				3B0916612D41B9690064DEA8 /* VPNXPC.xpc in Embed XPC Services */,
+			);
+			name = "Embed XPC Services";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		961679422CFF117300B2B6DF /* Embed System Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -132,6 +151,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3B0916552D41B9690064DEA8 /* VPNXPC.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = VPNXPC.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		961678FC2CFF100D00B2B6DF /* Coder Desktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Coder Desktop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9616790F2CFF100E00B2B6DF /* Coder DesktopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Coder DesktopTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		961679192CFF100E00B2B6DF /* Coder DesktopUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Coder DesktopUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -144,6 +164,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3B0916652D41B9690064DEA8 /* Exceptions for "VPNXPC" folder in "VPNXPC" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3B0916542D41B9690064DEA8 /* VPNXPC */;
+		};
 		AA3B3DB62D2D23860099996A /* Exceptions for "VPNLib" folder in "VPNLib" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -171,6 +198,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3B0916562D41B9690064DEA8 /* VPNXPC */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3B0916652D41B9690064DEA8 /* Exceptions for "VPNXPC" folder in "VPNXPC" target */,
+			);
+			path = VPNXPC;
+			sourceTree = "<group>";
+		};
 		961678FE2CFF100D00B2B6DF /* Coder Desktop */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Coder Desktop";
@@ -223,6 +258,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3B0916522D41B9690064DEA8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		961678F92CFF100D00B2B6DF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -308,6 +350,7 @@
 				AA3B3DAE2D2D23860099996A /* VPNLibTests */,
 				AA3B40922D2FC8560099996A /* CoderSDK */,
 				AA3B409E2D2FC8560099996A /* CoderSDKTests */,
+				3B0916562D41B9690064DEA8 /* VPNXPC */,
 				961679312CFF117300B2B6DF /* Frameworks */,
 				961678FD2CFF100D00B2B6DF /* Products */,
 			);
@@ -324,6 +367,7 @@
 				AA3B3DA82D2D23860099996A /* VPNLibTests.xctest */,
 				AA3B40912D2FC8560099996A /* CoderSDK.framework */,
 				AA3B40982D2FC8560099996A /* CoderSDKTests.xctest */,
+				3B0916552D41B9690064DEA8 /* VPNXPC.xpc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -356,6 +400,28 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		3B0916542D41B9690064DEA8 /* VPNXPC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B0916662D41B9690064DEA8 /* Build configuration list for PBXNativeTarget "VPNXPC" */;
+			buildPhases = (
+				3B0916512D41B9690064DEA8 /* Sources */,
+				3B0916522D41B9690064DEA8 /* Frameworks */,
+				3B0916532D41B9690064DEA8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3B0916562D41B9690064DEA8 /* VPNXPC */,
+			);
+			name = VPNXPC;
+			packageProductDependencies = (
+			);
+			productName = VPNXPC;
+			productReference = 3B0916552D41B9690064DEA8 /* VPNXPC.xpc */;
+			productType = "com.apple.product-type.xpc-service";
+		};
 		961678FB2CFF100D00B2B6DF /* Coder Desktop */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 961679232CFF100F00B2B6DF /* Build configuration list for PBXNativeTarget "Coder Desktop" */;
@@ -364,6 +430,7 @@
 				961678F92CFF100D00B2B6DF /* Frameworks */,
 				961678FA2CFF100D00B2B6DF /* Resources */,
 				961679422CFF117300B2B6DF /* Embed System Extensions */,
+				3B0916622D41B9690064DEA8 /* Embed XPC Services */,
 			);
 			buildRules = (
 			);
@@ -371,6 +438,7 @@
 				AA8BC33C2D0060E700E1ABAA /* PBXTargetDependency */,
 				9616793C2CFF117300B2B6DF /* PBXTargetDependency */,
 				AA3B40A32D2FC8560099996A /* PBXTargetDependency */,
+				3B0916602D41B9690064DEA8 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				961678FE2CFF100D00B2B6DF /* Coder Desktop */,
@@ -566,6 +634,9 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					3B0916542D41B9690064DEA8 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					961678FB2CFF100D00B2B6DF = {
 						CreatedOnToolsVersion = 16.1;
 					};
@@ -626,11 +697,19 @@
 				AA3B3DA72D2D23860099996A /* VPNLibTests */,
 				AA3B40902D2FC8560099996A /* CoderSDK */,
 				AA3B40972D2FC8560099996A /* CoderSDKTests */,
+				3B0916542D41B9690064DEA8 /* VPNXPC */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3B0916532D41B9690064DEA8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		961678FA2CFF100D00B2B6DF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -690,6 +769,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3B0916512D41B9690064DEA8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		961678F82CFF100D00B2B6DF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -749,6 +835,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3B0916602D41B9690064DEA8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3B0916542D41B9690064DEA8 /* VPNXPC */;
+			targetProxy = 3B09165F2D41B9690064DEA8 /* PBXContainerItemProxy */;
+		};
 		961679112CFF100E00B2B6DF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 961678FB2CFF100D00B2B6DF /* Coder Desktop */;
@@ -811,6 +902,54 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		3B0916632D41B9690064DEA8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VPNXPC/VPNXPC.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VPNXPC/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VPNXPC;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPNXPC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3B0916642D41B9690064DEA8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VPNXPC/VPNXPC.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4399GN35BJ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VPNXPC/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VPNXPC;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coder.Coder-Desktop.VPNXPC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		961679212CFF100F00B2B6DF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1148,7 +1287,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1185,7 +1324,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1248,6 +1387,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1256,7 +1396,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1285,6 +1425,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1293,7 +1434,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1354,6 +1495,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3B0916662D41B9690064DEA8 /* Build configuration list for PBXNativeTarget "VPNXPC" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B0916632D41B9690064DEA8 /* Debug */,
+				3B0916642D41B9690064DEA8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		961678F72CFF100D00B2B6DF /* Build configuration list for PBXProject "Coder Desktop" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

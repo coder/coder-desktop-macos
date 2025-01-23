@@ -1,6 +1,7 @@
 import NetworkExtension
-import os
 import SwiftUI
+import os
+import VPNXPC
 
 @MainActor
 protocol VPNService: ObservableObject {
@@ -43,6 +44,7 @@ enum VPNServiceError: Error, Equatable {
 @MainActor
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
+    var xpcConn: NSXPCConnection
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured
@@ -64,6 +66,10 @@ final class CoderVPNService: NSObject, VPNService {
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     override init() {
+        xpcConn = NSXPCConnection(serviceName: "com.coder.Coder-Desktop.VPNXPC")
+        xpcConn.remoteObjectInterface = NSXPCInterface(with: VPNXPCProtocol.self)
+        xpcConn.resume()
+
         super.init()
         installSystemExtension()
     }
@@ -76,10 +82,14 @@ final class CoderVPNService: NSObject, VPNService {
         startTask = Task {
             tunnelState = .connecting
             await enableNetworkExtension()
+            logger.debug("network extension enabled")
+            
+            if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
+                proxy.start() { result in
+                    self.tunnelState = .connected
+                }
+            }
 
-            // TODO: enable communication with the NetworkExtension to track state and agents. For
-            //       now, just pretend it worked...
-            tunnelState = .connected
         }
         defer { startTask = nil }
         await startTask?.value
@@ -95,9 +105,12 @@ final class CoderVPNService: NSObject, VPNService {
         }
         stopTask = Task {
             tunnelState = .disconnecting
+            
+            if let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol {
+                proxy.stop() { result in }
+            }
             await disableNetworkExtension()
-
-            // TODO: determine when the NetworkExtension is completely disconnected
+            logger.info("network extension stopped")
             tunnelState = .disabled
         }
         defer { stopTask = nil }

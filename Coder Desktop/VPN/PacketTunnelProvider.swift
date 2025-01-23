@@ -53,18 +53,20 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 with: self,
                 cfg: .init(apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!)
             )
+            GlobalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
         }
         completionHandler(nil)
     }
 
     override func stopTunnel(with _: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         logger.debug("stopTunnel called")
-        guard manager == nil else {
+        guard manager !== nil else {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
             return
         }
         manager = nil
+        GlobalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
         completionHandler()
     }
 
