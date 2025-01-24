@@ -65,9 +65,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 logger.debug("calling manager.startVPN")
                 try await manager!.startVPN()
                 logger.debug("vpn started")
-                completionHandler.callAsFunction(nil)
+                completionHandler(nil)
             } catch {
-                completionHandler.callAsFunction(error as NSError)
+                completionHandler(error as NSError)
                 logger.error("error starting manager: \(error.description, privacy: .public)")
             }
         }

@@ -69,7 +69,7 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
     override init() {
         let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
         let machServiceName = networkExtDict?["NEMachServiceName"] as? String
-        xpcConn = NSXPCConnection(serviceName: machServiceName!)
+        xpcConn = NSXPCConnection(machServiceName: machServiceName!)
         xpcConn.remoteObjectInterface = NSXPCInterface(with: VPNXPCProtocol.self)
         xpcConn.exportedInterface = NSXPCInterface(with: VPNXPCClientCallbackProtocol.self)
 
