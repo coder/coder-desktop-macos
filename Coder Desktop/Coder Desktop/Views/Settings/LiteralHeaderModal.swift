@@ -26,8 +26,8 @@ struct LiteralHeaderModal: View {
             }.padding(20)
         }.onAppear {
             if let existingHeader {
-                self.header = existingHeader.header
-                self.value = existingHeader.value
+                header = existingHeader.header
+                value = existingHeader.value
             }
         }
     }

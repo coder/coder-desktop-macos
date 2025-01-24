@@ -104,7 +104,7 @@ struct HandshakerTests {
         let result: ProtoVersion
 
         var description: String {
-            return "\(tun) vs \(mgr) -> \(result)"
+            "\(tun) vs \(mgr) -> \(result)"
         }
     }
 

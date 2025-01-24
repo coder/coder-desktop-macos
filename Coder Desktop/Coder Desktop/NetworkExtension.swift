@@ -10,13 +10,13 @@ enum NetworkExtensionState: Equatable {
     var description: String {
         switch self {
         case .unconfigured:
-            return "NetworkExtension not configured, try logging in again"
+            "NetworkExtension not configured, try logging in again"
         case .enabled:
-            return "NetworkExtension tunnel enabled"
+            "NetworkExtension tunnel enabled"
         case .disabled:
-            return "NetworkExtension tunnel disabled"
+            "NetworkExtension tunnel disabled"
         case let .failed(error):
-            return "NetworkExtension config failed: \(error)"
+            "NetworkExtension config failed: \(error)"
         }
     }
 }

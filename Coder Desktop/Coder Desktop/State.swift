@@ -78,7 +78,7 @@ class SecureSession: ObservableObject, Session {
     }
 
     private func keychainSet(_ value: String?, for key: String) {
-        if let value = value {
+        if let value {
             try? keychain.set(value, key: key)
         } else {
             try? keychain.remove(key)
@@ -132,6 +132,6 @@ struct LiteralHeader: Hashable, Identifiable, Equatable, Codable {
 
 extension LiteralHeader {
     func toSDKHeader() -> HTTPHeader {
-        return .init(header: header, value: value)
+        .init(header: header, value: value)
     }
 }

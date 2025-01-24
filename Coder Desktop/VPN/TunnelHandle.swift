@@ -75,11 +75,11 @@ enum TunnelHandleError: Error {
 
     var description: String {
         switch self {
-        case let .pipe(err): return "pipe error: \(err)"
-        case let .dylib(d): return d
-        case let .symbol(symbol, message): return "\(symbol): \(message)"
-        case let .openTunnel(error): return "OpenTunnel: \(error.message)"
-        case let .close(errs): return "close tunnel: \(errs.map(\.localizedDescription).joined(separator: ", "))"
+        case let .pipe(err): "pipe error: \(err)"
+        case let .dylib(d): d
+        case let .symbol(symbol, message): "\(symbol): \(message)"
+        case let .openTunnel(error): "OpenTunnel: \(error.message)"
+        case let .close(errs): "close tunnel: \(errs.map(\.localizedDescription).joined(separator: ", "))"
         }
     }
 }
@@ -93,11 +93,11 @@ enum OpenTunnelError: Int32 {
 
     var message: String {
         switch self {
-        case .errDupReadFD: return "Failed to duplicate read file descriptor"
-        case .errDupWriteFD: return "Failed to duplicate write file descriptor"
-        case .errOpenPipe: return "Failed to open the pipe"
-        case .errNewTunnel: return "Failed to create a new tunnel"
-        case .unknown: return "Unknown error code"
+        case .errDupReadFD: "Failed to duplicate read file descriptor"
+        case .errDupWriteFD: "Failed to duplicate write file descriptor"
+        case .errOpenPipe: "Failed to open the pipe"
+        case .errNewTunnel: "Failed to create a new tunnel"
+        case .unknown: "Unknown error code"
         }
     }
 }

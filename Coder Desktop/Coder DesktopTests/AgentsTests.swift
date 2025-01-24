@@ -19,7 +19,7 @@ struct AgentsTests {
     }
 
     private func createMockAgents(count: Int) -> [Agent] {
-        return (1 ... count).map {
+        (1 ... count).map {
             Agent(
                 id: UUID(),
                 name: "a\($0)",

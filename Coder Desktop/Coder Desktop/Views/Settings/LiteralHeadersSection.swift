@@ -66,6 +66,6 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
         }.onTapGesture {
             selectedHeader = nil
         }.disabled(vpn.state != .disabled)
-        .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+        .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
 }

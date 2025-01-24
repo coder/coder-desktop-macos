@@ -1,4 +1,5 @@
 @testable import CoderSDK
+import Foundation
 import Mocker
 import Testing
 

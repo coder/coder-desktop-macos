@@ -28,7 +28,7 @@ public struct Client {
         method: HTTPMethod,
         body: Data? = nil
     ) async throws(ClientError) -> HTTPResponse {
-        let url = self.url.appendingPathComponent(path)
+        let url = url.appendingPathComponent(path)
         var req = URLRequest(url: url)
         if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
         req.httpMethod = method.rawValue
@@ -49,10 +49,10 @@ public struct Client {
         return HTTPResponse(resp: httpResponse, data: data, req: req)
     }
 
-    func request<T: Encodable & Sendable>(
+    func request(
         _ path: String,
         method: HTTPMethod,
-        body: T
+        body: some Encodable & Sendable
     ) async throws(ClientError) -> HTTPResponse {
         let encodedBody: Data?
         do {
@@ -67,7 +67,7 @@ public struct Client {
         _ path: String,
         method: HTTPMethod
     ) async throws(ClientError) -> HTTPResponse {
-        return try await doRequest(path: path, method: method)
+        try await doRequest(path: path, method: method)
     }
 
     func responseAsError(_ resp: HTTPResponse) -> ClientError {
@@ -86,7 +86,7 @@ public struct Client {
     }
 }
 
-public struct APIError: Decodable {
+public struct APIError: Decodable, Sendable {
     let response: Response
     let statusCode: Int
     let method: String
@@ -105,13 +105,13 @@ public struct APIError: Decodable {
     }
 }
 
-public struct Response: Decodable {
+public struct Response: Decodable, Sendable {
     let message: String
     let detail: String?
     let validations: [FieldValidation]?
 }
 
-public struct FieldValidation: Decodable {
+public struct FieldValidation: Decodable, Sendable {
     let field: String
     let detail: String
 }
@@ -125,13 +125,13 @@ public enum ClientError: Error {
     public var description: String {
         switch self {
         case let .api(error):
-            return error.description
+            error.description
         case let .network(error):
-            return error.localizedDescription
+            error.localizedDescription
         case let .unexpectedResponse(data):
-            return "Unexpected or non HTTP response: \(data)"
+            "Unexpected or non HTTP response: \(data)"
         case let .encodeFailure(error):
-            return "Failed to encode body: \(error)"
+            "Failed to encode body: \(error)"
         }
     }
 }

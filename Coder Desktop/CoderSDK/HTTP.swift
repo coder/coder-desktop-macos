@@ -1,3 +1,5 @@
+import Foundation
+
 public struct HTTPResponse {
     let resp: HTTPURLResponse
     let data: Data
