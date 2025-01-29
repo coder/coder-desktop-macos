@@ -14,21 +14,21 @@ public enum ValidationError: Error {
     public var errorDescription: String? {
         switch self {
         case .fileNotFound:
-            return "The file does not exist."
+            "The file does not exist."
         case .unableToCreateStaticCode:
-            return "Unable to create a static code object."
+            "Unable to create a static code object."
         case .invalidSignature:
-            return "The file's signature is invalid."
+            "The file's signature is invalid."
         case .unableToRetrieveInfo:
-            return "Unable to retrieve signing information."
+            "Unable to retrieve signing information."
         case let .invalidIdentifier(identifier):
-            return "Invalid identifier: \(identifier ?? "unknown")."
+            "Invalid identifier: \(identifier ?? "unknown")."
         case let .invalidVersion(version):
-            return "Invalid runtime version: \(version ?? "unknown")."
+            "Invalid runtime version: \(version ?? "unknown")."
         case let .invalidTeamIdentifier(identifier):
-            return "Invalid team identifier: \(identifier ?? "unknown")."
+            "Invalid team identifier: \(identifier ?? "unknown")."
         case .missingInfoPList:
-            return "Info.plist is not embedded within the dylib."
+            "Info.plist is not embedded within the dylib."
         }
     }
 }
@@ -159,13 +159,13 @@ public enum DownloadError: Error {
     var localizedDescription: String {
         switch self {
         case let .unexpectedStatusCode(code):
-            return "Unexpected HTTP status code: \(code)"
+            "Unexpected HTTP status code: \(code)"
         case let .networkError(error):
-            return "Network error: \(error.localizedDescription)"
+            "Network error: \(error.localizedDescription)"
         case let .fileOpError(error):
-            return "File operation error: \(error.localizedDescription)"
+            "File operation error: \(error.localizedDescription)"
         case .invalidResponse:
-            return "Received non-HTTP response"
+            "Received non-HTTP response"
         }
     }
 }

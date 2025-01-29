@@ -208,23 +208,23 @@ enum ManagerError: Error {
     var description: String {
         switch self {
         case let .download(err):
-            return "Download error: \(err)"
+            "Download error: \(err)"
         case let .tunnelSetup(err):
-            return "Tunnel setup error: \(err)"
+            "Tunnel setup error: \(err)"
         case let .handshake(err):
-            return "Handshake error: \(err)"
+            "Handshake error: \(err)"
         case let .validation(err):
-            return "Validation error: \(err)"
+            "Validation error: \(err)"
         case .incorrectResponse:
-            return "Received unexpected response over tunnel"
+            "Received unexpected response over tunnel"
         case let .failedRPC(err):
-            return "Failed rpc: \(err)"
+            "Failed rpc: \(err)"
         case let .serverInfo(msg):
-            return msg
+            msg
         case let .errorResponse(msg):
-            return msg
+            msg
         case .noTunnelFileDescriptor:
-            return "Could not find a tunnel file descriptor"
+            "Could not find a tunnel file descriptor"
         }
     }
 }

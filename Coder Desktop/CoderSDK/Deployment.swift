@@ -1,3 +1,5 @@
+import Foundation
+
 public extension Client {
     func buildInfo() async throws(ClientError) -> BuildInfoResponse {
         let res = try await request("/api/v2/buildinfo", method: .get)
@@ -25,7 +27,7 @@ public struct BuildInfoResponse: Encodable, Decodable, Equatable, Sendable {
 
     // `version` in the form `[0-9]+.[0-9]+.[0-9]+`
     public var semver: String? {
-        return try? NSRegularExpression(pattern: #"v(\d+\.\d+\.\d+)"#)
+        try? NSRegularExpression(pattern: #"v(\d+\.\d+\.\d+)"#)
             .firstMatch(in: version, range: NSRange(version.startIndex ..< version.endIndex, in: version))
             .flatMap { Range($0.range(at: 1), in: version).map { String(version[$0]) } }
     }

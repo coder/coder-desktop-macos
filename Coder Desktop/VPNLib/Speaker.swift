@@ -95,7 +95,7 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
 
     /// Send a unary RPC message and handle the response
     public func unaryRPC(_ req: SendMsg) async throws -> RecvMsg {
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
             Task { [sender, secretary, logger] in
                 let msgID = await secretary.record(continuation: continuation)
                 var req = req
@@ -199,7 +199,7 @@ actor Handshaker {
             }
         }
 
-        let vStr = versions.map { $0.description }.joined(separator: ",")
+        let vStr = versions.map(\.description).joined(separator: ",")
         let ours = String(format: "\(headerPreamble) \(role) \(vStr)\n")
         do {
             try writeFD.write(contentsOf: ours.data(using: .utf8)!)

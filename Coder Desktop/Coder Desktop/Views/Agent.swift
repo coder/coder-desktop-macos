@@ -16,10 +16,10 @@ enum AgentStatus: Equatable {
 
     public var color: Color {
         switch self {
-        case .okay: return .green
-        case .warn: return .yellow
-        case .error: return .red
-        case .off: return .gray
+        case .okay: .green
+        case .warn: .yellow
+        case .error: .red
+        case .off: .gray
         }
     }
 }
@@ -41,7 +41,7 @@ struct AgentRowView: View {
 
     private var wsURL: URL {
         // TODO: CoderVPN currently only supports owned workspaces
-        return baseAccessURL.appending(path: "@me").appending(path: workspace.workspaceName)
+        baseAccessURL.appending(path: "@me").appending(path: workspace.workspaceName)
     }
 
     var body: some View {
