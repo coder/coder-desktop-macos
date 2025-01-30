@@ -23,29 +23,23 @@ import VPNXPC
         super.init()
 
         xpcConn.exportedObject = self
-        xpcConn.invalidationHandler = { [weak self] in
-            guard let self else { return }
+        xpcConn.invalidationHandler = { [logger] in
             Task { @MainActor in
-                self.logger.error("XPC connection invalidated.")
+                logger.error("XPC connection invalidated.")
             }
         }
-        xpcConn.interruptionHandler = { [weak self] in
-            guard let self else { return }
+        xpcConn.interruptionHandler = { [logger] in
             Task { @MainActor in
-                self.logger.error("XPC connection interrupted.")
+                logger.error("XPC connection interrupted.")
             }
         }
         xpcConn.resume()
-
-        xpc.ping {
-            print("Got response from XPC")
-        }
     }
 
     func ping() {
         xpc.ping {
             Task { @MainActor in
-                print("Got response from XPC")
+                self.logger.info("Connected to NE over XPC")
             }
         }
     }

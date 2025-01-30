@@ -84,7 +84,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 if let conn = globalXPCListenerDelegate.getActiveConnection() {
                     conn.onStart()
                 } else {
-                    logger.info("no active connection")
+                    logger.info("no active XPC connection")
                 }
                 completionHandler(nil)
             } catch {
@@ -92,7 +92,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 if let conn = globalXPCListenerDelegate.getActiveConnection() {
                     conn.onError(error as NSError)
                 } else {
-                    logger.info("no active connection")
+                    logger.info("no active XPC connection")
                 }
                 completionHandler(error as NSError)
             }
@@ -119,7 +119,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             if let conn = globalXPCListenerDelegate.getActiveConnection() {
                 conn.onStop()
             } else {
-                logger.info("no active connection")
+                logger.info("no active XPC connection")
             }
             globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
             completionHandler()

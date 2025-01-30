@@ -10,14 +10,15 @@ import VPNXPC
 
     func setManager(_ newManager: Manager?) {
         managerLock.lock()
+        defer { managerLock.unlock() }
         manager = newManager
-        managerLock.unlock()
     }
 
     func getManager() -> Manager? {
         managerLock.lock()
+        defer { managerLock.unlock() }
         let m = manager
-        managerLock.unlock()
+
         return m
     }
 

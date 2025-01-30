@@ -45,8 +45,8 @@ enum VPNServiceError: Error, Equatable {
 @MainActor
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
-    // TODO: better init maybe? kinda wonky
-    lazy var xpc = VPNXPCInterface(vpn: self)
+    lazy var xpc: VPNXPCInterface = .init(vpn: self)
+    var terminating = false
 
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
@@ -76,44 +76,39 @@ final class CoderVPNService: NSObject, VPNService {
         }
     }
 
-    var startTask: Task<Void, Never>?
     func start() async {
-        if await startTask?.value != nil {
-            return
-        }
+        guard tunnelState == .disabled else { return }
         // this ping is somewhat load bearing since it causes xpc to init
         xpc.ping()
-        startTask = Task {
-            tunnelState = .connecting
-            await enableNetworkExtension()
-            logger.debug("network extension enabled")
-        }
-        defer { startTask = nil }
-        await startTask?.value
+        tunnelState = .connecting
+        await enableNetworkExtension()
+        logger.debug("network extension enabled")
     }
 
-    var stopTask: Task<Void, Never>?
     func stop() async {
-        // Wait for a start operation to finish first
-        await startTask?.value
-        guard state == .connected else { return }
-        if await stopTask?.value != nil {
+        guard tunnelState == .connected else { return }
+        tunnelState = .disconnecting
+        await disableNetworkExtension()
+        logger.info("network extension stopped")
+    }
+
+    // Instructs the service to stop the VPN and then quit once the stop event
+    // is read over XPC.
+    // MUST only be called from `NSApplicationDelegate.applicationShouldTerminate`
+    // MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
+    func quit() async {
+        guard tunnelState == .connected else {
+            NSApp.reply(toApplicationShouldTerminate: true)
             return
         }
-        stopTask = Task {
-            tunnelState = .disconnecting
-            await disableNetworkExtension()
-            logger.info("network extension stopped")
-            tunnelState = .disabled
-        }
-        defer { stopTask = nil }
-        await stopTask?.value
+        terminating = true
+        await stop()
     }
 
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?) {
         Task {
-            if proto != nil {
-                await configureNetworkExtension(proto: proto!)
+            if let proto {
+                await configureNetworkExtension(proto: proto)
                 // this just configures the VPN, it doesn't enable it
                 tunnelState = .disabled
             } else {
@@ -122,7 +117,7 @@ final class CoderVPNService: NSObject, VPNService {
                     neState = .unconfigured
                     tunnelState = .disabled
                 } catch {
-                    logger.error("failed to remoing network extension: \(error)")
+                    logger.error("failed to remove network extension: \(error)")
                     neState = .failed(error.localizedDescription)
                 }
             }
@@ -148,9 +143,13 @@ final class CoderVPNService: NSObject, VPNService {
     func onExtensionStop() {
         logger.info("network extension reported stopped")
         tunnelState = .disabled
+        if terminating {
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
     }
 
     func onExtensionError(_ error: NSError) {
-        logger.info("network extension reported error: \(error)")
+        logger.error("network extension reported error: \(error)")
+        tunnelState = .failed(.internalError(error.localizedDescription))
     }
 }
