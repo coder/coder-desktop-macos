@@ -24,6 +24,6 @@ class PreviewSession: Session {
     }
 
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
-        return nil
+        nil
     }
 }

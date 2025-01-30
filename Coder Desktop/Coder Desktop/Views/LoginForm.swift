@@ -55,7 +55,7 @@ struct LoginForm<S: Session>: View {
         }.disabled(loading)
         .frame(width: 550)
         .fixedSize()
-        .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+        .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
 
     func submit() async {
@@ -177,9 +177,9 @@ enum LoginError {
     var description: String {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            "Invalid URL"
         case let .failedAuth(err):
-            return "Could not authenticate with Coder deployment:\n\(err.description)"
+            "Could not authenticate with Coder deployment:\n\(err.description)"
         }
     }
 }

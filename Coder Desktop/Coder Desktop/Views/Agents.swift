@@ -27,6 +27,6 @@ struct Agents<VPN: VPNService, S: Session>: View {
                     }.toggleStyle(.button).buttonStyle(.plain)
                 }
             }
-        }.onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+        }.onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
 }

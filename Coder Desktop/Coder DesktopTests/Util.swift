@@ -46,7 +46,7 @@ class MockSession: Session {
     }
 
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
-        return nil
+        nil
     }
 }
 

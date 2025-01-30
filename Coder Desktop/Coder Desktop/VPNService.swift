@@ -31,13 +31,13 @@ enum VPNServiceError: Error, Equatable {
     var description: String {
         switch self {
         case .longTestError:
-            return "This is a long error to test the UI with long errors"
+            "This is a long error to test the UI with long errors"
         case let .internalError(description):
-            return "Internal Error: \(description)"
+            "Internal Error: \(description)"
         case let .systemExtensionError(state):
-            return state.description
+            state.description
         case let .networkExtensionError(state):
-            return state.description
+            state.description
         }
     }
 }

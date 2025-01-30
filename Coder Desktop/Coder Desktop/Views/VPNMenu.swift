@@ -14,9 +14,9 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
             VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
                 HStack {
                     Toggle(isOn: Binding(
-                        get: { self.vpn.state == .connected || self.vpn.state == .connecting },
+                        get: { vpn.state == .connected || vpn.state == .connecting },
                         set: { isOn in Task {
-                            if isOn { await self.vpn.start() } else { await self.vpn.stop() }
+                            if isOn { await vpn.start() } else { await vpn.stop() }
                         }
                         }
                     )) {
@@ -78,11 +78,11 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
         }.padding(.bottom, Theme.Size.trayMargin)
             .environmentObject(vpn)
             .environmentObject(session)
-            .onReceive(inspection.notice) { self.inspection.visit(self, $0) } // ViewInspector
+            .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
 
     private var vpnDisabled: Bool {
-        return !session.hasSession ||
+        !session.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting
     }
