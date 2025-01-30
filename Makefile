@@ -26,7 +26,6 @@ $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 .PHONY: fmt
 fmt: ## Run Swift file formatter
 	swiftformat \
-		--exclude '**.pb.swift' \
 		--swiftversion $(SWIFT_VERSION) \
 		$(FMTFLAGS) .
 

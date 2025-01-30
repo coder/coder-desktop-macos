@@ -16,9 +16,10 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.settings)
         }
         .windowResizability(.contentSize)
-        SwiftUI.Settings { SettingsView<CoderVPNService>()
-            .environmentObject(appDelegate.vpn)
-            .environmentObject(appDelegate.settings)
+        SwiftUI.Settings {
+            SettingsView<CoderVPNService>()
+                .environmentObject(appDelegate.vpn)
+                .environmentObject(appDelegate.settings)
         }
         .windowResizability(.contentSize)
     }
@@ -32,7 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let settings: Settings
 
     override init() {
-        // TODO: Replace with real implementation
         vpn = CoderVPNService()
         settings = Settings()
         session = SecureSession(onChange: vpn.configureTunnelProviderProtocol)

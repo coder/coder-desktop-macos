@@ -6,7 +6,6 @@ import SwiftProtobuf
 actor Receiver<RecvMsg: Message> {
     private let dispatch: DispatchIO
     private let queue: DispatchQueue
-    private var running = false
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "proto")
 
     /// Creates an instance using the given `DispatchIO` channel and queue.
@@ -58,11 +57,7 @@ actor Receiver<RecvMsg: Message> {
     /// Starts reading protocol messages from the `DispatchIO` channel and returns them as an `AsyncStream` of messages.
     /// On read or decoding error, it logs and closes the stream.
     func messages() throws(ReceiveError) -> AsyncStream<RecvMsg> {
-        if running {
-            throw .alreadyRunning
-        }
-        running = true
-        return AsyncStream(
+        AsyncStream(
             unfolding: {
                 do {
                     let length = try await self.readLen()
@@ -83,7 +78,6 @@ actor Receiver<RecvMsg: Message> {
 enum ReceiveError: Error {
     case readError(String)
     case invalidLength
-    case alreadyRunning
 }
 
 func deserializeLen(_ data: Data) throws -> UInt32 {

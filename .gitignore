@@ -290,4 +290,8 @@ xcuserdata
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 
+### VSCode & Sweetpad ###
+.vscode/**
+buildServer.json
+
 # End of https://www.toptal.com/developers/gitignore/api/xcode,jetbrains,macos,direnv,swift,swiftpm,objective-c

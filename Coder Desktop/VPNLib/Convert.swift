@@ -1,60 +1,61 @@
 import NetworkExtension
 import os
 
-// swiftlint:disable:next function_body_length
-public func convertNetworkSettingsRequest(_ req: Vpn_NetworkSettingsRequest) -> NEPacketTunnelNetworkSettings {
-    let networkSettings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: req.tunnelRemoteAddress)
-    networkSettings.tunnelOverheadBytes = NSNumber(value: req.tunnelOverheadBytes)
-    networkSettings.mtu = NSNumber(value: req.mtu)
+public func convertDnsSettings(_ req: Vpn_NetworkSettingsRequest.DNSSettings) -> NEDNSSettings {
+    let dnsSettings = NEDNSSettings(servers: req.servers)
+    dnsSettings.searchDomains = req.searchDomains
+    dnsSettings.domainName = req.domainName
+    dnsSettings.matchDomains = req.matchDomains
+    dnsSettings.matchDomainsNoSearch = req.matchDomainsNoSearch
+    return dnsSettings
+}
 
-    if req.hasDnsSettings {
-        let dnsSettings = NEDNSSettings(servers: req.dnsSettings.servers)
-        dnsSettings.searchDomains = req.dnsSettings.searchDomains
-        dnsSettings.domainName = req.dnsSettings.domainName
-        dnsSettings.matchDomains = req.dnsSettings.matchDomains
-        dnsSettings.matchDomainsNoSearch = req.dnsSettings.matchDomainsNoSearch
-        networkSettings.dnsSettings = dnsSettings
+public func convertIPv4Settings(_ req: Vpn_NetworkSettingsRequest.IPv4Settings) -> NEIPv4Settings {
+    let ipv4Settings = NEIPv4Settings(addresses: req.addrs, subnetMasks: req.subnetMasks)
+    if !req.router.isEmpty {
+        ipv4Settings.router = req.router
     }
-
-    if req.hasIpv4Settings {
-        let ipv4Settings = NEIPv4Settings(addresses: req.ipv4Settings.addrs, subnetMasks: req.ipv4Settings.subnetMasks)
-        ipv4Settings.router = req.ipv4Settings.router
-        ipv4Settings.includedRoutes = req.ipv4Settings.includedRoutes.map {
-            let route = NEIPv4Route(destinationAddress: $0.destination, subnetMask: $0.mask)
+    ipv4Settings.includedRoutes = req.includedRoutes.map {
+        let route = NEIPv4Route(destinationAddress: $0.destination, subnetMask: $0.mask)
+        if !$0.router.isEmpty {
             route.gatewayAddress = $0.router
-            return route
         }
-        ipv4Settings.excludedRoutes = req.ipv4Settings.excludedRoutes.map {
-            let route = NEIPv4Route(destinationAddress: $0.destination, subnetMask: $0.mask)
-            route.gatewayAddress = $0.router
-            return route
-        }
-        networkSettings.ipv4Settings = ipv4Settings
+        return route
     }
+    ipv4Settings.excludedRoutes = req.excludedRoutes.map {
+        let route = NEIPv4Route(destinationAddress: $0.destination, subnetMask: $0.mask)
+        if !$0.router.isEmpty {
+            route.gatewayAddress = $0.router
+        }
+        return route
+    }
+    return ipv4Settings
+}
 
-    if req.hasIpv6Settings {
-        let ipv6Settings = NEIPv6Settings(
-            addresses: req.ipv6Settings.addrs,
-            networkPrefixLengths: req.ipv6Settings.prefixLengths.map { NSNumber(value: $0)
-            }
+public func convertIPv6Settings(_ req: Vpn_NetworkSettingsRequest.IPv6Settings) -> NEIPv6Settings {
+    let ipv6Settings = NEIPv6Settings(
+        addresses: req.addrs,
+        networkPrefixLengths: req.prefixLengths.map { NSNumber(value: $0) }
+    )
+    ipv6Settings.includedRoutes = req.includedRoutes.map {
+        let route = NEIPv6Route(
+            destinationAddress: $0.destination,
+            networkPrefixLength: NSNumber(value: $0.prefixLength)
         )
-        ipv6Settings.includedRoutes = req.ipv6Settings.includedRoutes.map {
-            let route = NEIPv6Route(
-                destinationAddress: $0.destination,
-                networkPrefixLength: NSNumber(value: $0.prefixLength)
-            )
+        if !$0.router.isEmpty {
             route.gatewayAddress = $0.router
-            return route
         }
-        ipv6Settings.excludedRoutes = req.ipv6Settings.excludedRoutes.map {
-            let route = NEIPv6Route(
-                destinationAddress: $0.destination,
-                networkPrefixLength: NSNumber(value: $0.prefixLength)
-            )
-            route.gatewayAddress = $0.router
-            return route
-        }
-        networkSettings.ipv6Settings = ipv6Settings
+        return route
     }
-    return networkSettings
+    ipv6Settings.excludedRoutes = req.excludedRoutes.map {
+        let route = NEIPv6Route(
+            destinationAddress: $0.destination,
+            networkPrefixLength: NSNumber(value: $0.prefixLength)
+        )
+        if !$0.router.isEmpty {
+            route.gatewayAddress = $0.router
+        }
+        return route
+    }
+    return ipv6Settings
 }

@@ -1,0 +1,3 @@
+--selfrequired log,info,error,debug,critical,fault
+--exclude **.pb.swift
+--condassignment always

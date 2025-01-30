@@ -79,11 +79,11 @@ actor Manager {
                 case let .message(msg):
                     handleMessage(msg)
                 case let .RPC(rpc):
-                    handleRPC(rpc)
+                    await handleRPC(rpc)
                 }
             }
         } catch {
-            logger.error("tunnel read loop failed: \(error)")
+            logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
             // TODO: Notify app over XPC
             return
@@ -108,21 +108,33 @@ actor Manager {
         }
     }
 
-    func handleRPC(_ rpc: RPCRequest<Vpn_ManagerMessage, Vpn_TunnelMessage>) {
+    func handleRPC(_ rpc: RPCRequest<Vpn_ManagerMessage, Vpn_TunnelMessage>) async {
         guard let msgType = rpc.msg.msg else {
             logger.critical("received rpc with no type")
             return
         }
         switch msgType {
         case let .networkSettings(ns):
-            let neSettings = convertNetworkSettingsRequest(ns)
-            ptp.setTunnelNetworkSettings(neSettings)
+            do {
+                try await ptp.applyTunnelNetworkSettings(ns)
+                try? await rpc.sendReply(.with { resp in
+                    resp.networkSettings = .with { settings in
+                        settings.success = true
+                    }
+                })
+            } catch {
+                try? await rpc.sendReply(.with { resp in
+                    resp.networkSettings = .with { settings in
+                        settings.success = false
+                        settings.errorMessage = error.localizedDescription
+                    }
+                })
+            }
         case .log, .peerUpdate, .start, .stop:
             logger.critical("received unexpected rpc: `\(String(describing: msgType))`")
         }
     }
 
-    // TODO: Call via XPC
     func startVPN() async throws(ManagerError) {
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
@@ -149,7 +161,6 @@ actor Manager {
         // TODO: notify app over XPC
     }
 
-    // TODO: Call via XPC
     func stopVPN() async throws(ManagerError) {
         logger.info("sending stop rpc")
         let resp: Vpn_TunnelMessage
@@ -246,5 +257,5 @@ func writeVpnLog(_ log: Vpn_Log) {
         category: log.loggerNames.joined(separator: ".")
     )
     let fields = log.fields.map { "\($0.name): \($0.value)" }.joined(separator: ", ")
-    logger.log(level: level, "\(log.message): \(fields)")
+    logger.log(level: level, "\(log.message, privacy: .public): \(fields, privacy: .public)")
 }
