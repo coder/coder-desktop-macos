@@ -77,7 +77,13 @@ final class CoderVPNService: NSObject, VPNService {
     }
 
     func start() async {
-        guard tunnelState == .disabled else { return }
+        switch tunnelState {
+        case .disabled, .failed:
+            break
+        default:
+            return
+        }
+
         // this ping is somewhat load bearing since it causes xpc to init
         xpc.ping()
         tunnelState = .connecting
