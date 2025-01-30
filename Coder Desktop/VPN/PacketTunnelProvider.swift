@@ -9,6 +9,8 @@ let CTLIOCGINFO: UInt = 0xC064_4E03
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
     private var manager: Manager?
+    // a `tunnelRemoteAddress` is required, but not currently used.
+    private var currentSettings: NEPacketTunnelNetworkSettings = .init(tunnelRemoteAddress: "127.0.0.1")
 
     var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
@@ -48,25 +50,37 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         logger.info("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
-            completionHandler(nil)
+            completionHandler(PTPError.alreadyRunning)
             return
         }
+        guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
+              let baseAccessURL = proto.serverAddress
+        else {
+            logger.error("startTunnel called with nil protocolConfiguration")
+            completionHandler(PTPError.missingConfiguration)
+            return
+        }
+        // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
+        guard let token = proto.providerConfiguration?["token"] as? String else {
+            logger.error("startTunnel called with nil token")
+            completionHandler(PTPError.missingToken)
+            return
+        }
+        logger.debug("retrieved token & access URL")
         let completionHandler = CallbackWrapper(completionHandler)
         Task {
-            // TODO: Retrieve access URL & Token via Keychain
             do throws(ManagerError) {
-                logger.info("creating manager")
+                logger.debug("creating manager")
                 manager = try await Manager(
                     with: self,
                     cfg: .init(
-                        apiToken: "qGg1rDGWzL-a814TWDGcTDOs4AX7laDEI",
-                        serverUrl: .init(string: "https://dev.coder.com")!
+                        apiToken: token, serverUrl: .init(string: baseAccessURL)!
                     )
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
-                logger.debug("calling manager.startVPN")
-                // try await manager!.startVPN()
-                logger.debug("vpn started")
+                logger.debug("starting vpn")
+                try await manager!.startVPN()
+                logger.info("vpn started")
                 if let conn = globalXPCListenerDelegate.getActiveConnection() {
                     conn.onStart()
                 } else {
@@ -75,6 +89,11 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 completionHandler(nil)
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
+                if let conn = globalXPCListenerDelegate.getActiveConnection() {
+                    conn.onError(error as NSError)
+                } else {
+                    logger.info("no active connection")
+                }
                 completionHandler(error as NSError)
             }
         }
@@ -84,30 +103,28 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         with _: NEProviderStopReason, completionHandler: @escaping () -> Void
     ) {
         logger.debug("stopTunnel called")
-        guard manager != nil else {
+        guard let manager else {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
             return
         }
 
-        if let conn = globalXPCListenerDelegate.getActiveConnection() {
-            conn.onStop()
-        } else {
-            logger.info("no active connection")
-        }
-
-        let managerCopy = manager
-        Task {
+        let completionHandler = CompletionWrapper(completionHandler)
+        Task { [manager] in
             do throws(ManagerError) {
-                try await managerCopy?.stopVPN()
+                try await manager.stopVPN()
             } catch {
                 logger.error("error stopping manager: \(error.description, privacy: .public)")
             }
+            if let conn = globalXPCListenerDelegate.getActiveConnection() {
+                conn.onStop()
+            } else {
+                logger.info("no active connection")
+            }
+            globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
+            completionHandler()
         }
-
-        manager = nil
-        globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
-        completionHandler()
+        self.manager = nil
     }
 
     override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
@@ -127,4 +144,33 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         // Add code here to wake up.
         logger.debug("wake called")
     }
+
+    // Wrapper around `setTunnelNetworkSettings` that supports merging updates
+    func applyTunnelNetworkSettings(_ diff: Vpn_NetworkSettingsRequest) async throws {
+        logger.debug("applying settings diff: \(diff.debugDescription, privacy: .public)")
+
+        if diff.hasDnsSettings {
+            currentSettings.dnsSettings = convertDnsSettings(diff.dnsSettings)
+        }
+
+        if diff.mtu != 0 {
+            currentSettings.mtu = NSNumber(value: diff.mtu)
+        }
+
+        if diff.hasIpv4Settings {
+            currentSettings.ipv4Settings = convertIPv4Settings(diff.ipv4Settings)
+        }
+        if diff.hasIpv6Settings {
+            currentSettings.ipv6Settings = convertIPv6Settings(diff.ipv6Settings)
+        }
+
+        logger.info("applying settings: \(self.currentSettings.debugDescription, privacy: .public)")
+        try await setTunnelNetworkSettings(currentSettings)
+    }
+}
+
+enum PTPError: Error {
+    case alreadyRunning
+    case missingConfiguration
+    case missingToken
 }

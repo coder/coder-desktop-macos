@@ -41,7 +41,9 @@ class SecureSession: ObservableObject, Session {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = "\(appId).VPN"
-        proto.passwordReference = keychain[attributes: Keys.sessionToken]?.persistentRef
+        // HACK: We can't write to the system keychain, and the user keychain
+        // isn't accessible, so we'll use providerConfiguration, which is over XPC.
+        proto.providerConfiguration = ["token": sessionToken!]
         proto.serverAddress = baseAccessURL!.absoluteString
         return proto
     }
