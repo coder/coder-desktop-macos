@@ -1,7 +1,7 @@
 import NetworkExtension
+import os
 import VPNLib
 import VPNXPC
-import os
 
 /* From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
@@ -17,7 +17,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 _ = strcpy($0, "com.apple.net.utun_control")
             }
         }
-        for fd: Int32 in 0...1024 {
+        for fd: Int32 in 0 ... 1024 {
             var addr = sockaddr_ctl()
             var ret: Int32 = -1
             var len = socklen_t(MemoryLayout.size(ofValue: addr))

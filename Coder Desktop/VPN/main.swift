@@ -1,7 +1,7 @@
 import Foundation
 import NetworkExtension
-import VPNXPC
 import os
+import VPNXPC
 
 let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
 
@@ -13,7 +13,7 @@ final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sen
     func getActiveConnection() -> VPNXPCClientCallbackProtocol? {
         connMutex.lock()
         defer { connMutex.unlock() }
-        
+
         let client = activeConnection?.remoteObjectProxy as? VPNXPCClientCallbackProtocol
         return client
     }

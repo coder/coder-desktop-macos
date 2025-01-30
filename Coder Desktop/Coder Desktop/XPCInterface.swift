@@ -1,7 +1,7 @@
-import os
 import Foundation
-import XPCHub
+import os
 import VPNXPC
+import XPCHub
 
 @objc final class VPNXPCInterface: NSObject, XPCClientCallbackProtocol, @unchecked Sendable {
     private var svc: CoderVPNService
@@ -25,13 +25,13 @@ import VPNXPC
 
         xpcConn.exportedObject = self
         xpcConn.invalidationHandler = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             Task { @MainActor in
                 self.logger.error("XPC connection invalidated.")
             }
         }
         xpcConn.interruptionHandler = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             Task { @MainActor in
                 self.logger.error("XPC connection interrupted.")
             }

@@ -1,9 +1,9 @@
 import CoderSDK
 import NetworkExtension
-import VPNLib
-import XPCHub
-import VPNXPC
 import os
+import VPNLib
+import VPNXPC
+import XPCHub
 
 actor Manager {
     let ptp: PacketTunnelProvider
