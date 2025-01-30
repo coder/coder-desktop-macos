@@ -1,9 +1,8 @@
 import Foundation
 import os
 import VPNXPC
-import XPCHub
 
-@objc final class VPNXPCInterface: NSObject, XPCClientCallbackProtocol, @unchecked Sendable {
+@objc final class VPNXPCInterface: NSObject, VPNXPCClientCallbackProtocol, @unchecked Sendable {
     private var svc: CoderVPNService
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNXPCInterface")
     private let xpc: VPNXPCProtocol
