@@ -43,9 +43,11 @@ enum VPNServiceError: Error, Equatable {
 }
 
 @MainActor
-final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientCallbackProtocol {
+final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
-    var xpcConn: NSXPCConnection
+    // TODO: better init maybe? kinda wonky
+    lazy var xpc = VPNXPCInterface(vpn: self)
+
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured
@@ -67,19 +69,7 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     override init() {
-        let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
-        let machServiceName = networkExtDict?["NEMachServiceName"] as? String
-        xpcConn = NSXPCConnection(machServiceName: machServiceName!)
-        xpcConn.remoteObjectInterface = NSXPCInterface(with: VPNXPCProtocol.self)
-        xpcConn.exportedInterface = NSXPCInterface(with: VPNXPCClientCallbackProtocol.self)
-
         super.init()
-        xpcConn.exportedObject = self
-//        xpcConn.invalidationHandler = {
-//        //            self.logger.error("XPC connection invalidated.")
-//            print("XPC connection invalidated")
-//        }
-        xpcConn.resume()
         installSystemExtension()
         Task {
             await loadNetworkExtension()
@@ -91,6 +81,8 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
         if await startTask?.value != nil {
             return
         }
+        // this ping is somewhat load bearing since it causes xpc to init
+        xpc.ping()
         startTask = Task {
             tunnelState = .connecting
             await enableNetworkExtension()
@@ -137,7 +129,7 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
         }
     }
 
-    func onPeerUpdate(_ data: Data) {
+    func onExtensionPeerUpdate(_ data: Data) {
         // TODO: handle peer update
         logger.info("network extension peer update")
         do {
@@ -148,17 +140,17 @@ final class CoderVPNService: NSObject, VPNService, @preconcurrency VPNXPCClientC
         }
     }
 
-    func onStart() {
+    func onExtensionStart() {
         logger.info("network extension reported started")
         tunnelState = .connected
     }
 
-    func onStop() {
+    func onExtensionStop() {
         logger.info("network extension reported stopped")
         tunnelState = .disabled
     }
 
-    func onError(_ error: NSError) {
+    func onExtensionError(_ error: NSError) {
         logger.info("network extension reported error: \(error)")
     }
 }

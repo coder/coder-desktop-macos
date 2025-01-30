@@ -1,8 +1,9 @@
 import CoderSDK
 import NetworkExtension
-import os
 import VPNLib
+import XPCHub
 import VPNXPC
+import os
 
 actor Manager {
     let ptp: PacketTunnelProvider
@@ -69,6 +70,7 @@ actor Manager {
         } catch {
             fatalError("openTunnelTask must only throw TunnelHandleError")
         }
+
         readLoop = Task { try await run() }
     }
 
@@ -85,17 +87,15 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error)")
             try await tunnelHandle.close()
-            if let connection = globalXPCListenerDelegate.getActiveConnection() {
-                let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
-                client?.onError(error as NSError)
+            if let conn = globalXPCListenerDelegate.getActiveConnection() {
+                conn.onError(error as NSError)
             }
             return
         }
         logger.info("tunnel read loop exited")
         try await tunnelHandle.close()
-        if let connection = globalXPCListenerDelegate.getActiveConnection() {
-            let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
-            client?.onStop()
+        if let conn = globalXPCListenerDelegate.getActiveConnection() {
+            conn.onStop()
         }
     }
 
@@ -106,12 +106,10 @@ actor Manager {
         }
         switch msgType {
         case .peerUpdate:
-            if let connection = globalXPCListenerDelegate.getActiveConnection() {
-                // We can call back to the client
+            if let conn = globalXPCListenerDelegate.getActiveConnection() {
                 do {
-                    let client = connection.remoteObjectProxy as? VPNXPCClientCallbackProtocol
                     let data = try msg.peerUpdate.serializedData()
-                    client!.onPeerUpdate(data)
+                    conn.onPeerUpdate(data)
                 } catch {
                     logger.error("failed to send peer update to client: \(error)")
                 }
@@ -140,35 +138,42 @@ actor Manager {
     func startVPN() async throws(ManagerError) {
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
+            logger.error("no fd")
             throw .noTunnelFileDescriptor
         }
         let resp: Vpn_TunnelMessage
         do {
-            resp = try await speaker.unaryRPC(.with { msg in
-                msg.start = .with { req in
-                    req.tunnelFileDescriptor = tunFd
-                    req.apiToken = cfg.apiToken
-                    req.coderURL = cfg.serverUrl.absoluteString
-                }
-            })
+            resp = try await speaker.unaryRPC(
+                .with { msg in
+                    msg.start = .with { req in
+                        req.tunnelFileDescriptor = tunFd
+                        req.apiToken = cfg.apiToken
+                        req.coderURL = cfg.serverUrl.absoluteString
+                    }
+                })
         } catch {
+            logger.error("rpc failed \(error)")
             throw .failedRPC(error)
         }
         guard case let .start(startResp) = resp.msg else {
+            logger.error("incorrect response")
             throw .incorrectResponse(resp)
         }
         if !startResp.success {
+            logger.error("no success")
             throw .errorResponse(msg: startResp.errorMessage)
         }
+        logger.info("startVPN done")
     }
 
     func stopVPN() async throws(ManagerError) {
         logger.info("sending stop rpc")
         let resp: Vpn_TunnelMessage
         do {
-            resp = try await speaker.unaryRPC(.with { msg in
-                msg.stop = .init()
-            })
+            resp = try await speaker.unaryRPC(
+                .with { msg in
+                    msg.stop = .init()
+                })
         } catch {
             throw .failedRPC(error)
         }
@@ -186,9 +191,10 @@ actor Manager {
         logger.info("sending peer state request")
         let resp: Vpn_TunnelMessage
         do {
-            resp = try await speaker.unaryRPC(.with { msg in
-                msg.getPeerUpdate = .init()
-            })
+            resp = try await speaker.unaryRPC(
+                .with { msg in
+                    msg.getPeerUpdate = .init()
+                })
         } catch {
             throw .failedRPC(error)
         }
@@ -240,17 +246,18 @@ enum ManagerError: Error {
 }
 
 func writeVpnLog(_ log: Vpn_Log) {
-    let level: OSLogType = switch log.level {
-    case .info: .info
-    case .debug: .debug
-    // warn == error
-    case .warn: .error
-    case .error: .error
-    // critical == fatal == fault
-    case .critical: .fault
-    case .fatal: .fault
-    case .UNRECOGNIZED: .info
-    }
+    let level: OSLogType =
+        switch log.level {
+        case .info: .info
+        case .debug: .debug
+        // warn == error
+        case .warn: .error
+        case .error: .error
+        // critical == fatal == fault
+        case .critical: .fault
+        case .fatal: .fault
+        case .UNRECOGNIZED: .info
+        }
     let logger = Logger(
         subsystem: "\(Bundle.main.bundleIdentifier!).dylib",
         category: log.loggerNames.joined(separator: ".")

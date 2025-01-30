@@ -1,16 +1,21 @@
 import Foundation
 import NetworkExtension
 import VPNXPC
+import os
+
+let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
 
 final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
-    let vpnXPCInterface = VPNXPCInterface()
+    let vpnXPCInterface = XPCInterface()
     var activeConnection: NSXPCConnection?
     var connMutex: NSLock = .init()
 
-    func getActiveConnection() -> NSXPCConnection? {
+    func getActiveConnection() -> VPNXPCClientCallbackProtocol? {
         connMutex.lock()
         defer { connMutex.unlock() }
-        return activeConnection
+        
+        let client = activeConnection?.remoteObjectProxy as? VPNXPCClientCallbackProtocol
+        return client
     }
 
     func setActiveConnection(_ connection: NSXPCConnection?) {
@@ -24,8 +29,10 @@ final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sen
         newConnection.exportedObject = vpnXPCInterface
         newConnection.remoteObjectInterface = NSXPCInterface(with: VPNXPCClientCallbackProtocol.self)
         newConnection.invalidationHandler = { [weak self] in
+            logger.info("active connection dead")
             self?.setActiveConnection(nil)
         }
+        logger.info("new active connection")
         setActiveConnection(newConnection)
 
         newConnection.resume()
@@ -40,7 +47,6 @@ else {
     fatalError("Missing NEMachServiceName in Info.plist")
 }
 
-print(serviceName)
 let globalXPCListenerDelegate = XPCListenerDelegate()
 let xpcListener = NSXPCListener(machServiceName: serviceName)
 xpcListener.delegate = globalXPCListenerDelegate

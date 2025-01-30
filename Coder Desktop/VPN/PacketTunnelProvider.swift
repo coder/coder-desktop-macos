@@ -1,6 +1,7 @@
 import NetworkExtension
-import os
 import VPNLib
+import VPNXPC
+import os
 
 /* From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
@@ -16,7 +17,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 _ = strcpy($0, "com.apple.net.utun_control")
             }
         }
-        for fd: Int32 in 0 ... 1024 {
+        for fd: Int32 in 0...1024 {
             var addr = sockaddr_ctl()
             var ret: Int32 = -1
             var len = socklen_t(MemoryLayout.size(ofValue: addr))
@@ -44,7 +45,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     override func startTunnel(
         options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
     ) {
-        logger.debug("startTunnel called")
+        logger.info("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
             completionHandler(nil)
@@ -54,21 +55,27 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         Task {
             // TODO: Retrieve access URL & Token via Keychain
             do throws(ManagerError) {
-                logger.debug("creating manager")
+                logger.info("creating manager")
                 manager = try await Manager(
                     with: self,
                     cfg: .init(
-                        apiToken: "fake-token", serverUrl: .init(string: "https://dev.coder.com")!
+                        apiToken: "qGg1rDGWzL-a814TWDGcTDOs4AX7laDEI",
+                        serverUrl: .init(string: "https://dev.coder.com")!
                     )
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
                 logger.debug("calling manager.startVPN")
-                try await manager!.startVPN()
+                // try await manager!.startVPN()
                 logger.debug("vpn started")
+                if let conn = globalXPCListenerDelegate.getActiveConnection() {
+                    conn.onStart()
+                } else {
+                    logger.info("no active connection")
+                }
                 completionHandler(nil)
             } catch {
-                completionHandler(error as NSError)
                 logger.error("error starting manager: \(error.description, privacy: .public)")
+                completionHandler(error as NSError)
             }
         }
     }
@@ -81,6 +88,12 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             logger.error("stopTunnel called with nil Manager")
             completionHandler()
             return
+        }
+
+        if let conn = globalXPCListenerDelegate.getActiveConnection() {
+            conn.onStop()
+        } else {
+            logger.info("no active connection")
         }
 
         let managerCopy = manager

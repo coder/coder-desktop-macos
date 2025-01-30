@@ -3,6 +3,7 @@ import Foundation
 @preconcurrency
 @objc public protocol VPNXPCProtocol {
     func getPeerInfo(with reply: @escaping () -> Void)
+    func ping(with reply: @escaping () -> Void)
 }
 
 @preconcurrency

@@ -3,7 +3,7 @@ import os.log
 import VPNLib
 import VPNXPC
 
-@objc final class VPNXPCInterface: NSObject, VPNXPCProtocol, @unchecked Sendable {
+@objc final class XPCInterface: NSObject, VPNXPCProtocol, @unchecked Sendable {
     private var manager: Manager?
     private let managerLock = NSLock()
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNXPCInterface")
@@ -22,6 +22,10 @@ import VPNXPC
     }
 
     func getPeerInfo(with reply: @escaping () -> Void) {
+        reply()
+    }
+
+    func ping(with reply: @escaping () -> Void) {
         reply()
     }
 }
