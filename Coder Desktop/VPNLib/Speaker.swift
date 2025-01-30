@@ -79,10 +79,10 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
             }
         )
         receiver = Receiver(dispatch: dispatch, queue: queue)
-        if SendMsg.self == Vpn_TunnelMessage.self {
-            role = .tunnel
+        role = if SendMsg.self == Vpn_TunnelMessage.self {
+            .tunnel
         } else {
-            role = .manager
+            .manager
         }
     }
 
