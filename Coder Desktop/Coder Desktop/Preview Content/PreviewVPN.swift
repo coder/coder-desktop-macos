@@ -4,21 +4,30 @@ import SwiftUI
 @MainActor
 final class PreviewVPN: Coder_Desktop.VPNService {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
-    @Published var agents: [Coder_Desktop.Agent] = [
-        Agent(id: UUID(), name: "dogfood2", status: .error, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
-        Agent(id: UUID(), name: "testing-a-very-long-name", status: .okay, copyableDNS: "asdf.coder",
-              workspaceName: "testing-a-very-long-name"),
-        Agent(id: UUID(), name: "opensrc", status: .warn, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
-        Agent(id: UUID(), name: "gvisor", status: .off, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
-        Agent(id: UUID(), name: "example", status: .off, copyableDNS: "asdf.coder", workspaceName: "example"),
-        Agent(id: UUID(), name: "dogfood2", status: .error, copyableDNS: "asdf.coder", workspaceName: "dogfood2"),
-        Agent(id: UUID(), name: "testing-a-very-long-name", status: .okay, copyableDNS: "asdf.coder",
-              workspaceName: "testing-a-very-long-name"),
-        Agent(id: UUID(), name: "opensrc", status: .warn, copyableDNS: "asdf.coder", workspaceName: "opensrc"),
-        Agent(id: UUID(), name: "gvisor", status: .off, copyableDNS: "asdf.coder", workspaceName: "gvisor"),
-        Agent(id: UUID(), name: "example", status: .off, copyableDNS: "asdf.coder", workspaceName: "example"),
+    @Published var agents: [UUID: Coder_Desktop.Agent] = [
+        UUID(): Agent(id: UUID(), name: "dev", status: .error, copyableDNS: "asdf.coder", wsName: "dogfood2",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .okay, copyableDNS: "asdf.coder",
+                      wsName: "testing-a-very-long-name", wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .warn, copyableDNS: "asdf.coder", wsName: "opensrc",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "gvisor",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "example",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .error, copyableDNS: "asdf.coder", wsName: "dogfood2",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .okay, copyableDNS: "asdf.coder",
+                      wsName: "testing-a-very-long-name", wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .warn, copyableDNS: "asdf.coder", wsName: "opensrc",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "gvisor",
+                      wsID: UUID()),
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "example",
+                      wsID: UUID()),
     ]
     let shouldFail: Bool
+    let longError = "This is a long error to test the UI with long error messages"
 
     init(shouldFail: Bool = false) {
         self.shouldFail = shouldFail
@@ -35,10 +44,10 @@ final class PreviewVPN: Coder_Desktop.VPNService {
             do {
                 try await Task.sleep(for: .seconds(5))
             } catch {
-                state = .failed(.longTestError)
+                state = .failed(.internalError(longError))
                 return
             }
-            state = shouldFail ? .failed(.longTestError) : .connected
+            state = shouldFail ? .failed(.internalError(longError)) : .connected
         }
         defer { startTask = nil }
         await startTask?.value
@@ -57,7 +66,7 @@ final class PreviewVPN: Coder_Desktop.VPNService {
             do {
                 try await Task.sleep(for: .seconds(5))
             } catch {
-                state = .failed(.longTestError)
+                state = .failed(.internalError(longError))
                 return
             }
             state = .disabled

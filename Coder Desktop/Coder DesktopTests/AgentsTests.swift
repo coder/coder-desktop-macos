@@ -18,16 +18,18 @@ struct AgentsTests {
         view = sut.environmentObject(vpn).environmentObject(session)
     }
 
-    private func createMockAgents(count: Int) -> [Agent] {
-        (1 ... count).map {
-            Agent(
+    private func createMockAgents(count: Int) -> [UUID: Agent] {
+        Dictionary(uniqueKeysWithValues: (1 ... count).map {
+            let agent = Agent(
                 id: UUID(),
-                name: "a\($0)",
+                name: "dev",
                 status: .okay,
                 copyableDNS: "a\($0).example.com",
-                workspaceName: "w\($0)"
+                wsName: "a\($0)",
+                wsID: UUID()
             )
-        }
+            return (agent.id, agent)
+        })
     }
 
     @Test
@@ -46,6 +48,7 @@ struct AgentsTests {
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
+        // Agents are sorted by status, and then by name in alphabetical order
         #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder") }
     }
 

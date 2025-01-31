@@ -10,11 +10,12 @@ struct Agents<VPN: VPNService, S: Session>: View {
 
     var body: some View {
         Group {
-            // Workspaces List
+            // Agents List
             if vpn.state == .connected {
-                let visibleData = viewAll ? vpn.agents : Array(vpn.agents.prefix(defaultVisibleRows))
-                ForEach(visibleData, id: \.id) { workspace in
-                    AgentRowView(workspace: workspace, baseAccessURL: session.baseAccessURL!)
+                let sortedAgents = vpn.agents.values.sorted()
+                let visibleData = viewAll ? sortedAgents[...] : sortedAgents.prefix(defaultVisibleRows)
+                ForEach(visibleData, id: \.id) { agent in
+                    AgentRowView(agent: agent, baseAccessURL: session.baseAccessURL!)
                         .padding(.horizontal, Theme.Size.trayMargin)
                 }
                 if vpn.agents.count > defaultVisibleRows {

@@ -393,7 +393,7 @@ public struct Vpn_Agent: @unchecked Sendable {
   /// UUID
   public var workspaceID: Data = Data()
 
-  public var fqdn: String = String()
+  public var fqdn: [String] = []
 
   public var ipAddrs: [String] = []
 
@@ -597,7 +597,24 @@ public struct Vpn_StartRequest: Sendable {
 
   public var apiToken: String = String()
 
+  public var headers: [Vpn_StartRequest.Header] = []
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  /// Additional HTTP headers added to all requests
+  public struct Header: Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    public var name: String = String()
+
+    public var value: String = String()
+
+    public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    public init() {}
+  }
 
   public init() {}
 }
@@ -1176,7 +1193,7 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
       case 1: try { try decoder.decodeSingularBytesField(value: &self.id) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 3: try { try decoder.decodeSingularBytesField(value: &self.workspaceID) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.fqdn) }()
+      case 4: try { try decoder.decodeRepeatedStringField(value: &self.fqdn) }()
       case 5: try { try decoder.decodeRepeatedStringField(value: &self.ipAddrs) }()
       case 6: try { try decoder.decodeSingularMessageField(value: &self._lastHandshake) }()
       default: break
@@ -1199,7 +1216,7 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
       try visitor.visitSingularBytesField(value: self.workspaceID, fieldNumber: 3)
     }
     if !self.fqdn.isEmpty {
-      try visitor.visitSingularStringField(value: self.fqdn, fieldNumber: 4)
+      try visitor.visitRepeatedStringField(value: self.fqdn, fieldNumber: 4)
     }
     if !self.ipAddrs.isEmpty {
       try visitor.visitRepeatedStringField(value: self.ipAddrs, fieldNumber: 5)
@@ -1632,6 +1649,7 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     1: .standard(proto: "tunnel_file_descriptor"),
     2: .standard(proto: "coder_url"),
     3: .standard(proto: "api_token"),
+    4: .same(proto: "headers"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1643,6 +1661,7 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
       case 1: try { try decoder.decodeSingularInt32Field(value: &self.tunnelFileDescriptor) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.coderURL) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.apiToken) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.headers) }()
       default: break
       }
     }
@@ -1658,6 +1677,9 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     if !self.apiToken.isEmpty {
       try visitor.visitSingularStringField(value: self.apiToken, fieldNumber: 3)
     }
+    if !self.headers.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.headers, fieldNumber: 4)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -1665,6 +1687,45 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     if lhs.tunnelFileDescriptor != rhs.tunnelFileDescriptor {return false}
     if lhs.coderURL != rhs.coderURL {return false}
     if lhs.apiToken != rhs.apiToken {return false}
+    if lhs.headers != rhs.headers {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Vpn_StartRequest.Header: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = Vpn_StartRequest.protoMessageName + ".Header"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "name"),
+    2: .same(proto: "value"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.value) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.name.isEmpty {
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
+    }
+    if !self.value.isEmpty {
+      try visitor.visitSingularStringField(value: self.value, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Vpn_StartRequest.Header, rhs: Vpn_StartRequest.Header) -> Bool {
+    if lhs.name != rhs.name {return false}
+    if lhs.value != rhs.value {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

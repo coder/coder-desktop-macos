@@ -2,14 +2,12 @@ import NetworkExtension
 import os
 import SwiftUI
 import VPNLib
-import VPNXPC
 
 @MainActor
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
-    var agents: [Agent] { get }
+    var agents: [UUID: Agent] { get }
     func start() async
-    // Stop must be idempotent
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
 }
@@ -26,12 +24,9 @@ enum VPNServiceError: Error, Equatable {
     case internalError(String)
     case systemExtensionError(SystemExtensionState)
     case networkExtensionError(NetworkExtensionState)
-    case longTestError
 
     var description: String {
         switch self {
-        case .longTestError:
-            "This is a long error to test the UI with long errors"
         case let .internalError(description):
             "Internal Error: \(description)"
         case let .systemExtensionError(state):
@@ -47,6 +42,7 @@ final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: VPNXPCInterface = .init(vpn: self)
     var terminating = false
+    var workspaces: [UUID: String] = [:]
 
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
@@ -61,7 +57,7 @@ final class CoderVPNService: NSObject, VPNService {
         return tunnelState
     }
 
-    @Published var agents: [Agent] = []
+    @Published var agents: [UUID: Agent] = [:]
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
@@ -74,6 +70,16 @@ final class CoderVPNService: NSObject, VPNService {
         Task {
             await loadNetworkExtension()
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(vpnDidUpdate(_:)),
+            name: .NEVPNStatusDidChange,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func start() async {
@@ -84,16 +90,14 @@ final class CoderVPNService: NSObject, VPNService {
             return
         }
 
+        await enableNetworkExtension()
         // this ping is somewhat load bearing since it causes xpc to init
         xpc.ping()
-        tunnelState = .connecting
-        await enableNetworkExtension()
         logger.debug("network extension enabled")
     }
 
     func stop() async {
         guard tunnelState == .connected else { return }
-        tunnelState = .disconnecting
         await disableNetworkExtension()
         logger.info("network extension stopped")
     }
@@ -131,31 +135,97 @@ final class CoderVPNService: NSObject, VPNService {
     }
 
     func onExtensionPeerUpdate(_ data: Data) {
-        // TODO: handle peer update
         logger.info("network extension peer update")
         do {
-            let msg = try Vpn_TunnelMessage(serializedBytes: data)
+            let msg = try Vpn_PeerUpdate(serializedBytes: data)
             debugPrint(msg)
+            applyPeerUpdate(with: msg)
         } catch {
             logger.error("failed to decode peer update \(error)")
         }
     }
 
-    func onExtensionStart() {
-        logger.info("network extension reported started")
-        tunnelState = .connected
-    }
+    func applyPeerUpdate(with update: Vpn_PeerUpdate) {
+        // Delete agents
+        update.deletedAgents
+            .compactMap { UUID(uuidData: $0.id) }
+            .forEach { agentID in
+                agents[agentID] = nil
+            }
+        update.deletedWorkspaces
+            .compactMap { UUID(uuidData: $0.id) }
+            .forEach { workspaceID in
+                workspaces[workspaceID] = nil
+                for (id, agent) in agents where agent.wsID == workspaceID {
+                    agents[id] = nil
+                }
+            }
 
-    func onExtensionStop() {
-        logger.info("network extension reported stopped")
-        tunnelState = .disabled
-        if terminating {
-            NSApp.reply(toApplicationShouldTerminate: true)
+        // Update workspaces
+        for workspaceProto in update.upsertedWorkspaces {
+            if let workspaceID = UUID(uuidData: workspaceProto.id) {
+                workspaces[workspaceID] = workspaceProto.name
+            }
+        }
+
+        for agentProto in update.upsertedAgents {
+            guard let agentID = UUID(uuidData: agentProto.id) else {
+                continue
+            }
+            guard let workspaceID = UUID(uuidData: agentProto.workspaceID) else {
+                continue
+            }
+            let workspaceName = workspaces[workspaceID] ?? "Unknown Workspace"
+            let newAgent = Agent(
+                id: agentID,
+                name: agentProto.name,
+                // If last handshake was not within last five minutes, the agent is unhealthy
+                status: agentProto.lastHandshake.date > Date.now.addingTimeInterval(-300) ? .okay : .off,
+                copyableDNS: agentProto.fqdn.first ?? "UNKNOWN",
+                wsName: workspaceName,
+                wsID: workspaceID
+            )
+
+            // An existing agent with the same name, belonging to the same workspace
+            // is from a previous workspace build, and should be removed.
+            agents
+                .filter { $0.value.name == agentProto.name && $0.value.wsID == workspaceID }
+                .forEach { agents[$0.key] = nil }
+
+            agents[agentID] = newAgent
         }
     }
+}
 
-    func onExtensionError(_ error: NSError) {
-        logger.error("network extension reported error: \(error)")
-        tunnelState = .failed(.internalError(error.localizedDescription))
+extension CoderVPNService {
+    @objc private func vpnDidUpdate(_ notification: Notification) {
+        guard let connection = notification.object as? NETunnelProviderSession else {
+            return
+        }
+        switch connection.status {
+        case .disconnected:
+            if terminating {
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
+            connection.fetchLastDisconnectError { err in
+                self.tunnelState = if let err {
+                    .failed(.internalError(err.localizedDescription))
+                } else {
+                    .disabled
+                }
+            }
+        case .connecting:
+            tunnelState = .connecting
+        case .connected:
+            tunnelState = .connected
+        case .reasserting:
+            tunnelState = .connecting
+        case .disconnecting:
+            tunnelState = .disconnecting
+        case .invalid:
+            tunnelState = .failed(.networkExtensionError(.unconfigured))
+        @unknown default:
+            tunnelState = .disabled
+        }
     }
 }

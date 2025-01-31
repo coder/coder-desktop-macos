@@ -2,7 +2,6 @@ import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
-import VPNXPC
 
 actor Manager {
     let ptp: PacketTunnelProvider
@@ -86,16 +85,12 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
-            if let conn = globalXPCListenerDelegate.getActiveConnection() {
-                conn.onError(error as NSError)
-            }
+            ptp.cancelTunnelWithError(error)
             return
         }
         logger.info("tunnel read loop exited")
         try await tunnelHandle.close()
-        if let conn = globalXPCListenerDelegate.getActiveConnection() {
-            conn.onStop()
-        }
+        ptp.cancelTunnelWithError(nil)
     }
 
     func handleMessage(_ msg: Vpn_TunnelMessage) {
@@ -105,7 +100,7 @@ actor Manager {
         }
         switch msgType {
         case .peerUpdate:
-            if let conn = globalXPCListenerDelegate.getActiveConnection() {
+            if let conn = globalXPCListenerDelegate.conn {
                 do {
                     let data = try msg.peerUpdate.serializedData()
                     conn.onPeerUpdate(data)

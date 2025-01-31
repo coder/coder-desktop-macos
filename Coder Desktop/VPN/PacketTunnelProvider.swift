@@ -1,7 +1,6 @@
 import NetworkExtension
 import os
 import VPNLib
-import VPNXPC
 
 /* From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
@@ -77,23 +76,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                         apiToken: token, serverUrl: .init(string: baseAccessURL)!
                     )
                 )
-                globalXPCListenerDelegate.vpnXPCInterface.setManager(manager)
+                globalXPCListenerDelegate.vpnXPCInterface.manager = manager
                 logger.debug("starting vpn")
                 try await manager!.startVPN()
                 logger.info("vpn started")
-                if let conn = globalXPCListenerDelegate.getActiveConnection() {
-                    conn.onStart()
-                } else {
-                    logger.info("no active XPC connection")
-                }
                 completionHandler(nil)
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
-                if let conn = globalXPCListenerDelegate.getActiveConnection() {
-                    conn.onError(error as NSError)
-                } else {
-                    logger.info("no active XPC connection")
-                }
                 completionHandler(error as NSError)
             }
         }
@@ -116,12 +105,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             } catch {
                 logger.error("error stopping manager: \(error.description, privacy: .public)")
             }
-            if let conn = globalXPCListenerDelegate.getActiveConnection() {
-                conn.onStop()
-            } else {
-                logger.info("no active XPC connection")
-            }
-            globalXPCListenerDelegate.vpnXPCInterface.setManager(nil)
+            globalXPCListenerDelegate.vpnXPCInterface.manager = nil
             completionHandler()
         }
         self.manager = nil
