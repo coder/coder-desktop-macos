@@ -3,7 +3,7 @@ import os.log
 import VPNLib
 
 @objc final class XPCInterface: NSObject, VPNXPCProtocol, @unchecked Sendable {
-    private var manager_: Manager?
+    private var lockedManager: Manager?
     private let managerLock = NSLock()
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNXPCInterface")
 
@@ -11,12 +11,12 @@ import VPNLib
         get {
             managerLock.lock()
             defer { managerLock.unlock() }
-            return manager_
+            return lockedManager
         }
         set {
             managerLock.lock()
             defer { managerLock.unlock() }
-            manager_ = newValue
+            lockedManager = newValue
         }
     }
 
