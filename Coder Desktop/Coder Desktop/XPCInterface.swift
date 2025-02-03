@@ -45,6 +45,14 @@ import VPNLib
         }
     }
 
+    func getPeerState() {
+        xpc.getPeerState { data in
+            Task { @MainActor in
+                self.svc.onExtensionPeerState(data)
+            }
+        }
+    }
+
     func onPeerUpdate(_ data: Data) {
         Task { @MainActor in
             svc.onExtensionPeerUpdate(data)

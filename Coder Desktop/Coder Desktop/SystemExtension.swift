@@ -29,7 +29,16 @@ protocol SystemExtensionAsyncRecorder: Sendable {
 extension CoderVPNService: SystemExtensionAsyncRecorder {
     func recordSystemExtensionState(_ state: SystemExtensionState) async {
         sysExtnState = state
+        if state == .uninstalled {
+            installSystemExtension()
+        }
         if state == .installed {
+            do {
+                try await getTunnelManager()
+                neState = .disabled
+            } catch {
+                neState = .unconfigured
+            }
             // system extension was successfully installed, so we don't need the delegate any more
             systemExtnDelegate = nil
         }
@@ -64,7 +73,21 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
         return extensionBundle
     }
 
-    func installSystemExtension() {
+    func checkSystemExtensionStatus() {
+        logger.info("checking SystemExtension status")
+        guard let bundleID = extensionBundle.bundleIdentifier else {
+            logger.error("Bundle has no identifier")
+            return
+        }
+        let request = OSSystemExtensionRequest.propertiesRequest(forExtensionWithIdentifier: bundleID, queue: .main)
+        let delegate = SystemExtensionDelegate(asyncDelegate: self)
+        request.delegate = delegate
+        systemExtnDelegate = delegate
+        OSSystemExtensionManager.shared.submitRequest(request)
+        logger.info("submitted SystemExtension properties request with bundleID: \(bundleID)")
+    }
+
+    private func installSystemExtension() {
         logger.info("activating SystemExtension")
         guard let bundleID = extensionBundle.bundleIdentifier else {
             logger.error("Bundle has no identifier")
@@ -74,11 +97,9 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
             forExtensionWithIdentifier: bundleID,
             queue: .main
         )
-        let delegate = SystemExtensionDelegate(asyncDelegate: self)
-        systemExtnDelegate = delegate
-        request.delegate = delegate
+        request.delegate = systemExtnDelegate
         OSSystemExtensionManager.shared.submitRequest(request)
-        logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
+        logger.info("submitted SystemExtension activate request with bundleID: \(bundleID)")
     }
 }
 
@@ -88,6 +109,8 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
     NSObject, OSSystemExtensionRequestDelegate
 {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn-installer")
+    // TODO: Refactor this to use a continuation, so the result of a request can be
+    // 'await'd for the determined state
     private var asyncDelegate: AsyncDelegate
 
     init(asyncDelegate: AsyncDelegate) {
@@ -137,5 +160,39 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         // swiftlint:disable:next line_length
         logger.info("Replacing \(request.identifier) v\(existing.bundleShortVersion) with v\(`extension`.bundleShortVersion)")
         return .replace
+    }
+
+    public func request(
+        _: OSSystemExtensionRequest,
+        foundProperties properties: [OSSystemExtensionProperties]
+    ) {
+        // In debug builds we always replace the SE to test
+        // changes made without bumping the version
+       #if DEBUG
+           Task { [asyncDelegate] in
+               await asyncDelegate.recordSystemExtensionState(.uninstalled)
+           }
+           return
+       #else
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+
+            let versionMatches = properties.contains { sysex in
+                sysex.isEnabled
+                    && sysex.bundleVersion == version
+                    && sysex.bundleShortVersion == shortVersion
+            }
+            if versionMatches {
+                Task { [asyncDelegate] in
+                    await asyncDelegate.recordSystemExtensionState(.installed)
+                }
+                return
+            }
+
+            // Either uninstalled or needs replacing
+            Task { [asyncDelegate] in
+                await asyncDelegate.recordSystemExtensionState(.uninstalled)
+            }
+       #endif
     }
 }

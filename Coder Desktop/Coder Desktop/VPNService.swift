@@ -41,7 +41,6 @@ enum VPNServiceError: Error, Equatable {
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: VPNXPCInterface = .init(vpn: self)
-    var terminating = false
     var workspaces: [UUID: String] = [:]
 
     @Published var tunnelState: VPNServiceState = .disabled
@@ -66,10 +65,7 @@ final class CoderVPNService: NSObject, VPNService {
 
     override init() {
         super.init()
-        installSystemExtension()
-        Task {
-            await loadNetworkExtension()
-        }
+        checkSystemExtensionStatus()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(vpnDidUpdate(_:)),
@@ -80,6 +76,11 @@ final class CoderVPNService: NSObject, VPNService {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    func clearPeers() {
+        agents = [:]
+        workspaces = [:]
     }
 
     func start() async {
@@ -100,19 +101,6 @@ final class CoderVPNService: NSObject, VPNService {
         guard tunnelState == .connected else { return }
         await disableNetworkExtension()
         logger.info("network extension stopped")
-    }
-
-    // Instructs the service to stop the VPN and then quit once the stop event
-    // is read over XPC.
-    // MUST only be called from `NSApplicationDelegate.applicationShouldTerminate`
-    // MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
-    func quit() async {
-        guard tunnelState == .connected else {
-            NSApp.reply(toApplicationShouldTerminate: true)
-            return
-        }
-        terminating = true
-        await stop()
     }
 
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?) {
@@ -139,6 +127,22 @@ final class CoderVPNService: NSObject, VPNService {
         do {
             let msg = try Vpn_PeerUpdate(serializedBytes: data)
             debugPrint(msg)
+            applyPeerUpdate(with: msg)
+        } catch {
+            logger.error("failed to decode peer update \(error)")
+        }
+    }
+
+    func onExtensionPeerState(_ data: Data?) {
+        logger.info("network extension peer state")
+        guard let data else {
+            logger.error("could not retrieve peer state from network extension")
+            return
+        }
+        do {
+            let msg = try Vpn_PeerUpdate(serializedBytes: data)
+            debugPrint(msg)
+            clearPeers()
             applyPeerUpdate(with: msg)
         } catch {
             logger.error("failed to decode peer update \(error)")
@@ -204,9 +208,6 @@ extension CoderVPNService {
         }
         switch connection.status {
         case .disconnected:
-            if terminating {
-                NSApp.reply(toApplicationShouldTerminate: true)
-            }
             connection.fetchLastDisconnectError { err in
                 self.tunnelState = if let err {
                     .failed(.internalError(err.localizedDescription))
@@ -217,6 +218,11 @@ extension CoderVPNService {
         case .connecting:
             tunnelState = .connecting
         case .connected:
+            // If we moved from disabled to connected, then the NE was already
+            // running, and we need to request the current peer state
+            if self.tunnelState == .disabled {
+                xpc.getPeerState()
+            }
             tunnelState = .connected
         case .reasserting:
             tunnelState = .connecting
