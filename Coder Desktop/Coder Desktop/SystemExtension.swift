@@ -73,7 +73,7 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
         return extensionBundle
     }
 
-    func checkSystemExtensionStatus() {
+    func attemptSystemExtensionInstall() {
         logger.info("checking SystemExtension status")
         guard let bundleID = extensionBundle.bundleIdentifier else {
             logger.error("Bundle has no identifier")

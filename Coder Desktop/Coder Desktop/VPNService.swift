@@ -65,7 +65,7 @@ final class CoderVPNService: NSObject, VPNService {
 
     override init() {
         super.init()
-        checkSystemExtensionStatus()
+        attemptSystemExtensionInstall()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(vpnDidUpdate(_:)),
