@@ -220,7 +220,7 @@ extension CoderVPNService {
         case .connected:
             // If we moved from disabled to connected, then the NE was already
             // running, and we need to request the current peer state
-            if self.tunnelState == .disabled {
+            if tunnelState == .disabled {
                 xpc.getPeerState()
             }
             tunnelState = .connected

@@ -168,12 +168,12 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
     ) {
         // In debug builds we always replace the SE to test
         // changes made without bumping the version
-       #if DEBUG
-           Task { [asyncDelegate] in
-               await asyncDelegate.recordSystemExtensionState(.uninstalled)
-           }
-           return
-       #else
+        #if DEBUG
+            Task { [asyncDelegate] in
+                await asyncDelegate.recordSystemExtensionState(.uninstalled)
+            }
+            return
+        #else
             let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
             let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
 
@@ -193,6 +193,6 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
             Task { [asyncDelegate] in
                 await asyncDelegate.recordSystemExtensionState(.uninstalled)
             }
-       #endif
+        #endif
     }
 }
