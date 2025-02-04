@@ -24,6 +24,15 @@ enum NetworkExtensionState: Equatable {
 /// An actor that handles configuring, enabling, and disabling the VPN tunnel via the
 /// NetworkExtension APIs.
 extension CoderVPNService {
+    func hasNetworkExtensionConfig() async -> Bool {
+        do {
+            _ = try await getTunnelManager()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     func configureNetworkExtension(proto: NETunnelProviderProtocol) async {
         // removing the old tunnels, rather than reconfiguring ensures that configuration changes
         // are picked up.
@@ -61,7 +70,7 @@ extension CoderVPNService {
         }
     }
 
-    func enableNetworkExtension() async {
+    func startTunnel() async {
         do {
             let tm = try await getTunnelManager()
             try tm.connection.startVPNTunnel()
@@ -74,7 +83,7 @@ extension CoderVPNService {
         neState = .enabled
     }
 
-    func disableNetworkExtension() async {
+    func stopTunnel() async {
         do {
             let tm = try await getTunnelManager()
             tm.connection.stopVPNTunnel()
@@ -88,7 +97,7 @@ extension CoderVPNService {
     }
 
     @discardableResult
-    func getTunnelManager() async throws(VPNServiceError) -> NETunnelProviderManager {
+    private func getTunnelManager() async throws(VPNServiceError) -> NETunnelProviderManager {
         var tunnels: [NETunnelProviderManager] = []
         do {
             tunnels = try await NETunnelProviderManager.loadAllFromPreferences()

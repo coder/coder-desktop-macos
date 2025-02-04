@@ -47,7 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
+    // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
     // or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         if !settings.stopVPNOnQuit { return .terminateNow }

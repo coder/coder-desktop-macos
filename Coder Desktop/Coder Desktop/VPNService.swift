@@ -65,7 +65,15 @@ final class CoderVPNService: NSObject, VPNService {
 
     override init() {
         super.init()
-        attemptSystemExtensionInstall()
+        installSystemExtension()
+        Task {
+            neState = if await hasNetworkExtensionConfig() {
+                .disabled
+            } else {
+                .unconfigured
+            }
+        }
+        xpc.getPeerState()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(vpnDidUpdate(_:)),
@@ -91,7 +99,7 @@ final class CoderVPNService: NSObject, VPNService {
             return
         }
 
-        await enableNetworkExtension()
+        await startTunnel()
         // this ping is somewhat load bearing since it causes xpc to init
         xpc.ping()
         logger.debug("network extension enabled")
@@ -99,7 +107,7 @@ final class CoderVPNService: NSObject, VPNService {
 
     func stop() async {
         guard tunnelState == .connected else { return }
-        await disableNetworkExtension()
+        await stopTunnel()
         logger.info("network extension stopped")
     }
 
@@ -134,11 +142,11 @@ final class CoderVPNService: NSObject, VPNService {
     }
 
     func onExtensionPeerState(_ data: Data?) {
-        logger.info("network extension peer state")
         guard let data else {
-            logger.error("could not retrieve peer state from network extension")
+            logger.error("could not retrieve peer state from network extension, it may not be running")
             return
         }
+        logger.info("received network extension peer state")
         do {
             let msg = try Vpn_PeerUpdate(serializedBytes: data)
             debugPrint(msg)
@@ -218,11 +226,6 @@ extension CoderVPNService {
         case .connecting:
             tunnelState = .connecting
         case .connected:
-            // If we moved from disabled to connected, then the NE was already
-            // running, and we need to request the current peer state
-            if tunnelState == .disabled {
-                xpc.getPeerState()
-            }
             tunnelState = .connected
         case .reasserting:
             tunnelState = .connecting
