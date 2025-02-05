@@ -101,8 +101,10 @@ func openSystemExtensionSettings() {
     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.ExtensionsPreferences?extensionPointIdentifier=com.apple.system_extension.network_extension.extension-point")!)
 }
 
-#Preview {
-    VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
-        .environmentObject(PreviewVPN())
-        .environmentObject(PreviewSession())
-}
+#if DEBUG
+    #Preview {
+        VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
+            .environmentObject(PreviewVPN())
+            .environmentObject(PreviewSession())
+    }
+#endif

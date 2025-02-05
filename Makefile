@@ -11,6 +11,14 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
+MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//')
+CURRENT_PROJECT_VERSION=$(shell git describe --tags)
+
+# Define the keychain file name first
+KEYCHAIN_FILE := app-signing.keychain-db
+# Use shell to get the absolute path only if the file exists
+APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEYCHAIN_FILE)),$(abspath $(KEYCHAIN_FILE)))
+
 .PHONY: setup
 setup: \
 	$(XCPROJECT) \
@@ -18,10 +26,38 @@ setup: \
 
 $(XCPROJECT): $(PROJECT)/project.yml
 	cd $(PROJECT); \
-		SWIFT_VERSION=$(SWIFT_VERSION) xcodegen
+		SWIFT_VERSION=$(SWIFT_VERSION) \
+		PTP_SUFFIX=${PTP_SUFFIX} \
+		APP_PROVISIONING_PROFILE_ID=${APP_PROVISIONING_PROFILE_ID} \
+		EXT_PROVISIONING_PROFILE_ID=${EXT_PROVISIONING_PROFILE_ID} \
+		CURRENT_PROJECT_VERSION=$(CURRENT_PROJECT_VERSION) \
+		MARKETING_VERSION=$(MARKETING_VERSION) \
+		xcodegen
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 	protoc --swift_opt=Visibility=public --swift_out=. 'Coder Desktop/VPNLib/vpn.proto'
+
+$(KEYCHAIN_FILE):
+	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
+	security set-keychain-settings -lut 21600 "$(APP_SIGNING_KEYCHAIN)"
+	security unlock-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
+	@tempfile=$$(mktemp); \
+	echo "$$APPLE_CERT" | base64 -d > $$tempfile; \
+	security import $$tempfile -P '$(CERT_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
+	rm $$tempfile
+	security list-keychains -d user -s $$(security list-keychains -d user | tr -d '\"') "$(APP_SIGNING_KEYCHAIN)"
+
+.PHONY: release
+release: $(KEYCHAIN_FILE) ## Create a release build of Coder Desktop
+	@APP_PROF_PATH="$$(mktemp)"; \
+	EXT_PROF_PATH="$$(mktemp)"; \
+	echo -n "$$APP_PROF" | base64 -d > "$$APP_PROF_PATH"; \
+	echo -n "$$EXT_PROF" | base64 -d > "$$EXT_PROF_PATH"; \
+	./scripts/build.sh \
+		--app-prof-path "$$APP_PROF_PATH" \
+		--ext-prof-path "$$EXT_PROF_PATH" \
+		--keychain "$(APP_SIGNING_KEYCHAIN)"; \
+	rm "$$APP_PROF_PATH" "$$EXT_PROF_PATH"
 
 .PHONY: fmt
 fmt: ## Run Swift file formatter
@@ -40,16 +76,42 @@ test: $(XCPROJECT) ## Run all tests
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 .PHONY: lint
-lint: ## Lint swift files
+lint: lint/swift lint/actions ## Lint all files in the repo
+
+.PHONY: lint/swift
+lint/swift: ## Lint Swift files
 	swiftlint \
 		--strict \
 		--quiet $(LINTFLAGS)
 
+.PHONY: lint/actions
+lint/actions: ## Lint GitHub Actions
+	actionlint
+	zizmor .
+
 .PHONY: clean
-clean: ## Clean Xcode project
-	xcodebuild clean \
-		-project $(XCPROJECT)
-	rm -rf $(XCPROJECT)
+clean: clean/project clean/keychain clean/build ## Clean project and artifacts
+
+.PHONY: clean/project
+clean/project:
+	@if [ -d $(XCPROJECT) ]; then \
+		echo "Cleaning project: '$(XCPROJECT)'"; \
+		xcodebuild clean -project $(XCPROJECT); \
+		rm -rf $(XCPROJECT); \
+	fi
+	find . -name "*.entitlements" -type f -delete
+
+.PHONY: clean/keychain
+clean/keychain:
+	@if [ -e "$(APP_SIGNING_KEYCHAIN)" ]; then \
+		echo "Cleaning keychain: '$(APP_SIGNING_KEYCHAIN)'"; \
+		security delete-keychain "$(APP_SIGNING_KEYCHAIN)"; \
+		rm -f "$(APP_SIGNING_KEYCHAIN)"; \
+	fi
+
+.PHONY: clean/build
+clean/build:
+	rm -rf build/ release/ $$out
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift ## Generate Swift files from protobufs

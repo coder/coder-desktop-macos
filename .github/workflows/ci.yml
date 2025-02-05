@@ -18,15 +18,11 @@ jobs:
     name: test
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
-        with:
-          egress-policy: audit
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Switch XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
@@ -44,15 +40,11 @@ jobs:
     name: fmt
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
-        with:
-          egress-policy: audit
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Switch XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
@@ -70,15 +62,11 @@ jobs:
     name: lint
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
-        with:
-          egress-policy: audit
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
