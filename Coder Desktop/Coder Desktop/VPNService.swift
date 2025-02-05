@@ -73,6 +73,7 @@ final class CoderVPNService: NSObject, VPNService {
                 .unconfigured
             }
         }
+        xpc.connect()
         xpc.getPeerState()
         NotificationCenter.default.addObserver(
             self,
@@ -100,7 +101,7 @@ final class CoderVPNService: NSObject, VPNService {
         }
 
         await startTunnel()
-        // this ping is somewhat load bearing since it causes xpc to init
+        xpc.connect()
         xpc.ping()
         logger.debug("network extension enabled")
     }
