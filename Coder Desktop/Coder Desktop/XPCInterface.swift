@@ -6,7 +6,7 @@ import VPNLib
 @objc final class VPNXPCInterface: NSObject, VPNXPCClientCallbackProtocol, @unchecked Sendable {
     private var svc: CoderVPNService
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNXPCInterface")
-    private var xpc: VPNXPCProtocol? = nil
+    private var xpc: VPNXPCProtocol?
 
     init(vpn: CoderVPNService) {
         svc = vpn
@@ -14,6 +14,9 @@ import VPNLib
     }
 
     func connect() {
+        guard xpc == nil else {
+            return
+        }
         let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
         let machServiceName = networkExtDict?["NEMachServiceName"] as? String
         let xpcConn = NSXPCConnection(machServiceName: machServiceName!)
