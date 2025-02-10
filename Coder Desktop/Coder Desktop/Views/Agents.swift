@@ -12,15 +12,15 @@ struct Agents<VPN: VPNService, S: Session>: View {
         Group {
             // Agents List
             if vpn.state == .connected {
-                let sortedAgents = vpn.agents.values.sorted()
-                let visibleData = viewAll ? sortedAgents[...] : sortedAgents.prefix(defaultVisibleRows)
-                ForEach(visibleData, id: \.id) { agent in
-                    AgentRowView(agent: agent, baseAccessURL: session.baseAccessURL!)
+                let items = vpn.menuState.sorted()
+                let visibleItems = viewAll ? items[...] : items.prefix(defaultVisibleRows)
+                ForEach(visibleItems, id: \.id) { agent in
+                    MenuItemView(item: agent, baseAccessURL: session.baseAccessURL!)
                         .padding(.horizontal, Theme.Size.trayMargin)
                 }
-                if vpn.agents.count > defaultVisibleRows {
+                if items.count > defaultVisibleRows {
                     Toggle(isOn: $viewAll) {
-                        Text(viewAll ? "Show Less" : "Show All")
+                        Text(viewAll ? "Show less" : "Show all")
                             .font(.headline)
                             .foregroundColor(.gray)
                             .padding(.horizontal, Theme.Size.trayInset)

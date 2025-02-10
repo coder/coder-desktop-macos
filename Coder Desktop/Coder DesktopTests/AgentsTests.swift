@@ -44,7 +44,7 @@ struct AgentsTests {
     @Test
     func agentsWhenVPNOn() throws {
         vpn.state = .connected
-        vpn.agents = createMockAgents(count: Theme.defaultVisibleAgents + 2)
+        vpn.menuState = .init(agents: createMockAgents(count: Theme.defaultVisibleAgents + 2))
 
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
@@ -55,24 +55,24 @@ struct AgentsTests {
     @Test
     func showAllToggle() async throws {
         vpn.state = .connected
-        vpn.agents = createMockAgents(count: 7)
+        vpn.menuState = .init(agents: createMockAgents(count: 7))
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
-                #expect(try toggle.labelView().text().string() == "Show All")
+                #expect(try toggle.labelView().text().string() == "Show all")
                 #expect(try !toggle.isOn())
 
                 try toggle.tap()
                 toggle = try view.find(ViewType.Toggle.self)
                 var forEach = try view.find(ViewType.ForEach.self)
                 #expect(forEach.count == Theme.defaultVisibleAgents + 2)
-                #expect(try toggle.labelView().text().string() == "Show Less")
+                #expect(try toggle.labelView().text().string() == "Show less")
 
                 try toggle.tap()
                 toggle = try view.find(ViewType.Toggle.self)
                 forEach = try view.find(ViewType.ForEach.self)
-                #expect(try toggle.labelView().text().string() == "Show All")
+                #expect(try toggle.labelView().text().string() == "Show all")
                 #expect(forEach.count == Theme.defaultVisibleAgents)
             }
         }
@@ -81,7 +81,7 @@ struct AgentsTests {
     @Test
     func noToggleFewAgents() throws {
         vpn.state = .connected
-        vpn.agents = createMockAgents(count: 3)
+        vpn.menuState = .init(agents: createMockAgents(count: 3))
 
         #expect(throws: (any Error).self) {
             _ = try view.inspect().find(ViewType.Toggle.self)

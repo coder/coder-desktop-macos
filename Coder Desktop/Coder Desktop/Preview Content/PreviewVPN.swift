@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class PreviewVPN: Coder_Desktop.VPNService {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
-    @Published var agents: [UUID: Coder_Desktop.Agent] = [
+    @Published var menuState: VPNMenuState = .init(agents: [
         UUID(): Agent(id: UUID(), name: "dev", status: .error, copyableDNS: "asdf.coder", wsName: "dogfood2",
                       wsID: UUID()),
         UUID(): Agent(id: UUID(), name: "dev", status: .okay, copyableDNS: "asdf.coder",
@@ -25,7 +25,7 @@ final class PreviewVPN: Coder_Desktop.VPNService {
                       wsID: UUID()),
         UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "example",
                       wsID: UUID()),
-    ]
+    ], workspaces: [:])
     let shouldFail: Bool
     let longError = "This is a long error to test the UI with long error messages"
 

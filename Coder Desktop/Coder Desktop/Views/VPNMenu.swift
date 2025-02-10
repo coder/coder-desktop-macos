@@ -28,7 +28,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                         .disabled(vpnDisabled)
                 }
                 Divider()
-                Text("Workspace Agents")
+                Text("Workspaces")
                     .font(.headline)
                     .foregroundColor(.gray)
                 VPNState<VPN, S>()
