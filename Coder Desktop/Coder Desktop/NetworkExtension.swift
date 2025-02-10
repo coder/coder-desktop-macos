@@ -24,13 +24,12 @@ enum NetworkExtensionState: Equatable {
 /// An actor that handles configuring, enabling, and disabling the VPN tunnel via the
 /// NetworkExtension APIs.
 extension CoderVPNService {
-    // Updates the UI if a previous configuration exists
-    func loadNetworkExtension() async {
+    func hasNetworkExtensionConfig() async -> Bool {
         do {
-            try await getTunnelManager()
-            neState = .disabled
+            _ = try await getTunnelManager()
+            return true
         } catch {
-            neState = .unconfigured
+            return false
         }
     }
 
@@ -71,37 +70,29 @@ extension CoderVPNService {
         }
     }
 
-    func enableNetworkExtension() async {
+    func startTunnel() async {
         do {
             let tm = try await getTunnelManager()
-            if !tm.isEnabled {
-                tm.isEnabled = true
-                try await tm.saveToPreferences()
-                logger.debug("saved tunnel with enabled=true")
-            }
             try tm.connection.startVPNTunnel()
         } catch {
-            logger.error("enable network extension: \(error)")
+            logger.error("start tunnel: \(error)")
             neState = .failed(error.localizedDescription)
             return
         }
-        logger.debug("enabled and started tunnel")
+        logger.debug("started tunnel")
         neState = .enabled
     }
 
-    func disableNetworkExtension() async {
+    func stopTunnel() async {
         do {
             let tm = try await getTunnelManager()
             tm.connection.stopVPNTunnel()
-            tm.isEnabled = false
-
-            try await tm.saveToPreferences()
         } catch {
-            logger.error("disable network extension: \(error)")
+            logger.error("stop tunnel: \(error)")
             neState = .failed(error.localizedDescription)
             return
         }
-        logger.debug("saved tunnel with enabled=false")
+        logger.debug("stopped tunnel")
         neState = .disabled
     }
 

@@ -194,7 +194,7 @@ actor Manager {
 
     // Retrieves the current state of all peers,
     // as required when starting the app whilst the network extension is already running
-    func getPeerInfo() async throws(ManagerError) -> Vpn_PeerUpdate {
+    func getPeerState() async throws(ManagerError) -> Vpn_PeerUpdate {
         logger.info("sending peer state request")
         let resp: Vpn_TunnelMessage
         do {

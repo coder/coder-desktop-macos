@@ -20,9 +20,12 @@ import VPNLib
         }
     }
 
-    func getPeerInfo(with reply: @escaping () -> Void) {
-        // TODO: Retrieve from Manager
-        reply()
+    func getPeerState(with reply: @escaping (Data?) -> Void) {
+        let reply = CallbackWrapper(reply)
+        Task {
+            let data = try? await manager?.getPeerState().serializedData()
+            reply(data)
+        }
     }
 
     func ping(with reply: @escaping () -> Void) {

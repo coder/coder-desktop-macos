@@ -104,6 +104,8 @@ class Settings: ObservableObject {
         }
     }
 
+    @AppStorage(Keys.stopVPNOnQuit) var stopVPNOnQuit = true
+
     init(store: UserDefaults = .standard) {
         self.store = store
         _literalHeaders = Published(
@@ -116,6 +118,7 @@ class Settings: ObservableObject {
     enum Keys {
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"
+        static let stopVPNOnQuit = "StopVPNOnQuit"
     }
 }
 
