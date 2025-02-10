@@ -10,7 +10,7 @@ struct VPNState<VPN: VPNService, S: Session>: View {
         Group {
             switch (vpn.state, session.hasSession) {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
-                Text("Awaiting System Extension Approval")
+                Text("Awaiting System Extension approval")
                     .font(.body)
                     .foregroundStyle(.gray)
             case (_, false):

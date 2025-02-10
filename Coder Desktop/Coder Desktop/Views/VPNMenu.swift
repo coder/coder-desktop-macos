@@ -50,7 +50,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     Button {
                         openSystemExtensionSettings()
                     } label: {
-                        ButtonRowView { Text("Open System Preferences") }
+                        ButtonRowView { Text("Approve in System Settings") }
                     }.buttonStyle(.plain)
                 } else {
                     AuthButton<VPN, S>()
