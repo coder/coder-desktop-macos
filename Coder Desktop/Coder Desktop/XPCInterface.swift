@@ -64,4 +64,39 @@ import VPNLib
             svc.onExtensionPeerUpdate(data)
         }
     }
+
+    // The NE has verified the dylib and knows better than Gatekeeper
+    func removeQuarantine(path: String, reply: @escaping (Bool) -> Void) {
+        let reply = CallbackWrapper(reply)
+        Task { @MainActor in
+            let prompt = """
+            Coder Desktop wants to execute code downloaded from \
+            \(svc.serverAddress ?? "the Coder deployment"). The code has been \
+            verified to be signed by Coder.
+            """
+            let source = """
+            do shell script "xattr -d com.apple.quarantine \(path)" \
+            with prompt "\(prompt)" \
+            with administrator privileges
+            """
+            let success = await withCheckedContinuation { continuation in
+                guard let script = NSAppleScript(source: source) else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                // Run on a background thread
+                Task.detached {
+                    var error: NSDictionary?
+                    script.executeAndReturnError(&error)
+                    if let error {
+                        self.logger.error("AppleScript error: \(error)")
+                        continuation.resume(returning: false)
+                    } else {
+                        continuation.resume(returning: true)
+                    }
+                }
+            }
+            reply(success)
+        }
+    }
 }

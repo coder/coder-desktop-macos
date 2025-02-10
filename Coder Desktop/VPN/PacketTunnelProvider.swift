@@ -43,26 +43,45 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         return nil
     }
 
+    // swiftlint:disable:next function_body_length
     override func startTunnel(
         options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
     ) {
         logger.info("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
-            completionHandler(PTPError.alreadyRunning)
+            completionHandler(
+                NSError(
+                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Already running"]
+                )
+            )
             return
         }
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
             logger.error("startTunnel called with nil protocolConfiguration")
-            completionHandler(PTPError.missingConfiguration)
+            completionHandler(
+                NSError(
+                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing Configuration"]
+                )
+            )
             return
         }
         // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
         guard let token = proto.providerConfiguration?["token"] as? String else {
             logger.error("startTunnel called with nil token")
-            completionHandler(PTPError.missingToken)
+            completionHandler(
+                NSError(
+                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing Token"]
+                )
+            )
             return
         }
         logger.debug("retrieved token & access URL")
@@ -70,7 +89,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         Task {
             do throws(ManagerError) {
                 logger.debug("creating manager")
-                manager = try await Manager(
+                let manager = try await Manager(
                     with: self,
                     cfg: .init(
                         apiToken: token, serverUrl: .init(string: baseAccessURL)!
@@ -78,12 +97,19 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.manager = manager
                 logger.debug("starting vpn")
-                try await manager!.startVPN()
+                try await manager.startVPN()
                 logger.info("vpn started")
+                self.manager = manager
                 completionHandler(nil)
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
-                completionHandler(error as NSError)
+                completionHandler(
+                    NSError(
+                        domain: "\(Bundle.main.bundleIdentifier!).Manager",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: error.description]
+                    )
+                )
             }
         }
     }
@@ -151,10 +177,4 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         logger.info("applying settings: \(self.currentSettings.debugDescription, privacy: .public)")
         try await setTunnelNetworkSettings(currentSettings)
     }
-}
-
-enum PTPError: Error {
-    case alreadyRunning
-    case missingConfiguration
-    case missingToken
 }

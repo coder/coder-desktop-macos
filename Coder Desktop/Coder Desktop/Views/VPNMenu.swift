@@ -31,13 +31,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                 Text("Workspace Agents")
                     .font(.headline)
                     .foregroundColor(.gray)
-                if session.hasSession {
-                    VPNState<VPN>()
-                } else {
-                    Text("Sign in to use CoderVPN")
-                        .font(.body)
-                        .foregroundColor(.gray)
-                }
+                VPNState<VPN, S>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
             Agents<VPN, S>()
             // Trailing stack
@@ -52,7 +46,15 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                     }.buttonStyle(.plain)
                     TrayDivider()
                 }
-                AuthButton<VPN, S>()
+                if vpn.state == .failed(.systemExtensionError(.needsUserApproval)) {
+                    Button {
+                        openSystemExtensionSettings()
+                    } label: {
+                        ButtonRowView { Text("Open System Preferences") }
+                    }.buttonStyle(.plain)
+                } else {
+                    AuthButton<VPN, S>()
+                }
                 Button {
                     openSettings()
                     appActivate()
@@ -84,8 +86,16 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
     private var vpnDisabled: Bool {
         !session.hasSession ||
             vpn.state == .connecting ||
-            vpn.state == .disconnecting
+            vpn.state == .disconnecting ||
+            vpn.state == .failed(.systemExtensionError(.needsUserApproval))
     }
+}
+
+func openSystemExtensionSettings() {
+    // TODO: Check this still works in a new macOS version
+    // https://gist.github.com/rmcdongit/f66ff91e0dad78d4d6346a75ded4b751?permalink_comment_id=5261757
+    // swiftlint:disable:next line_length
+    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.ExtensionsPreferences?extensionPointIdentifier=com.apple.system_extension.network_extension.extension-point")!)
 }
 
 #Preview {
