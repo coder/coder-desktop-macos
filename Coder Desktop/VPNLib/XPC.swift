@@ -8,9 +8,6 @@ import Foundation
 
 @preconcurrency
 @objc public protocol VPNXPCClientCallbackProtocol {
-    /// Called when the server has a status update to share
+    // data is a serialized `Vpn_PeerUpdate`
     func onPeerUpdate(_ data: Data)
-    func onStart()
-    func onStop()
-    func onError(_ err: NSError)
 }

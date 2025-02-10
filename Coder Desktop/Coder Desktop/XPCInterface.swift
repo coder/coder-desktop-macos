@@ -1,6 +1,7 @@
 import Foundation
+import NetworkExtension
 import os
-import VPNXPC
+import VPNLib
 
 @objc final class VPNXPCInterface: NSObject, VPNXPCClientCallbackProtocol, @unchecked Sendable {
     private var svc: CoderVPNService
@@ -47,24 +48,6 @@ import VPNXPC
     func onPeerUpdate(_ data: Data) {
         Task { @MainActor in
             svc.onExtensionPeerUpdate(data)
-        }
-    }
-
-    func onStart() {
-        Task { @MainActor in
-            svc.onExtensionStart()
-        }
-    }
-
-    func onStop() {
-        Task { @MainActor in
-            svc.onExtensionStop()
-        }
-    }
-
-    func onError(_ err: NSError) {
-        Task { @MainActor in
-            svc.onExtensionError(err)
         }
     }
 }

@@ -1,21 +1,21 @@
 import Foundation
 import NetworkExtension
 import os
-import VPNXPC
+import VPNLib
 
 let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
 
 final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
     let vpnXPCInterface = XPCInterface()
-    var activeConnection: NSXPCConnection?
-    var connMutex: NSLock = .init()
+    private var activeConnection: NSXPCConnection?
+    private var connMutex: NSLock = .init()
 
-    func getActiveConnection() -> VPNXPCClientCallbackProtocol? {
+    var conn: VPNXPCClientCallbackProtocol? {
         connMutex.lock()
         defer { connMutex.unlock() }
 
-        let client = activeConnection?.remoteObjectProxy as? VPNXPCClientCallbackProtocol
-        return client
+        let conn = activeConnection?.remoteObjectProxy as? VPNXPCClientCallbackProtocol
+        return conn
     }
 
     func setActiveConnection(_ connection: NSXPCConnection?) {

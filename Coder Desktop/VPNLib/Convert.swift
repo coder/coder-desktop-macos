@@ -1,5 +1,6 @@
 import NetworkExtension
 import os
+import SwiftProtobuf
 
 public func convertDnsSettings(_ req: Vpn_NetworkSettingsRequest.DNSSettings) -> NEDNSSettings {
     let dnsSettings = NEDNSSettings(servers: req.servers)
@@ -58,4 +59,12 @@ public func convertIPv6Settings(_ req: Vpn_NetworkSettingsRequest.IPv6Settings) 
         return route
     }
     return ipv6Settings
+}
+
+extension Google_Protobuf_Timestamp {
+    var date: Date {
+        let seconds = TimeInterval(seconds)
+        let nanos = TimeInterval(nanos) / 1_000_000_000
+        return Date(timeIntervalSince1970: seconds + nanos)
+    }
 }

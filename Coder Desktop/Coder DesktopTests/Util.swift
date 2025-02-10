@@ -8,7 +8,7 @@ import ViewInspector
 class MockVPNService: VPNService, ObservableObject {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var baseAccessURL: URL = .init(string: "https://dev.coder.com")!
-    @Published var agents: [Coder_Desktop.Agent] = []
+    @Published var agents: [UUID: Coder_Desktop.Agent] = [:]
     var onStart: (() async -> Void)?
     var onStop: (() async -> Void)?
 

@@ -111,7 +111,7 @@ struct VPNMenuTests {
                 #expect(try !toggle.isOn())
 
                 vpn.onStart = {
-                    vpn.state = .failed(.longTestError)
+                    vpn.state = .failed(.internalError("This is a long error message!"))
                 }
                 await vpn.start()
 
