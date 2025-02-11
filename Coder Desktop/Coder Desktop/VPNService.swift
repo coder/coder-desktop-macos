@@ -70,8 +70,6 @@ final class CoderVPNService: NSObject, VPNService {
         Task {
             await loadNetworkExtensionConfig()
         }
-        xpc.connect()
-        xpc.getPeerState()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(vpnDidUpdate(_:)),
@@ -93,8 +91,6 @@ final class CoderVPNService: NSObject, VPNService {
         }
 
         await startTunnel()
-        xpc.connect()
-        xpc.ping()
         logger.debug("network extension enabled")
     }
 
@@ -162,6 +158,7 @@ final class CoderVPNService: NSObject, VPNService {
 }
 
 extension CoderVPNService {
+    // swiftlint:disable:next cyclomatic_complexity
     @objc private func vpnDidUpdate(_ notification: Notification) {
         guard let connection = notification.object as? NETunnelProviderSession else {
             return
@@ -176,9 +173,21 @@ extension CoderVPNService {
                 }
             }
         case .connecting:
-            tunnelState = .connecting
+            // If transitioning to 'connecting' from any other state,
+            // then the network extension is running, and we can connect over XPC
+            if tunnelState != .connecting {
+                xpc.connect()
+                xpc.ping()
+                tunnelState = .connecting
+            }
         case .connected:
-            tunnelState = .connected
+            // If transitioning to 'connected' from any other state, the tunnel has
+            // finished starting, and we can learn the peer state
+            if tunnelState != .connected {
+                xpc.connect()
+                xpc.getPeerState()
+                tunnelState = .connected
+            }
         case .reasserting:
             tunnelState = .connecting
         case .disconnecting:
