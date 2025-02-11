@@ -92,8 +92,9 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
 }
 
 func openSystemExtensionSettings() {
-    // TODO: Check this still works in a new macOS version
+    // Sourced from:
     // https://gist.github.com/rmcdongit/f66ff91e0dad78d4d6346a75ded4b751?permalink_comment_id=5261757
+    // We'll need to ensure this continues to work in future macOS versions
     // swiftlint:disable:next line_length
     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.ExtensionsPreferences?extensionPointIdentifier=com.apple.system_extension.network_extension.extension-point")!)
 }

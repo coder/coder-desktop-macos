@@ -43,45 +43,26 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         return nil
     }
 
-    // swiftlint:disable:next function_body_length
     override func startTunnel(
         options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
     ) {
         logger.info("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
-            completionHandler(
-                NSError(
-                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "Already running"]
-                )
-            )
+            completionHandler(makeNSError(suffix: "PTP", desc: "Already running"))
             return
         }
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
             logger.error("startTunnel called with nil protocolConfiguration")
-            completionHandler(
-                NSError(
-                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing Configuration"]
-                )
-            )
+            completionHandler(makeNSError(suffix: "PTP", desc: "Missing Configuration"))
             return
         }
         // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
         guard let token = proto.providerConfiguration?["token"] as? String else {
             logger.error("startTunnel called with nil token")
-            completionHandler(
-                NSError(
-                    domain: "\(Bundle.main.bundleIdentifier!).PTP",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing Token"]
-                )
-            )
+            completionHandler(makeNSError(suffix: "PTP", desc: "Missing Token"))
             return
         }
         logger.debug("retrieved token & access URL")
@@ -104,11 +85,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
                 completionHandler(
-                    NSError(
-                        domain: "\(Bundle.main.bundleIdentifier!).Manager",
-                        code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: error.description]
-                    )
+                    makeNSError(suffix: "Manager", desc: error.description)
                 )
             }
         }

@@ -91,11 +91,7 @@ actor Manager {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
             ptp.cancelTunnelWithError(
-                NSError(
-                    domain: "\(Bundle.main.bundleIdentifier!).Manager",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "Tunnel read loop failed: \(error.localizedDescription)"]
-                )
+                makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
             )
             return
         }
