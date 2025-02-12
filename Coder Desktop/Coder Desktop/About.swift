@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum About {
+    public static let repo: String = "https://github.com/coder/coder-desktop-macos"
     private static var credits: NSAttributedString {
         let coder = NSMutableAttributedString(
             string: "Coder.com",
@@ -21,7 +22,7 @@ enum About {
             string: "GitHub",
             attributes: [
                 .foregroundColor: NSColor.labelColor,
-                .link: NSURL(string: "https://github.com/coder/coder-desktop-macos")!,
+                .link: NSURL(string: About.repo)!,
                 .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
             ]
         )
