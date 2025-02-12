@@ -158,13 +158,16 @@ final class CoderVPNService: NSObject, VPNService {
 }
 
 extension CoderVPNService {
+    // The number of NETunnelProviderSession states makes the excessive branching 
+    // necessary.
     // swiftlint:disable:next cyclomatic_complexity
     @objc private func vpnDidUpdate(_ notification: Notification) {
         guard let connection = notification.object as? NETunnelProviderSession else {
             return
         }
-        switch connection.status {
-        case .disconnected:
+        switch (tunnelState, connection.status) {
+        // Any -> Disconnected: Update UI w/ error if present
+        case (_, .disconnected):
             connection.fetchLastDisconnectError { err in
                 self.tunnelState = if let err {
                     .failed(.internalError(err.localizedDescription))
@@ -172,27 +175,30 @@ extension CoderVPNService {
                     .disabled
                 }
             }
-        case .connecting:
-            // If transitioning to 'connecting' from any other state,
-            // then the network extension is running, and we can connect over XPC
-            if tunnelState != .connecting {
-                xpc.connect()
-                xpc.ping()
-                tunnelState = .connecting
-            }
-        case .connected:
-            // If transitioning to 'connected' from any other state, the tunnel has
-            // finished starting, and we can learn the peer state
-            if tunnelState != .connected {
-                xpc.connect()
-                xpc.getPeerState()
-                tunnelState = .connected
-            }
-        case .reasserting:
+        // Connecting -> Connecting: no-op
+        case (.connecting, .connecting):
+            break
+        // Connected -> Connected: no-op
+        case (.connected, .connected):
+            break
+        // Non-connecting -> Connecting: Establish XPC
+        case (_, .connecting):
+            xpc.connect()
+            xpc.ping()
             tunnelState = .connecting
-        case .disconnecting:
+        // Non-connected -> Connected: Retrieve Peers
+        case (_, .connected):
+            xpc.connect()
+            xpc.getPeerState()
+            tunnelState = .connected
+        // Any -> Reasserting
+        case (_, .reasserting):
+            tunnelState = .connecting
+        // Any -> Disconnecting
+        case (_, .disconnecting):
             tunnelState = .disconnecting
-        case .invalid:
+        // Any -> Invalid
+        case (_, .invalid):
             tunnelState = .failed(.networkExtensionError(.unconfigured))
         @unknown default:
             tunnelState = .disabled
