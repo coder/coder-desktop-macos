@@ -31,11 +31,3 @@ extension UUID {
         self.init(uuid: uuid)
     }
 }
-
-extension Array {
-    func prefix(_ maxCount: Int, while predicate: (Element) -> Bool) -> ArraySlice<Element> {
-        let failureIndex = enumerated().first(where: { !predicate($0.element) })?.offset ?? count
-        let endIndex = Swift.min(failureIndex, maxCount)
-        return self[..<endIndex]
-    }
-}

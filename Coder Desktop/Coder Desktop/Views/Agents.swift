@@ -13,23 +13,20 @@ struct Agents<VPN: VPNService, S: Session>: View {
             // Agents List
             if vpn.state == .connected {
                 let items = vpn.menuState.sorted
-                let visibleOnlineItems = items.prefix(defaultVisibleRows) {
-                    $0.status != .off
-                }
-                let visibleItems = viewAll ? items[...] : visibleOnlineItems
+                let visibleItems = viewAll ? items[...] : items.prefix(defaultVisibleRows)
                 ForEach(visibleItems, id: \.id) { agent in
                     MenuItemView(item: agent, baseAccessURL: session.baseAccessURL!)
                         .padding(.horizontal, Theme.Size.trayMargin)
                 }
-                if visibleItems.count == 0 {
-                    Text("No \(items.count > 0 ? "running " : "")workspaces!")
+                if items.count == 0 {
+                    Text("No workspaces!")
                         .font(.body)
                         .foregroundColor(.gray)
                         .padding(.horizontal, Theme.Size.trayInset)
                         .padding(.top, 2)
                 }
                 // Only show the toggle if there are more items to show
-                if visibleOnlineItems.count < items.count {
+                if items.count > defaultVisibleRows {
                     Toggle(isOn: $viewAll) {
                         Text(viewAll ? "Show less" : "Show all")
                             .font(.headline)
