@@ -158,7 +158,7 @@ final class CoderVPNService: NSObject, VPNService {
 }
 
 extension CoderVPNService {
-    // The number of NETunnelProviderSession states makes the excessive branching 
+    // The number of NETunnelProviderSession states makes the excessive branching
     // necessary.
     // swiftlint:disable:next cyclomatic_complexity
     @objc private func vpnDidUpdate(_ notification: Notification) {
