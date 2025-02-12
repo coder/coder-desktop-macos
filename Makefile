@@ -11,7 +11,7 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
-MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//')
+MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$//')
 CURRENT_PROJECT_VERSION=$(shell git describe --tags)
 
 # Define the keychain file name first

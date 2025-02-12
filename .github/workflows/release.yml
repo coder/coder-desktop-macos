@@ -41,7 +41,7 @@ jobs:
         run: make release
 
       - name: Upload Release Assets
-        run: gh release upload "$RELEASE_TAG" "$out"
+        run: gh release upload "$RELEASE_TAG" "$out"/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
