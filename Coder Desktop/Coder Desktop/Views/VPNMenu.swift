@@ -37,11 +37,13 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
                 TrayDivider()
+                if vpn.state == .connected, !vpn.menuState.invalidAgents.isEmpty {
+                    InvalidAgentsButton<VPN>()
+                }
                 if session.hasSession {
                     Link(destination: session.baseAccessURL!.appending(path: "templates")) {
                         ButtonRowView {
                             Text("Create workspace")
-                            EmptyView()
                         }
                     }.buttonStyle(.plain)
                     TrayDivider()

@@ -26,7 +26,7 @@ struct VPNStateTests {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) {
-                    try view.find(text: "Enable CoderVPN to see agents")
+                    try view.find(text: "Enable CoderVPN to see workspaces")
                 }
             }
         }

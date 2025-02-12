@@ -6,7 +6,7 @@ struct Agent: Identifiable, Equatable, Comparable {
     let id: UUID
     let name: String
     let status: AgentStatus
-    let copyableDNS: String
+    let hosts: [String]
     let wsName: String
     let wsID: UUID
 
@@ -17,6 +17,9 @@ struct Agent: Identifiable, Equatable, Comparable {
         }
         return lhs.wsName.localizedCompare(rhs.wsName) == .orderedAscending
     }
+
+    // Hosts arrive sorted by length, the shortest looks best in the UI.
+    var primaryHost: String? { hosts.first }
 }
 
 enum AgentStatus: Int, Equatable, Comparable {
@@ -42,7 +45,7 @@ enum AgentStatus: Int, Equatable, Comparable {
 struct Workspace: Identifiable, Equatable, Comparable {
     let id: UUID
     let name: String
-    var agents: [UUID]
+    var agents: Set<UUID>
 
     static func < (lhs: Workspace, rhs: Workspace) -> Bool {
         lhs.name.localizedCompare(rhs.name) == .orderedAscending
@@ -52,42 +55,63 @@ struct Workspace: Identifiable, Equatable, Comparable {
 struct VPNMenuState {
     var agents: [UUID: Agent] = [:]
     var workspaces: [UUID: Workspace] = [:]
+    // Upserted agents that don't belong to any known workspace, have no FQDNs,
+    // or have any invalid UUIDs.
+    var invalidAgents: [Vpn_Agent] = []
 
     mutating func upsertAgent(_ agent: Vpn_Agent) {
-        guard let id = UUID(uuidData: agent.id) else { return }
-        guard let wsID = UUID(uuidData: agent.workspaceID) else { return }
+        guard
+            let id = UUID(uuidData: agent.id),
+            let wsID = UUID(uuidData: agent.workspaceID),
+            var workspace = workspaces[wsID],
+            !agent.fqdn.isEmpty
+        else {
+            invalidAgents.append(agent)
+            return
+        }
         // An existing agent with the same name, belonging to the same workspace
         // is from a previous workspace build, and should be removed.
         agents.filter { $0.value.name == agent.name && $0.value.wsID == wsID }
             .forEach { agents[$0.key] = nil }
-        workspaces[wsID]?.agents.append(id)
-        let wsName = workspaces[wsID]?.name ?? "Unknown Workspace"
+        workspace.agents.insert(id)
+        workspaces[wsID] = workspace
+
         agents[id] = Agent(
             id: id,
             name: agent.name,
             // If last handshake was not within last five minutes, the agent is unhealthy
             status: agent.lastHandshake.date > Date.now.addingTimeInterval(-300) ? .okay : .warn,
-            // Choose the shortest hostname, and remove trailing dot if present
-            copyableDNS: agent.fqdn.min(by: { $0.count < $1.count })
-                .map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 } ?? "UNKNOWN",
-            wsName: wsName,
+            // Remove trailing dot if present
+            hosts: agent.fqdn.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 },
+            wsName: workspace.name,
             wsID: wsID
         )
     }
 
     mutating func deleteAgent(withId id: Data) {
-        guard let id = UUID(uuidData: id) else { return }
+        guard let agentUUID = UUID(uuidData: id) else { return }
         // Update Workspaces
-        if let agent = agents[id], var ws = workspaces[agent.wsID] {
-            ws.agents.removeAll { $0 == id }
+        if let agent = agents[agentUUID], var ws = workspaces[agent.wsID] {
+            ws.agents.remove(agentUUID)
             workspaces[agent.wsID] = ws
         }
-        agents[id] = nil
+        agents[agentUUID] = nil
+        // Remove from invalid agents if present
+        invalidAgents.removeAll { invalidAgent in
+            invalidAgent.id == id
+        }
     }
 
     mutating func upsertWorkspace(_ workspace: Vpn_Workspace) {
-        guard let id = UUID(uuidData: workspace.id) else { return }
-        workspaces[id] = Workspace(id: id, name: workspace.name, agents: [])
+        guard let wsID = UUID(uuidData: workspace.id) else { return }
+        workspaces[wsID] = Workspace(id: wsID, name: workspace.name, agents: [])
+        // Check if we can associate any invalid agents with this workspace
+        invalidAgents.filter { agent in
+            agent.workspaceID == workspace.id
+        }.forEach { agent in
+            invalidAgents.removeAll { $0 == agent }
+            upsertAgent(agent)
+        }
     }
 
     mutating func deleteWorkspace(withId id: Data) {
@@ -100,7 +124,7 @@ struct VPNMenuState {
         workspaces[wsID] = nil
     }
 
-    func sorted() -> [VPNMenuItem] {
+    var sorted: [VPNMenuItem] {
         var items = agents.values.map { VPNMenuItem.agent($0) }
         // Workspaces with no agents are shown as offline
         items += workspaces.filter { _, value in

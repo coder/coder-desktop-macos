@@ -27,7 +27,7 @@ struct VPNMenuStateTests {
         #expect(storedAgent.name == "dev")
         #expect(storedAgent.wsID == workspaceID)
         #expect(storedAgent.wsName == "foo")
-        #expect(storedAgent.copyableDNS == "foo.coder")
+        #expect(storedAgent.primaryHost == "foo.coder")
         #expect(storedAgent.status == .okay)
     }
 
@@ -123,7 +123,7 @@ struct VPNMenuStateTests {
         let storedAgent = try #require(state.agents[newAgentID])
         #expect(storedAgent.name == "agent1")
         #expect(storedAgent.wsID == workspaceID)
-        #expect(storedAgent.copyableDNS == "foo.coder")
+        #expect(storedAgent.primaryHost == "foo.coder")
         #expect(storedAgent.status == .okay)
     }
 
@@ -135,7 +135,7 @@ struct VPNMenuStateTests {
         let storedWorkspace = try #require(state.workspaces[workspaceID])
         #expect(storedWorkspace.name == "foo")
 
-        var output = state.sorted()
+        var output = state.sorted
         #expect(output.count == 1)
         #expect(output[0].id == workspaceID)
         #expect(output[0].wsName == "foo")
@@ -150,10 +150,62 @@ struct VPNMenuStateTests {
         }
         state.upsertAgent(agent)
 
-        output = state.sorted()
+        output = state.sorted
         #expect(output.count == 1)
         #expect(output[0].id == agentID)
         #expect(output[0].wsName == "foo")
         #expect(output[0].status == .okay)
+    }
+
+    @Test
+    mutating func testUpsertAgent_invalidAgent_noUUID() async throws {
+        let agent = Vpn_Agent.with {
+            $0.name = "invalidAgent"
+            $0.fqdn = ["invalid.coder"]
+        }
+
+        state.upsertAgent(agent)
+
+        #expect(state.agents.isEmpty)
+        #expect(state.invalidAgents.count == 1)
+    }
+
+    @Test
+    mutating func testUpsertAgent_outOfOrder() async throws {
+        let agentID = UUID()
+        let workspaceID = UUID()
+
+        let agent = Vpn_Agent.with {
+            $0.id = agentID.uuidData
+            $0.workspaceID = workspaceID.uuidData
+            $0.name = "orphanAgent"
+            $0.lastHandshake = .init(date: Date.now)
+            $0.fqdn = ["orphan.coder"]
+        }
+
+        state.upsertAgent(agent)
+        #expect(state.agents.isEmpty)
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "validWorkspace" })
+        #expect(state.agents.count == 1)
+    }
+
+    @Test
+    mutating func testDeleteInvalidAgent_removesInvalid() async throws {
+        let agentID = UUID()
+        let workspaceID = UUID()
+
+        let agent = Vpn_Agent.with {
+            $0.id = agentID.uuidData
+            $0.workspaceID = workspaceID.uuidData
+            $0.name = "invalidAgent"
+            $0.lastHandshake = .init(date: Date.now)
+            $0.fqdn = ["invalid.coder"]
+        }
+
+        state.upsertAgent(agent)
+        #expect(state.agents.isEmpty)
+        state.deleteAgent(withId: agentID.uuidData)
+        #expect(state.agents.isEmpty)
+        #expect(state.invalidAgents.isEmpty)
     }
 }

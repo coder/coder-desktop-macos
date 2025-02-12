@@ -47,12 +47,17 @@ struct MenuItemView: View {
     @State private var nameIsSelected: Bool = false
     @State private var copyIsSelected: Bool = false
 
-    private var fmtWsName: AttributedString {
-        var formattedName = AttributedString(item.wsName)
+    private var itemName: AttributedString {
+        let name = switch item {
+        case let .agent(agent): agent.primaryHost ?? "\(item.wsName).coder"
+        case .offlineWorkspace: "\(item.wsName).coder"
+        }
+
+        var formattedName = AttributedString(name)
         formattedName.foregroundColor = .primary
-        var coderPart = AttributedString(".coder")
-        coderPart.foregroundColor = .gray
-        formattedName.append(coderPart)
+        if let range = formattedName.range(of: ".coder") {
+            formattedName[range].foregroundColor = .gray
+        }
         return formattedName
     }
 
@@ -73,26 +78,26 @@ struct MenuItemView: View {
                             .fill(item.status.color.opacity(1.0))
                             .frame(width: 7, height: 7)
                     }
-                    Text(fmtWsName).lineLimit(1).truncationMode(.tail)
+                    Text(itemName).lineLimit(1).truncationMode(.tail)
                     Spacer()
                 }.padding(.horizontal, Theme.Size.trayPadding)
                     .frame(minHeight: 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(nameIsSelected ? Color.white : .primary)
+                    .foregroundStyle(nameIsSelected ? .white : .primary)
                     .background(nameIsSelected ? Color.accentColor.opacity(0.8) : .clear)
                     .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
                     .onHover { hovering in nameIsSelected = hovering }
                 Spacer()
             }.buttonStyle(.plain)
-            if case let .agent(agent) = item {
+            if case let .agent(agent) = item, let copyableDNS = agent.primaryHost {
                 Button {
                     NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(agent.copyableDNS, forType: .string)
+                    NSPasteboard.general.setString(copyableDNS, forType: .string)
                 } label: {
                     Image(systemName: "doc.on.doc")
                         .symbolVariant(.fill)
                         .padding(3)
-                }.foregroundStyle(copyIsSelected ? Color.white : .primary)
+                }.foregroundStyle(copyIsSelected ? .white : .primary)
                     .imageScale(.small)
                     .background(copyIsSelected ? Color.accentColor.opacity(0.8) : .clear)
                     .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
