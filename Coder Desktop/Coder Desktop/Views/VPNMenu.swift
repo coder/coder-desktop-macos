@@ -10,7 +10,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
     // an error is shown: "The VPN session failed because an internal error occurred".
     // This forces the user to wait a few seconds before they can toggle the VPN back on.
     @State private var waitCleanup = false
-    private var waitCleanupDuration: Duration = .seconds(4) 
+    private var waitCleanupDuration: Duration = .seconds(4)
 
     let inspection = Inspection<Self>()
 
@@ -94,7 +94,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
 
     private var vpnDisabled: Bool {
         waitCleanup ||
-        !session.hasSession ||
+            !session.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting ||
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
@@ -104,7 +104,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
         await vpn.stop()
         waitCleanup = true
         Task {
-            try await Task.sleep(for: waitCleanupDuration)
+            try? await Task.sleep(for: waitCleanupDuration)
             waitCleanup = false
         }
     }
