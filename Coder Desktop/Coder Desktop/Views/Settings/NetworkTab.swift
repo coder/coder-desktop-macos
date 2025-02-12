@@ -9,6 +9,8 @@ struct NetworkTab<VPN: VPNService>: View {
     }
 }
 
-#Preview {
-    NetworkTab<PreviewVPN>()
-}
+#if DEBUG
+    #Preview {
+        NetworkTab<PreviewVPN>()
+    }
+#endif

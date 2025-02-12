@@ -1,0 +1,47 @@
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
+    if: ${{ github.repository_owner == 'coder' }}
+    permissions:
+      # To upload assets to the release
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - run: git fetch --tags
+
+      - name: Switch XCode Version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: "16.0.0"
+
+      - name: Setup Nix
+        uses: ./.github/actions/nix-devshell
+
+      - name: Build
+        env:
+          APPLE_CERT: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_B64 }}
+          APPLE_ID: ${{ secrets.APPLE_NOTARYTOOL_USERNAME  }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_NOTARYTOOL_PASSWORD }}
+          APP_PROF: ${{ secrets.CODER_DESKTOP_APP_PROVISIONPROFILE_B64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_PASSWORD }}
+          EXT_PROF: ${{ secrets.CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64 }}
+        run: make release
+
+      - name: Upload Release Assets
+        run: gh release upload "$RELEASE_TAG" "$out"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}

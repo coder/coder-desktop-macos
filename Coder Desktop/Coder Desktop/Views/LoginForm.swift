@@ -194,7 +194,9 @@ enum LoginField: Hashable {
     case sessionToken
 }
 
-#Preview {
-    LoginForm<PreviewSession>()
-        .environmentObject(PreviewSession())
-}
+#if DEBUG
+    #Preview {
+        LoginForm<PreviewSession>()
+            .environmentObject(PreviewSession())
+    }
+#endif

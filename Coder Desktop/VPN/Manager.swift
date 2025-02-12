@@ -48,12 +48,13 @@ actor Manager {
         }
 
         // HACK: The downloaded dylib may be quarantined, but we've validated it's signature
-        // so it's safe to execute. However, this SE must be sandboxed, so we defer to the app.
+        // so it's safe to execute. However, the SE must be sandboxed, so we defer to the app.
         try await removeQuarantine(dest)
 
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
+            logger.error("couldn't open dylib \(error, privacy: .public)")
             throw .tunnelSetup(error)
         }
         speaker = await Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>(
