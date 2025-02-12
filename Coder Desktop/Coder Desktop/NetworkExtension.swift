@@ -24,12 +24,13 @@ enum NetworkExtensionState: Equatable {
 /// An actor that handles configuring, enabling, and disabling the VPN tunnel via the
 /// NetworkExtension APIs.
 extension CoderVPNService {
-    func hasNetworkExtensionConfig() async -> Bool {
+    func loadNetworkExtensionConfig() async {
         do {
-            _ = try await getTunnelManager()
-            return true
+            let tm = try await getTunnelManager()
+            neState = .disabled
+            serverAddress = tm.protocolConfiguration?.serverAddress
         } catch {
-            return false
+            neState = .unconfigured
         }
     }
 

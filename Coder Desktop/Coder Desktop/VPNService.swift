@@ -63,15 +63,13 @@ final class CoderVPNService: NSObject, VPNService {
     // only stores a weak reference to the delegate.
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
+    var serverAddress: String?
+
     override init() {
         super.init()
         installSystemExtension()
         Task {
-            neState = if await hasNetworkExtensionConfig() {
-                .disabled
-            } else {
-                .unconfigured
-            }
+            await loadNetworkExtensionConfig()
         }
         xpc.connect()
         xpc.getPeerState()
@@ -115,6 +113,7 @@ final class CoderVPNService: NSObject, VPNService {
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?) {
         Task {
             if let proto {
+                serverAddress = proto.serverAddress
                 await configureNetworkExtension(proto: proto)
                 // this just configures the VPN, it doesn't enable it
                 tunnelState = .disabled

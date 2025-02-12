@@ -17,7 +17,7 @@ struct AuthButton<VPN: VPNService, S: Session>: View {
             }
         } label: {
             ButtonRowView {
-                Text(session.hasSession ? "Sign Out" : "Sign In")
+                Text(session.hasSession ? "Sign out" : "Sign in")
             }
         }.buttonStyle(.plain)
     }

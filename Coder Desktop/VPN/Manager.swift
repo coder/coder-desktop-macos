@@ -46,6 +46,11 @@ actor Manager {
         } catch {
             throw .validation(error)
         }
+
+        // HACK: The downloaded dylib may be quarantined, but we've validated it's signature
+        // so it's safe to execute. However, this SE must be sandboxed, so we defer to the app.
+        try await removeQuarantine(dest)
+
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
@@ -85,7 +90,9 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
-            ptp.cancelTunnelWithError(error)
+            ptp.cancelTunnelWithError(
+                makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
+            )
             return
         }
         logger.info("tunnel read loop exited")
@@ -227,6 +234,9 @@ enum ManagerError: Error {
     case serverInfo(String)
     case errorResponse(msg: String)
     case noTunnelFileDescriptor
+    case noApp
+    case permissionDenied
+    case tunnelFail(any Error)
 
     var description: String {
         switch self {
@@ -248,6 +258,12 @@ enum ManagerError: Error {
             msg
         case .noTunnelFileDescriptor:
             "Could not find a tunnel file descriptor"
+        case .noApp:
+            "The VPN must be started with the app open during first-time setup."
+        case .permissionDenied:
+            "Permission was not granted to execute the CoderVPN dylib"
+        case let .tunnelFail(err):
+            "Failed to communicate with dylib over tunnel: \(err)"
         }
     }
 }
@@ -271,4 +287,24 @@ func writeVpnLog(_ log: Vpn_Log) {
     )
     let fields = log.fields.map { "\($0.name): \($0.value)" }.joined(separator: ", ")
     logger.log(level: level, "\(log.message, privacy: .public): \(fields, privacy: .public)")
+}
+
+private func removeQuarantine(_ dest: URL) async throws(ManagerError) {
+    var flag: AnyObject?
+    let file = NSURL(fileURLWithPath: dest.path)
+    try? file.getResourceValue(&flag, forKey: kCFURLQuarantinePropertiesKey as URLResourceKey)
+    if flag != nil {
+        guard let conn = globalXPCListenerDelegate.conn else {
+            throw .noApp
+        }
+        // Wait for unsandboxed app to accept our file
+        let success = await withCheckedContinuation { [dest] continuation in
+            conn.removeQuarantine(path: dest.path) { success in
+                continuation.resume(returning: success)
+            }
+        }
+        if !success {
+            throw .permissionDenied
+        }
+    }
 }

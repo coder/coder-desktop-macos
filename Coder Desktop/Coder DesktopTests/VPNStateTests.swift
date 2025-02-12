@@ -7,13 +7,16 @@ import ViewInspector
 @Suite(.timeLimit(.minutes(1)))
 struct VPNStateTests {
     let vpn: MockVPNService
-    let sut: VPNState<MockVPNService>
+    let session: MockSession
+    let sut: VPNState<MockVPNService, MockSession>
     let view: any View
 
     init() {
         vpn = MockVPNService()
-        sut = VPNState<MockVPNService>()
-        view = sut.environmentObject(vpn)
+        sut = VPNState<MockVPNService, MockSession>()
+        session = MockSession()
+        session.hasSession = true
+        view = sut.environmentObject(vpn).environmentObject(session)
     }
 
     @Test

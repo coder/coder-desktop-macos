@@ -27,7 +27,7 @@ struct VPNMenuTests {
                 let toggle = try view.find(ViewType.Toggle.self)
                 #expect(toggle.isDisabled())
                 #expect(throws: Never.self) { try view.find(text: "Sign in to use CoderVPN") }
-                #expect(throws: Never.self) { try view.find(button: "Sign In") }
+                #expect(throws: Never.self) { try view.find(button: "Sign in") }
             }
         }
     }

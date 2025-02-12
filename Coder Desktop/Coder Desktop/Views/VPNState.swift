@@ -1,18 +1,27 @@
 import SwiftUI
 
-struct VPNState<VPN: VPNService>: View {
+struct VPNState<VPN: VPNService, S: Session>: View {
     @EnvironmentObject var vpn: VPN
+    @EnvironmentObject var session: S
 
     let inspection = Inspection<Self>()
 
     var body: some View {
         Group {
-            switch vpn.state {
-            case .disabled:
-                Text("Enable CoderVPN to see agents")
+            switch (vpn.state, session.hasSession) {
+            case (.failed(.systemExtensionError(.needsUserApproval)), _):
+                Text("Awaiting System Extension approval")
+                    .font(.body)
+                    .foregroundStyle(.gray)
+            case (_, false):
+                Text("Sign in to use CoderVPN")
                     .font(.body)
                     .foregroundColor(.gray)
-            case .connecting, .disconnecting:
+            case (.disabled, _):
+                Text("Enable CoderVPN to see agents")
+                    .font(.body)
+                    .foregroundStyle(.gray)
+            case (.connecting, _), (.disconnecting, _):
                 HStack {
                     Spacer()
                     ProgressView(
@@ -20,7 +29,7 @@ struct VPNState<VPN: VPNService>: View {
                     ).padding()
                     Spacer()
                 }
-            case let .failed(vpnErr):
+            case let (.failed(vpnErr), _):
                 Text("\(vpnErr.description)")
                     .font(.headline)
                     .foregroundColor(.red)
