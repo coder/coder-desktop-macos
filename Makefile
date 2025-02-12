@@ -11,8 +11,15 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
-MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$//')
 CURRENT_PROJECT_VERSION=$(shell git describe --tags)
+ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
+    $(error CURRENT_PROJECT_VERSION cannot be empty)
+endif
+
+MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+ifeq ($(strip $(MARKETING_VERSION)),)
+    $(error MARKETING_VERSION cannot be empty)
+endif
 
 # Define the keychain file name first
 KEYCHAIN_FILE := app-signing.keychain-db
