@@ -3,29 +3,29 @@ import SwiftUI
 
 @MainActor
 final class PreviewVPN: Coder_Desktop.VPNService {
-    @Published var state: Coder_Desktop.VPNServiceState = .disabled
-    @Published var agents: [UUID: Coder_Desktop.Agent] = [
-        UUID(): Agent(id: UUID(), name: "dev", status: .error, copyableDNS: "asdf.coder", wsName: "dogfood2",
+    @Published var state: Coder_Desktop.VPNServiceState = .connected
+    @Published var menuState: VPNMenuState = .init(agents: [
+        UUID(): Agent(id: UUID(), name: "dev", status: .error, hosts: ["asdf.coder"], wsName: "dogfood2",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .okay, copyableDNS: "asdf.coder",
+        UUID(): Agent(id: UUID(), name: "dev", status: .okay, hosts: ["asdf.coder"],
                       wsName: "testing-a-very-long-name", wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .warn, copyableDNS: "asdf.coder", wsName: "opensrc",
+        UUID(): Agent(id: UUID(), name: "dev", status: .warn, hosts: ["asdf.coder"], wsName: "opensrc",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "gvisor",
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, hosts: ["asdf.coder"], wsName: "gvisor",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "example",
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, hosts: ["asdf.coder"], wsName: "example",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .error, copyableDNS: "asdf.coder", wsName: "dogfood2",
+        UUID(): Agent(id: UUID(), name: "dev", status: .error, hosts: ["asdf.coder"], wsName: "dogfood2",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .okay, copyableDNS: "asdf.coder",
+        UUID(): Agent(id: UUID(), name: "dev", status: .okay, hosts: ["asdf.coder"],
                       wsName: "testing-a-very-long-name", wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .warn, copyableDNS: "asdf.coder", wsName: "opensrc",
+        UUID(): Agent(id: UUID(), name: "dev", status: .warn, hosts: ["asdf.coder"], wsName: "opensrc",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "gvisor",
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, hosts: ["asdf.coder"], wsName: "gvisor",
                       wsID: UUID()),
-        UUID(): Agent(id: UUID(), name: "dev", status: .off, copyableDNS: "asdf.coder", wsName: "example",
+        UUID(): Agent(id: UUID(), name: "dev", status: .off, hosts: ["asdf.coder"], wsName: "example",
                       wsID: UUID()),
-    ]
+    ], workspaces: [:])
     let shouldFail: Bool
     let longError = "This is a long error to test the UI with long error messages"
 

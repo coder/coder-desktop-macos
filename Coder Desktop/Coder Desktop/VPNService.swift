@@ -6,7 +6,7 @@ import VPNLib
 @MainActor
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
-    var agents: [UUID: Agent] { get }
+    var menuState: VPNMenuState { get }
     func start() async
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
@@ -41,7 +41,6 @@ enum VPNServiceError: Error, Equatable {
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: VPNXPCInterface = .init(vpn: self)
-    var workspaces: [UUID: String] = [:]
 
     @Published var tunnelState: VPNServiceState = .disabled
     @Published var sysExtnState: SystemExtensionState = .uninstalled
@@ -56,7 +55,7 @@ final class CoderVPNService: NSObject, VPNService {
         return tunnelState
     }
 
-    @Published var agents: [UUID: Agent] = [:]
+    @Published var menuState: VPNMenuState = .init()
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
@@ -83,11 +82,6 @@ final class CoderVPNService: NSObject, VPNService {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
-    }
-
-    func clearPeers() {
-        agents = [:]
-        workspaces = [:]
     }
 
     func start() async {
@@ -150,7 +144,7 @@ final class CoderVPNService: NSObject, VPNService {
         do {
             let msg = try Vpn_PeerUpdate(serializedBytes: data)
             debugPrint(msg)
-            clearPeers()
+            menuState.clear()
             applyPeerUpdate(with: msg)
         } catch {
             logger.error("failed to decode peer update \(error)")
@@ -159,53 +153,11 @@ final class CoderVPNService: NSObject, VPNService {
 
     func applyPeerUpdate(with update: Vpn_PeerUpdate) {
         // Delete agents
-        update.deletedAgents
-            .compactMap { UUID(uuidData: $0.id) }
-            .forEach { agentID in
-                agents[agentID] = nil
-            }
-        update.deletedWorkspaces
-            .compactMap { UUID(uuidData: $0.id) }
-            .forEach { workspaceID in
-                workspaces[workspaceID] = nil
-                for (id, agent) in agents where agent.wsID == workspaceID {
-                    agents[id] = nil
-                }
-            }
-
-        // Update workspaces
-        for workspaceProto in update.upsertedWorkspaces {
-            if let workspaceID = UUID(uuidData: workspaceProto.id) {
-                workspaces[workspaceID] = workspaceProto.name
-            }
-        }
-
-        for agentProto in update.upsertedAgents {
-            guard let agentID = UUID(uuidData: agentProto.id) else {
-                continue
-            }
-            guard let workspaceID = UUID(uuidData: agentProto.workspaceID) else {
-                continue
-            }
-            let workspaceName = workspaces[workspaceID] ?? "Unknown Workspace"
-            let newAgent = Agent(
-                id: agentID,
-                name: agentProto.name,
-                // If last handshake was not within last five minutes, the agent is unhealthy
-                status: agentProto.lastHandshake.date > Date.now.addingTimeInterval(-300) ? .okay : .off,
-                copyableDNS: agentProto.fqdn.first ?? "UNKNOWN",
-                wsName: workspaceName,
-                wsID: workspaceID
-            )
-
-            // An existing agent with the same name, belonging to the same workspace
-            // is from a previous workspace build, and should be removed.
-            agents
-                .filter { $0.value.name == agentProto.name && $0.value.wsID == workspaceID }
-                .forEach { agents[$0.key] = nil }
-
-            agents[agentID] = newAgent
-        }
+        update.deletedAgents.forEach { menuState.deleteAgent(withId: $0.id) }
+        update.deletedWorkspaces.forEach { menuState.deleteWorkspace(withId: $0.id) }
+        // Upsert workspaces before agents to populate agent workspace names
+        update.upsertedWorkspaces.forEach { menuState.upsertWorkspace($0) }
+        update.upsertedAgents.forEach { menuState.upsertAgent($0) }
     }
 }
 

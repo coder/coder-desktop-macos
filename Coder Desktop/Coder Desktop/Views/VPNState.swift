@@ -18,7 +18,7 @@ struct VPNState<VPN: VPNService, S: Session>: View {
                     .font(.body)
                     .foregroundColor(.gray)
             case (.disabled, _):
-                Text("Enable CoderVPN to see agents")
+                Text("Enable CoderVPN to see workspaces")
                     .font(.body)
                     .foregroundStyle(.gray)
             case (.connecting, _), (.disconnecting, _):
