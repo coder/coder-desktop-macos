@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct Agents<VPN: VPNService, S: Session>: View {
+struct Agents<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
-    @EnvironmentObject var session: S
+    @EnvironmentObject var state: AppState
     @State private var viewAll = false
     private let defaultVisibleRows = 5
 
@@ -15,7 +15,7 @@ struct Agents<VPN: VPNService, S: Session>: View {
                 let items = vpn.menuState.sorted
                 let visibleItems = viewAll ? items[...] : items.prefix(defaultVisibleRows)
                 ForEach(visibleItems, id: \.id) { agent in
-                    MenuItemView(item: agent, baseAccessURL: session.baseAccessURL!)
+                    MenuItemView(item: agent, baseAccessURL: state.baseAccessURL!)
                         .padding(.horizontal, Theme.Size.trayMargin)
                 }
                 if items.count == 0 {

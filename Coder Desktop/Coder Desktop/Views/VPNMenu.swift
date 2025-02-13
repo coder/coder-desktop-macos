@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct VPNMenu<VPN: VPNService, S: Session>: View {
+struct VPNMenu<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
-    @EnvironmentObject var session: S
+    @EnvironmentObject var state: AppState
     @Environment(\.openSettings) private var openSettings
 
     // There appears to be a race between the VPN service reporting itself as disconnected,
@@ -38,17 +38,17 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                 Text("Workspaces")
                     .font(.headline)
                     .foregroundColor(.gray)
-                VPNState<VPN, S>()
+                VPNState<VPN>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
-            Agents<VPN, S>()
+            Agents<VPN>()
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
                 TrayDivider()
                 if vpn.state == .connected, !vpn.menuState.invalidAgents.isEmpty {
                     InvalidAgentsButton<VPN>()
                 }
-                if session.hasSession {
-                    Link(destination: session.baseAccessURL!.appending(path: "templates")) {
+                if state.hasSession {
+                    Link(destination: state.baseAccessURL!.appending(path: "templates")) {
                         ButtonRowView {
                             Text("Create workspace")
                         }
@@ -62,7 +62,7 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
                         ButtonRowView { Text("Approve in System Settings") }
                     }.buttonStyle(.plain)
                 } else {
-                    AuthButton<VPN, S>()
+                    AuthButton<VPN>()
                 }
                 Button {
                     openSettings()
@@ -88,13 +88,13 @@ struct VPNMenu<VPN: VPNService, S: Session>: View {
             }.padding([.horizontal, .bottom], Theme.Size.trayMargin)
         }.padding(.bottom, Theme.Size.trayMargin)
             .environmentObject(vpn)
-            .environmentObject(session)
+            .environmentObject(state)
             .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
 
     private var vpnDisabled: Bool {
         waitCleanup ||
-            !session.hasSession ||
+            !state.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting ||
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
@@ -120,8 +120,8 @@ func openSystemExtensionSettings() {
 
 #if DEBUG
     #Preview {
-        VPNMenu<PreviewVPN, PreviewSession>().frame(width: 256)
+        VPNMenu<PreviewVPN>().frame(width: 256)
             .environmentObject(PreviewVPN())
-            .environmentObject(PreviewSession())
+            .environmentObject(AppState(persistent: false))
     }
 #endif

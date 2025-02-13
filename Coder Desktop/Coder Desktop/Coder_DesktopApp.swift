@@ -11,15 +11,14 @@ struct DesktopApp: App {
             EmptyView()
         }
         Window("Sign In", id: Windows.login.rawValue) {
-            LoginForm<SecureSession>()
-                .environmentObject(appDelegate.session)
-                .environmentObject(appDelegate.settings)
+            LoginForm()
+                .environmentObject(appDelegate.state)
         }
         .windowResizability(.contentSize)
         SwiftUI.Settings {
             SettingsView<CoderVPNService>()
                 .environmentObject(appDelegate.vpn)
-                .environmentObject(appDelegate.settings)
+                .environmentObject(appDelegate.state)
         }
         .windowResizability(.contentSize)
     }
@@ -29,28 +28,25 @@ struct DesktopApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarExtra: FluidMenuBarExtra?
     let vpn: CoderVPNService
-    let session: SecureSession
-    let settings: Settings
+    let state: AppState
 
     override init() {
         vpn = CoderVPNService()
-        settings = Settings()
-        session = SecureSession(onChange: vpn.configureTunnelProviderProtocol)
+        state = AppState(onChange: vpn.configureTunnelProviderProtocol)
     }
 
     func applicationDidFinishLaunching(_: Notification) {
         menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
-            VPNMenu<CoderVPNService, SecureSession>().frame(width: 256)
+            VPNMenu<CoderVPNService>().frame(width: 256)
                 .environmentObject(self.vpn)
-                .environmentObject(self.session)
-                .environmentObject(self.settings)
+                .environmentObject(self.state)
         }
     }
 
     // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
     // or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
-        if !settings.stopVPNOnQuit { return .terminateNow }
+        if !state.stopVPNOnQuit { return .terminateNow }
         Task {
             await vpn.stop()
             NSApp.reply(toApplicationShouldTerminate: true)

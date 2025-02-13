@@ -3,7 +3,7 @@ import SwiftUI
 struct LiteralHeaderModal: View {
     var existingHeader: LiteralHeader?
 
-    @EnvironmentObject var settings: Settings
+    @EnvironmentObject var state: AppState
     @Environment(\.dismiss) private var dismiss
 
     @State private var header: String = ""
@@ -35,11 +35,11 @@ struct LiteralHeaderModal: View {
     func submit() {
         defer { dismiss() }
         if let existingHeader {
-            settings.literalHeaders.removeAll { $0 == existingHeader }
+            state.literalHeaders.removeAll { $0 == existingHeader }
         }
         let newHeader = LiteralHeader(header: header, value: value)
-        if !settings.literalHeaders.contains(newHeader) {
-            settings.literalHeaders.append(newHeader)
+        if !state.literalHeaders.contains(newHeader) {
+            state.literalHeaders.append(newHeader)
         }
     }
 }

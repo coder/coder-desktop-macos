@@ -7,15 +7,16 @@ import ViewInspector
 @Suite(.timeLimit(.minutes(1)))
 struct AgentsTests {
     let vpn: MockVPNService
-    let session: MockSession
-    let sut: Agents<MockVPNService, MockSession>
+    let state: AppState
+    let sut: Agents<MockVPNService>
     let view: any View
 
     init() {
         vpn = MockVPNService()
-        session = MockSession()
-        sut = Agents<MockVPNService, MockSession>()
-        view = sut.environmentObject(vpn).environmentObject(session)
+        state = AppState(persistent: false)
+        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
+        sut = Agents<MockVPNService>()
+        view = sut.environmentObject(vpn).environmentObject(state)
     }
 
     private func createMockAgents(count: Int, status: AgentStatus = .okay) -> [UUID: Agent] {

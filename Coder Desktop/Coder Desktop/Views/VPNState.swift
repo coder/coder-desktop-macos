@@ -1,14 +1,14 @@
 import SwiftUI
 
-struct VPNState<VPN: VPNService, S: Session>: View {
+struct VPNState<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
-    @EnvironmentObject var session: S
+    @EnvironmentObject var state: AppState
 
     let inspection = Inspection<Self>()
 
     var body: some View {
         Group {
-            switch (vpn.state, session.hasSession) {
+            switch (vpn.state, state.hasSession) {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
                 Text("Awaiting System Extension approval")
                     .font(.body)

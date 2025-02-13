@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LiteralHeadersSection<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
-    @EnvironmentObject var settings: Settings
+    @EnvironmentObject var state: AppState
 
     @State private var selectedHeader: LiteralHeader.ID?
     @State private var editingHeader: LiteralHeader?
@@ -12,17 +12,17 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
 
     var body: some View {
         Section {
-            Toggle(isOn: settings.$useLiteralHeaders) {
+            Toggle(isOn: $state.useLiteralHeaders) {
                 Text("HTTP Headers")
                 Text("When enabled, these headers will be included on all outgoing HTTP requests.")
                 if vpn.state != .disabled { Text("Cannot be modified while Coder VPN is enabled.") }
             }
             .controlSize(.large)
 
-            Table(settings.literalHeaders, selection: $selectedHeader) {
+            Table(state.literalHeaders, selection: $selectedHeader) {
                 TableColumn("Header", value: \.header)
                 TableColumn("Value", value: \.value)
-            }.opacity(settings.useLiteralHeaders ? 1 : 0.5)
+            }.opacity(state.useLiteralHeaders ? 1 : 0.5)
                 .frame(minWidth: 400, minHeight: 200)
                 .padding(.bottom, 25)
                 .overlay(alignment: .bottom) {
@@ -37,7 +37,7 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
                             }
                             Divider()
                             Button {
-                                settings.literalHeaders.removeAll { $0.id == selectedHeader }
+                                state.literalHeaders.removeAll { $0.id == selectedHeader }
                                 selectedHeader = nil
                             } label: {
                                 Image(systemName: "minus")
@@ -53,10 +53,10 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
                 .contextMenu(forSelectionType: LiteralHeader.ID.self, menu: { _ in },
                              primaryAction: { selectedHeaders in
                                  if let firstHeader = selectedHeaders.first {
-                                     editingHeader = settings.literalHeaders.first(where: { $0.id == firstHeader })
+                                     editingHeader = state.literalHeaders.first(where: { $0.id == firstHeader })
                                  }
                              })
-                .disabled(!settings.useLiteralHeaders)
+                .disabled(!state.useLiteralHeaders)
         }
         .sheet(isPresented: $addingNewHeader) {
             LiteralHeaderModal()
