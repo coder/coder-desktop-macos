@@ -1,11 +1,33 @@
 {
   "images" : [
     {
+      "filename" : "coder_icon_16_dark.png",
+      "idiom" : "mac",
+      "scale" : "1x"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
       "filename" : "coder_icon_16.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
+      "filename" : "coder_icon_32_dark.png",
+      "idiom" : "mac",
+      "scale" : "2x"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
       "filename" : "coder_icon_32.png",
       "idiom" : "mac",
       "scale" : "2x"
