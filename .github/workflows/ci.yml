@@ -75,3 +75,5 @@ jobs:
         uses: ./.github/actions/nix-devshell
 
       - run: make lint
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
