@@ -6,11 +6,11 @@ public struct HTTPResponse {
     let req: URLRequest
 }
 
-public struct HTTPHeader: Sendable {
-    public let header: String
+public struct HTTPHeader: Sendable, Codable {
+    public let name: String
     public let value: String
-    public init(header: String, value: String) {
-        self.header = header
+    public init(name: String, value: String) {
+        self.name = name
         self.value = value
     }
 }

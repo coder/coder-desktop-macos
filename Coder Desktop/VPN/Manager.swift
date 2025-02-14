@@ -54,7 +54,6 @@ actor Manager {
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
-            logger.error("couldn't open dylib \(error, privacy: .public)")
             throw .tunnelSetup(error)
         }
         speaker = await Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>(
@@ -164,6 +163,12 @@ actor Manager {
                         req.tunnelFileDescriptor = tunFd
                         req.apiToken = cfg.apiToken
                         req.coderURL = cfg.serverUrl.absoluteString
+                        req.headers = cfg.literalHeaders.map { header in
+                            .with { req in
+                                req.name = header.name
+                                req.value = header.value
+                            }
+                        }
                     }
                 })
         } catch {
@@ -223,6 +228,7 @@ actor Manager {
 struct ManagerConfig {
     let apiToken: String
     let serverUrl: URL
+    let literalHeaders: [HTTPHeader]
 }
 
 enum ManagerError: Error {

@@ -28,7 +28,7 @@ struct CoderSDKTests {
 
         let url = URL(string: "https://example.com")!
         let token = "fake-token"
-        let client = Client(url: url, token: token, headers: [.init(header: "X-Test-Header", value: "foo")])
+        let client = Client(url: url, token: token, headers: [.init(name: "X-Test-Header", value: "foo")])
         var mock = try Mock(
             url: url.appending(path: "api/v2/users/johndoe"),
             contentType: .json,
