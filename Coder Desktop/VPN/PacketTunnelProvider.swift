@@ -48,6 +48,11 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
     ) {
         logger.info("startTunnel called")
+        start(completionHandler)
+    }
+
+    // called by `startTunnel` and on `wake`
+    func start(_ completionHandler: @escaping (Error?) -> Void) {
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
             completionHandler(makeNSError(suffix: "PTP", desc: "Already running"))
@@ -99,8 +104,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         with _: NEProviderStopReason, completionHandler: @escaping () -> Void
     ) {
         logger.debug("stopTunnel called")
+        teardown(completionHandler)
+    }
+
+    // called by `stopTunnel` and `sleep`
+    func teardown(_ completionHandler: @escaping () -> Void) {
         guard let manager else {
-            logger.error("stopTunnel called with nil Manager")
+            logger.error("teardown called with nil Manager")
             completionHandler()
             return
         }
@@ -125,15 +135,25 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         }
     }
 
+    // sleep and wake reference: https://developer.apple.com/forums/thread/95988
     override func sleep(completionHandler: @escaping () -> Void) {
-        // Add code here to get ready to sleep.
         logger.debug("sleep called")
-        completionHandler()
+        teardown(completionHandler)
     }
 
     override func wake() {
-        // Add code here to wake up.
         logger.debug("wake called")
+        reasserting = true
+        currentSettings = .init(tunnelRemoteAddress: "127.0.0.1")
+        setTunnelNetworkSettings(nil)
+        start { error in
+            if let error {
+                self.logger.error("error starting tunnel after wake: \(error.localizedDescription)")
+                self.cancelTunnelWithError(error)
+            } else {
+                self.reasserting = false
+            }
+        }
     }
 
     // Wrapper around `setTunnelNetworkSettings` that supports merging updates

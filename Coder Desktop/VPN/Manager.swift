@@ -27,7 +27,10 @@ actor Manager {
             fatalError("unknown architecture")
         #endif
         do {
-            try await download(src: dylibPath, dest: dest)
+            let sessionConfig = URLSessionConfiguration.default
+            // The tunnel might be asked to start before the network interfaces have woken up from sleep
+            sessionConfig.waitsForConnectivity = true
+            try await download(src: dylibPath, dest: dest, urlSession: URLSession(configuration: sessionConfig))
         } catch {
             throw .download(error)
         }
