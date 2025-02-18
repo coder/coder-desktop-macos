@@ -63,8 +63,11 @@ struct LoginForm<S: Session>: View {
         guard sessionToken != "" else {
             return
         }
-        guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
-            loginError = .invalidURL
+        let url: URL
+        do {
+            url = try validateURL(baseAccessURL)
+        } catch {
+            loginError = error
             return
         }
         loading = true
@@ -152,8 +155,10 @@ struct LoginForm<S: Session>: View {
         guard baseAccessURL != "" else {
             return
         }
-        guard let url = URL(string: baseAccessURL), url.scheme == "https" else {
-            loginError = .invalidURL
+        do {
+            try validateURL(baseAccessURL)
+        } catch {
+            loginError = error
             return
         }
         withAnimation {
@@ -170,12 +175,32 @@ struct LoginForm<S: Session>: View {
     }
 }
 
-enum LoginError {
+@discardableResult
+func validateURL(_ url: String) throws(LoginError) -> URL {
+    guard let url = URL(string: url) else {
+        throw LoginError.invalidURL
+    }
+    guard url.scheme == "https" else {
+        throw LoginError.httpsRequired
+    }
+    guard url.host != nil else {
+        throw LoginError.noHost
+    }
+    return url
+}
+
+enum LoginError: Error {
+    case httpsRequired
+    case noHost
     case invalidURL
     case failedAuth(ClientError)
 
     var description: String {
         switch self {
+        case .httpsRequired:
+            "URL must use HTTPS"
+        case .noHost:
+            "URL must have a host"
         case .invalidURL:
             "Invalid URL"
         case let .failedAuth(err):
