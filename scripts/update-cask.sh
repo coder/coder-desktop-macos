@@ -95,17 +95,17 @@ mkdir -p "$TAP_CHECHOUT_FOLDER"/Casks
 cat >"$TAP_CHECHOUT_FOLDER"/Casks/coder-desktop${SUFFIX}.rb <<EOF
 cask "coder-desktop${SUFFIX}" do
   version "${VERSION#v}"
-  sha256 "${HASH}"
+  sha256 $([ "$IS_PREVIEW" = true ] && echo ":no_check" || echo "\"${HASH}\"")
 
-  url "https://github.com/coder/coder-desktop-macos/releases/download/${TAG}/Coder.Desktop.dmg"
+  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/Coder.Desktop.dmg"
   name "Coder Desktop"
   desc "Coder Desktop client"
   homepage "https://github.com/coder/coder-desktop-macos"
 
+  conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
   depends_on macos: ">= :sonoma"
 
   app "Coder Desktop.app"
-  conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
 end
 EOF
 
