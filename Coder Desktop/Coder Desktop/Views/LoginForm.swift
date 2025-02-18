@@ -128,9 +128,7 @@ struct LoginForm<S: Session>: View {
                         Text("Generate a session token at ")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Link(cliAuthURL.absoluteString, destination: cliAuthURL)
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
+                        ResponsiveLink(title: cliAuthURL.absoluteString, destination: cliAuthURL)
                     }
                 }
             }.formStyle(.grouped).scrollDisabled(true).padding(.horizontal)
