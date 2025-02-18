@@ -11,12 +11,12 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
-CURRENT_PROJECT_VERSION=$(shell git describe --tags)
+CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
 ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
     $(error CURRENT_PROJECT_VERSION cannot be empty)
 endif
 
-MARKETING_VERSION=$(shell git describe --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
 ifeq ($(strip $(MARKETING_VERSION)),)
     $(error MARKETING_VERSION cannot be empty)
 endif
@@ -132,3 +132,5 @@ help: ## Show this help
 .PHONY: watch-gen
 watch-gen: ## Generate Xcode project file and watch for changes
 	watchexec -w 'Coder Desktop/project.yml' make $(XCPROJECT)
+
+print-%: ; @echo $*=$($*)

@@ -1,6 +1,9 @@
 name: release
 
 on:
+  push:
+    branches:
+      - main
   release:
     types: [published]
 
@@ -8,6 +11,7 @@ permissions: {}
 
 jobs:
   build:
+    name: Build Coder Desktop
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
     if: ${{ github.repository_owner == 'coder' }}
     permissions:
@@ -40,7 +44,34 @@ jobs:
         run: make release
 
       - name: Upload Release Assets
-        run: gh release upload "$RELEASE_TAG" "$out"/*
+        run: gh release upload "$RELEASE_TAG" "$out"/* --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+
+  update-cask:
+    name: Update homebrew-coder cask
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
+    if: ${{ github.repository_owner == 'coder' }}
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Nix
+        uses: ./.github/actions/nix-devshell
+
+      - name: Update homebrew-coder
+        env:
+          GH_TOKEN: ${{ secrets.CODERCI_GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+          ASSIGNEE: ${{ github.actor }}
+        run: |
+          git config --global user.email "ci@coder.com"
+          git config --global user.name "Coder CI"
+          gh auth setup-git
+
+          ./scripts/update-cask.sh --version "$RELEASE_TAG" --assignee "$ASSIGNEE"
