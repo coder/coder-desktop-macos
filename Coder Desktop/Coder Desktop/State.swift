@@ -31,6 +31,7 @@ class AppState: ObservableObject {
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
+            if let onChange { onChange(tunnelProviderProtocol()) }
             guard persistent else { return }
             UserDefaults.standard.set(useLiteralHeaders, forKey: Keys.useLiteralHeaders)
         }
@@ -38,6 +39,7 @@ class AppState: ObservableObject {
 
     @Published var literalHeaders: [LiteralHeader] {
         didSet {
+            if let onChange { onChange(tunnelProviderProtocol()) }
             guard persistent else { return }
             try? UserDefaults.standard.set(JSONEncoder().encode(literalHeaders), forKey: Keys.literalHeaders)
         }
@@ -57,6 +59,9 @@ class AppState: ObservableObject {
         // HACK: We can't write to the system keychain, and the user keychain
         // isn't accessible, so we'll use providerConfiguration, which is over XPC.
         proto.providerConfiguration = ["token": sessionToken!]
+        if useLiteralHeaders, let headers = try? JSONEncoder().encode(literalHeaders) {
+            proto.providerConfiguration?["literalHeaders"] = headers
+        }
         proto.serverAddress = baseAccessURL!.absoluteString
         return proto
     }
@@ -64,6 +69,7 @@ class AppState: ObservableObject {
     private let keychain: Keychain
     private let persistent: Bool
 
+    // This closure must be called when any property used to configure the VPN changes
     let onChange: ((NETunnelProviderProtocol?) -> Void)?
 
     public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil,
@@ -125,20 +131,20 @@ class AppState: ObservableObject {
 }
 
 struct LiteralHeader: Hashable, Identifiable, Equatable, Codable {
-    var header: String
+    var name: String
     var value: String
     var id: String {
-        "\(header):\(value)"
+        "\(name):\(value)"
     }
 
-    init(header: String, value: String) {
-        self.header = header
+    init(name: String, value: String) {
+        self.name = name
         self.value = value
     }
 }
 
 extension LiteralHeader {
     func toSDKHeader() -> HTTPHeader {
-        .init(header: header, value: value)
+        .init(name: name, value: value)
     }
 }

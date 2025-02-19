@@ -33,7 +33,7 @@ public struct Client {
         if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
         req.httpMethod = method.rawValue
         for header in headers {
-            req.addValue(header.value, forHTTPHeaderField: header.header)
+            req.addValue(header.value, forHTTPHeaderField: header.name)
         }
         req.httpBody = body
         let data: Data

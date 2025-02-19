@@ -20,7 +20,7 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
             .controlSize(.large)
 
             Table(state.literalHeaders, selection: $selectedHeader) {
-                TableColumn("Header", value: \.header)
+                TableColumn("Header", value: \.name)
                 TableColumn("Value", value: \.value)
             }.opacity(state.useLiteralHeaders ? 1 : 0.5)
                 .frame(minWidth: 400, minHeight: 200)

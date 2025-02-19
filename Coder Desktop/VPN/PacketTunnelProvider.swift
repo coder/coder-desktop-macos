@@ -1,3 +1,4 @@
+import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
@@ -65,6 +66,8 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             completionHandler(makeNSError(suffix: "PTP", desc: "Missing Token"))
             return
         }
+        let headers: [HTTPHeader] = (proto.providerConfiguration?["literalHeaders"] as? Data)
+            .flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? []
         logger.debug("retrieved token & access URL")
         let completionHandler = CallbackWrapper(completionHandler)
         Task {
@@ -73,7 +76,8 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 let manager = try await Manager(
                     with: self,
                     cfg: .init(
-                        apiToken: token, serverUrl: .init(string: baseAccessURL)!
+                        apiToken: token, serverUrl: .init(string: baseAccessURL)!,
+                        literalHeaders: headers
                     )
                 )
                 globalXPCListenerDelegate.vpnXPCInterface.manager = manager

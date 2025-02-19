@@ -26,7 +26,7 @@ struct LiteralHeaderModal: View {
             }.padding(20)
         }.onAppear {
             if let existingHeader {
-                header = existingHeader.header
+                header = existingHeader.name
                 value = existingHeader.value
             }
         }
@@ -37,7 +37,7 @@ struct LiteralHeaderModal: View {
         if let existingHeader {
             state.literalHeaders.removeAll { $0 == existingHeader }
         }
-        let newHeader = LiteralHeader(header: header, value: value)
+        let newHeader = LiteralHeader(name: header, value: value)
         if !state.literalHeaders.contains(newHeader) {
             state.literalHeaders.append(newHeader)
         }
