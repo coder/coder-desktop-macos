@@ -4,28 +4,20 @@ import KeychainAccess
 import NetworkExtension
 import SwiftUI
 
-protocol Session: ObservableObject {
-    var hasSession: Bool { get }
-    var baseAccessURL: URL? { get }
-    var sessionToken: String? { get }
-
-    func store(baseAccessURL: URL, sessionToken: String)
-    func clear()
-    func tunnelProviderProtocol() -> NETunnelProviderProtocol?
-}
-
-class SecureSession: ObservableObject, Session {
+class AppState: ObservableObject {
     let appId = Bundle.main.bundleIdentifier!
 
     // Stored in UserDefaults
     @Published private(set) var hasSession: Bool {
         didSet {
+            guard persistent else { return }
             UserDefaults.standard.set(hasSession, forKey: Keys.hasSession)
         }
     }
 
     @Published private(set) var baseAccessURL: URL? {
         didSet {
+            guard persistent else { return }
             UserDefaults.standard.set(baseAccessURL, forKey: Keys.baseAccessURL)
         }
     }
@@ -34,6 +26,27 @@ class SecureSession: ObservableObject, Session {
     @Published private(set) var sessionToken: String? {
         didSet {
             keychainSet(sessionToken, for: Keys.sessionToken)
+        }
+    }
+
+    @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(useLiteralHeaders, forKey: Keys.useLiteralHeaders)
+        }
+    }
+
+    @Published var literalHeaders: [LiteralHeader] {
+        didSet {
+            guard persistent else { return }
+            try? UserDefaults.standard.set(JSONEncoder().encode(literalHeaders), forKey: Keys.literalHeaders)
+        }
+    }
+
+    @Published var stopVPNOnQuit: Bool = UserDefaults.standard.bool(forKey: Keys.stopVPNOnQuit) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(stopVPNOnQuit, forKey: Keys.stopVPNOnQuit)
         }
     }
 
@@ -49,37 +62,50 @@ class SecureSession: ObservableObject, Session {
     }
 
     private let keychain: Keychain
+    private let persistent: Bool
 
     let onChange: ((NETunnelProviderProtocol?) -> Void)?
 
-    public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil) {
+    public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil,
+                persistent: Bool = true)
+    {
+        self.persistent = persistent
         self.onChange = onChange
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
-        _hasSession = Published(initialValue: UserDefaults.standard.bool(forKey: Keys.hasSession))
-        _baseAccessURL = Published(initialValue: UserDefaults.standard.url(forKey: Keys.baseAccessURL))
+        _hasSession = Published(initialValue: persistent ? UserDefaults.standard.bool(forKey: Keys.hasSession) : false)
+        _baseAccessURL = Published(
+            initialValue: persistent ? UserDefaults.standard.url(forKey: Keys.baseAccessURL) : nil
+        )
+        _literalHeaders = Published(
+            initialValue: persistent ? UserDefaults.standard.data(
+                forKey: Keys.literalHeaders
+            ).flatMap { try? JSONDecoder().decode([LiteralHeader].self, from: $0) } ?? [] : []
+        )
         if hasSession {
             _sessionToken = Published(initialValue: keychainGet(for: Keys.sessionToken))
         }
     }
 
-    public func store(baseAccessURL: URL, sessionToken: String) {
+    public func login(baseAccessURL: URL, sessionToken: String) {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
         if let onChange { onChange(tunnelProviderProtocol()) }
     }
 
-    public func clear() {
+    public func clearSession() {
         hasSession = false
         sessionToken = nil
         if let onChange { onChange(tunnelProviderProtocol()) }
     }
 
     private func keychainGet(for key: String) -> String? {
-        try? keychain.getString(key)
+        guard persistent else { return nil }
+        return try? keychain.getString(key)
     }
 
     private func keychainSet(_ value: String?, for key: String) {
+        guard persistent else { return }
         if let value {
             try? keychain.set(value, key: key)
         } else {
@@ -91,31 +117,7 @@ class SecureSession: ObservableObject, Session {
         static let hasSession = "hasSession"
         static let baseAccessURL = "baseAccessURL"
         static let sessionToken = "sessionToken"
-    }
-}
 
-class Settings: ObservableObject {
-    private let store: UserDefaults
-    @AppStorage(Keys.useLiteralHeaders) var useLiteralHeaders = false
-
-    @Published var literalHeaders: [LiteralHeader] {
-        didSet {
-            try? store.set(JSONEncoder().encode(literalHeaders), forKey: Keys.literalHeaders)
-        }
-    }
-
-    @AppStorage(Keys.stopVPNOnQuit) var stopVPNOnQuit = true
-
-    init(store: UserDefaults = .standard) {
-        self.store = store
-        _literalHeaders = Published(
-            initialValue: store.data(
-                forKey: Keys.literalHeaders
-            ).flatMap { try? JSONDecoder().decode([LiteralHeader].self, from: $0) } ?? []
-        )
-    }
-
-    enum Keys {
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"
         static let stopVPNOnQuit = "StopVPNOnQuit"

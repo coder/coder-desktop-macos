@@ -15,7 +15,7 @@ struct LiteralHeadersSettingTests {
         sut = LiteralHeadersSection<MockVPNService>()
         let store = UserDefaults(suiteName: #file)!
         store.removePersistentDomain(forName: #file)
-        view = sut.environmentObject(vpn).environmentObject(Settings(store: store))
+        view = sut.environmentObject(vpn).environmentObject(AppState(persistent: false))
     }
 
     @Test

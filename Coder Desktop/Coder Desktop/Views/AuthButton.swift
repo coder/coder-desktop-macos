@@ -1,23 +1,23 @@
 import SwiftUI
 
-struct AuthButton<VPN: VPNService, S: Session>: View {
-    @EnvironmentObject var session: S
+struct AuthButton<VPN: VPNService>: View {
+    @EnvironmentObject var state: AppState
     @EnvironmentObject var vpn: VPN
     @Environment(\.openWindow) var openWindow
 
     var body: some View {
         Button {
-            if session.hasSession {
+            if state.hasSession {
                 Task {
                     await vpn.stop()
-                    session.clear()
+                    state.clearSession()
                 }
             } else {
                 openWindow(id: .login)
             }
         } label: {
             ButtonRowView {
-                Text(session.hasSession ? "Sign out" : "Sign in")
+                Text(state.hasSession ? "Sign out" : "Sign in")
             }
         }.buttonStyle(.plain)
     }

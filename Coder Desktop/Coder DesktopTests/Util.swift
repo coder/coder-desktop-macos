@@ -25,29 +25,4 @@ class MockVPNService: VPNService, ObservableObject {
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
 }
 
-class MockSession: Session {
-    @Published
-    var hasSession: Bool = false
-    @Published
-    var sessionToken: String? = "fake-token"
-    @Published
-    var baseAccessURL: URL? = URL(string: "https://dev.coder.com")!
-
-    func store(baseAccessURL _: URL, sessionToken _: String) {
-        hasSession = true
-        baseAccessURL = URL(string: "https://dev.coder.com")!
-        sessionToken = "fake-token"
-    }
-
-    func clear() {
-        hasSession = false
-        sessionToken = nil
-        baseAccessURL = nil
-    }
-
-    func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
-        nil
-    }
-}
-
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}

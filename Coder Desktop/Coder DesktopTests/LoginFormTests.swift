@@ -8,16 +8,16 @@ import ViewInspector
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct LoginTests {
-    let session: MockSession
-    let sut: LoginForm<MockSession>
+    let state: AppState
+    let sut: LoginForm
     let view: any View
 
     init() {
-        session = MockSession()
-        sut = LoginForm<MockSession>()
+        state = AppState(persistent: false)
+        sut = LoginForm()
         let store = UserDefaults(suiteName: #file)!
         store.removePersistentDomain(forName: #file)
-        view = sut.environmentObject(session).environmentObject(Settings(store: store))
+        view = sut.environmentObject(state)
     }
 
     @Test
@@ -120,7 +120,7 @@ struct LoginTests {
                 try view.find(ViewType.SecureField.self).setInput("valid-token")
                 try await view.actualView().submit()
 
-                #expect(session.hasSession)
+                #expect(state.hasSession)
             }
         }
     }

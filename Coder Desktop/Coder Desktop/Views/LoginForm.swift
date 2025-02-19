@@ -1,9 +1,8 @@
 import CoderSDK
 import SwiftUI
 
-struct LoginForm<S: Session>: View {
-    @EnvironmentObject var session: S
-    @EnvironmentObject var settings: Settings
+struct LoginForm: View {
+    @EnvironmentObject var state: AppState
     @Environment(\.dismiss) private var dismiss
 
     @State private var baseAccessURL: String = ""
@@ -38,7 +37,7 @@ struct LoginForm<S: Session>: View {
         }
         .animation(.easeInOut, value: currentPage)
         .onAppear {
-            baseAccessURL = session.baseAccessURL?.absoluteString ?? baseAccessURL
+            baseAccessURL = state.baseAccessURL?.absoluteString ?? baseAccessURL
             sessionToken = ""
         }
         .alert("Error", isPresented: Binding(
@@ -72,14 +71,14 @@ struct LoginForm<S: Session>: View {
         }
         loading = true
         defer { loading = false }
-        let client = Client(url: url, token: sessionToken, headers: settings.literalHeaders.map { $0.toSDKHeader() })
+        let client = Client(url: url, token: sessionToken, headers: state.literalHeaders.map { $0.toSDKHeader() })
         do {
             _ = try await client.user("me")
         } catch {
             loginError = .failedAuth(error)
             return
         }
-        session.store(baseAccessURL: url, sessionToken: sessionToken)
+        state.login(baseAccessURL: url, sessionToken: sessionToken)
         dismiss()
     }
 
@@ -219,7 +218,7 @@ enum LoginField: Hashable {
 
 #if DEBUG
     #Preview {
-        LoginForm<PreviewSession>()
-            .environmentObject(PreviewSession())
+        LoginForm()
+            .environmentObject(AppState())
     }
 #endif

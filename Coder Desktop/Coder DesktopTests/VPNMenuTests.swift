@@ -7,21 +7,19 @@ import ViewInspector
 @Suite(.timeLimit(.minutes(1)))
 struct VPNMenuTests {
     let vpn: MockVPNService
-    let session: MockSession
-    let sut: VPNMenu<MockVPNService, MockSession>
+    let state: AppState
+    let sut: VPNMenu<MockVPNService>
     let view: any View
 
     init() {
         vpn = MockVPNService()
-        session = MockSession()
-        sut = VPNMenu<MockVPNService, MockSession>()
-        view = sut.environmentObject(vpn).environmentObject(session)
+        state = AppState(persistent: false)
+        sut = VPNMenu<MockVPNService>()
+        view = sut.environmentObject(vpn).environmentObject(state)
     }
 
     @Test
     func testVPNLoggedOut() async throws {
-        session.hasSession = false
-
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
@@ -104,7 +102,8 @@ struct VPNMenuTests {
 
     @Test
     func testOffWhenFailed() async throws {
-        session.hasSession = true
+        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
+
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
