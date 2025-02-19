@@ -86,7 +86,7 @@ struct VPNMenu<VPN: VPNService>: View {
     }
 
     private var vpnDisabled: Bool {
-        !session.hasSession ||
+        !state.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting ||
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
