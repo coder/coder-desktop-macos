@@ -9,6 +9,12 @@ on:
 
 permissions: {}
 
+# Cancel in-progress runs for when multiple PRs get merged
+# in quickl succession. Ignore this for tag releases though.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'tags/')}}
+
 jobs:
   build:
     name: Build Coder Desktop
