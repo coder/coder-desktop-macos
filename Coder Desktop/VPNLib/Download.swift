@@ -101,7 +101,7 @@ public class SignatureValidator {
     }
 }
 
-public func download(src: URL, dest: URL) async throws(DownloadError) {
+public func download(src: URL, dest: URL, urlSession: URLSession) async throws(DownloadError) {
     var req = URLRequest(url: src)
     if FileManager.default.fileExists(atPath: dest.path) {
         if let existingFileData = try? Data(contentsOf: dest, options: .mappedIfSafe) {
@@ -112,7 +112,7 @@ public func download(src: URL, dest: URL) async throws(DownloadError) {
     let tempURL: URL
     let response: URLResponse
     do {
-        (tempURL, response) = try await URLSession.shared.download(for: req)
+        (tempURL, response) = try await urlSession.download(for: req)
     } catch {
         throw .networkError(error)
     }

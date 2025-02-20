@@ -13,7 +13,7 @@ struct DownloadTests {
         let fileURL = URL(string: "http://example.com/test1.txt")!
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: testData]).register()
 
-        try await download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
 
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         defer { try? FileManager.default.removeItem(at: destinationURL) }
@@ -32,7 +32,7 @@ struct DownloadTests {
 
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: testData]).register()
 
-        try await download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         let downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == testData)
@@ -44,7 +44,7 @@ struct DownloadTests {
         }
         mock.register()
 
-        try await download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
         let unchangedData = try Data(contentsOf: destinationURL)
         #expect(unchangedData == testData)
         #expect(etagIncluded)
@@ -61,7 +61,7 @@ struct DownloadTests {
 
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: ogData]).register()
 
-        try await download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
         try #require(FileManager.default.fileExists(atPath: destinationURL.path))
         var downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == ogData)
@@ -73,7 +73,7 @@ struct DownloadTests {
         }
         mock.register()
 
-        try await download(src: fileURL, dest: destinationURL)
+        try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
         downloadedData = try Data(contentsOf: destinationURL)
         #expect(downloadedData == newData)
         #expect(etagIncluded)

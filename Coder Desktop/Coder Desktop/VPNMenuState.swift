@@ -104,7 +104,9 @@ struct VPNMenuState {
 
     mutating func upsertWorkspace(_ workspace: Vpn_Workspace) {
         guard let wsID = UUID(uuidData: workspace.id) else { return }
-        workspaces[wsID] = Workspace(id: wsID, name: workspace.name, agents: [])
+        // Workspace names are unique & case-insensitive, and we want to show offline workspaces
+        // with a valid hostname (lowercase).
+        workspaces[wsID] = Workspace(id: wsID, name: workspace.name.lowercased(), agents: [])
         // Check if we can associate any invalid agents with this workspace
         invalidAgents.filter { agent in
             agent.workspaceID == workspace.id

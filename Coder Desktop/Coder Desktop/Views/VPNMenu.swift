@@ -5,13 +5,6 @@ struct VPNMenu<VPN: VPNService>: View {
     @EnvironmentObject var state: AppState
     @Environment(\.openSettings) private var openSettings
 
-    // There appears to be a race between the VPN service reporting itself as disconnected,
-    // and the system extension process exiting. When the VPN is toggled off and on quickly,
-    // an error is shown: "The VPN session failed because an internal error occurred".
-    // This forces the user to wait a few seconds before they can toggle the VPN back on.
-    @State private var waitCleanup = false
-    private var waitCleanupDuration: Duration = .seconds(6)
-
     let inspection = Inspection<Self>()
 
     var body: some View {
@@ -23,7 +16,7 @@ struct VPNMenu<VPN: VPNService>: View {
                     Toggle(isOn: Binding(
                         get: { vpn.state == .connected || vpn.state == .connecting },
                         set: { isOn in Task {
-                            if isOn { await vpn.start() } else { await stop() }
+                            if isOn { await vpn.start() } else { await vpn.stop() }
                         }
                         }
                     )) {
@@ -93,20 +86,10 @@ struct VPNMenu<VPN: VPNService>: View {
     }
 
     private var vpnDisabled: Bool {
-        waitCleanup ||
-            !state.hasSession ||
+        !state.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting ||
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
-    }
-
-    private func stop() async {
-        await vpn.stop()
-        waitCleanup = true
-        Task {
-            try? await Task.sleep(for: waitCleanupDuration)
-            waitCleanup = false
-        }
     }
 }
 

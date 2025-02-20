@@ -90,6 +90,7 @@ final class CoderVPNService: NSObject, VPNService {
             return
         }
 
+        menuState.clear()
         await startTunnel()
         logger.debug("network extension enabled")
     }
