@@ -91,7 +91,7 @@ packages:
   FluidMenuBarExtra:
     # Forked so we can dynamically update the menu bar icon.
     # The upstream repo has a purposefully limited API
-    url: https://github.com/ethanndickson/fluid-menu-bar-extra
+    url: https://github.com/coder/fluid-menu-bar-extra
     revision: 020be37
   KeychainAccess:
     url: https://github.com/kishikawakatsumi/KeychainAccess
