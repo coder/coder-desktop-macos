@@ -70,12 +70,6 @@ final class CoderVPNService: NSObject, VPNService {
         Task {
             await loadNetworkExtensionConfig()
         }
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(vpnDidUpdate(_:)),
-            name: .NEVPNStatusDidChange,
-            object: nil
-        )
     }
 
     deinit {
@@ -159,13 +153,7 @@ final class CoderVPNService: NSObject, VPNService {
 }
 
 extension CoderVPNService {
-    // The number of NETunnelProviderSession states makes the excessive branching
-    // necessary.
-    // swiftlint:disable:next cyclomatic_complexity
-    @objc private func vpnDidUpdate(_ notification: Notification) {
-        guard let connection = notification.object as? NETunnelProviderSession else {
-            return
-        }
+    public func vpnDidUpdate(_ connection: NETunnelProviderSession) {
         switch (tunnelState, connection.status) {
         // Any -> Disconnected: Update UI w/ error if present
         case (_, .disconnected):

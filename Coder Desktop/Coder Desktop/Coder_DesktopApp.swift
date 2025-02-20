@@ -1,4 +1,5 @@
 import FluidMenuBarExtra
+import NetworkExtension
 import SwiftUI
 
 @main
@@ -26,7 +27,7 @@ struct DesktopApp: App {
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var menuBarExtra: FluidMenuBarExtra?
+    private var menuBar: MenuBarController?
     let vpn: CoderVPNService
     let state: AppState
 
@@ -36,11 +37,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        menuBarExtra = FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
+        menuBar = .init(menuBarExtra: FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
             VPNMenu<CoderVPNService>().frame(width: 256)
                 .environmentObject(self.vpn)
                 .environmentObject(self.state)
-        }
+        })
+        // Subscribe to system VPN updates
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(vpnDidUpdate(_:)),
+            name: .NEVPNStatusDidChange,
+            object: nil
+        )
     }
 
     // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
@@ -56,6 +64,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
+    }
+}
+
+extension AppDelegate {
+    @objc private func vpnDidUpdate(_ notification: Notification) {
+        guard let connection = notification.object as? NETunnelProviderSession else {
+            return
+        }
+        vpn.vpnDidUpdate(connection)
+        menuBar?.vpnDidUpdate(connection)
     }
 }
 
