@@ -290,6 +290,19 @@ public enum HandshakeError: Error {
     case wrongRole(String)
     case invalidVersion(String)
     case unsupportedVersion([ProtoVersion])
+
+    public var description: String {
+        switch self {
+        case let .readError(err): "read error: \(err)"
+        case let .writeError(err): "write error: \(err)"
+        case let .invalidHeader(err): "invalid header: \(err)"
+        case let .wrongRole(err): "wrong role: \(err)"
+        case let .invalidVersion(err): "invalid version: \(err)"
+        case let .unsupportedVersion(versions): "unsupported version: \(versions)"
+        }
+    }
+
+    public var localizedDescription: String { description }
 }
 
 public struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
@@ -314,6 +327,18 @@ enum RPCError: Error {
     case notAResponse
     case unknownResponseID(UInt64)
     case shutdown
+
+    var description: String {
+        switch self {
+        case .missingRPC: "missing RPC field"
+        case .notARequest: "not a request"
+        case .notAResponse: "not a response"
+        case let .unknownResponseID(id): "unknown response ID: \(id)"
+        case .shutdown: "RPC secretary has been shutdown"
+        }
+    }
+
+    var localizedDescription: String { description }
 }
 
 /// An actor to record outgoing RPCs and route their replies to the original sender

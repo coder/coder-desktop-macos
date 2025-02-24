@@ -11,7 +11,7 @@ public enum ValidationError: Error {
     case missingInfoPList
     case invalidVersion(version: String?)
 
-    public var errorDescription: String? {
+    public var description: String {
         switch self {
         case .fileNotFound:
             "The file does not exist."
@@ -31,6 +31,8 @@ public enum ValidationError: Error {
             "Info.plist is not embedded within the dylib."
         }
     }
+
+    public var localizedDescription: String { description }
 }
 
 public class SignatureValidator {
@@ -156,7 +158,7 @@ public enum DownloadError: Error {
     case networkError(any Error)
     case fileOpError(any Error)
 
-    var localizedDescription: String {
+    public var description: String {
         switch self {
         case let .unexpectedStatusCode(code):
             "Unexpected HTTP status code: \(code)"
@@ -168,4 +170,6 @@ public enum DownloadError: Error {
             "Received non-HTTP response"
         }
     }
+
+    public var localizedDescription: String { description }
 }

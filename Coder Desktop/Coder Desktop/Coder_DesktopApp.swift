@@ -49,6 +49,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .NEVPNStatusDidChange,
             object: nil
         )
+        Task {
+            // If there's no NE config, then the user needs to sign in.
+            // However, they might have a session from a previous install, so we
+            // need to clear it.
+            if await !vpn.loadNetworkExtensionConfig() {
+                state.clearSession()
+            }
+        }
     }
 
     // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`

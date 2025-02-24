@@ -89,6 +89,7 @@ struct VPNMenu<VPN: VPNService>: View {
         !state.hasSession ||
             vpn.state == .connecting ||
             vpn.state == .disconnecting ||
+            // Prevent starting the VPN before the user has approved the system extension.
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
     }
 }

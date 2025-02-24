@@ -134,4 +134,6 @@ public enum ClientError: Error {
             "Failed to encode body: \(error)"
         }
     }
+
+    public var localizedDescription: String { description }
 }

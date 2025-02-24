@@ -35,6 +35,8 @@ enum VPNServiceError: Error, Equatable {
             state.description
         }
     }
+
+    var localizedDescription: String { description }
 }
 
 @MainActor
@@ -67,9 +69,6 @@ final class CoderVPNService: NSObject, VPNService {
     override init() {
         super.init()
         installSystemExtension()
-        Task {
-            await loadNetworkExtensionConfig()
-        }
     }
 
     deinit {
