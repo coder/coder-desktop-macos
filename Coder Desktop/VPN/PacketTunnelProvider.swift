@@ -48,16 +48,17 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
     ) {
         logger.info("startTunnel called")
+        guard manager == nil else {
+            logger.error("startTunnel called with non-nil Manager")
+            // If the tunnel is already running, then we can just mark as connected.
+            completionHandler(nil)
+            return
+        }
         start(completionHandler)
     }
 
     // called by `startTunnel` and on `wake`
     func start(_ completionHandler: @escaping (Error?) -> Void) {
-        guard manager == nil else {
-            logger.error("startTunnel called with non-nil Manager")
-            completionHandler(makeNSError(suffix: "PTP", desc: "Already running"))
-            return
-        }
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
@@ -123,9 +124,11 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 logger.error("error stopping manager: \(error.description, privacy: .public)")
             }
             globalXPCListenerDelegate.vpnXPCInterface.manager = nil
+            // Mark teardown as complete by setting manager to nil, and
+            // calling the completion handler.
+            self.manager = nil
             completionHandler()
         }
-        self.manager = nil
     }
 
     override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
@@ -142,6 +145,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func wake() {
+        // It's possible the tunnel is still starting up, if it is, wake should
+        // be a no-op.
+        guard !reasserting else { return }
+        guard manager == nil else {
+            logger.error("wake called with non-nil Manager")
+            return
+        }
         logger.debug("wake called")
         reasserting = true
         currentSettings = .init(tunnelRemoteAddress: "127.0.0.1")
