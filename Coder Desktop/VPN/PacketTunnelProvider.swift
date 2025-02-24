@@ -124,7 +124,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 logger.error("error stopping manager: \(error.description, privacy: .public)")
             }
             globalXPCListenerDelegate.vpnXPCInterface.manager = nil
-            // Mark teardown as complete by setting manager to nil, and 
+            // Mark teardown as complete by setting manager to nil, and
             // calling the completion handler.
             self.manager = nil
             completionHandler()
