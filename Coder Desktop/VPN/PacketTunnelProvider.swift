@@ -50,6 +50,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         logger.info("startTunnel called")
         guard manager == nil else {
             logger.error("startTunnel called with non-nil Manager")
+            // If the tunnel is already running, then we can just mark as connected.
             completionHandler(nil)
             return
         }
@@ -123,6 +124,8 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 logger.error("error stopping manager: \(error.description, privacy: .public)")
             }
             globalXPCListenerDelegate.vpnXPCInterface.manager = nil
+            // Mark teardown as complete by setting manager to nil, and 
+            // calling the completion handler.
             self.manager = nil
             completionHandler()
         }
@@ -142,6 +145,8 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func wake() {
+        // It's possible the tunnel is still starting up, if it is, wake should
+        // be a no-op.
         guard !reasserting else { return }
         guard manager == nil else {
             logger.error("wake called with non-nil Manager")
