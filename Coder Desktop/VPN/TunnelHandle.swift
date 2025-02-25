@@ -82,6 +82,8 @@ enum TunnelHandleError: Error {
         case let .close(errs): "close tunnel: \(errs.map(\.localizedDescription).joined(separator: ", "))"
         }
     }
+
+    var localizedDescription: String { description }
 }
 
 enum OpenTunnelError: Int32 {

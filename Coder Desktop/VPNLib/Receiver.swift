@@ -75,9 +75,18 @@ actor Receiver<RecvMsg: Message> {
     }
 }
 
-enum ReceiveError: Error {
+public enum ReceiveError: Error {
     case readError(String)
     case invalidLength
+
+    public var description: String {
+        switch self {
+        case let .readError(err): "read error: \(err)"
+        case .invalidLength: "invalid message length"
+        }
+    }
+
+    public var localizedDescription: String { description }
 }
 
 func deserializeLen(_ data: Data) throws -> UInt32 {

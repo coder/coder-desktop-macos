@@ -204,6 +204,8 @@ enum LoginError: Error {
             "Could not authenticate with Coder deployment:\n\(err.description)"
         }
     }
+
+    var localizedDescription: String { description }
 }
 
 enum LoginPage {

@@ -276,6 +276,8 @@ enum ManagerError: Error {
             "Failed to communicate with dylib over tunnel: \(err)"
         }
     }
+
+    var localizedDescription: String { description }
 }
 
 func writeVpnLog(_ log: Vpn_Log) {
