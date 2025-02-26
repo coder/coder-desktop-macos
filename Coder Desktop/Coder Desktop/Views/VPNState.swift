@@ -12,15 +12,15 @@ struct VPNState<VPN: VPNService>: View {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
                 Text("Awaiting System Extension approval")
                     .font(.body)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             case (_, false):
                 Text("Sign in to use CoderVPN")
                     .font(.body)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
             case (.disabled, _):
                 Text("Enable CoderVPN to see workspaces")
                     .font(.body)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             case (.connecting, _), (.disconnecting, _):
                 HStack {
                     Spacer()
