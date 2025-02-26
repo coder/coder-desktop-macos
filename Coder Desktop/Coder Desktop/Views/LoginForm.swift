@@ -201,7 +201,7 @@ enum LoginError: Error {
         case .invalidURL:
             "Invalid URL"
         case let .failedAuth(err):
-            "Could not authenticate with Coder deployment:\n\(err.description)"
+            "Could not authenticate with Coder deployment:\n\(err.localizedDescription)"
         }
     }
 
