@@ -21,7 +21,7 @@ struct Agents<VPN: VPNService>: View {
                 if items.count == 0 {
                     Text("No workspaces!")
                         .font(.body)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal, Theme.Size.trayInset)
                         .padding(.top, 2)
                 }
@@ -30,7 +30,7 @@ struct Agents<VPN: VPNService>: View {
                     Toggle(isOn: $viewAll) {
                         Text(viewAll ? "Show less" : "Show all")
                             .font(.headline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                             .padding(.horizontal, Theme.Size.trayInset)
                             .padding(.top, 2)
                     }.toggleStyle(.button).buttonStyle(.plain)
