@@ -131,7 +131,7 @@ public enum ClientError: Error {
         case let .unexpectedResponse(data):
             "Unexpected or non HTTP response: \(data)"
         case let .encodeFailure(error):
-            "Failed to encode body: \(error)"
+            "Failed to encode body: \(error.localizedDescription)"
         }
     }
 
