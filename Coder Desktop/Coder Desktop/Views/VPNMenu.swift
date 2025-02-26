@@ -104,8 +104,12 @@ func openSystemExtensionSettings() {
 
 #if DEBUG
     #Preview {
-        VPNMenu<PreviewVPN>().frame(width: 256)
+        let appState = AppState(persistent: false)
+        appState.login(baseAccessURL: URL(string: "http://127.0.0.1:8080")!, sessionToken: "")
+        // appState.clearSession()
+
+        return VPNMenu<PreviewVPN>().frame(width: 256)
             .environmentObject(PreviewVPN())
-            .environmentObject(AppState(persistent: false))
+            .environmentObject(appState)
     }
 #endif
