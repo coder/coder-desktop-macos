@@ -107,18 +107,18 @@ cask "coder-desktop${SUFFIX}" do
 
   app "Coder Desktop.app"
 
-  uninstall quit: [
+  uninstall quit:       [
               "com.coder.Coder-Desktop",
               "com.coder.Coder-Desktop.VPN",
             ],
             login_item: "Coder Desktop"
 
-  zap trash: [
+  zap delete: "/var/root/Library/Containers/com.Coder-Desktop.VPN/Data/Documents/coder-vpn.dylib",
+      trash:  [
         "~/Library/Caches/com.coder.Coder-Desktop",
         "~/Library/HTTPStorages/com.coder.Coder-Desktop",
         "~/Library/Preferences/com.coder.Coder-Desktop.plist",
-      ],
-      delete: "/var/root/Library/Containers/com.Coder-Desktop.VPN/Data/Documents/coder-vpn.dylib"
+      ]
 end
 EOF
 
