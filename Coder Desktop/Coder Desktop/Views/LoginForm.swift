@@ -221,6 +221,6 @@ enum LoginField: Hashable {
 #if DEBUG
     #Preview {
         LoginForm()
-            .environmentObject(AppState())
+            .environmentObject(AppState(persistent: false))
     }
 #endif
