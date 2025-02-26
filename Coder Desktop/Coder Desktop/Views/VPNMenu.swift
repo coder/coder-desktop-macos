@@ -30,7 +30,7 @@ struct VPNMenu<VPN: VPNService>: View {
                 Divider()
                 Text("Workspaces")
                     .font(.headline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                 VPNState<VPN>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
             Agents<VPN>()

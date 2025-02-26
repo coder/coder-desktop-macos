@@ -33,7 +33,7 @@ enum AgentStatus: Int, Equatable, Comparable {
         case .okay: .green
         case .warn: .yellow
         case .error: .red
-        case .off: .gray
+        case .off: .secondary
         }
     }
 
