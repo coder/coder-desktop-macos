@@ -251,17 +251,17 @@ enum ManagerError: Error {
     var description: String {
         switch self {
         case let .download(err):
-            "Download error: \(err)"
+            "Download error: \(err.localizedDescription)"
         case let .tunnelSetup(err):
-            "Tunnel setup error: \(err)"
+            "Tunnel setup error: \(err.localizedDescription)"
         case let .handshake(err):
-            "Handshake error: \(err)"
+            "Handshake error: \(err.localizedDescription)"
         case let .validation(err):
-            "Validation error: \(err)"
+            "Validation error: \(err.localizedDescription)"
         case .incorrectResponse:
             "Received unexpected response over tunnel"
         case let .failedRPC(err):
-            "Failed rpc: \(err)"
+            "Failed rpc: \(err.localizedDescription)"
         case let .serverInfo(msg):
             msg
         case let .errorResponse(msg):
@@ -273,7 +273,7 @@ enum ManagerError: Error {
         case .permissionDenied:
             "Permission was not granted to execute the CoderVPN dylib"
         case let .tunnelFail(err):
-            "Failed to communicate with dylib over tunnel: \(err)"
+            "Failed to communicate with dylib over tunnel: \(err.localizedDescription)"
         }
     }
 
