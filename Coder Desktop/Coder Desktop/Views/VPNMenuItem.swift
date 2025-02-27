@@ -56,7 +56,7 @@ struct MenuItemView: View {
         var formattedName = AttributedString(name)
         formattedName.foregroundColor = .primary
         if let range = formattedName.range(of: ".coder") {
-            formattedName[range].foregroundColor = .gray
+            formattedName[range].foregroundColor = .secondary
         }
         return formattedName
     }
