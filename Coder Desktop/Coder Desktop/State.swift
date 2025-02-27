@@ -25,6 +25,7 @@ class AppState: ObservableObject {
     // Stored in Keychain
     @Published private(set) var sessionToken: String? {
         didSet {
+            guard persistent else { return }
             keychainSet(sessionToken, for: Keys.sessionToken)
         }
     }
