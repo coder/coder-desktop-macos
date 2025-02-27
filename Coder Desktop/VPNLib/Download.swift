@@ -116,7 +116,7 @@ public func download(src: URL, dest: URL, urlSession: URLSession) async throws(D
     do {
         (tempURL, response) = try await urlSession.download(for: req)
     } catch {
-        throw .networkError(error)
+        throw .networkError(error, url: src.absoluteString)
     }
     defer {
         if FileManager.default.fileExists(atPath: tempURL.path) {
@@ -155,15 +155,15 @@ func etag(data: Data) -> String {
 public enum DownloadError: Error {
     case unexpectedStatusCode(Int)
     case invalidResponse
-    case networkError(any Error)
+    case networkError(any Error, url: String)
     case fileOpError(any Error)
 
     public var description: String {
         switch self {
         case let .unexpectedStatusCode(code):
             "Unexpected HTTP status code: \(code)"
-        case let .networkError(error):
-            "Network error: \(error.localizedDescription)"
+        case let .networkError(error, url):
+            "Network error: \(url) - \(error.localizedDescription)"
         case let .fileOpError(error):
             "File operation error: \(error.localizedDescription)"
         case .invalidResponse:

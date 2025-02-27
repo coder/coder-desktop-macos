@@ -75,7 +75,7 @@ enum TunnelHandleError: Error {
 
     var description: String {
         switch self {
-        case let .pipe(err): "pipe error: \(err)"
+        case let .pipe(err): "pipe error: \(err.localizedDescription)"
         case let .dylib(d): d
         case let .symbol(symbol, message): "\(symbol): \(message)"
         case let .openTunnel(error): "OpenTunnel: \(error.message)"
