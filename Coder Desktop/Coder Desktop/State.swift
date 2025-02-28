@@ -32,7 +32,7 @@ class AppState: ObservableObject {
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
-            if let onChange { onChange(tunnelProviderProtocol()) }
+            reconfigure()
             guard persistent else { return }
             UserDefaults.standard.set(useLiteralHeaders, forKey: Keys.useLiteralHeaders)
         }
@@ -40,7 +40,7 @@ class AppState: ObservableObject {
 
     @Published var literalHeaders: [LiteralHeader] {
         didSet {
-            if let onChange { onChange(tunnelProviderProtocol()) }
+            reconfigure()
             guard persistent else { return }
             try? UserDefaults.standard.set(JSONEncoder().encode(literalHeaders), forKey: Keys.literalHeaders)
         }
@@ -70,8 +70,12 @@ class AppState: ObservableObject {
     private let keychain: Keychain
     private let persistent: Bool
 
-    // This closure must be called when any property used to configure the VPN changes
     let onChange: ((NETunnelProviderProtocol?) -> Void)?
+
+    // reconfigure must be called when any property used to configure the VPN changes
+    public func reconfigure() {
+        if let onChange { onChange(tunnelProviderProtocol()) }
+    }
 
     public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil,
                 persistent: Bool = true)
@@ -97,13 +101,13 @@ class AppState: ObservableObject {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
-        if let onChange { onChange(tunnelProviderProtocol()) }
+        reconfigure()
     }
 
     public func clearSession() {
         hasSession = false
         sessionToken = nil
-        if let onChange { onChange(tunnelProviderProtocol()) }
+        reconfigure()
     }
 
     private func keychainGet(for key: String) -> String? {

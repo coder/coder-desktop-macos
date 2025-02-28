@@ -13,6 +13,8 @@ class MenuBarController {
 
     init(menuBarExtra: FluidMenuBarExtra) {
         self.menuBarExtra = menuBarExtra
+        // Off by default, as `vpnDidUpdate` isn't called until the VPN is configured
+        menuBarExtra.setOpacity(offOpacity)
     }
 
     func vpnDidUpdate(_ connection: NETunnelProviderSession) {

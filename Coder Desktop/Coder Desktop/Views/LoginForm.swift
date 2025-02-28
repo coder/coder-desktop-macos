@@ -38,7 +38,7 @@ struct LoginForm: View {
         .animation(.easeInOut, value: currentPage)
         .onAppear {
             baseAccessURL = state.baseAccessURL?.absoluteString ?? baseAccessURL
-            sessionToken = ""
+            sessionToken = state.sessionToken ?? sessionToken
         }
         .alert("Error", isPresented: Binding(
             get: { loginError != nil },
@@ -122,7 +122,7 @@ struct LoginForm: View {
                     ).disabled(true)
                 }
                 Section {
-                    SecureField("Session Token", text: $sessionToken, prompt: Text("●●●●●●●●"))
+                    SecureField("Session Token", text: $sessionToken)
                         .autocorrectionDisabled()
                         .privacySensitive()
                         .focused($focusedField, equals: .sessionToken)
