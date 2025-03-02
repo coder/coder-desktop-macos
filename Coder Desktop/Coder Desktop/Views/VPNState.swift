@@ -14,18 +14,18 @@ struct VPNState<VPN: VPNService>: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             case (_, false):
-                Text("Sign in to use CoderVPN")
+                Text("Sign in to use Coder Desktop")
                     .font(.body)
                     .foregroundColor(.secondary)
             case (.disabled, _):
-                Text("Enable CoderVPN to see workspaces")
+                Text("Enable Coder Connect to see workspaces")
                     .font(.body)
                     .foregroundStyle(.secondary)
             case (.connecting, _), (.disconnecting, _):
                 HStack {
                     Spacer()
                     ProgressView(
-                        vpn.state == .connecting ? "Starting CoderVPN..." : "Stopping CoderVPN..."
+                        vpn.state == .connecting ? "Starting Coder Connect..." : "Stopping Coder Connect..."
                     ).padding()
                     Spacer()
                 }
