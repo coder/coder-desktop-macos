@@ -11,13 +11,13 @@ enum SystemExtensionState: Equatable, Sendable {
     var description: String {
         switch self {
         case .uninstalled:
-            "VPN SystemExtension is waiting to be activated"
+            "NE SystemExtension is waiting to be activated"
         case .needsUserApproval:
-            "VPN SystemExtension needs user approval to activate"
+            "NE SystemExtension needs user approval to activate"
         case .installed:
-            "VPN SystemExtension is installed"
+            "NE SystemExtension is installed"
         case let .failed(error):
-            "VPN SystemExtension failed with error: \(error)"
+            "NE SystemExtension failed with error: \(error)"
         }
     }
 }

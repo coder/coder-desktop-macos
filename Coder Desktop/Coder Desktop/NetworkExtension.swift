@@ -50,7 +50,7 @@ extension CoderVPNService {
         logger.debug("inserting new tunnel")
 
         let tm = NETunnelProviderManager()
-        tm.localizedDescription = "CoderVPN"
+        tm.localizedDescription = "Coder"
         tm.protocolConfiguration = proto
 
         logger.debug("saving new tunnel")

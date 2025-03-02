@@ -15,7 +15,7 @@ struct LiteralHeadersSection<VPN: VPNService>: View {
             Toggle(isOn: $state.useLiteralHeaders) {
                 Text("HTTP Headers")
                 Text("When enabled, these headers will be included on all outgoing HTTP requests.")
-                if vpn.state != .disabled { Text("Cannot be modified while Coder VPN is enabled.") }
+                if vpn.state != .disabled { Text("Cannot be modified while Coder Connect is enabled.") }
             }
             .controlSize(.large)
 
