@@ -50,11 +50,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         Task {
-            // If there's no NE config, then the user needs to sign in.
-            // However, they might have a session from a previous install, so we
-            // need to clear it.
+            // If there's no NE config, but the user is logged in, such as
+            // from a previous install, then we need to reconfigure.
             if await !vpn.loadNetworkExtensionConfig() {
-                state.clearSession()
+                state.reconfigure()
             }
         }
     }
