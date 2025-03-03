@@ -53,26 +53,38 @@
         {
           inherit formatter;
 
-          devShells.default = pkgs.mkShellNoCC {
-            buildInputs = with pkgs; [
-              actionlint
-              apple-sdk_15
-              clang
-              coreutils
-              create-dmg
-              formatter
-              gh
-              gnumake
-              protobuf_28
-              protoc-gen-swift
-              swiftformat
-              swiftlint
-              watchexec
-              xcbeautify
-              xcodegen
-              xcpretty
-              zizmor
-            ];
+          devShells = rec {
+            # Need to use a devshell for CI, as we want to reuse the already existing Xcode on the runner
+            ci = pkgs.mkShellNoCC {
+              buildInputs = with pkgs; [
+                actionlint
+                clang
+                coreutils
+                create-dmg
+                gh
+                git
+                gnumake
+                protobuf_28
+                protoc-gen-swift
+                swiftformat
+                swiftlint
+                xcbeautify
+                xcodegen
+                xcpretty
+                zizmor
+              ];
+            };
+
+            default = pkgs.mkShellNoCC {
+              buildInputs =
+                with pkgs;
+                [
+                  apple-sdk_15
+                  formatter
+                  watchexec
+                ]
+                ++ ci.buildInputs;
+            };
           };
         }
       );
