@@ -11,14 +11,18 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
-CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
+ifndef CURRENT_PROJECT_VERSION
+	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
+endif
 ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
-    $(error CURRENT_PROJECT_VERSION cannot be empty)
+	$(error CURRENT_PROJECT_VERSION cannot be empty)
 endif
 
-MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+ifndef MARKETING_VERSION
+	MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+endif
 ifeq ($(strip $(MARKETING_VERSION)),)
-    $(error MARKETING_VERSION cannot be empty)
+	$(error MARKETING_VERSION cannot be empty)
 endif
 
 # Define the keychain file name first
