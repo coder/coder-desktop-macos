@@ -4,6 +4,8 @@
 <dict>
 	<key>NSSystemExtensionUsageDescription</key>
 	<string></string>
+  <key>CFBundleDisplayName</key>
+	<string>Coder Desktop Network Extension</string>
 	<key>NetworkExtension</key>
 	<dict>
 		<key>NEMachServiceName</key>
