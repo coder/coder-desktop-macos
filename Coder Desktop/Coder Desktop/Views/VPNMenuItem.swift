@@ -97,6 +97,7 @@ struct MenuItemView: View {
                     Image(systemName: "doc.on.doc")
                         .symbolVariant(.fill)
                         .padding(3)
+                        .contentShape(Rectangle())
                 }.foregroundStyle(copyIsSelected ? .white : .primary)
                     .imageScale(.small)
                     .background(copyIsSelected ? Color.accentColor.opacity(0.8) : .clear)
