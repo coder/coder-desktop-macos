@@ -31,7 +31,10 @@ public enum ValidationError: Error {
         case .missingInfoPList:
             "Info.plist is not embedded within the dylib."
         case .belowMinimumCoderVersion:
-            "The Coder deployment must be version \(SignatureValidator.minimumCoderVersion) or higher to use Coder Desktop."
+            """
+            The Coder deployment must be version \(SignatureValidator.minimumCoderVersion)
+            or higher to use Coder Desktop.
+            """
         }
     }
 
@@ -53,6 +56,7 @@ public class SignatureValidator {
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
 
     // `expectedVersion` must be of the form `[0-9]+.[0-9]+.[0-9]+`
+    // swiftlint:disable:next cyclomatic_complexity
     public static func validate(path: URL, expectedVersion: String) throws(ValidationError) {
         guard FileManager.default.fileExists(atPath: path.path) else {
             throw .fileNotFound

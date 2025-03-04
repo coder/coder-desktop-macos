@@ -31,9 +31,9 @@ actor Manager {
             // The tunnel might be asked to start before the network interfaces have woken up from sleep
             sessionConfig.waitsForConnectivity = true
             // URLSession's waiting for connectivity sometimes hangs even when
-            // the network is up so this is deliberately short (15s) to avoid a
+            // the network is up so this is deliberately short (30s) to avoid a
             // poor UX where it appears stuck.
-            sessionConfig.timeoutIntervalForResource = 15
+            sessionConfig.timeoutIntervalForResource = 30
             try await download(src: dylibPath, dest: dest, urlSession: URLSession(configuration: sessionConfig))
         } catch {
             throw .download(error)
