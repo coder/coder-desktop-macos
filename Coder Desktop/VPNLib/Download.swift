@@ -10,6 +10,7 @@ public enum ValidationError: Error {
     case invalidTeamIdentifier(identifier: String?)
     case missingInfoPList
     case invalidVersion(version: String?)
+    case belowMinimumCoderVersion
 
     public var description: String {
         switch self {
@@ -29,6 +30,11 @@ public enum ValidationError: Error {
             "Invalid team identifier: \(identifier ?? "unknown")."
         case .missingInfoPList:
             "Info.plist is not embedded within the dylib."
+        case .belowMinimumCoderVersion:
+            """
+            The Coder deployment must be version \(SignatureValidator.minimumCoderVersion)
+            or higher to use Coder Desktop.
+            """
         }
     }
 
@@ -36,6 +42,9 @@ public enum ValidationError: Error {
 }
 
 public class SignatureValidator {
+    // Whilst older dylibs exist, this app assumes v2.20 or later.
+    static let minimumCoderVersion = "2.20.0"
+
     private static let expectedName = "CoderVPN"
     private static let expectedIdentifier = "com.coder.Coder-Desktop.VPN.dylib"
     private static let expectedTeamIdentifier = "4399GN35BJ"
@@ -47,6 +56,7 @@ public class SignatureValidator {
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
 
     // `expectedVersion` must be of the form `[0-9]+.[0-9]+.[0-9]+`
+    // swiftlint:disable:next cyclomatic_complexity
     public static func validate(path: URL, expectedVersion: String) throws(ValidationError) {
         guard FileManager.default.fileExists(atPath: path.path) else {
             throw .fileNotFound
@@ -95,10 +105,19 @@ public class SignatureValidator {
             throw .invalidIdentifier(identifier: infoPlist[infoNameKey] as? String)
         }
 
+        // Downloaded dylib must match the version of the server
         guard let dylibVersion = infoPlist[infoShortVersionKey] as? String,
-              expectedVersion.compare(dylibVersion, options: .numeric) != .orderedDescending
+              expectedVersion == dylibVersion
         else {
             throw .invalidVersion(version: infoPlist[infoShortVersionKey] as? String)
+        }
+
+        // Downloaded dylib must be at least the minimum Coder server version
+        guard let dylibVersion = infoPlist[infoShortVersionKey] as? String,
+              // x.compare(y) is .orderedDescending if x > y
+              minimumCoderVersion.compare(dylibVersion, options: .numeric) != .orderedDescending
+        else {
+            throw .belowMinimumCoderVersion
         }
     }
 }
