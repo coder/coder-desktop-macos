@@ -97,7 +97,7 @@ cask "coder-desktop${SUFFIX}" do
   version "${VERSION#v}"
   sha256 $([ "$IS_PREVIEW" = true ] && echo ":no_check" || echo "\"${HASH}\"")
 
-  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/Coder.Desktop.dmg"
+  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/CoderDesktop.pkg"
   name "Coder Desktop"
   desc "Coder Desktop client"
   homepage "https://github.com/coder/coder-desktop-macos"
@@ -105,7 +105,7 @@ cask "coder-desktop${SUFFIX}" do
   conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
   depends_on macos: ">= :sonoma"
 
-  app "Coder Desktop.app"
+  pkg "CoderDesktop.pkg"
 
   uninstall quit:       [
               "com.coder.Coder-Desktop",

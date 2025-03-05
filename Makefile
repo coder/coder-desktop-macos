@@ -56,6 +56,10 @@ $(KEYCHAIN_FILE):
 	echo "$$APPLE_CERT" | base64 -d > $$tempfile; \
 	security import $$tempfile -P '$(CERT_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
 	rm $$tempfile
+	@tempfile=$$(mktemp); \
+	echo "$$APPLE_INSTALLER_CERT" | base64 -d > $$tempfile; \
+	security import $$tempfile -P '$(INSTALLER_CERT_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
+	rm $$tempfile
 	security list-keychains -d user -s $$(security list-keychains -d user | tr -d '\"') "$(APP_SIGNING_KEYCHAIN)"
 
 .PHONY: release
@@ -67,6 +71,7 @@ release: $(KEYCHAIN_FILE) ## Create a release build of Coder Desktop
 	./scripts/build.sh \
 		--app-prof-path "$$APP_PROF_PATH" \
 		--ext-prof-path "$$EXT_PROF_PATH" \
+		--version $(MARKETING_VERSION) \
 		--keychain "$(APP_SIGNING_KEYCHAIN)"; \
 	rm "$$APP_PROF_PATH" "$$EXT_PROF_PATH"
 

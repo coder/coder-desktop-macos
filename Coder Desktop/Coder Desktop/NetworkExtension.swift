@@ -56,11 +56,11 @@ extension CoderVPNService {
         logger.debug("saving new tunnel")
         do {
             try await tm.saveToPreferences()
+            neState = .disabled
         } catch {
             logger.error("save tunnel failed: \(error)")
             neState = .failed(error.localizedDescription)
         }
-        neState = .disabled
     }
 
     func removeNetworkExtension() async throws(VPNServiceError) {
@@ -105,6 +105,7 @@ extension CoderVPNService {
         var tunnels: [NETunnelProviderManager] = []
         do {
             tunnels = try await NETunnelProviderManager.loadAllFromPreferences()
+            logger.debug("loaded \(tunnels.count) tunnel(s)")
         } catch {
             throw .internalError("couldn't load tunnels: \(error)")
         }

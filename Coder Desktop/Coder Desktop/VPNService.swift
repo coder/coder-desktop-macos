@@ -30,9 +30,9 @@ enum VPNServiceError: Error, Equatable {
         case let .internalError(description):
             "Internal Error: \(description)"
         case let .systemExtensionError(state):
-            state.description
+            "SystemExtensionError: \(state.description)"
         case let .networkExtensionError(state):
-            state.description
+            "NetworkExtensionError: \(state.description)"
         }
     }
 

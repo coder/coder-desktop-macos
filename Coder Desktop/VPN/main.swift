@@ -32,6 +32,10 @@ final class XPCListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sen
             logger.info("active connection dead")
             self?.setActiveConnection(nil)
         }
+        newConnection.interruptionHandler = { [weak self] in
+            logger.debug("connection interrupted")
+            self?.setActiveConnection(nil)
+        }
         logger.info("new active connection")
         setActiveConnection(newConnection)
 
@@ -47,13 +51,15 @@ else {
     fatalError("Missing NEMachServiceName in Info.plist")
 }
 
-let globalXPCListenerDelegate = XPCListenerDelegate()
-let xpcListener = NSXPCListener(machServiceName: serviceName)
-xpcListener.delegate = globalXPCListenerDelegate
-xpcListener.resume()
+logger.debug("listening on machServiceName: \(serviceName)")
 
 autoreleasepool {
     NEProvider.startSystemExtensionMode()
 }
+
+let globalXPCListenerDelegate = XPCListenerDelegate()
+let xpcListener = NSXPCListener(machServiceName: serviceName)
+xpcListener.delegate = globalXPCListenerDelegate
+xpcListener.resume()
 
 dispatchMain()
