@@ -44,7 +44,7 @@ public struct Client {
             throw .network(error)
         }
         guard let httpResponse = resp as? HTTPURLResponse else {
-            throw .unexpectedResponse(data)
+            throw .unexpectedResponse(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
         }
         return HTTPResponse(resp: httpResponse, data: data, req: req)
     }
@@ -72,7 +72,7 @@ public struct Client {
 
     func responseAsError(_ resp: HTTPResponse) -> ClientError {
         do {
-            let body = try Client.decoder.decode(Response.self, from: resp.data)
+            let body = try decode(Response.self, from: resp.data)
             let out = APIError(
                 response: body,
                 statusCode: resp.resp.statusCode,
@@ -81,7 +81,24 @@ public struct Client {
             )
             return .api(out)
         } catch {
-            return .unexpectedResponse(resp.data.prefix(1024))
+            return .unexpectedResponse(String(data: resp.data, encoding: .utf8) ?? "<non-utf8 data>")
+        }
+    }
+
+    // Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
+    func decode<T>(_: T.Type, from data: Data) throws(ClientError) -> T where T: Decodable {
+        do {
+            return try Client.decoder.decode(T.self, from: data)
+        } catch let DecodingError.keyNotFound(_, context) {
+            throw .unexpectedResponse("Key not found: \(context.debugDescription)")
+        } catch let DecodingError.valueNotFound(_, context) {
+            throw .unexpectedResponse("Value not found: \(context.debugDescription)")
+        } catch let DecodingError.typeMismatch(_, context) {
+            throw .unexpectedResponse("Type mismatch: \(context.debugDescription)")
+        } catch let DecodingError.dataCorrupted(context) {
+            throw .unexpectedResponse("Data corrupted: \(context.debugDescription)")
+        } catch {
+            throw .unexpectedResponse(String(data: data.prefix(1024), encoding: .utf8) ?? "<non-utf8 data>")
         }
     }
 }
@@ -119,7 +136,7 @@ public struct FieldValidation: Decodable, Sendable {
 public enum ClientError: Error {
     case api(APIError)
     case network(any Error)
-    case unexpectedResponse(Data)
+    case unexpectedResponse(String)
     case encodeFailure(any Error)
 
     public var description: String {
@@ -129,7 +146,7 @@ public enum ClientError: Error {
         case let .network(error):
             error.localizedDescription
         case let .unexpectedResponse(data):
-            "Unexpected or non HTTP response: \(data)"
+            "Unexpected response: \(data)"
         case let .encodeFailure(error):
             "Failed to encode body: \(error.localizedDescription)"
         }

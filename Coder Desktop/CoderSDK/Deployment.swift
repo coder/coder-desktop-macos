@@ -6,11 +6,7 @@ public extension Client {
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
-        do {
-            return try Client.decoder.decode(BuildInfoResponse.self, from: res.data)
-        } catch {
-            throw .unexpectedResponse(res.data.prefix(1024))
-        }
+        return try decode(BuildInfoResponse.self, from: res.data)
     }
 }
 
