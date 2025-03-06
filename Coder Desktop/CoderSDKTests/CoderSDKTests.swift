@@ -7,23 +7,9 @@ import Testing
 struct CoderSDKTests {
     @Test
     func user() async throws {
-        let now = Date.now
         let user = User(
             id: UUID(),
-            username: "johndoe",
-            avatar_url: "https://example.com/img.png",
-            name: "John Doe",
-            email: "john.doe@example.com",
-            created_at: now,
-            updated_at: now,
-            last_seen_at: now,
-            status: "active",
-            login_type: "email",
-            theme_preference: "dark",
-            organization_ids: [UUID()],
-            roles: [
-                Role(name: "user", display_name: "User", organization_id: UUID()),
-            ]
+            username: "johndoe"
         )
 
         let url = URL(string: "https://example.com")!
@@ -50,15 +36,7 @@ struct CoderSDKTests {
     @Test
     func buildInfo() async throws {
         let buildInfo = BuildInfoResponse(
-            external_url: "https://example.com",
-            version: "v2.18.2-devel+630fd7c0a",
-            dashboard_url: "https://example.com/dashboard",
-            telemetry: true,
-            workspace_proxy: false,
-            agent_api_version: "1.0",
-            provisioner_api_version: "1.2",
-            upgrade_message: "foo",
-            deployment_id: UUID().uuidString
+            version: "v2.18.2-devel+630fd7c0a"
         )
 
         let url = URL(string: "https://example.com")!

@@ -22,15 +22,3 @@ public struct User: Encodable, Decodable, Equatable, Sendable {
         self.username = username
     }
 }
-
-public struct Role: Encodable, Decodable, Equatable, Sendable {
-    public let name: String
-    public let display_name: String
-    public let organization_id: UUID?
-
-    public init(name: String, display_name: String, organization_id: UUID?) {
-        self.name = name
-        self.display_name = display_name
-        self.organization_id = organization_id
-    }
-}

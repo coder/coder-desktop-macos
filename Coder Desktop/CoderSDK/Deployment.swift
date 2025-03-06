@@ -10,16 +10,8 @@ public extension Client {
     }
 }
 
-public struct BuildInfoResponse: Encodable, Decodable, Equatable, Sendable {
-    public let external_url: String
+public struct BuildInfoResponse: Codable, Equatable, Sendable {
     public let version: String
-    public let dashboard_url: String
-    public let telemetry: Bool
-    public let workspace_proxy: Bool
-    public let agent_api_version: String
-    public let provisioner_api_version: String
-    public let upgrade_message: String
-    public let deployment_id: String
 
     // `version` in the form `[0-9]+.[0-9]+.[0-9]+`
     public var semver: String? {
