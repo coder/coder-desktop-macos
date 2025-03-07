@@ -73,6 +73,14 @@ struct LoginTests {
     @Test
     func testFailedAuthentication() async throws {
         let url = URL(string: "https://testFailedAuthentication.com")!
+        let buildInfo = BuildInfoResponse(
+            version: "v2.20.0"
+        )
+        try Mock(
+            url: url.appendingPathComponent("/api/v2/buildinfo"),
+            statusCode: 200,
+            data: [.get: Client.encoder.encode(buildInfo)]
+        ).register()
         Mock(url: url.appendingPathComponent("/api/v2/users/me"), statusCode: 401, data: [.get: Data()]).register()
 
         try await ViewHosting.host(view) {
@@ -95,11 +103,20 @@ struct LoginTests {
             id: UUID(),
             username: "admin"
         )
+        let buildInfo = BuildInfoResponse(
+            version: "v2.20.0"
+        )
 
         try Mock(
             url: url.appendingPathComponent("/api/v2/users/me"),
             statusCode: 200,
             data: [.get: Client.encoder.encode(user)]
+        ).register()
+
+        try Mock(
+            url: url.appendingPathComponent("/api/v2/buildinfo"),
+            statusCode: 200,
+            data: [.get: Client.encoder.encode(buildInfo)]
         ).register()
 
         try await ViewHosting.host(view) {
