@@ -33,7 +33,7 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 .PHONY: setup
 setup: \
 	$(XCPROJECT) \
-	$(PROJECT)/VPNLib/vpn.pb.swift
+	proto
 
 $(XCPROJECT): $(PROJECT)/project.yml
 	cd $(PROJECT); \
@@ -47,6 +47,12 @@ $(XCPROJECT): $(PROJECT)/project.yml
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 	protoc --swift_opt=Visibility=public --swift_out=. 'Coder Desktop/VPNLib/vpn.proto'
+
+$(PROJECT)/Coder\ Desktop/FileSync/daemon.pb.swift: $(PROJECT)/Coder\ Desktop/FileSync/daemon.proto
+	protoc \
+		--swift_out=.\
+		--grpc-swift_out=. \
+		'Coder Desktop/Coder Desktop/FileSync/daemon.proto'
 
 $(KEYCHAIN_FILE):
 	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
@@ -130,7 +136,7 @@ clean/build:
 	rm -rf build/ release/ $$out
 
 .PHONY: proto
-proto: $(PROJECT)/VPNLib/vpn.pb.swift ## Generate Swift files from protobufs
+proto: $(PROJECT)/VPNLib/vpn.pb.swift $(PROJECT)/Coder\ Desktop/FileSync/daemon.pb.swift ## Generate Swift files from protobufs
 
 .PHONY: help
 help: ## Show this help

@@ -4,6 +4,7 @@ import KeychainAccess
 import NetworkExtension
 import SwiftUI
 
+@MainActor
 class AppState: ObservableObject {
     let appId = Bundle.main.bundleIdentifier!
 
