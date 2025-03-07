@@ -26,7 +26,7 @@ struct VPNStateTests {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) {
-                    try view.find(text: "Enable CoderVPN to see workspaces")
+                    try view.find(text: "Enable Coder Connect to see workspaces")
                 }
             }
         }
@@ -39,7 +39,7 @@ struct VPNStateTests {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let progressView = try view.find(ViewType.ProgressView.self)
-                #expect(try progressView.labelView().text().string() == "Starting CoderVPN...")
+                #expect(try progressView.labelView().text().string() == "Starting Coder Connect...")
             }
         }
     }
@@ -51,7 +51,7 @@ struct VPNStateTests {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let progressView = try view.find(ViewType.ProgressView.self)
-                #expect(try progressView.labelView().text().string() == "Stopping CoderVPN...")
+                #expect(try progressView.labelView().text().string() == "Stopping Coder Connect...")
             }
         }
     }

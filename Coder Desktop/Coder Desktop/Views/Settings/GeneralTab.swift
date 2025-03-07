@@ -10,7 +10,7 @@ struct GeneralTab: View {
             }
             Section {
                 Toggle(isOn: $state.stopVPNOnQuit) {
-                    Text("Stop VPN on Quit")
+                    Text("Stop Coder Connect on Quit")
                 }
             }
         }.formStyle(.grouped)

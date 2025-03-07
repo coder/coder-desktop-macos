@@ -16,7 +16,7 @@ if [ -f "$VPN_MARKER_FILE" ]; then
   echo "Restarting CoderVPN..."
   echo "Sleeping for 3..."
   sleep 3
-  scutil --nc start "CoderVPN"
+  scutil --nc start "Coder"
   rm "$VPN_MARKER_FILE"
   echo "CoderVPN started."
 fi
