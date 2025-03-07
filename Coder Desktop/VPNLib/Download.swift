@@ -56,7 +56,6 @@ public class SignatureValidator {
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
 
     // `expectedVersion` must be of the form `[0-9]+.[0-9]+.[0-9]+`
-    // swiftlint:disable:next cyclomatic_complexity
     public static func validate(path: URL, expectedVersion: String) throws(ValidationError) {
         guard FileManager.default.fileExists(atPath: path.path) else {
             throw .fileNotFound
@@ -97,6 +96,10 @@ public class SignatureValidator {
             throw .missingInfoPList
         }
 
+        try validateInfo(infoPlist: infoPlist, expectedVersion: expectedVersion)
+    }
+
+    private static func validateInfo(infoPlist: [String: AnyObject], expectedVersion: String) throws(ValidationError) {
         guard let plistIdent = infoPlist[infoIdentifierKey] as? String, plistIdent == expectedIdentifier else {
             throw .invalidIdentifier(identifier: infoPlist[infoIdentifierKey] as? String)
         }
