@@ -99,7 +99,7 @@ cask "coder-desktop${SUFFIX}" do
 
   url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/CoderDesktop.pkg"
   name "Coder Desktop"
-  desc "Coder Desktop client"
+  desc "Native desktop client for Coder"
   homepage "https://github.com/coder/coder-desktop-macos"
 
   conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
