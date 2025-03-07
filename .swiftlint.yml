@@ -1,0 +1,4 @@
+# TODO: Remove this once the grpc-swift-protobuf generator adds a lint disable comment
+excluded:
+  - "**/*.pb.swift"
+  - "**/*.grpc.swift"

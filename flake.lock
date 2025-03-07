@@ -1,5 +1,23 @@
 {
   "nodes": {
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib"
+      },
+      "locked": {
+        "lastModified": 1717285511,
+        "narHash": "sha256-iKzJcpdXih14qYVcZ9QC9XuZYnPc6T8YImb6dX166kw=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "2a55567fcf15b1b1c7ed712a2c6fadaec7412ea8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -18,7 +36,72 @@
         "type": "github"
       }
     },
+    "grpc-swift": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "grpc-swift-src": "grpc-swift-src",
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1734611727,
+        "narHash": "sha256-HWyTCVTAZ+R2fmK6+FoG72U1f7srF6dqaZJANsd1heE=",
+        "owner": "i10416",
+        "repo": "grpc-swift-flake",
+        "rev": "b3e21ab4c686be29af42ccd36c4cc476a1ccbd8e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "i10416",
+        "repo": "grpc-swift-flake",
+        "type": "github"
+      }
+    },
+    "grpc-swift-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1726668274,
+        "narHash": "sha256-uI8MpRIGGn/d00pNzBxEZgQ06Q9Ladvdlc5cGNhOnkI=",
+        "owner": "grpc",
+        "repo": "grpc-swift",
+        "rev": "07123ed731671e800ab8d641006613612e954746",
+        "type": "github"
+      },
+      "original": {
+        "owner": "grpc",
+        "ref": "refs/tags/1.23.1",
+        "repo": "grpc-swift",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
+      "locked": {
+        "lastModified": 1715499532,
+        "narHash": "sha256-9UJLb8rdi2VokYcfOBQHUzP3iNxOPNWcbK++ENElpk0=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "af8b9db5c00f1a8e4b83578acc578ff7d823b786",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1717284937,
+        "narHash": "sha256-lIbdfCsf8LMFloheeE6N31+BMIeixqyQWbSr2vk79EQ=",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/eb9ceca17df2ea50a250b6b27f7bf6ab0186f198.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/eb9ceca17df2ea50a250b6b27f7bf6ab0186f198.tar.gz"
+      }
+    },
+    "nixpkgs_2": {
       "locked": {
         "lastModified": 1740560979,
         "narHash": "sha256-Vr3Qi346M+8CjedtbyUevIGDZW8LcA1fTG0ugPY/Hic=",
@@ -37,7 +120,8 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "grpc-swift": "grpc-swift",
+        "nixpkgs": "nixpkgs_2"
       }
     },
     "systems": {

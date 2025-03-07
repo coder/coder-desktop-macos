@@ -105,6 +105,10 @@ packages:
   LaunchAtLogin:
     url: https://github.com/sindresorhus/LaunchAtLogin-modern
     from: 1.1.0
+  GRPC:
+    url: https://github.com/grpc/grpc-swift
+    # v2 does not support macOS 14.0
+    exactVersion: 1.24.2
 
 targets:
   Coder Desktop:
@@ -112,6 +116,8 @@ targets:
     platform: macOS
     sources:
       - path: Coder Desktop
+      - path: Resources
+        buildPhase: resources
     entitlements:
       path: Coder Desktop/Coder_Desktop.entitlements
       properties:
@@ -155,6 +161,10 @@ targets:
       - package: FluidMenuBarExtra
       - package: KeychainAccess
       - package: LaunchAtLogin
+      - package: GRPC
+      - package: SwiftProtobuf
+      - package: SwiftProtobuf
+        product: SwiftProtobufPluginLibrary
     scheme:
       testPlans:
         - path: Coder Desktop.xctestplan
