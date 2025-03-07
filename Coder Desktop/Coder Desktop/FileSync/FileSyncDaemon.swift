@@ -32,7 +32,6 @@ class MutagenDaemon: FileSyncDaemon {
         #elseif arch(x86_64)
             mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-amd64", withExtension: nil)
         #else
-            mutagenPath = nil 
             fatalError("unknown architecture")
         #endif
         mutagenDataDirectory = FileManager.default.urls(
