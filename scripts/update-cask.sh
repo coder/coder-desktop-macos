@@ -44,15 +44,15 @@ done
   exit 1
 }
 
-# Download the Coder Desktop dmg
+# Download the CoderDesktop pkg
 GH_RELEASE_FOLDER=$(mktemp -d)
 
 gh release download "$VERSION" \
   --repo coder/coder-desktop-macos \
   --dir "$GH_RELEASE_FOLDER" \
-  --pattern 'Coder.Desktop.dmg'
+  --pattern 'CoderDesktop.pkg'
 
-HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/Coder.Desktop.dmg | awk '{print $1}' | tr -d '\n')
+HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/CoderDesktop.pkg | awk '{print $1}' | tr -d '\n')
 
 IS_PREVIEW=false
 if [[ "$VERSION" == "preview" ]]; then
