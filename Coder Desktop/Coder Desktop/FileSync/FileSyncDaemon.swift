@@ -101,6 +101,7 @@ class MutagenDaemon: FileSyncDaemon {
         if case .unavailable = state { return }
         state = .stopped
         guard FileManager.default.fileExists(atPath: mutagenDaemonSocket.path) else {
+            // Already stopped
             return
         }
 
@@ -111,10 +112,8 @@ class MutagenDaemon: FileSyncDaemon {
             callOptions: .init(timeLimit: .timeout(.milliseconds(500)))
         )
 
-        // Clean up gRPC connection
         try? await cleanupGRPC()
 
-        // Ensure the process is terminated
         mutagenProcess?.terminate()
         logger.info("Daemon stopped and gRPC connection closed")
     }
