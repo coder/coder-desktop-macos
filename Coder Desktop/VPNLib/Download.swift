@@ -43,7 +43,7 @@ public enum ValidationError: Error {
 
 public class SignatureValidator {
     // Whilst older dylibs exist, this app assumes v2.20 or later.
-    static let minimumCoderVersion = "2.20.0"
+    public static let minimumCoderVersion = "2.20.0"
 
     private static let expectedName = "CoderVPN"
     private static let expectedIdentifier = "com.coder.Coder-Desktop.VPN.dylib"
