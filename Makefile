@@ -53,12 +53,12 @@ $(KEYCHAIN_FILE):
 	security set-keychain-settings -lut 21600 "$(APP_SIGNING_KEYCHAIN)"
 	security unlock-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
 	@tempfile=$$(mktemp); \
-	echo "$$APPLE_CERT" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(CERT_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
+	echo "$$APPLE_DEVELOPER_ID_PKCS12_B64" | base64 -d > $$tempfile; \
+	security import $$tempfile -P '$(APPLE_DEVELOPER_ID_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
 	rm $$tempfile
 	@tempfile=$$(mktemp); \
-	echo "$$APPLE_INSTALLER_CERT" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(INSTALLER_CERT_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
+	echo "$$APPLE_INSTALLER_PKCS12_B64" | base64 -d > $$tempfile; \
+	security import $$tempfile -P '$(APPLE_INSTALLER_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
 	rm $$tempfile
 	security list-keychains -d user -s $$(security list-keychains -d user | tr -d '\"') "$(APP_SIGNING_KEYCHAIN)"
 
