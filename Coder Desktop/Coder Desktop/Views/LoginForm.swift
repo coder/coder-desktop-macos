@@ -1,5 +1,6 @@
 import CoderSDK
 import SwiftUI
+import VPNLib
 
 struct LoginForm: View {
     @EnvironmentObject var state: AppState
@@ -76,6 +77,22 @@ struct LoginForm: View {
             _ = try await client.user("me")
         } catch {
             loginError = .failedAuth(error)
+            return
+        }
+        let buildInfo: BuildInfoResponse
+        do {
+            buildInfo = try await client.buildInfo()
+        } catch {
+            loginError = .failedAuth(error)
+            return
+        }
+        guard let semver = buildInfo.semver else {
+            loginError = .missingServerVersion
+            return
+        }
+        // x.compare(y) is .orderedDescending if x > y
+        guard SignatureValidator.minimumCoderVersion.compare(semver, options: .numeric) != .orderedDescending else {
+            loginError = .outdatedCoderVersion
             return
         }
         state.login(baseAccessURL: url, sessionToken: sessionToken)
@@ -190,6 +207,8 @@ enum LoginError: Error {
     case httpsRequired
     case noHost
     case invalidURL
+    case outdatedCoderVersion
+    case missingServerVersion
     case failedAuth(ClientError)
 
     var description: String {
@@ -200,8 +219,15 @@ enum LoginError: Error {
             "URL must have a host"
         case .invalidURL:
             "Invalid URL"
+        case .outdatedCoderVersion:
+            """
+            The Coder deployment must be version \(SignatureValidator.minimumCoderVersion)
+            or higher to use Coder Desktop.
+            """
         case let .failedAuth(err):
             "Could not authenticate with Coder deployment:\n\(err.localizedDescription)"
+        case .missingServerVersion:
+            "Coder deployment did not provide a server version"
         }
     }
 
