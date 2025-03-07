@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
+VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
+
+rm $VPN_MARKER_FILE $RUNNING_MARKER_FILE || true
+
+if pgrep 'Coder Desktop'; then
+  touch $RUNNING_MARKER_FILE
+fi
+
+echo "Turning off VPN"
+if scutil --nc list | grep -q "CoderVPN"; then
+  echo "CoderVPN found. Stopping..."
+  if scutil --nc status "CoderVPN" | grep -q "^Connected$"; then
+    touch $VPN_MARKER_FILE
+  fi
+  scutil --nc stop "CoderVPN"
+
+  # Wait for VPN to be disconnected
+  while scutil --nc status "CoderVPN" | grep -q "^Connected$"; do
+    echo "Waiting for VPN to disconnect..."
+    sleep 1
+  done
+  while scutil --nc status "CoderVPN" | grep -q "^Disconnecting$"; do
+    echo "Waiting for VPN to complete disconnect..."
+    sleep 1
+  done
+else
+  echo "CoderVPN not found. Nothing to stop."
+fi
+echo "Done."
+
+echo "Asking com.coder.Coder-Desktop to quit..."
+osascript -e 'if app id "com.coder.Coder-Desktop" is running then' -e 'quit app id "com.coder.Coder-Desktop"' -e 'end if'
+echo "Done."
+
+exit 0

@@ -29,6 +29,7 @@ protocol SystemExtensionAsyncRecorder: Sendable {
 extension CoderVPNService: SystemExtensionAsyncRecorder {
     func recordSystemExtensionState(_ state: SystemExtensionState) async {
         sysExtnState = state
+        logger.info("system extension state: \(state.description)")
         if state == .installed {
             // system extension was successfully installed, so we don't need the delegate any more
             systemExtnDelegate = nil

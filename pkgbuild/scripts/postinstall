@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
+VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
+
+# Restart Coder Desktop if it was running before
+if [ -f "$RUNNING_MARKER_FILE" ]; then
+  echo "Starting Coder Desktop..."
+  open -a "Coder Desktop"
+  rm "$RUNNING_MARKER_FILE"
+  echo "Coder Desktop started."
+fi
+
+# Restart VPN if it was running before
+if [ -f "$VPN_MARKER_FILE" ]; then
+  echo "Restarting CoderVPN..."
+  echo "Sleeping for 3..."
+  sleep 3
+  scutil --nc start "CoderVPN"
+  rm "$VPN_MARKER_FILE"
+  echo "CoderVPN started."
+fi
+
+exit 0

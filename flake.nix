@@ -25,30 +25,6 @@
           };
 
           formatter = pkgs.nixfmt-rfc-style;
-
-          create-dmg = pkgs.buildNpmPackage rec {
-            pname = "create-dmg";
-            version = "7.0.0";
-
-            src = pkgs.fetchFromGitHub {
-              owner = "sindresorhus";
-              repo = pname;
-              rev = "v${version}";
-              hash = "sha256-+GxKfhVDmtgEh9NOAzGexgfj1qAb0raC8AmrrnJ2vNA=";
-            };
-
-            npmDepsHash = "sha256-48r9v0sTlHbyH4RjynClfC/QsFAlgMTtXCbleuMSM80=";
-
-            # create-dmg author does not want to include a lockfile in their releases,
-            # thus we need to vendor it in ourselves.
-            postPatch = ''
-              cp ${./nix/create-dmg/package-lock.json} package-lock.json
-            '';
-
-            # Plain JS, so nothing to build
-            dontNpmBuild = true;
-            dontNpmPrune = true;
-          };
         in
         {
           inherit formatter;
@@ -60,7 +36,6 @@
                 actionlint
                 clang
                 coreutils
-                create-dmg
                 gh
                 git
                 gnumake
