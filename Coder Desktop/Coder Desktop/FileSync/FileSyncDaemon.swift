@@ -18,7 +18,7 @@ class MutagenDaemon: FileSyncDaemon {
 
     private var mutagenProcess: Process?
     private var mutagenPipe: Pipe?
-    private let mutagenPath: URL
+    private let mutagenPath: URL!
     private let mutagenDataDirectory: URL
     private let mutagenDaemonSocket: URL
 
@@ -28,10 +28,11 @@ class MutagenDaemon: FileSyncDaemon {
 
     init() {
         #if arch(arm64)
-            mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-arm64", withExtension: nil)!
+            mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-arm64", withExtension: nil)
         #elseif arch(x86_64)
-            mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-amd64", withExtension: nil)!
+            mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-amd64", withExtension: nil)
         #else
+            mutagenPath = nil 
             fatalError("unknown architecture")
         #endif
         mutagenDataDirectory = FileManager.default.urls(
@@ -41,7 +42,7 @@ class MutagenDaemon: FileSyncDaemon {
         mutagenDaemonSocket = mutagenDataDirectory.appending(path: "daemon").appending(path: "daemon.sock")
         // It shouldn't be fatal if the app was built without Mutagen embedded,
         // but file sync will be unavailable.
-        if !FileManager.default.fileExists(atPath: mutagenPath.path) {
+        if mutagenPath == nil {
             logger.warning("Mutagen not embedded in app, file sync will be unavailable")
             state = .unavailable
         }
