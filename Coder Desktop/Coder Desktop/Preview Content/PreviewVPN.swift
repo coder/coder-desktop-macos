@@ -26,11 +26,15 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         UUID(): Agent(id: UUID(), name: "dev", status: .off, hosts: ["asdf.coder"], wsName: "example",
                       wsID: UUID()),
     ], workspaces: [:])
+    @Published var sysExtnState: SystemExtensionState = .installed
+    @Published var neState: NetworkExtensionState = .enabled
     let shouldFail: Bool
     let longError = "This is a long error to test the UI with long error messages"
 
-    init(shouldFail: Bool = false) {
+    init(shouldFail: Bool = false, extensionInstalled: Bool = true, networkExtensionEnabled: Bool = true) {
         self.shouldFail = shouldFail
+        sysExtnState = extensionInstalled ? .installed : .uninstalled
+        neState = networkExtensionEnabled ? .enabled : .disabled
     }
 
     var startTask: Task<Void, Never>?
@@ -77,5 +81,70 @@ final class PreviewVPN: Coder_Desktop.VPNService {
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {
         state = .connecting
+    }
+
+    func uninstall() async -> Bool {
+        // Simulate uninstallation with a delay
+        do {
+            try await Task.sleep(for: .seconds(2))
+        } catch {
+            return false
+        }
+
+        if !shouldFail {
+            sysExtnState = .uninstalled
+            return true
+        }
+        return false
+    }
+
+    func installExtension() async {
+        // Simulate installation with a delay
+        do {
+            try await Task.sleep(for: .seconds(2))
+            sysExtnState = if !shouldFail {
+                .installed
+            } else {
+                .failed("Failed to install extension")
+            }
+        } catch {
+            sysExtnState = .failed("Installation was interrupted")
+        }
+    }
+
+    func disableExtension() async -> Bool {
+        // Simulate disabling with a delay
+        do {
+            try await Task.sleep(for: .seconds(1))
+        } catch {
+            return false
+        }
+
+        if !shouldFail {
+            neState = .disabled
+            state = .disabled
+            return true
+        } else {
+            neState = .failed("Failed to disable network extension")
+            return false
+        }
+    }
+
+    func enableExtension() async -> Bool {
+        // Simulate enabling with a delay
+        do {
+            try await Task.sleep(for: .seconds(1))
+        } catch {
+            return false
+        }
+
+        if !shouldFail {
+            neState = .enabled
+            state = .disabled // Just disabled, not connected yet
+            return true
+        } else {
+            neState = .failed("Failed to enable network extension")
+            return false
+        }
     }
 }
