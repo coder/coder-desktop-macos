@@ -8,7 +8,7 @@ class AppState: ObservableObject {
     let appId = Bundle.main.bundleIdentifier!
 
     // Stored in UserDefaults
-    @Published private(set) var hasSession: Bool {
+    @Published var hasSession: Bool {
         didSet {
             guard persistent else { return }
             UserDefaults.standard.set(hasSession, forKey: Keys.hasSession)
