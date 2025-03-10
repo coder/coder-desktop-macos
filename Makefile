@@ -153,9 +153,9 @@ clean/build:
 
 .PHONY: clean/mutagen
 clean/mutagen:
-	rm -f "$(PROJECT)/Resources/mutagen-agents.tar.gz"
-	rm -f "$(PROJECT)/Resources/mutagen-darwin-arm64"
-	rm -f "$(PROJECT)/Resources/mutagen-darwin-amd64"
+	rm -f $(PROJECT)/Resources/mutagen-agents.tar.gz
+	rm -f $(PROJECT)/Resources/mutagen-darwin-arm64
+	rm -f $(PROJECT)/Resources/mutagen-darwin-amd64
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift $(PROJECT)/VPNLib/FileSync/daemon.pb.swift ## Generate Swift files from protobufs
