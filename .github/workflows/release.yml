@@ -79,10 +79,10 @@ jobs:
       # Upload as artifact in dry-run mode
       - name: Upload Build Artifact
         if: ${{ inputs.dryrun }}
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: coder-desktop-build
-          path: ${{ github.workspace }}/out
+          path: ${{ github.workspace }}/outputs//out
           retention-days: 7
 
       # Upload to release in non-dry-run mode
