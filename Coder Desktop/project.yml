@@ -161,10 +161,6 @@ targets:
       - package: FluidMenuBarExtra
       - package: KeychainAccess
       - package: LaunchAtLogin
-      - package: GRPC
-      - package: SwiftProtobuf
-      - package: SwiftProtobuf
-        product: SwiftProtobufPluginLibrary
     scheme:
       testPlans:
         - path: Coder Desktop.xctestplan
@@ -263,6 +259,7 @@ targets:
       - package: SwiftProtobuf
       - package: SwiftProtobuf
         product: SwiftProtobufPluginLibrary
+      - package: GRPC
       - target: CoderSDK
         embed: false
 

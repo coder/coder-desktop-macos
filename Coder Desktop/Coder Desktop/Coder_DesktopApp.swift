@@ -1,6 +1,7 @@
 import FluidMenuBarExtra
 import NetworkExtension
 import SwiftUI
+import VPNLib
 
 @main
 struct DesktopApp: App {
