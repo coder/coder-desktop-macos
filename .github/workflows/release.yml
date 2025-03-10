@@ -63,6 +63,8 @@ jobs:
           gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-agents.tar.gz "Coder Desktop/Resources/mutagen-agents.tar.gz"
           gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-arm64 "Coder Desktop/Resources/mutagen-darwin-arm64"
           gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-amd64 "Coder Desktop/Resources/mutagen-darwin-amd64"
+          chmod +x "Coder Desktop/Resources/mutagen-darwin-arm64"
+          chmod +x "Coder Desktop/Resources/mutagen-darwin-amd64"
 
       - name: Build
         env:
