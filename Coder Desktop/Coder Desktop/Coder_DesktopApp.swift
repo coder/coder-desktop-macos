@@ -49,6 +49,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .NEVPNStatusDidChange,
             object: nil
         )
+        // Subscribe to reconfiguration requests
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(networkExtensionNeedsReconfiguration(_:)),
+            name: .networkExtensionNeedsReconfiguration,
+            object: nil
+        )
         Task {
             // If there's no NE config, but the user is logged in, such as
             // from a previous install, then we need to reconfigure.
@@ -82,9 +89,27 @@ extension AppDelegate {
         vpn.vpnDidUpdate(connection)
         menuBar?.vpnDidUpdate(connection)
     }
+
+    @objc private func networkExtensionNeedsReconfiguration(_: Notification) {
+        // Check if we have a session
+        if state.hasSession {
+            // Reconfigure the network extension with full credentials
+            state.reconfigure()
+        } else {
+            // No valid session, the user likely needs to log in again
+            // Show the login window
+            NSApp.sendAction(#selector(NSApp.showLoginWindow), to: nil, from: nil)
+        }
+    }
 }
 
 @MainActor
 func appActivate() {
     NSApp.activate()
+}
+
+extension NSApplication {
+    @objc func showLoginWindow() {
+        NSApp.sendAction(#selector(NSWindowController.showWindow(_:)), to: nil, from: Windows.login.rawValue)
+    }
 }

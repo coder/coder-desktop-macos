@@ -9,6 +9,8 @@ class MockVPNService: VPNService, ObservableObject {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var baseAccessURL: URL = .init(string: "https://dev.coder.com")!
     @Published var menuState: VPNMenuState = .init()
+    @Published var sysExtnState: SystemExtensionState = .installed
+    @Published var neState: NetworkExtensionState = .enabled
     var onStart: (() async -> Void)?
     var onStop: (() async -> Void)?
 
@@ -23,6 +25,20 @@ class MockVPNService: VPNService, ObservableObject {
     }
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
+
+    func uninstall() async -> Bool {
+        true
+    }
+
+    func installExtension() async {}
+
+    func disableExtension() async -> Bool {
+        true
+    }
+
+    func enableExtension() async -> Bool {
+        true
+    }
 }
 
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
