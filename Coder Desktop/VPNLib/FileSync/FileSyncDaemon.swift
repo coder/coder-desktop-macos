@@ -4,17 +4,17 @@ import NIO
 import os
 
 @MainActor
-protocol FileSyncDaemon: ObservableObject {
+public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
     func start() async throws
     func stop() async throws
 }
 
 @MainActor
-class MutagenDaemon: FileSyncDaemon {
+public class MutagenDaemon: FileSyncDaemon {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "mutagen")
 
-    @Published var state: DaemonState = .stopped
+    @Published public var state: DaemonState = .stopped
 
     private var mutagenProcess: Process?
     private var mutagenPipe: Pipe?
@@ -26,7 +26,7 @@ class MutagenDaemon: FileSyncDaemon {
     private var channel: GRPCChannel?
     private var client: Daemon_DaemonAsyncClient?
 
-    init() {
+    public init() {
         #if arch(arm64)
             mutagenPath = Bundle.main.url(forResource: "mutagen-darwin-arm64", withExtension: nil)
         #elseif arch(x86_64)
@@ -47,7 +47,7 @@ class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    func start() async throws {
+    public func start() async throws {
         if case .unavailable = state { return }
 
         // Stop an orphaned daemon, if there is one
@@ -97,7 +97,7 @@ class MutagenDaemon: FileSyncDaemon {
         group = nil
     }
 
-    func stop() async throws {
+    public func stop() async throws {
         if case .unavailable = state { return }
         state = .stopped
         guard FileManager.default.fileExists(atPath: mutagenDaemonSocket.path) else {
@@ -158,14 +158,14 @@ class MutagenDaemon: FileSyncDaemon {
     }
 }
 
-enum DaemonState {
+public enum DaemonState {
     case running
     case stopped
     case failed(String)
     case unavailable
 }
 
-enum MutagenDaemonError: Error {
+public enum MutagenDaemonError: Error {
     case daemonStartFailure(Error)
     case connectionFailure(Error)
 }
