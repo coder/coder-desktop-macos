@@ -154,11 +154,16 @@ targets:
         DSTROOT: $(LOCAL_APPS_DIR)/Coder
         INSTALL_PATH: /
         SKIP_INSTALL: NO
+        LD_RUNPATH_SEARCH_PATHS:
+          # Load frameworks from the SE bundle.
+          - "@executable_path/../../Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Frameworks" 
+          - "@executable_path/../Frameworks"
+          - "@loader_path/Frameworks"
     dependencies:
       - target: CoderSDK
-        embed: true
+        embed: false # Loaded from SE bundle
       - target: VPNLib
-        embed: true
+        embed: false # Loaded from SE bundle
       - target: VPN
         embed: without-signing # Embed without signing.
       - package: FluidMenuBarExtra
@@ -233,8 +238,10 @@ targets:
         # Empty outside of release builds
         PROVISIONING_PROFILE_SPECIFIER: ${EXT_PROVISIONING_PROFILE_ID}
     dependencies:
+      # The app loads the framework embedded here too
       - target: VPNLib
         embed: true
+      # The app loads the framework embedded here too
       - target: CoderSDK
         embed: true
       - sdk: NetworkExtension.framework
