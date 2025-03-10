@@ -65,6 +65,7 @@ public class MutagenDaemon: FileSyncDaemon {
         try await connect()
 
         state = .running
+        logger.info("mutagen daemon started")
     }
 
     private func connect() async throws {
@@ -80,7 +81,9 @@ public class MutagenDaemon: FileSyncDaemon {
                 eventLoopGroup: group!
             )
             client = Daemon_DaemonAsyncClient(channel: channel!)
-            logger.info("Successfully connected to mutagen daemon via gRPC")
+            logger.info(
+                "Successfully connected to mutagen daemon, socket: \(self.mutagenDaemonSocket.path, privacy: .public)"
+            )
         } catch {
             logger.error("Failed to connect to gRPC: \(error)")
             try await cleanupGRPC()
@@ -124,6 +127,7 @@ public class MutagenDaemon: FileSyncDaemon {
         let process = Process()
         process.executableURL = mutagenPath
         process.arguments = ["daemon", "run"]
+        logger.info("setting mutagen data directory: \(self.mutagenDataDirectory.path, privacy: .public)")
         process.environment = [
             "MUTAGEN_DATA_DIRECTORY": mutagenDataDirectory.path,
         ]
