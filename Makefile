@@ -34,7 +34,22 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 setup: \
 	$(XCPROJECT) \
 	$(PROJECT)/VPNLib/vpn.pb.swift \
-	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift
+	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift \
+	$(PROJECT)/Resources/mutagen-agents.tar.gz \
+	$(PROJECT)/Resources/mutagen-darwin-arm64 \
+	$(PROJECT)/Resources/mutagen-darwin-amd64
+
+# Mutagen resources
+$(PROJECT)/Resources/mutagen-agents.tar.gz:
+	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-agents.tar.gz "$@"
+
+$(PROJECT)/Resources/mutagen-darwin-arm64:
+	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-arm64 "$@"
+	chmod +x "$@"
+
+$(PROJECT)/Resources/mutagen-darwin-amd64:
+	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-amd64 "$@"
+	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
 	cd $(PROJECT); \
@@ -113,7 +128,7 @@ lint/actions: ## Lint GitHub Actions
 	zizmor .
 
 .PHONY: clean
-clean: clean/project clean/keychain clean/build ## Clean project and artifacts
+clean: clean/project clean/keychain clean/build clean/mutagen ## Clean project and artifacts
 
 .PHONY: clean/project
 clean/project:
@@ -135,6 +150,12 @@ clean/keychain:
 .PHONY: clean/build
 clean/build:
 	rm -rf build/ release/ $$out
+
+.PHONY: clean/mutagen
+clean/mutagen:
+	rm -f "$(PROJECT)/Resources/mutagen-agents.tar.gz"
+	rm -f "$(PROJECT)/Resources/mutagen-darwin-arm64"
+	rm -f "$(PROJECT)/Resources/mutagen-darwin-amd64"
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift $(PROJECT)/VPNLib/FileSync/daemon.pb.swift ## Generate Swift files from protobufs
