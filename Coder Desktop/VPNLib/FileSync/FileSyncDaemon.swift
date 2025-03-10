@@ -6,15 +6,19 @@ import os
 @MainActor
 public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
-    func start() async throws(DaemonError)
-    func stop() async throws(DaemonError)
+    func start() async
+    func stop() async
 }
 
 @MainActor
 public class MutagenDaemon: FileSyncDaemon {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "mutagen")
 
-    @Published public var state: DaemonState = .stopped
+    @Published public var state: DaemonState = .stopped {
+        didSet {
+            logger.info("daemon state changed: \(self.state.description)")
+        }
+    }
 
     private var mutagenProcess: Process?
     private var mutagenPipe: Pipe?
@@ -47,26 +51,24 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    public func start() async throws(DaemonError) {
+    public func start() async {
         if case .unavailable = state { return }
 
         // Stop an orphaned daemon, if there is one
         try? await connect()
-        try? await stop()
+        await stop()
 
         (mutagenProcess, mutagenPipe) = createMutagenProcess()
         do {
             try mutagenProcess?.run()
         } catch {
-            state = .failed("Failed to start file sync daemon: \(error)")
-            throw DaemonError.daemonStartFailure(error)
+            state = .failed(DaemonError.daemonStartFailure(error))
         }
 
         do {
             try await connect()
         } catch {
-            state = .failed("failed to connect to file sync daemon: \(error)")
-            throw DaemonError.daemonStartFailure(error)
+            state = .failed(DaemonError.daemonStartFailure(error))
         }
 
         state = .running
@@ -105,7 +107,7 @@ public class MutagenDaemon: FileSyncDaemon {
         group = nil
     }
 
-    public func stop() async throws(DaemonError) {
+    public func stop() async {
         if case .unavailable = state { return }
         state = .stopped
         guard FileManager.default.fileExists(atPath: mutagenDaemonSocket.path) else {
@@ -155,7 +157,7 @@ public class MutagenDaemon: FileSyncDaemon {
                 return
             default:
                 logger.error("mutagen daemon exited unexpectedly")
-                self.state = .failed("File sync daemon terminated unexpectedly")
+                self.state = .failed(.terminatedUnexpectedly)
             }
         }
     }
@@ -170,11 +172,38 @@ public class MutagenDaemon: FileSyncDaemon {
 public enum DaemonState {
     case running
     case stopped
-    case failed(String)
+    case failed(DaemonError)
     case unavailable
+
+    var description: String {
+        switch self {
+        case .running:
+            "Running"
+        case .stopped:
+            "Stopped"
+        case let .failed(error):
+            "Failed: \(error)"
+        case .unavailable:
+            "Unavailable"
+        }
+    }
 }
 
 public enum DaemonError: Error {
     case daemonStartFailure(Error)
     case connectionFailure(Error)
+    case terminatedUnexpectedly
+
+    var description: String {
+        switch self {
+        case let .daemonStartFailure(error):
+            "Daemon start failure: \(error)"
+        case let .connectionFailure(error):
+            "Connection failure: \(error)"
+        case .terminatedUnexpectedly:
+            "Daemon terminated unexpectedly"
+        }
+    }
+
+    var localizedDescription: String { description }
 }
