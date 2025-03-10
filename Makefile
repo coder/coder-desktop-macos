@@ -33,7 +33,8 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 .PHONY: setup
 setup: \
 	$(XCPROJECT) \
-	proto
+	 $(PROJECT)/VPNLib/vpn.proto \
+	$(PROJECT)/VPNLib/FileSync/daemon.proto
 
 $(XCPROJECT): $(PROJECT)/project.yml
 	cd $(PROJECT); \
