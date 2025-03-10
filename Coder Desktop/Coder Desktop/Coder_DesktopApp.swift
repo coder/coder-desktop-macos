@@ -61,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // TODO: Start the daemon only once a file sync is configured
         Task {
-            try? await fileSyncDaemon.start()
+            await fileSyncDaemon.start()
         }
     }
 
@@ -75,7 +75,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             let fileSyncStop = Task {
-                try? await fileSyncDaemon.stop()
+                await fileSyncDaemon.stop()
             }
             _ = await (vpnStop.value, fileSyncStop.value)
             NSApp.reply(toApplicationShouldTerminate: true)
