@@ -16,7 +16,7 @@ public class MutagenDaemon: FileSyncDaemon {
 
     @Published public var state: DaemonState = .stopped {
         didSet {
-            logger.info("daemon state changed: \(self.state.description)")
+            logger.info("daemon state changed: \(self.state.description, privacy: .public)")
         }
     }
 
@@ -72,7 +72,12 @@ public class MutagenDaemon: FileSyncDaemon {
         }
 
         state = .running
-        logger.info("mutagen daemon started, pid: \(self.mutagenProcess?.processIdentifier.description ?? "unknown")")
+        logger.info(
+            """
+            mutagen daemon started, pid:
+             \(self.mutagenProcess?.processIdentifier.description ?? "unknown", privacy: .public)
+            """
+        )
     }
 
     private func connect() async throws(DaemonError) {
@@ -164,7 +169,7 @@ public class MutagenDaemon: FileSyncDaemon {
 
     private nonisolated func logOutput(pipe: FileHandle) {
         if let line = String(data: pipe.availableData, encoding: .utf8), line != "" {
-            logger.info("\(line)")
+            logger.info("\(line, privacy: .public)")
         }
     }
 }
