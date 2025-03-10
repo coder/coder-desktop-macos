@@ -4,15 +4,23 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    grpc-swift.url = "github:i10416/grpc-swift-flake";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    grpc-swift = {
+      url = "github:i10416/grpc-swift-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs =
     {
-      self,
       nixpkgs,
       flake-utils,
       grpc-swift,
+      ...
     }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system; [

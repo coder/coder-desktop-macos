@@ -6,8 +6,8 @@ import os
 @MainActor
 public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
-    func start() async throws
-    func stop() async throws
+    func start() async throws(DaemonError)
+    func stop() async throws(DaemonError)
 }
 
 @MainActor
@@ -47,7 +47,7 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    public func start() async throws {
+    public func start() async throws(DaemonError) {
         if case .unavailable = state { return }
 
         // Stop an orphaned daemon, if there is one
@@ -59,16 +59,21 @@ public class MutagenDaemon: FileSyncDaemon {
             try mutagenProcess?.run()
         } catch {
             state = .failed("Failed to start file sync daemon: \(error)")
-            throw MutagenDaemonError.daemonStartFailure(error)
+            throw DaemonError.daemonStartFailure(error)
         }
 
-        try await connect()
+        do {
+            try await connect()
+        } catch {
+            state = .failed("failed to connect to file sync daemon: \(error)")
+            throw DaemonError.daemonStartFailure(error)
+        }
 
         state = .running
-        logger.info("mutagen daemon started")
+        logger.info("mutagen daemon started, pid: \(self.mutagenProcess?.processIdentifier.description ?? "unknown")")
     }
 
-    private func connect() async throws {
+    private func connect() async throws(DaemonError) {
         guard client == nil else {
             // Already connected
             return
@@ -86,8 +91,8 @@ public class MutagenDaemon: FileSyncDaemon {
             )
         } catch {
             logger.error("Failed to connect to gRPC: \(error)")
-            try await cleanupGRPC()
-            throw MutagenDaemonError.connectionFailure(error)
+            try? await cleanupGRPC()
+            throw DaemonError.connectionFailure(error)
         }
     }
 
@@ -100,7 +105,7 @@ public class MutagenDaemon: FileSyncDaemon {
         group = nil
     }
 
-    public func stop() async throws {
+    public func stop() async throws(DaemonError) {
         if case .unavailable = state { return }
         state = .stopped
         guard FileManager.default.fileExists(atPath: mutagenDaemonSocket.path) else {
@@ -169,7 +174,7 @@ public enum DaemonState {
     case unavailable
 }
 
-public enum MutagenDaemonError: Error {
+public enum DaemonError: Error {
     case daemonStartFailure(Error)
     case connectionFailure(Error)
 }
