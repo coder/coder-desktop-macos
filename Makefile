@@ -56,7 +56,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
-	version=$$(cat "$<")
+	version=$$(printf "%s" "$$(cat "$<")")
 	filename=$$(basename "$@")
 	url="https://storage.googleapis.com/coder-desktop/mutagen/$${version}/$${filename}"
 	echo "Downloading from $${url}"
