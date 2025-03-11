@@ -6,11 +6,16 @@ struct GeneralTab: View {
     var body: some View {
         Form {
             Section {
-                LaunchAtLogin.Toggle("Launch at Login")
+                LaunchAtLogin.Toggle("Launch at login")
             }
             Section {
                 Toggle(isOn: $state.stopVPNOnQuit) {
-                    Text("Stop Coder Connect on Quit")
+                    Text("Stop Coder Connect on quit")
+                }
+            }
+            Section {
+                Toggle(isOn: $state.startVPNOnLaunch) {
+                    Text("Start Coder Connect on launch")
                 }
             }
         }.formStyle(.grouped)
