@@ -2,6 +2,7 @@ import Foundation
 import GRPC
 import NIO
 import os
+import Subprocess
 
 @MainActor
 public protocol FileSyncDaemon: ObservableObject {
@@ -20,8 +21,7 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    private var mutagenProcess: Process?
-    private var mutagenPipe: Pipe?
+    private var mutagenProcess: Subprocess?
     private let mutagenPath: URL!
     private let mutagenDataDirectory: URL
     private let mutagenDaemonSocket: URL
@@ -58,24 +58,42 @@ public class MutagenDaemon: FileSyncDaemon {
         try? await connect()
         await stop()
 
-        (mutagenProcess, mutagenPipe) = createMutagenProcess()
+        mutagenProcess = createMutagenProcess()
+        // swiftlint:disable:next large_tuple
+        let (standardOutput, standardError, waitForExit): (Pipe.AsyncBytes, Pipe.AsyncBytes, @Sendable () async -> Void)
         do {
-            try mutagenProcess?.run()
+            (standardOutput, standardError, waitForExit) = try mutagenProcess!.run()
         } catch {
             state = .failed(DaemonError.daemonStartFailure(error))
+            return
+        }
+
+        Task {
+            await streamHandler(io: standardOutput)
+            logger.info("standard output stream closed")
+        }
+
+        Task {
+            await streamHandler(io: standardError)
+            logger.info("standard error stream closed")
+        }
+
+        Task {
+            await terminationHandler(waitForExit: waitForExit)
         }
 
         do {
             try await connect()
         } catch {
             state = .failed(DaemonError.daemonStartFailure(error))
+            return
         }
 
         state = .running
         logger.info(
             """
             mutagen daemon started, pid:
-             \(self.mutagenProcess?.processIdentifier.description ?? "unknown", privacy: .public)
+             \(self.mutagenProcess?.pid.description ?? "unknown", privacy: .public)
             """
         )
     }
@@ -129,46 +147,39 @@ public class MutagenDaemon: FileSyncDaemon {
 
         try? await cleanupGRPC()
 
-        mutagenProcess?.terminate()
+        mutagenProcess?.kill()
+        mutagenProcess = nil
         logger.info("Daemon stopped and gRPC connection closed")
     }
 
-    private func createMutagenProcess() -> (Process, Pipe) {
-        let outputPipe = Pipe()
-        outputPipe.fileHandleForReading.readabilityHandler = logOutput
-        let process = Process()
-        process.executableURL = mutagenPath
-        process.arguments = ["daemon", "run"]
-        logger.info("setting mutagen data directory: \(self.mutagenDataDirectory.path, privacy: .public)")
+    private func createMutagenProcess() -> Subprocess {
+        let process = Subprocess([mutagenPath.path, "daemon", "run"])
         process.environment = [
             "MUTAGEN_DATA_DIRECTORY": mutagenDataDirectory.path,
         ]
-        process.standardOutput = outputPipe
-        process.standardError = outputPipe
-        process.terminationHandler = terminationHandler
-        return (process, outputPipe)
+        logger.info("setting mutagen data directory: \(self.mutagenDataDirectory.path, privacy: .public)")
+        return process
     }
 
-    private nonisolated func terminationHandler(process _: Process) {
-        Task { @MainActor in
-            self.mutagenPipe?.fileHandleForReading.readabilityHandler = nil
-            mutagenProcess = nil
+    private func terminationHandler(waitForExit: @Sendable () async -> Void) async {
+        await waitForExit()
 
-            try? await cleanupGRPC()
-
-            switch self.state {
-            case .stopped:
-                logger.info("mutagen daemon stopped")
-                return
-            default:
-                logger.error("mutagen daemon exited unexpectedly")
-                self.state = .failed(.terminatedUnexpectedly)
-            }
+        switch state {
+        case .stopped:
+            logger.info("mutagen daemon stopped")
+        default:
+            logger.error(
+                """
+                mutagen daemon exited unexpectedly with code:
+                 \(self.mutagenProcess?.exitCode.description ?? "unknown")
+                """
+            )
+            state = .failed(.terminatedUnexpectedly)
         }
     }
 
-    private nonisolated func logOutput(pipe: FileHandle) {
-        if let line = String(data: pipe.availableData, encoding: .utf8), line != "" {
+    private func streamHandler(io: Pipe.AsyncBytes) async {
+        for await line in io.lines {
             logger.info("\(line, privacy: .public)")
         }
     }

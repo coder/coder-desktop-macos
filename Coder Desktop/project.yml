@@ -112,6 +112,9 @@ packages:
     url: https://github.com/grpc/grpc-swift
     # v2 does not support macOS 14.0
     exactVersion: 1.24.2
+  Subprocess:
+    url: https://github.com/jamf/Subprocess
+    revision: 9d67b79 
 
 targets:
   Coder Desktop:
@@ -270,6 +273,7 @@ targets:
       - package: SwiftProtobuf
         product: SwiftProtobufPluginLibrary
       - package: GRPC
+      - package: Subprocess
       - target: CoderSDK
         embed: false
 
