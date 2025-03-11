@@ -2,10 +2,12 @@ import CoderSDK
 import Foundation
 import KeychainAccess
 import NetworkExtension
+import os
 import SwiftUI
 
 @MainActor
 class AppState: ObservableObject {
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "AppState")
     let appId = Bundle.main.bundleIdentifier!
 
     // Stored in UserDefaults
@@ -95,6 +97,9 @@ class AppState: ObservableObject {
         )
         if hasSession {
             _sessionToken = Published(initialValue: keychainGet(for: Keys.sessionToken))
+            if sessionToken == nil || sessionToken!.isEmpty == true {
+                clearSession()
+            }
         }
     }
 
@@ -103,6 +108,24 @@ class AppState: ObservableObject {
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
         reconfigure()
+    }
+
+    public func handleTokenExpiry() async {
+        if hasSession {
+            let client = Client(url: baseAccessURL!, token: sessionToken!)
+            do {
+                _ = try await client.user("me")
+            } catch let ClientError.api(apiErr) {
+                // Expired token
+                if apiErr.statusCode == 401 {
+                    clearSession()
+                }
+            } catch {
+                // Some other failure, we'll show an error if they try and do something
+                logger.error("failed to check token validity: \(error)")
+                return
+            }
+        }
     }
 
     public func clearSession() {

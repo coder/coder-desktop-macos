@@ -92,10 +92,12 @@ packages:
     url: https://github.com/SimplyDanny/SwiftLintPlugins
     from: 0.57.1
   FluidMenuBarExtra:
-    # Forked so we can dynamically update the menu bar icon.
+    # Forked to:
+    # - Dynamically update the menu bar icon
+    # - Set onAppear/disappear handlers.
     # The upstream repo has a purposefully limited API
     url: https://github.com/coder/fluid-menu-bar-extra
-    revision: 020be37
+    revision: 96a861a
   KeychainAccess:
     url: https://github.com/kishikawakatsumi/KeychainAccess
     branch: e0c7eebc5a4465a3c4680764f26b7a61f567cdaf
