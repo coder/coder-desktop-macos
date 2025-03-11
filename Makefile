@@ -1,3 +1,18 @@
+# Use a single bash shell for each job, and immediately exit on failure
+SHELL := bash
+.SHELLFLAGS := -ceu
+.ONESHELL:
+
+# This doesn't work on directories.
+# See https://stackoverflow.com/questions/25752543/make-delete-on-error-for-directory-targets
+.DELETE_ON_ERROR:
+
+# Don't print the commands in the file unless you specify VERBOSE. This is
+# # essentially the same as putting "@" at the start of each line.
+ifndef VERBOSE
+.SILENT:
+endif
+
 ifdef CI
 LINTFLAGS := --reporter github-actions-logging
 FMTFLAGS := --lint --reporter github-actions-log
@@ -12,7 +27,6 @@ SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
 MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
-MUTAGEN_VERSION := v0.18.1
 
 ifndef CURRENT_PROJECT_VERSION
 	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
@@ -41,8 +55,12 @@ setup: \
 	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES))
 
 # Mutagen resources
-$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)):
-	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(shell basename "$@")" -o "$@"
+$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
+	version=$$(cat "$<")
+	filename=$$(basename "$@")
+	url="https://storage.googleapis.com/coder-desktop/mutagen/$${version}/$${filename}"
+	echo "Downloading from $${url}"
+	curl -sL $${url} -o "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
