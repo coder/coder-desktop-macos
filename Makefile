@@ -11,6 +11,9 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
+MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
+MUTAGEN_VERSION := v0.18.1
+
 ifndef CURRENT_PROJECT_VERSION
 	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
 endif
@@ -35,20 +38,11 @@ setup: \
 	$(XCPROJECT) \
 	$(PROJECT)/VPNLib/vpn.pb.swift \
 	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift \
-	$(PROJECT)/Resources/mutagen-agents.tar.gz \
-	$(PROJECT)/Resources/mutagen-darwin-arm64 \
-	$(PROJECT)/Resources/mutagen-darwin-amd64
+	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES))
 
 # Mutagen resources
-$(PROJECT)/Resources/mutagen-agents.tar.gz:
-	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-agents.tar.gz "$@"
-
-$(PROJECT)/Resources/mutagen-darwin-arm64:
-	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-arm64 "$@"
-	chmod +x "$@"
-
-$(PROJECT)/Resources/mutagen-darwin-amd64:
-	gsutil cp gs://coder-desktop/mutagen/v0.18.1/mutagen-darwin-amd64 "$@"
+$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)):
+	gsutil cp "gs://coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(subst Coder ,,$(notdir $@))" "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
@@ -153,9 +147,7 @@ clean/build:
 
 .PHONY: clean/mutagen
 clean/mutagen:
-	rm -f $(PROJECT)/Resources/mutagen-agents.tar.gz
-	rm -f $(PROJECT)/Resources/mutagen-darwin-arm64
-	rm -f $(PROJECT)/Resources/mutagen-darwin-amd64
+	find $(PROJECT)/Resources -name 'mutagen-*' -delete
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift $(PROJECT)/VPNLib/FileSync/daemon.pb.swift ## Generate Swift files from protobufs
