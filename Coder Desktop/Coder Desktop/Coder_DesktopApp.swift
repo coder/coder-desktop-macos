@@ -69,15 +69,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         Task {
-            let vpnStop = Task {
-                if !state.stopVPNOnQuit {
-                    await vpn.stop()
+            async let vpnTask: Void = {
+                if await !self.state.stopVPNOnQuit {
+                    await self.vpn.stop()
                 }
-            }
-            let fileSyncStop = Task {
-                await fileSyncDaemon.stop()
-            }
-            _ = await (vpnStop.value, fileSyncStop.value)
+            }()
+            async let fileSyncTask: Void = self.fileSyncDaemon.stop()
+            _ = await (vpnTask, fileSyncTask)
             NSApp.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
