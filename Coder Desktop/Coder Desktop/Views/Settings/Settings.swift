@@ -13,6 +13,10 @@ struct SettingsView<VPN: VPNService>: View {
                 .tabItem {
                     Label("Network", systemImage: "dot.radiowaves.left.and.right")
                 }.tag(SettingsTab.network)
+            TroubleshootingTab<VPN>()
+                .tabItem {
+                    Label("Troubleshooting", systemImage: "wrench.and.screwdriver")
+                }.tag(SettingsTab.troubleshooting)
         }.frame(width: 600)
             .frame(maxHeight: 500)
             .scrollContentBackground(.hidden)
@@ -23,4 +27,5 @@ struct SettingsView<VPN: VPNService>: View {
 enum SettingsTab: Int {
     case general
     case network
+    case troubleshooting
 }

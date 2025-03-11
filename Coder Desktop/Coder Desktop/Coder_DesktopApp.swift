@@ -88,3 +88,9 @@ extension AppDelegate {
 func appActivate() {
     NSApp.activate()
 }
+
+extension NSApplication {
+    @objc func showLoginWindow() {
+        NSApp.sendAction(#selector(NSWindowController.showWindow(_:)), to: nil, from: Windows.login.rawValue)
+    }
+}

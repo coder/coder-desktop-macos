@@ -81,6 +81,77 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
         OSSystemExtensionManager.shared.submitRequest(request)
         logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
     }
+
+    func deregisterSystemExtension() async -> Bool {
+        logger.info("Starting network extension deregistration...")
+
+        // Use the existing delegate pattern
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            // Extension bundle identifier - must match what's used in the app
+            guard let bundleID = extensionBundle.bundleIdentifier else {
+                logger.error("Bundle has no identifier")
+                continuation.resume(returning: false)
+                return
+            }
+
+            // Set a temporary state for deregistration
+            sysExtnState = .uninstalled
+
+            // Create a special delegate that will handle the deregistration and resolve the continuation
+            let delegate = SystemExtensionDelegate(asyncDelegate: self)
+            systemExtnDelegate = delegate
+
+            // Create the deactivation request
+            let request = OSSystemExtensionRequest.deactivationRequest(
+                forExtensionWithIdentifier: bundleID,
+                queue: .main
+            )
+            request.delegate = delegate
+
+            // Start a timeout task
+            Task {
+                // Allow up to 30 seconds for deregistration
+                try? await Task.sleep(for: .seconds(30))
+
+                // If we're still waiting after timeout, consider it failed
+                if case .uninstalled = self.sysExtnState {
+                    // Only update if still in uninstalled state (meaning callback never updated it)
+                    self.sysExtnState = .failed("Deregistration timed out")
+                    continuation.resume(returning: false)
+                }
+            }
+
+            // Submit the request and wait for the delegate to handle completion
+            OSSystemExtensionManager.shared.submitRequest(request)
+            logger.info("Submitted system extension deregistration request for \(bundleID)")
+
+            // The SystemExtensionDelegate will update our state via recordSystemExtensionState
+            // We'll monitor this in another task to resolve the continuation
+            Task {
+                // Check every 100ms for state changes
+                for _ in 0 ..< 300 { // 30 seconds max
+                    // If state changed from uninstalled, the delegate has processed the result
+                    if case .installed = self.sysExtnState {
+                        // This should never happen during deregistration
+                        continuation.resume(returning: false)
+                        break
+                    } else if case .failed = self.sysExtnState {
+                        // Failed state was set by delegate
+                        continuation.resume(returning: false)
+                        break
+                    } else if case .uninstalled = self.sysExtnState, self.systemExtnDelegate == nil {
+                        // Uninstalled AND delegate is nil means success (delegate cleared itself)
+                        continuation.resume(returning: true)
+                        break
+                    }
+
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+            }
+        }
+
+        return result
+    }
 }
 
 /// A delegate for the OSSystemExtensionRequest that maps the callbacks to async calls on the
