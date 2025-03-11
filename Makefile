@@ -13,11 +13,11 @@ ifndef VERBOSE
 endif
 
 ifdef CI
-	LINTFLAGS := --reporter github-actions-logging
-	FMTFLAGS := --lint --reporter github-actions-log
+LINTFLAGS := --reporter github-actions-logging
+FMTFLAGS := --lint --reporter github-actions-log
 else
-	LINTFLAGS :=
-	FMTFLAGS :=
+LINTFLAGS :=
+FMTFLAGS :=
 endif
 
 PROJECT := Coder\ Desktop
@@ -27,24 +27,24 @@ SWIFT_VERSION := 6.0
 
 MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
 ifndef MUTAGEN_VERSION
-	MUTAGEN_VERSION:=$(shell grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' $(PROJECT)/Resources/.mutagenversion)
+MUTAGEN_VERSION:=$(shell grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' $(PROJECT)/Resources/.mutagenversion)
 endif
 ifeq ($(strip $(MUTAGEN_VERSION)),)
-	$(error MUTAGEN_VERSION must be a valid version)
+$(error MUTAGEN_VERSION must be a valid version)
 endif
 
 ifndef CURRENT_PROJECT_VERSION
-	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
+CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
 endif
 ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
-	$(error CURRENT_PROJECT_VERSION cannot be empty)
+$(error CURRENT_PROJECT_VERSION cannot be empty)
 endif
 
 ifndef MARKETING_VERSION
-	MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
 endif
 ifeq ($(strip $(MARKETING_VERSION)),)
-	$(error MARKETING_VERSION cannot be empty)
+$(error MARKETING_VERSION cannot be empty)
 endif
 
 # Define the keychain file name first
