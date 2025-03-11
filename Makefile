@@ -1,7 +1,6 @@
-# Use a single bash shell for each job, and immediately exit on failure
+# Use bash and immediately exit on failure
 SHELL := bash
 .SHELLFLAGS := -ceu
-.ONESHELL:
 
 # This doesn't work on directories.
 # See https://stackoverflow.com/questions/25752543/make-delete-on-error-for-directory-targets
@@ -14,11 +13,11 @@ ifndef VERBOSE
 endif
 
 ifdef CI
-LINTFLAGS := --reporter github-actions-logging
-FMTFLAGS := --lint --reporter github-actions-log
+	LINTFLAGS := --reporter github-actions-logging
+	FMTFLAGS := --lint --reporter github-actions-log
 else
-LINTFLAGS :=
-FMTFLAGS :=
+	LINTFLAGS :=
+	FMTFLAGS :=
 endif
 
 PROJECT := Coder\ Desktop
@@ -27,6 +26,12 @@ SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
 MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
+ifndef MUTAGEN_VERSION
+	MUTAGEN_VERSION:=$(shell grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' $(PROJECT)/Resources/.mutagenversion)
+endif
+ifeq ($(strip $(MUTAGEN_VERSION)),)
+	$(error MUTAGEN_VERSION must be a valid version)
+endif
 
 ifndef CURRENT_PROJECT_VERSION
 	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
@@ -56,9 +61,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
-	version=$$(printf "%s" "$$(cat "$<")")
-	filename=$$(basename "$@")
-	url="https://storage.googleapis.com/coder-desktop/mutagen/$${version}/$${filename}"
+	url="https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$$(basename "$@")"
 	echo "Downloading from $${url}"
 	curl -sL $${url} -o "$@"
 	chmod +x "$@"
