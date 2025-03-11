@@ -20,7 +20,7 @@ struct VPNMenu<VPN: VPNService>: View {
                         }
                         }
                     )) {
-                        Text("CoderVPN")
+                        Text("Coder Connect")
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .font(.body.bold())
                             .foregroundColor(.primary)
