@@ -42,7 +42,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)):
-	gsutil cp "gs://coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(subst Coder ,,$(notdir $@))" "$@"
+	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(subst Coder ,,$(notdir $@))" -o "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
