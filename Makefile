@@ -42,7 +42,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)):
-	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(subst Coder ,,$(notdir $@))" -o "$@"
+	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(shell basename "$@")" -o "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
