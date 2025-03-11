@@ -70,7 +70,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         Task {
             async let vpnTask: Void = {
-                if await !self.state.stopVPNOnQuit {
+                if await self.state.stopVPNOnQuit {
                     await self.vpn.stop()
                 }
             }()
