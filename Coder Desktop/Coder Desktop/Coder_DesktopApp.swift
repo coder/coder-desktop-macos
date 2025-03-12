@@ -1,6 +1,7 @@
 import FluidMenuBarExtra
 import NetworkExtension
 import SwiftUI
+import VPNLib
 
 @main
 struct DesktopApp: App {
@@ -30,10 +31,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBar: MenuBarController?
     let vpn: CoderVPNService
     let state: AppState
+    let fileSyncDaemon: MutagenDaemon
 
     override init() {
         vpn = CoderVPNService()
         state = AppState(onChange: vpn.configureTunnelProviderProtocol)
+        fileSyncDaemon = MutagenDaemon()
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -56,14 +59,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 state.reconfigure()
             }
         }
+        // TODO: Start the daemon only once a file sync is configured
+        Task {
+            await fileSyncDaemon.start()
+        }
     }
 
     // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
     // or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
-        if !state.stopVPNOnQuit { return .terminateNow }
         Task {
-            await vpn.stop()
+            async let vpnTask: Void = {
+                if await self.state.stopVPNOnQuit {
+                    await self.vpn.stop()
+                }
+            }()
+            async let fileSyncTask: Void = self.fileSyncDaemon.stop()
+            _ = await (vpnTask, fileSyncTask)
             NSApp.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater

@@ -1,5 +1,25 @@
 {
   "nodes": {
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1741352980,
+        "narHash": "sha256-+u2UunDA4Cl5Fci3m7S643HzKmIDAe+fiXrLqYsR2fs=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "f4330d22f1c5d2ba72d3d22df5597d123fdb60a9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -15,6 +35,47 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "grpc-swift": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "grpc-swift-src": "grpc-swift-src",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1734611727,
+        "narHash": "sha256-HWyTCVTAZ+R2fmK6+FoG72U1f7srF6dqaZJANsd1heE=",
+        "owner": "i10416",
+        "repo": "grpc-swift-flake",
+        "rev": "b3e21ab4c686be29af42ccd36c4cc476a1ccbd8e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "i10416",
+        "repo": "grpc-swift-flake",
+        "type": "github"
+      }
+    },
+    "grpc-swift-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1726668274,
+        "narHash": "sha256-uI8MpRIGGn/d00pNzBxEZgQ06Q9Ladvdlc5cGNhOnkI=",
+        "owner": "grpc",
+        "repo": "grpc-swift",
+        "rev": "07123ed731671e800ab8d641006613612e954746",
+        "type": "github"
+      },
+      "original": {
+        "owner": "grpc",
+        "ref": "refs/tags/1.23.1",
+        "repo": "grpc-swift",
         "type": "github"
       }
     },
@@ -36,7 +97,9 @@
     },
     "root": {
       "inputs": {
+        "flake-parts": "flake-parts",
         "flake-utils": "flake-utils",
+        "grpc-swift": "grpc-swift",
         "nixpkgs": "nixpkgs"
       }
     },

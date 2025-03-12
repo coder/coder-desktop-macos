@@ -5,6 +5,9 @@ options:
     macOS: "14.0"
   xcodeVersion: "1600"
   minimumXcodeGenVersion: "2.42.0"
+  fileTypes:
+    proto:
+      buildPhase: none
 
 settings:
   base:
@@ -105,6 +108,13 @@ packages:
   LaunchAtLogin:
     url: https://github.com/sindresorhus/LaunchAtLogin-modern
     from: 1.1.0
+  GRPC:
+    url: https://github.com/grpc/grpc-swift
+    # v2 does not support macOS 14.0
+    exactVersion: 1.24.2
+  Subprocess:
+    url: https://github.com/jamf/Subprocess
+    revision: 9d67b79 
 
 targets:
   Coder Desktop:
@@ -112,6 +122,8 @@ targets:
     platform: macOS
     sources:
       - path: Coder Desktop
+      - path: Resources
+        buildPhase: resources
     entitlements:
       path: Coder Desktop/Coder_Desktop.entitlements
       properties:
@@ -145,11 +157,16 @@ targets:
         DSTROOT: $(LOCAL_APPS_DIR)/Coder
         INSTALL_PATH: /
         SKIP_INSTALL: NO
+        LD_RUNPATH_SEARCH_PATHS:
+          # Load frameworks from the SE bundle.
+          - "@executable_path/../../Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Frameworks" 
+          - "@executable_path/../Frameworks"
+          - "@loader_path/Frameworks"
     dependencies:
       - target: CoderSDK
-        embed: true
+        embed: false # Loaded from SE bundle
       - target: VPNLib
-        embed: true
+        embed: false # Loaded from SE bundle
       - target: VPN
         embed: without-signing # Embed without signing.
       - package: FluidMenuBarExtra
@@ -224,8 +241,10 @@ targets:
         # Empty outside of release builds
         PROVISIONING_PROFILE_SPECIFIER: ${EXT_PROVISIONING_PROFILE_ID}
     dependencies:
+      # The app loads the framework embedded here too
       - target: VPNLib
         embed: true
+      # The app loads the framework embedded here too
       - target: CoderSDK
         embed: true
       - sdk: NetworkExtension.framework
@@ -253,6 +272,8 @@ targets:
       - package: SwiftProtobuf
       - package: SwiftProtobuf
         product: SwiftProtobufPluginLibrary
+      - package: GRPC
+      - package: Subprocess
       - target: CoderSDK
         embed: false
 
