@@ -1,17 +1,10 @@
-# Use a single bash shell for each job, and immediately exit on failure
+# Use bash, and immediately exit on failure
 SHELL := bash
 .SHELLFLAGS := -ceu
-.ONESHELL:
 
 # This doesn't work on directories.
 # See https://stackoverflow.com/questions/25752543/make-delete-on-error-for-directory-targets
 .DELETE_ON_ERROR:
-
-# Don't print the commands in the file unless you specify VERBOSE. This is
-# # essentially the same as putting "@" at the start of each line.
-ifndef VERBOSE
-.SILENT:
-endif
 
 ifdef CI
 LINTFLAGS := --reporter github-actions-logging
@@ -62,9 +55,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
-	url="https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$$(basename "$@")"
-	echo "Downloading from $${url}"
-	curl -sL $${url} -o "$@"
+	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$$(basename "$@")" -o "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
