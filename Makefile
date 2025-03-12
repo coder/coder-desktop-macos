@@ -48,10 +48,10 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 
 .PHONY: setup
 setup: \
+	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) \
 	$(XCPROJECT) \
 	$(PROJECT)/VPNLib/vpn.pb.swift \
-	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift \
-	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES))
+	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
