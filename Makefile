@@ -1,3 +1,11 @@
+# Use bash, and immediately exit on failure
+SHELL := bash
+.SHELLFLAGS := -ceu
+
+# This doesn't work on directories.
+# See https://stackoverflow.com/questions/25752543/make-delete-on-error-for-directory-targets
+.DELETE_ON_ERROR:
+
 ifdef CI
 LINTFLAGS := --reporter github-actions-logging
 FMTFLAGS := --lint --reporter github-actions-log
@@ -11,18 +19,26 @@ XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
 SCHEME := Coder\ Desktop
 SWIFT_VERSION := 6.0
 
+MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
+ifndef MUTAGEN_VERSION
+MUTAGEN_VERSION:=$(shell grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' $(PROJECT)/Resources/.mutagenversion)
+endif
+ifeq ($(strip $(MUTAGEN_VERSION)),)
+$(error MUTAGEN_VERSION must be a valid version)
+endif
+
 ifndef CURRENT_PROJECT_VERSION
-	CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
+CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
 endif
 ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
-	$(error CURRENT_PROJECT_VERSION cannot be empty)
+$(error CURRENT_PROJECT_VERSION cannot be empty)
 endif
 
 ifndef MARKETING_VERSION
-	MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
 endif
 ifeq ($(strip $(MARKETING_VERSION)),)
-	$(error MARKETING_VERSION cannot be empty)
+$(error MARKETING_VERSION cannot be empty)
 endif
 
 # Define the keychain file name first
@@ -32,9 +48,15 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 
 .PHONY: setup
 setup: \
+	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) \
 	$(XCPROJECT) \
 	$(PROJECT)/VPNLib/vpn.pb.swift \
 	$(PROJECT)/VPNLib/FileSync/daemon.pb.swift
+
+# Mutagen resources
+$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
+	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$$(basename "$@")" -o "$@"
+	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
 	cd $(PROJECT); \
@@ -113,7 +135,7 @@ lint/actions: ## Lint GitHub Actions
 	zizmor .
 
 .PHONY: clean
-clean: clean/project clean/keychain clean/build ## Clean project and artifacts
+clean: clean/project clean/keychain clean/build clean/mutagen ## Clean project and artifacts
 
 .PHONY: clean/project
 clean/project:
@@ -135,6 +157,10 @@ clean/keychain:
 .PHONY: clean/build
 clean/build:
 	rm -rf build/ release/ $$out
+
+.PHONY: clean/mutagen
+clean/mutagen:
+	find $(PROJECT)/Resources -name 'mutagen-*' -delete
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift $(PROJECT)/VPNLib/FileSync/daemon.pb.swift ## Generate Swift files from protobufs

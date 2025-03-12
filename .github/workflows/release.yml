@@ -7,6 +7,13 @@ on:
   release:
     types: [published]
 
+  workflow_dispatch:
+    inputs:
+      dryrun:
+        description: 'Run in dry-run mode (upload as artifact instead of release asset)'
+        required: true
+        type: boolean
+        default: false
 permissions: {}
 
 # Cancel in-progress runs for when multiple PRs get merged
@@ -51,7 +58,18 @@ jobs:
           EXT_PROF: ${{ secrets.CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64 }}
         run: make release
 
+      # Upload as artifact in dry-run mode
+      - name: Upload Build Artifact
+        if: ${{ inputs.dryrun }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: coder-desktop-build
+          path: ${{ github.workspace }}/outputs/out
+          retention-days: 7
+
+      # Upload to release in non-dry-run mode
       - name: Upload Release Assets
+        if: ${{ !inputs.dryrun }}
         run: gh release upload "$RELEASE_TAG" "$out"/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,7 +78,7 @@ jobs:
   update-cask:
     name: Update homebrew-coder cask
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
-    if: ${{ github.repository_owner == 'coder' }}
+    if: ${{ github.repository_owner == 'coder' && !inputs.dryrun }}
     needs: build
     steps:
       - name: Checkout
