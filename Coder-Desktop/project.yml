@@ -141,7 +141,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
         DEVELOPMENT_ASSET_PATHS: '"Coder-Desktop/Preview Content"' # Adds development assets.
-        PRODUCT_DISPLAY_NAME: "Coder Desktop"
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_PREVIEWS: YES
         INFOPLIST_KEY_LSUIElement: YES

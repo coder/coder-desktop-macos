@@ -29,7 +29,7 @@
       "target" : {
         "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "961679182CFF100E00B2B6DF",
-        "name" : "Coder DesktopUITests"
+        "name" : "Coder-DesktopUITests"
       }
     },
     {
@@ -43,7 +43,7 @@
       "target" : {
         "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "9616790E2CFF100E00B2B6DF",
-        "name" : "Coder DesktopTests"
+        "name" : "Coder-DesktopTests"
       }
     }
   ],
