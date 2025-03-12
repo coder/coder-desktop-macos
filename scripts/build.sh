@@ -116,11 +116,11 @@ mkdir -p "$out"
 mkdir build
 
 # Archive the app
-ARCHIVE_PATH="./build/Coder Desktop.xcarchive"
+ARCHIVE_PATH="./build/Coder-Desktop.xcarchive"
 mkdir -p build
 
 xcodebuild \
-  -project "Coder Desktop/Coder Desktop.xcodeproj" \
+  -project "Coder-Desktop/Coder-Desktop.xcodeproj" \
   -scheme "Coder Desktop" \
   -configuration "Release" \
   -archivePath "$ARCHIVE_PATH" \
@@ -165,7 +165,7 @@ xcodebuild \
   -exportPath "$EXPORT_PATH"
 
 BUILT_APP_PATH="$EXPORT_PATH/Coder Desktop.app"
-PKG_PATH="$out/CoderDesktop.pkg"
+PKG_PATH="$out/Coder-Desktop.pkg"
 DSYM_ZIPPED_PATH="$out/coder-desktop-dsyms.zip"
 APP_ZIPPED_PATH="$out/coder-desktop-universal.zip"
 

@@ -44,15 +44,15 @@ done
   exit 1
 }
 
-# Download the CoderDesktop pkg
+# Download the Coder-Desktop pkg
 GH_RELEASE_FOLDER=$(mktemp -d)
 
 gh release download "$VERSION" \
   --repo coder/coder-desktop-macos \
   --dir "$GH_RELEASE_FOLDER" \
-  --pattern 'CoderDesktop.pkg'
+  --pattern 'Coder-Desktop.pkg'
 
-HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/CoderDesktop.pkg | awk '{print $1}' | tr -d '\n')
+HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/Coder-Desktop.pkg | awk '{print $1}' | tr -d '\n')
 
 IS_PREVIEW=false
 if [[ "$VERSION" == "preview" ]]; then
@@ -97,7 +97,7 @@ cask "coder-desktop${SUFFIX}" do
   version "${VERSION#v}"
   sha256 $([ "$IS_PREVIEW" = true ] && echo ":no_check" || echo "\"${HASH}\"")
 
-  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/CoderDesktop.pkg"
+  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/Coder-Desktop.pkg"
   name "Coder Desktop"
   desc "Native desktop client for Coder"
   homepage "https://github.com/coder/coder-desktop-macos"
@@ -105,7 +105,7 @@ cask "coder-desktop${SUFFIX}" do
   conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
   depends_on macos: ">= :sonoma"
 
-  pkg "CoderDesktop.pkg"
+  pkg "Coder-Desktop.pkg"
 
   uninstall quit:       [
               "com.coder.Coder-Desktop",

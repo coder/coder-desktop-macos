@@ -14,9 +14,10 @@ LINTFLAGS :=
 FMTFLAGS :=
 endif
 
-PROJECT := Coder\ Desktop
-XCPROJECT := Coder\ Desktop/Coder\ Desktop.xcodeproj
+PROJECT := Coder-Desktop
+XCPROJECT := Coder-Desktop/Coder-Desktop.xcodeproj
 SCHEME := Coder\ Desktop
+TEST_PLAN := Coder-Desktop
 SWIFT_VERSION := 6.0
 
 MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
@@ -69,13 +70,13 @@ $(XCPROJECT): $(PROJECT)/project.yml
 		xcodegen
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
-	protoc --swift_opt=Visibility=public --swift_out=. 'Coder Desktop/VPNLib/vpn.proto'
+	protoc --swift_opt=Visibility=public --swift_out=. 'Coder-Desktop/VPNLib/vpn.proto'
 
 $(PROJECT)/VPNLib/FileSync/daemon.pb.swift: $(PROJECT)/VPNLib/FileSync/daemon.proto
 	protoc \
 		--swift_out=.\
 		--grpc-swift_out=. \
-		'Coder Desktop/VPNLib/FileSync/daemon.proto'
+		'Coder-Desktop/VPNLib/FileSync/daemon.proto'
 
 $(KEYCHAIN_FILE):
 	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
@@ -115,7 +116,7 @@ test: $(XCPROJECT) ## Run all tests
 	set -o pipefail && xcodebuild test \
 		-project $(XCPROJECT) \
 		-scheme $(SCHEME) \
-		-testPlan $(SCHEME) \
+		-testPlan $(TEST_PLAN) \
 		-skipPackagePluginValidation \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
@@ -173,6 +174,6 @@ help: ## Show this help
 
 .PHONY: watch-gen
 watch-gen: ## Generate Xcode project file and watch for changes
-	watchexec -w 'Coder Desktop/project.yml' make $(XCPROJECT)
+	watchexec -w 'Coder-Desktop/project.yml' make $(XCPROJECT)
 
 print-%: ; @echo $*=$($*)
