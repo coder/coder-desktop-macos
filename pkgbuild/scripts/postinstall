@@ -6,6 +6,10 @@ VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
 # Before this script, or the user opens the app, make sure
 # Gatekeeper has ingested the notarization ticket.
 spctl -avvv "/Applications/Coder Desktop.app"
+# spctl can't assess non-apps, so this will always return a non-zero exit code, 
+# but the error message implies at minimum the signature of the extension was 
+# checked. 
+spctl -avvv "/Applications/Coder Desktop.app/Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension" || true
 
 # Restart Coder Desktop if it was running before
 if [ -f "$RUNNING_MARKER_FILE" ]; then
