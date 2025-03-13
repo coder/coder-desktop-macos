@@ -1,3 +1,3 @@
 **/*.pb.swift linguist-generated=true
 **/*.grpc.swift linguist-generated=true
-Coder-Desktop/VPNLib/MutagenSDK/*.proto linguist-generated=true
+Coder-Desktop/VPNLib/FileSync/MutagenSDK/*.proto linguist-generated=true
