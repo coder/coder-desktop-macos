@@ -75,8 +75,7 @@ $(XCPROJECT): $(PROJECT)/project.yml
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 	protoc --swift_opt=Visibility=public --swift_out=. 'Coder-Desktop/VPNLib/vpn.proto'
 
-# All other protobuf targets are vendored from Mutagen
-%.pb.swift:
+$(MUTAGEN_PROTO_SWIFTS):
 	protoc \
 	-I=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
 	--swift_out=$(PROJECT)/VPNLib/FileSync/MutagenSDK \

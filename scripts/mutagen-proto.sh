@@ -49,7 +49,7 @@ fi
 # Extract MIT License header
 mit_start_line=$(grep -n "^MIT License" "$clone_dir/LICENSE" | cut -d ":" -f 1)
 if [ -z "$mit_start_line" ]; then
-    echo "Failed to find MIT License header in Mutagen LICENSE file"
+    echo "Error: Failed to find MIT License header in Mutagen LICENSE file"
     exit 1
 fi
 license_header=$(sed -n "${mit_start_line},\$p" "$clone_dir/LICENSE" | sed 's/^/ * /')
@@ -87,7 +87,8 @@ add_file() {
             if [ -f "$import_file_path" ]; then
                 add_file "$import_file_path"
             else
-                echo "Warning: Import $import_path not found"
+                echo "Error: Import $import_path not found"
+                exit 1
             fi
         fi
     done < "$filepath"
@@ -96,7 +97,7 @@ add_file() {
 for entry_file in "${entry_files[@]}"; do
     entry_file_path="$clone_dir/$proto_prefix/$entry_file"
     if [ ! -f "$entry_file_path" ]; then
-        echo "Failed to find $entry_file_path in mutagen repo"
+        echo "Error: Failed to find $entry_file_path in mutagen repo"
         exit 1
     fi
     add_file "$entry_file_path"
