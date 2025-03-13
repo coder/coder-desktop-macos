@@ -3,6 +3,10 @@
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
 VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
 
+# Before this script, or the user opens the app, make sure
+# Gatekeeper has ingested the notarization ticket.
+spctl -avvv "/Applications/Coder Desktop.app"
+
 # Restart Coder Desktop if it was running before
 if [ -f "$RUNNING_MARKER_FILE" ]; then
   echo "Starting Coder Desktop..."
