@@ -3,7 +3,7 @@
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
 VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
 
-# Before this script, or the user opens the app, make sure
+# Before this script, or the user, opens the app, make sure
 # Gatekeeper has ingested the notarization ticket.
 spctl -avvv "/Applications/Coder Desktop.app"
 # spctl can't assess non-apps, so this will always return a non-zero exit code, 
