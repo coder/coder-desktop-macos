@@ -1,1 +1,2 @@
-nix/create-dmg/package-lock.json -diff
+**/*.pb.swift linguist-generated=true
+**/*.grpc.swift linguist-generated=true
