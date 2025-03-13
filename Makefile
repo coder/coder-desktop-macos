@@ -56,7 +56,7 @@ setup: \
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
-	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$$(basename "$@")" -o "$@"
+	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(notdir $@)" -o "$@"
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
