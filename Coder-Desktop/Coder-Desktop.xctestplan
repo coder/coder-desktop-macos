@@ -10,7 +10,7 @@
   ],
   "defaultOptions" : {
     "targetForVariableExpansion" : {
-      "containerPath" : "container:Coder Desktop.xcodeproj",
+      "containerPath" : "container:Coder-Desktop.xcodeproj",
       "identifier" : "961678FB2CFF100D00B2B6DF",
       "name" : "Coder Desktop"
     }
@@ -18,7 +18,7 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "AA3B40972D2FC8560099996A",
         "name" : "CoderSDKTests"
       }
@@ -27,23 +27,23 @@
       "enabled" : false,
       "parallelizable" : true,
       "target" : {
-        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "961679182CFF100E00B2B6DF",
-        "name" : "Coder DesktopUITests"
+        "name" : "Coder-DesktopUITests"
       }
     },
     {
       "target" : {
-        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "AA3B3DA72D2D23860099996A",
         "name" : "VPNLibTests"
       }
     },
     {
       "target" : {
-        "containerPath" : "container:Coder Desktop.xcodeproj",
+        "containerPath" : "container:Coder-Desktop.xcodeproj",
         "identifier" : "9616790E2CFF100E00B2B6DF",
-        "name" : "Coder DesktopTests"
+        "name" : "Coder-DesktopTests"
       }
     }
   ],

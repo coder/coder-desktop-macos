@@ -77,7 +77,7 @@ make
 ```
 
 This will use **XcodeGen** to create the required Xcode project files.
-The configuration for the project is defined in `Coder Desktop/project.yml`.
+The configuration for the project is defined in `Coder-Desktop/project.yml`.
 
 ## Common Make Commands
 
@@ -96,7 +96,7 @@ For continuous development, you can also use:
 make watch-gen
 ```
 
-This command watches for changes to `Coder Desktop/project.yml` and regenerates
+This command watches for changes to `Coder-Desktop/project.yml` and regenerates
 the Xcode project file as needed.
 
 ## Testing and Formatting

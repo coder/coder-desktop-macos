@@ -1,4 +1,4 @@
-name: "Coder Desktop"
+name: "Coder-Desktop"
 options:
   bundleIdPrefix: com.coder
   deploymentTarget:
@@ -121,11 +121,11 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Coder Desktop
+      - path: Coder-Desktop
       - path: Resources
         buildPhase: resources
     entitlements:
-      path: Coder Desktop/Coder_Desktop.entitlements
+      path: Coder-Desktop/Coder-Desktop.entitlements
       properties:
         com.apple.developer.networking.networkextension:
           - packet-tunnel-provider${PTP_SUFFIX}
@@ -140,7 +140,7 @@ targets:
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
-        DEVELOPMENT_ASSET_PATHS: '"Coder Desktop/Preview Content"' # Adds development assets.
+        DEVELOPMENT_ASSET_PATHS: '"Coder-Desktop/Preview Content"' # Adds development assets.
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_PREVIEWS: YES
         INFOPLIST_KEY_LSUIElement: YES
@@ -174,19 +174,19 @@ targets:
       - package: LaunchAtLogin
     scheme:
       testPlans:
-        - path: Coder Desktop.xctestplan
+        - path: Coder-Desktop.xctestplan
       testTargets:
-        - Coder DesktopTests
-        - Coder DesktopUITests
+        - Coder-DesktopTests
+        - Coder-DesktopUITests
     buildToolPlugins:
       - plugin: SwiftLintBuildToolPlugin
         package: SwiftLintPlugins
 
-  Coder DesktopTests:
+  Coder-DesktopTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: Coder DesktopTests
+      - path: Coder-DesktopTests
     settings:
       base:
         BUNDLE_LOADER: "$(TEST_HOST)"
@@ -199,11 +199,11 @@ targets:
       - package: ViewInspector
       - package: Mocker
 
-  Coder DesktopUITests:
+  Coder-DesktopUITests:
     type: bundle.ui-testing
     platform: macOS
     sources:
-      - path: Coder DesktopUITests
+      - path: Coder-DesktopUITests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "com.coder.Coder-DesktopUITests"
