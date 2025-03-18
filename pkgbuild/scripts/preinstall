@@ -35,4 +35,11 @@ echo "Asking com.coder.Coder-Desktop to quit..."
 osascript -e 'if app id "com.coder.Coder-Desktop" is running then' -e 'quit app id "com.coder.Coder-Desktop"' -e 'end if'
 echo "Done."
 
+APP="/Applications/Coder Desktop.app"
+if [ -d "$APP" ]; then
+  echo "Deleting Coder Desktop..."
+  rm -rf "$APP"
+  echo "Done."
+fi
+
 exit 0
