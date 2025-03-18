@@ -58,6 +58,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if await !vpn.loadNetworkExtensionConfig() {
                 state.reconfigure()
             }
+            if state.startVPNOnLaunch {
+                await vpn.start()
+            }
         }
         // TODO: Start the daemon only once a file sync is configured
         Task {

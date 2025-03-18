@@ -54,6 +54,13 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published var startVPNOnLaunch: Bool = UserDefaults.standard.bool(forKey: Keys.startVPNOnLaunch) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(startVPNOnLaunch, forKey: Keys.startVPNOnLaunch)
+        }
+    }
+
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
@@ -133,6 +140,7 @@ class AppState: ObservableObject {
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"
         static let stopVPNOnQuit = "StopVPNOnQuit"
+        static let startVPNOnLaunch = "StartVPNOnLaunch"
     }
 }
 
