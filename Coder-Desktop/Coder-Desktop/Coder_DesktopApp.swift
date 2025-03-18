@@ -40,11 +40,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        menuBar = .init(menuBarExtra: FluidMenuBarExtra(title: "Coder Desktop", image: "MenuBarIcon") {
-            VPNMenu<CoderVPNService>().frame(width: 256)
-                .environmentObject(self.vpn)
-                .environmentObject(self.state)
-        })
+        menuBar = .init(menuBarExtra: FluidMenuBarExtra(
+            title: "Coder Desktop",
+            image: "MenuBarIcon",
+            onAppear: {
+                // If the VPN is enabled, it's likely the token isn't expired
+                guard case .disabled = self.vpn.state, self.state.hasSession else { return }
+                Task { @MainActor in
+                    await self.state.handleTokenExpiry()
+                }
+            }, content: {
+                VPNMenu<CoderVPNService>().frame(width: 256)
+                    .environmentObject(self.vpn)
+                    .environmentObject(self.state)
+            }
+        ))
         // Subscribe to system VPN updates
         NotificationCenter.default.addObserver(
             self,

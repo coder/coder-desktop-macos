@@ -104,10 +104,10 @@ public struct Client {
 }
 
 public struct APIError: Decodable, Sendable {
-    let response: Response
-    let statusCode: Int
-    let method: String
-    let url: URL
+    public let response: Response
+    public let statusCode: Int
+    public let method: String
+    public let url: URL
 
     var description: String {
         var components = ["\(method) \(url.absoluteString)\nUnexpected status code \(statusCode):\n\(response.message)"]
