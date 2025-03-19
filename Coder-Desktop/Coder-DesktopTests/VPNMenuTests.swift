@@ -23,7 +23,7 @@ struct VPNMenuTests {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
-                #expect(toggle.isDisabled())
+                #expect(!toggle.isDisabled())
                 #expect(throws: Never.self) { try view.find(text: "Sign in to use Coder Desktop") }
                 #expect(throws: Never.self) { try view.find(button: "Sign in") }
             }

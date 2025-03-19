@@ -78,4 +78,6 @@ final class PreviewVPN: Coder_Desktop.VPNService {
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {
         state = .connecting
     }
+
+    var startWhenReady: Bool = false
 }

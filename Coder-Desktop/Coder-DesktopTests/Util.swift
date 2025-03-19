@@ -23,6 +23,7 @@ class MockVPNService: VPNService, ObservableObject {
     }
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
+    var startWhenReady: Bool = false
 }
 
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
