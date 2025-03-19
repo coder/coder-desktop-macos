@@ -107,6 +107,12 @@ struct LoginTests {
             data: [.get: Client.encoder.encode(buildInfo)]
         ).register()
 
+        try Mock(
+            url: url.appendingPathComponent("/api/v2/users/me"),
+            statusCode: 200,
+            data: [.get: Client.encoder.encode(User(id: UUID(), username: "username"))]
+        ).register()
+
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput(url.absoluteString)

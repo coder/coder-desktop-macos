@@ -37,6 +37,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         vpn = CoderVPNService()
         state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         fileSyncDaemon = MutagenDaemon()
+        if state.startVPNOnLaunch {
+            vpn.startWhenReady = true
+        }
+        vpn.installSystemExtension()
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -68,14 +72,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if await !vpn.loadNetworkExtensionConfig() {
                 state.reconfigure()
             }
-            if state.startVPNOnLaunch {
-                await vpn.start()
-            }
         }
         // TODO: Start the daemon only once a file sync is configured
         Task {
             await fileSyncDaemon.start()
         }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
