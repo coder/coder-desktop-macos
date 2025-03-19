@@ -10,6 +10,7 @@ protocol VPNService: ObservableObject {
     func start() async
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
+    var startWhenReady: Bool { get set }
 }
 
 enum VPNServiceState: Equatable {

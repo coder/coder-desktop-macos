@@ -4,6 +4,7 @@ struct VPNMenu<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var state: AppState
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     let inspection = Inspection<Self>()
 
@@ -16,7 +17,18 @@ struct VPNMenu<VPN: VPNService>: View {
                     Toggle(isOn: Binding(
                         get: { vpn.state == .connected || vpn.state == .connecting },
                         set: { isOn in Task {
-                            if isOn { await vpn.start() } else { await vpn.stop() }
+                            if isOn {
+                                // Clicking the toggle while logged out should
+                                // open the login window, then start the VPN asap
+                                if !state.hasSession {
+                                    vpn.startWhenReady = true
+                                    openWindow(id: .login)
+                                } else {
+                                    await vpn.start()
+                                }
+                            } else {
+                                await vpn.stop()
+                            }
                         }
                         }
                     )) {
@@ -86,8 +98,7 @@ struct VPNMenu<VPN: VPNService>: View {
     }
 
     private var vpnDisabled: Bool {
-        !state.hasSession ||
-            vpn.state == .connecting ||
+        vpn.state == .connecting ||
             vpn.state == .disconnecting ||
             // Prevent starting the VPN before the user has approved the system extension.
             vpn.state == .failed(.systemExtensionError(.needsUserApproval))
