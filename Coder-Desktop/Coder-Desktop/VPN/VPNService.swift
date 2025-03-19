@@ -18,6 +18,16 @@ enum VPNServiceState: Equatable {
     case disconnecting
     case connected
     case failed(VPNServiceError)
+
+    var canBeStarted: Bool {
+        switch self {
+        // A tunnel failure should not prevent a reconnect attempt
+        case .disabled, .failed:
+            true
+        default:
+            false
+        }
+    }
 }
 
 enum VPNServiceError: Error, Equatable {
@@ -54,10 +64,17 @@ final class CoderVPNService: NSObject, VPNService {
         guard neState == .enabled || neState == .disabled else {
             return .failed(.networkExtensionError(neState))
         }
+        if startWhenReady, tunnelState.canBeStarted {
+            startWhenReady = false
+            Task { await start() }
+        }
         return tunnelState
     }
 
     @Published var menuState: VPNMenuState = .init()
+
+    // Whether the VPN should start as soon as possible
+    var startWhenReady: Bool = false
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
@@ -68,11 +85,6 @@ final class CoderVPNService: NSObject, VPNService {
 
     override init() {
         super.init()
-        installSystemExtension()
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
     }
 
     func start() async {
