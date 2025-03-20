@@ -123,7 +123,7 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
             }
         }.sheet(isPresented: $addingNewSession) {
             FileSyncSessionModal<VPN, FS>()
-                .frame(width: 550)
+                .frame(width: 700)
         }.onTapGesture {
             selection = nil
         }

@@ -16,9 +16,8 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    HStack {
-                        Text("Local Path")
-                        Text(localPath)
+                    HStack(spacing: 5) {
+                        TextField("Local Path", text: $localPath)
                         Spacer()
                         Button {
                             let panel = NSOpenPanel()
