@@ -18,6 +18,11 @@ struct GeneralTab: View {
                     Text("Start Coder Connect on launch")
                 }
             }
+            Section {
+                Toggle(isOn: $state.showFileSyncUI) {
+                    Text("Show experimental File Sync UI")
+                }
+            }
         }.formStyle(.grouped)
     }
 }

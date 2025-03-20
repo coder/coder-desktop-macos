@@ -3,6 +3,7 @@ import SwiftUI
 // Window IDs
 enum Windows: String {
     case login
+    case fileSync
 }
 
 extension OpenWindowAction {

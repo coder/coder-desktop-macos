@@ -1,7 +1,9 @@
 import SwiftUI
+import VPNLib
 
-struct VPNMenu<VPN: VPNService>: View {
+struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
     @EnvironmentObject var vpn: VPN
+    @EnvironmentObject var fileSync: FS
     @EnvironmentObject var state: AppState
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
@@ -56,6 +58,19 @@ struct VPNMenu<VPN: VPNService>: View {
                     Link(destination: state.baseAccessURL!.appending(path: "templates")) {
                         ButtonRowView {
                             Text("Create workspace")
+                        }
+                    }.buttonStyle(.plain)
+                    TrayDivider()
+                }
+                if state.showFileSyncUI, vpn.state == .connected {
+                    Button {
+                        openWindow(id: .fileSync)
+                    } label: {
+                        ButtonRowView {
+                            HStack {
+                                StatusDot(color: fileSync.state.color)
+                                Text("Configure file sync")
+                            }
                         }
                     }.buttonStyle(.plain)
                     TrayDivider()
@@ -119,8 +134,9 @@ func openSystemExtensionSettings() {
         appState.login(baseAccessURL: URL(string: "http://127.0.0.1:8080")!, sessionToken: "")
         // appState.clearSession()
 
-        return VPNMenu<PreviewVPN>().frame(width: 256)
+        return VPNMenu<PreviewVPN, PreviewFileSync>().frame(width: 256)
             .environmentObject(PreviewVPN())
             .environmentObject(appState)
+            .environmentObject(PreviewFileSync())
     }
 #endif

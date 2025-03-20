@@ -135,6 +135,10 @@ struct VPNMenuState {
         return items.sorted()
     }
 
+    var onlineAgents: [Agent] {
+        agents.map(\.value).filter { $0.primaryHost != nil }
+    }
+
     mutating func clear() {
         agents.removeAll()
         workspaces.removeAll()
