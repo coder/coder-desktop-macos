@@ -36,11 +36,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     override init() {
         vpn = CoderVPNService()
         state = AppState(onChange: vpn.configureTunnelProviderProtocol)
-        fileSyncDaemon = MutagenDaemon()
         if state.startVPNOnLaunch {
             vpn.startWhenReady = true
         }
         vpn.installSystemExtension()
+        fileSyncDaemon = MutagenDaemon(
+            mutagenPath: Bundle.main.url(forResource: "mutagen-darwin-arm64", withExtension: nil)
+        )
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -72,10 +74,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if await !vpn.loadNetworkExtensionConfig() {
                 state.reconfigure()
             }
-        }
-        // TODO: Start the daemon only once a file sync is configured
-        Task {
-            await fileSyncDaemon.start()
         }
     }
 
