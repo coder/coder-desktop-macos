@@ -11,19 +11,17 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
     var body: some View {
         Group {
             Table(items, selection: $selection) {
-                TableColumn("Local Path") { row in
-                    Text(row.localPath.path())
+                TableColumn("Local Path") {
+                    Text($0.localPath).help($0.localPath)
                 }.width(min: 200, ideal: 240)
-                TableColumn("Workspace", value: \.workspace)
+                TableColumn("Workspace", value: \.agentHost)
                     .width(min: 100, ideal: 120)
-                TableColumn("Remote Path", value: \.remotePath)
+                TableColumn("Remote Path") { Text($0.remotePath).help($0.remotePath) }
                     .width(min: 100, ideal: 120)
-                TableColumn("Status") { $0.status.body }
+                TableColumn("Status") { $0.status.column.help($0.statusAndErrors) }
                     .width(min: 80, ideal: 100)
-                TableColumn("Size") { item in
-                    Text(item.size)
-                }
-                .width(min: 60, ideal: 80)
+                TableColumn("Size") { Text($0.maxSize.humanSizeBytes).help($0.sizeDescription) }
+                    .width(min: 60, ideal: 80)
             }
             .frame(minWidth: 400, minHeight: 200)
             .padding(.bottom, 25)
