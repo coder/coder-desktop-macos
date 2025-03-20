@@ -2,7 +2,7 @@ import SwiftUI
 import VPNLib
 
 struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
-    var existingSession: FileSyncRow?
+    var existingSession: FileSyncSession?
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var vpn: VPN
     @EnvironmentObject private var fileSync: FS

@@ -62,19 +62,21 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     }.buttonStyle(.plain)
                     TrayDivider()
                 }
-                if state.showFileSyncUI, vpn.state == .connected {
-                    Button {
-                        openWindow(id: .fileSync)
-                    } label: {
-                        ButtonRowView {
-                            HStack {
-                                StatusDot(color: fileSync.state.color)
-                                Text("Configure file sync")
+                #if DEBUG
+                    if vpn.state == .connected {
+                        Button {
+                            openWindow(id: .fileSync)
+                        } label: {
+                            ButtonRowView {
+                                HStack {
+                                    StatusDot(color: fileSync.state.color)
+                                    Text("Configure file sync")
+                                }
                             }
-                        }
-                    }.buttonStyle(.plain)
-                    TrayDivider()
-                }
+                        }.buttonStyle(.plain)
+                        TrayDivider()
+                    }
+                #endif
                 if vpn.state == .failed(.systemExtensionError(.needsUserApproval)) {
                     Button {
                         openSystemExtensionSettings()

@@ -63,14 +63,6 @@ class AppState: ObservableObject {
         }
     }
 
-    // Temporary feature flag
-    @Published var showFileSyncUI: Bool = UserDefaults.standard.bool(forKey: Keys.showFileSyncUI) {
-        didSet {
-            guard persistent else { return }
-            UserDefaults.standard.set(showFileSyncUI, forKey: Keys.showFileSyncUI)
-        }
-    }
-
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
@@ -172,8 +164,6 @@ class AppState: ObservableObject {
         static let literalHeaders = "LiteralHeaders"
         static let stopVPNOnQuit = "StopVPNOnQuit"
         static let startVPNOnLaunch = "StartVPNOnLaunch"
-
-        static let showFileSyncUI = "showFileSyncUI"
     }
 }
 

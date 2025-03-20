@@ -15,15 +15,6 @@ public protocol FileSyncDaemon: ObservableObject {
     func createSession(with: FileSyncSession) async throws
 }
 
-public struct FileSyncSession {
-    public let id: String
-    public let name: String
-    public let localPath: URL
-    public let workspace: String
-    public let agent: String
-    public let remotePath: URL
-}
-
 @MainActor
 public class MutagenDaemon: FileSyncDaemon {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "mutagen")

@@ -1,69 +1,12 @@
 import SwiftUI
 import VPNLib
 
-struct FileSyncRow: Identifiable {
-    var id = UUID()
-    var localPath: URL
-    var workspace: String
-    // This is a string as to be host-OS agnostic
-    var remotePath: String
-    var status: FileSyncStatus
-    var size: String
-}
-
-enum FileSyncStatus {
-    case unknown
-    case error(String)
-    case okay
-    case paused
-    case needsAttention(String)
-    case working(String)
-
-    var color: Color {
-        switch self {
-        case .okay:
-            .white
-        case .paused:
-            .secondary
-        case .unknown:
-            .red
-        case .error:
-            .red
-        case .needsAttention:
-            .orange
-        case .working:
-            .white
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .unknown:
-            "Unknown"
-        case let .error(msg):
-            msg
-        case .okay:
-            "OK"
-        case .paused:
-            "Paused"
-        case let .needsAttention(msg):
-            msg
-        case let .working(msg):
-            msg
-        }
-    }
-
-    var body: some View {
-        Text(description).foregroundColor(color)
-    }
-}
-
 struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
     @EnvironmentObject var vpn: VPN
 
-    @State private var selection: FileSyncRow.ID?
+    @State private var selection: FileSyncSession.ID?
     @State private var addingNewSession: Bool = false
-    @State private var items: [FileSyncRow] = []
+    @State private var items: [FileSyncSession] = []
 
     var body: some View {
         Group {
