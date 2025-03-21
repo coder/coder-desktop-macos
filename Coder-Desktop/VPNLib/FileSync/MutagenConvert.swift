@@ -2,40 +2,31 @@
 func convertSessionStatus(status: Synchronization_Status) -> FileSyncStatus {
     switch status {
     case .disconnected:
-        .error(name: "Disconnected",
-               desc: "The session is unpaused but not currently connected or connecting to either endpoint.")
+        .error(.disconnected)
     case .haltedOnRootEmptied:
-        .error(name: "Halted on root emptied", desc: "The session is halted due to the root emptying safety check.")
+        .error(.haltedOnRootEmptied)
     case .haltedOnRootDeletion:
-        .error(name: "Halted on root deletion", desc: "The session is halted due to the root deletion safety check.")
+        .error(.haltedOnRootDeletion)
     case .haltedOnRootTypeChange:
-        .error(
-            name: "Halted on root type change",
-            desc: "The session is halted due to the root type change safety check."
-        )
+        .error(.haltedOnRootTypeChange)
     case .waitingForRescan:
-        .error(name: "Waiting for rescan",
-               desc: "The session is waiting to retry scanning after an error during the previous scan.")
-    case .connectingAlpha:
-        // Alpha -> Local
-        .working(name: "Connecting (local)", desc: "The session is attempting to connect to the local endpoint.")
-    case .connectingBeta:
-        // Beta -> Remote
-        .working(name: "Connecting (remote)", desc: "The session is attempting to connect to the remote endpoint.")
+        .error(.waitingForRescan)
+    case .connectingAlpha: // Alpha -> Local
+        .working(.connectingLocal)
+    case .connectingBeta: // Beta -> Remote
+        .working(.connectingRemote)
     case .scanning:
-        .working(name: "Scanning", desc: "The session is scanning the filesystem on each endpoint.")
+        .working(.scanning)
     case .reconciling:
-        .working(name: "Reconciling", desc: "The session is performing reconciliation.")
-    case .stagingAlpha:
-        // Alpha -> Local
-        .working(name: "Staging (local)", desc: "The session is staging files locally")
-    case .stagingBeta:
-        // Beta -> Remote
-        .working(name: "Staging (remote)", desc: "The session is staging files on the remote")
+        .working(.reconciling)
+    case .stagingAlpha: // Alpha -> Local
+        .working(.stagingLocal)
+    case .stagingBeta: // Beta -> Remote
+        .working(.stagingRemote)
     case .transitioning:
-        .working(name: "Transitioning", desc: "The session is performing transition operations on each endpoint.")
+        .working(.transitioning)
     case .saving:
-        .working(name: "Saving", desc: "The session is recording synchronization history to disk.")
+        .working(.saving)
     case .watching:
         .ok
     case .UNRECOGNIZED:

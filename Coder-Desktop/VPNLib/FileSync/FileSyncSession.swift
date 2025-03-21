@@ -48,7 +48,7 @@ public struct FileSyncSession: Identifiable {
         }
         if case .error = status {} else {
             if state.conflicts.count > 0 {
-                status = .needsAttention(name: "Conflicts", desc: "The session has conflicts that need to be resolved")
+                status = .conflicts
             }
         }
         self.status = status
@@ -133,11 +133,11 @@ public struct FileSyncSessionEndpointSize: Equatable {
 
 public enum FileSyncStatus {
     case unknown
-    case error(name: String, desc: String)
+    case error(FileSyncErrorStatus)
     case ok
     case paused
-    case needsAttention(name: String, desc: String)
-    case working(name: String, desc: String)
+    case conflicts
+    case working(FileSyncWorkingStatus)
 
     public var color: Color {
         switch self {
@@ -149,7 +149,7 @@ public enum FileSyncStatus {
             .red
         case .error:
             .red
-        case .needsAttention:
+        case .conflicts:
             .orange
         case .working:
             .purple
@@ -160,16 +160,16 @@ public enum FileSyncStatus {
         switch self {
         case .unknown:
             "Unknown"
-        case let .error(name, _):
-            "\(name)"
+        case let .error(status):
+            status.name
         case .ok:
             "Watching"
         case .paused:
             "Paused"
-        case let .needsAttention(name, _):
-            name
-        case let .working(name, _):
-            name
+        case .conflicts:
+            "Conflicts"
+        case let .working(status):
+            status.name
         }
     }
 
@@ -177,21 +177,112 @@ public enum FileSyncStatus {
         switch self {
         case .unknown:
             "Unknown status message."
-        case let .error(_, desc):
-            desc
+        case let .error(status):
+            status.description
         case .ok:
             "The session is watching for filesystem changes."
         case .paused:
             "The session is paused."
-        case let .needsAttention(_, desc):
-            desc
-        case let .working(_, desc):
-            desc
+        case .conflicts:
+            "The session has conflicts that need to be resolved."
+        case let .working(status):
+            status.description
         }
     }
 
     public var column: some View {
         Text(type).foregroundColor(color)
+    }
+}
+
+public enum FileSyncWorkingStatus {
+    case connectingLocal
+    case connectingRemote
+    case scanning
+    case reconciling
+    case stagingLocal
+    case stagingRemote
+    case transitioning
+    case saving
+
+    var name: String {
+        switch self {
+        case .connectingLocal:
+            return "Connecting (local)"
+        case .connectingRemote:
+            return "Connecting (remote)"
+        case .scanning:
+            return "Scanning"
+        case .reconciling:
+            return "Reconciling"
+        case .stagingLocal:
+            return "Staging (local)"
+        case .stagingRemote:
+            return "Staging (remote)"
+        case .transitioning:
+            return "Transitioning"
+        case .saving:
+            return "Saving"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .connectingLocal:
+            return "The session is attempting to connect to the local endpoint."
+        case .connectingRemote:
+            return "The session is attempting to connect to the remote endpoint."
+        case .scanning:
+            return "The session is scanning the filesystem on each endpoint."
+        case .reconciling:
+            return "The session is performing reconciliation."
+        case .stagingLocal:
+            return "The session is staging files locally"
+        case .stagingRemote:
+            return "The session is staging files on the remote"
+        case .transitioning:
+            return "The session is performing transition operations on each endpoint."
+        case .saving:
+            return "The session is recording synchronization history to disk."
+        }
+    }
+}
+
+public enum FileSyncErrorStatus {
+    case disconnected
+    case haltedOnRootEmptied
+    case haltedOnRootDeletion
+    case haltedOnRootTypeChange
+    case waitingForRescan
+
+    var name: String {
+        switch self {
+        case .disconnected:
+            return "Disconnected"
+        case .haltedOnRootEmptied:
+            return "Halted on root emptied"
+        case .haltedOnRootDeletion:
+            return "Halted on root deletion"
+        case .haltedOnRootTypeChange:
+            return "Halted on root type change"
+        case .waitingForRescan:
+            return "Waiting for rescan"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .disconnected:
+            return "The session is unpaused but not currently connected or connecting to either endpoint."
+        case .haltedOnRootEmptied:
+            return "The session is halted due to the root emptying safety check."
+        case .haltedOnRootDeletion:
+            return "The session is halted due to the root deletion safety check."
+        case .haltedOnRootTypeChange:
+            return "The session is halted due to the root type change safety check."
+        case .waitingForRescan:
+            return "The session is waiting to retry scanning after an error during the previous scan."
+        }
     }
 }
 
