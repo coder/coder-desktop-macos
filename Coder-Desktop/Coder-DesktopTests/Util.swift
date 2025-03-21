@@ -3,6 +3,7 @@ import Combine
 import NetworkExtension
 import SwiftUI
 import ViewInspector
+import VPNLib
 
 @MainActor
 class MockVPNService: VPNService, ObservableObject {
@@ -24,6 +25,23 @@ class MockVPNService: VPNService, ObservableObject {
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
     var startWhenReady: Bool = false
+}
+
+@MainActor
+class MockFileSyncDaemon: FileSyncDaemon {
+    var state: VPNLib.DaemonState = .running
+
+    func start() async throws(VPNLib.DaemonError) {
+        return
+    }
+
+    func stop() async {}
+
+    func listSessions() async throws -> [VPNLib.FileSyncSession] {
+        []
+    }
+
+    func createSession(with _: VPNLib.FileSyncSession) async throws {}
 }
 
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
