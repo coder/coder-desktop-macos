@@ -58,7 +58,6 @@ func humanReadableBytes(_ bytes: UInt64) -> String {
     ByteCountFormatter().string(fromByteCount: Int64(bytes))
 }
 
-
 extension Prompting_HostResponse {
     func ensureValid(first: Bool, allowPrompts: Bool) throws(DaemonError) {
         if first {
