@@ -38,9 +38,9 @@ public class MutagenDaemon: FileSyncDaemon {
     private let mutagenDaemonSocket: URL
 
     // Non-nil when the daemon is running
+    var client: DaemonClient?
     private var group: MultiThreadedEventLoopGroup?
     private var channel: GRPCChannel?
-    private var client: DaemonClient?
 
     // Protect start & stop transitions against re-entrancy
     private let transition = AsyncSemaphore(value: 1)
@@ -167,7 +167,8 @@ public class MutagenDaemon: FileSyncDaemon {
             )
             client = DaemonClient(
                 mgmt: Daemon_DaemonAsyncClient(channel: channel!),
-                sync: Synchronization_SynchronizationAsyncClient(channel: channel!)
+                sync: Synchronization_SynchronizationAsyncClient(channel: channel!),
+                prompt: Prompting_PromptingAsyncClient(channel: channel!)
             )
             logger.info(
                 "Successfully connected to mutagen daemon, socket: \(self.mutagenDaemonSocket.path, privacy: .public)"
@@ -295,6 +296,7 @@ public class MutagenDaemon: FileSyncDaemon {
 struct DaemonClient {
     let mgmt: Daemon_DaemonAsyncClient
     let sync: Synchronization_SynchronizationAsyncClient
+    let prompt: Prompting_PromptingAsyncClient
 }
 
 public enum DaemonState {
@@ -336,6 +338,8 @@ public enum DaemonError: Error {
     case connectionFailure(Error)
     case terminatedUnexpectedly
     case grpcFailure(Error)
+    case invalidGrpcResponse(String)
+    case unexpectedStreamClosure
 
     var description: String {
         switch self {
@@ -349,6 +353,10 @@ public enum DaemonError: Error {
             "The daemon must be started first"
         case let .grpcFailure(error):
             "Failed to communicate with daemon: \(error)"
+        case let .invalidGrpcResponse(response):
+            "Invalid gRPC response: \(response)"
+        case .unexpectedStreamClosure:
+            "Unexpected stream closure"
         }
     }
 
