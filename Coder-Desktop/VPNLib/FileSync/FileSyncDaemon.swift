@@ -167,7 +167,8 @@ public class MutagenDaemon: FileSyncDaemon {
             )
             client = DaemonClient(
                 mgmt: Daemon_DaemonAsyncClient(channel: channel!),
-                sync: Synchronization_SynchronizationAsyncClient(channel: channel!)
+                sync: Synchronization_SynchronizationAsyncClient(channel: channel!),
+                prompt: Prompting_PromptingAsyncClient(channel: channel!)
             )
             logger.info(
                 "Successfully connected to mutagen daemon, socket: \(self.mutagenDaemonSocket.path, privacy: .public)"
@@ -292,9 +293,63 @@ public class MutagenDaemon: FileSyncDaemon {
     }
 }
 
+
+extension MutagenDaemon {
+    typealias PromptStream = GRPCAsyncBidirectionalStreamingCall<Prompting_HostRequest, Prompting_HostResponse>
+
+    func Host(allowPrompts: Bool = true) async throws(DaemonError) -> (PromptStream, identifier: String) {
+        let stream = client!.prompt.makeHostCall()
+
+        do {
+            try await stream.requestStream.send(.with { req in req.allowPrompts = allowPrompts })
+        } catch {
+            throw .grpcFailure(error)
+        }
+
+        // We can't make call `makeAsyncIterator` more than once
+        // (as a for-loop would do implicitly)
+        var iter = stream.responseStream.makeAsyncIterator()
+
+        // "Receive the initialization response, validate it, and extract the prompt identifier"
+        let initResp: Prompting_HostResponse?
+        do {
+            initResp = try await iter.next()
+        } catch {
+            throw .grpcFailure(error)
+        }
+        guard let initResp = initResp else {
+            throw .unexpectedStreamClosure
+        }
+        // TODO: we'll always accept prompts for now
+        try initResp.ensureValid(first: true, allowPrompts: allowPrompts)
+
+        Task.detached(priority: .background) {
+            do {
+                while let resp = try await iter.next() {
+                    debugPrint(resp)
+                    try resp.ensureValid(first: false, allowPrompts: allowPrompts)
+                   switch resp.isPrompt {
+                   case true:
+                       // TODO: Handle prompt
+                       break
+                   case false:
+                       // TODO: Handle message
+                       break
+                   }
+                }
+            } catch {
+                // TODO: Log prompter stream error
+            }
+        }
+        return (stream, identifier: initResp.identifier)
+    }
+}
+
+
 struct DaemonClient {
     let mgmt: Daemon_DaemonAsyncClient
     let sync: Synchronization_SynchronizationAsyncClient
+    let prompt: Prompting_PromptingAsyncClient
 }
 
 public enum DaemonState {
@@ -336,6 +391,8 @@ public enum DaemonError: Error {
     case connectionFailure(Error)
     case terminatedUnexpectedly
     case grpcFailure(Error)
+    case invalidGrpcResponse(String)
+    case unexpectedStreamClosure
 
     var description: String {
         switch self {
@@ -349,6 +406,10 @@ public enum DaemonError: Error {
             "The daemon must be started first"
         case let .grpcFailure(error):
             "Failed to communicate with daemon: \(error)"
+        case let .invalidGrpcResponse(response):
+            "Invalid gRPC response: \(response)"
+        case .unexpectedStreamClosure:
+            "Unexpected stream closure"
         }
     }
 
