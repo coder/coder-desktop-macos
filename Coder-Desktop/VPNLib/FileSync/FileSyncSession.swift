@@ -208,42 +208,42 @@ public enum FileSyncWorkingStatus {
     var name: String {
         switch self {
         case .connectingLocal:
-            return "Connecting (local)"
+            "Connecting (local)"
         case .connectingRemote:
-            return "Connecting (remote)"
+            "Connecting (remote)"
         case .scanning:
-            return "Scanning"
+            "Scanning"
         case .reconciling:
-            return "Reconciling"
+            "Reconciling"
         case .stagingLocal:
-            return "Staging (local)"
+            "Staging (local)"
         case .stagingRemote:
-            return "Staging (remote)"
+            "Staging (remote)"
         case .transitioning:
-            return "Transitioning"
+            "Transitioning"
         case .saving:
-            return "Saving"
+            "Saving"
         }
     }
 
     var description: String {
         switch self {
         case .connectingLocal:
-            return "The session is attempting to connect to the local endpoint."
+            "The session is attempting to connect to the local endpoint."
         case .connectingRemote:
-            return "The session is attempting to connect to the remote endpoint."
+            "The session is attempting to connect to the remote endpoint."
         case .scanning:
-            return "The session is scanning the filesystem on each endpoint."
+            "The session is scanning the filesystem on each endpoint."
         case .reconciling:
-            return "The session is performing reconciliation."
+            "The session is performing reconciliation."
         case .stagingLocal:
-            return "The session is staging files locally"
+            "The session is staging files locally"
         case .stagingRemote:
-            return "The session is staging files on the remote"
+            "The session is staging files on the remote"
         case .transitioning:
-            return "The session is performing transition operations on each endpoint."
+            "The session is performing transition operations on each endpoint."
         case .saving:
-            return "The session is recording synchronization history to disk."
+            "The session is recording synchronization history to disk."
         }
     }
 }
@@ -258,30 +258,30 @@ public enum FileSyncErrorStatus {
     var name: String {
         switch self {
         case .disconnected:
-            return "Disconnected"
+            "Disconnected"
         case .haltedOnRootEmptied:
-            return "Halted on root emptied"
+            "Halted on root emptied"
         case .haltedOnRootDeletion:
-            return "Halted on root deletion"
+            "Halted on root deletion"
         case .haltedOnRootTypeChange:
-            return "Halted on root type change"
+            "Halted on root type change"
         case .waitingForRescan:
-            return "Waiting for rescan"
+            "Waiting for rescan"
         }
     }
 
     var description: String {
         switch self {
         case .disconnected:
-            return "The session is unpaused but not currently connected or connecting to either endpoint."
+            "The session is unpaused but not currently connected or connecting to either endpoint."
         case .haltedOnRootEmptied:
-            return "The session is halted due to the root emptying safety check."
+            "The session is halted due to the root emptying safety check."
         case .haltedOnRootDeletion:
-            return "The session is halted due to the root deletion safety check."
+            "The session is halted due to the root deletion safety check."
         case .haltedOnRootTypeChange:
-            return "The session is halted due to the root type change safety check."
+            "The session is halted due to the root type change safety check."
         case .waitingForRescan:
-            return "The session is waiting to retry scanning after an error during the previous scan."
+            "The session is waiting to retry scanning after an error during the previous scan."
         }
     }
 }
