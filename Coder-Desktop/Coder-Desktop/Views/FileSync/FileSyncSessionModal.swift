@@ -21,6 +21,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                         Spacer()
                         Button {
                             let panel = NSOpenPanel()
+                            panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
                             panel.allowsMultipleSelection = false
                             panel.canChooseDirectories = true
                             panel.canChooseFiles = false
