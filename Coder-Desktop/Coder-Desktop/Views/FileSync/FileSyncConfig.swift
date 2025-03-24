@@ -65,7 +65,15 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                             if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
                                 Divider()
                                 Button {
-                                    // TODO: Pause & Unpause
+                                    Task {
+                                        // TODO: Support pausing & resuming multiple selections
+                                        switch selectedSession.status {
+                                        case .paused:
+                                            try await fileSync.resumeSessions(ids: [selectedSession.id])
+                                        default:
+                                            try await fileSync.pauseSessions(ids: [selectedSession.id])
+                                        }
+                                    }
                                 } label: {
                                     switch selectedSession.status {
                                     case .paused:

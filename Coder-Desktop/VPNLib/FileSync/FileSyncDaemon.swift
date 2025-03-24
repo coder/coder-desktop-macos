@@ -15,6 +15,8 @@ public protocol FileSyncDaemon: ObservableObject {
     func refreshSessions() async
     func createSession(localPath: String, agentHost: String, remotePath: String) async throws(DaemonError)
     func deleteSessions(ids: [String]) async throws(DaemonError)
+    func pauseSessions(ids: [String]) async throws(DaemonError)
+    func resumeSessions(ids: [String]) async throws(DaemonError)
 }
 
 @MainActor

@@ -77,4 +77,38 @@ public extension MutagenDaemon {
         }
         await refreshSessions()
     }
+
+    func pauseSessions(ids: [String]) async throws(DaemonError) {
+        let (stream, promptID) = try await host()
+        defer { stream.cancel() }
+        guard case .running = state else { return }
+        do {
+            _ = try await client!.sync.pause(Synchronization_PauseRequest.with { req in
+                req.prompter = promptID
+                req.selection = .with { selection in
+                    selection.specifications = ids
+                }
+            })
+        } catch {
+            throw .grpcFailure(error)
+        }
+        await refreshSessions()
+    }
+
+    func resumeSessions(ids: [String]) async throws(DaemonError) {
+        let (stream, promptID) = try await host()
+        defer { stream.cancel() }
+        guard case .running = state else { return }
+        do {
+            _ = try await client!.sync.resume(Synchronization_ResumeRequest.with { req in
+                req.prompter = promptID
+                req.selection = .with { selection in
+                    selection.specifications = ids
+                }
+            })
+        } catch {
+            throw .grpcFailure(error)
+        }
+        await refreshSessions()
+    }
 }
