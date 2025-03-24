@@ -51,11 +51,15 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                                 loading = true
                                 defer { loading = false }
                                 do throws(DaemonError) {
+                                    // TODO: Support selecting & deleting multiple sessions at once
                                     try await fileSync.deleteSessions(ids: [selection!])
+                                    if fileSync.sessionState.isEmpty {
+                                        // Last session was deleted, stop the daemon
+                                        await fileSync.stop()
+                                    }
                                 } catch {
                                     deleteError = error
                                 }
-                                await fileSync.refreshSessions()
                                 selection = nil
                             }
                         } label: {
@@ -66,7 +70,9 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                                 Divider()
                                 Button {
                                     Task {
-                                        // TODO: Support pausing & resuming multiple selections
+                                        // TODO: Support pausing & resuming multiple sessions at once
+                                        loading = true
+                                        defer { loading = false }
                                         switch selectedSession.status {
                                         case .paused:
                                             try await fileSync.resumeSessions(ids: [selectedSession.id])

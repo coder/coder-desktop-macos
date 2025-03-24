@@ -13,10 +13,6 @@ public extension MutagenDaemon {
             return
         }
         sessionState = sessions.sessionStates.map { FileSyncSession(state: $0) }
-        if sessionState.isEmpty {
-            logger.info("No sync sessions found")
-            await stop()
-        }
     }
 
     func createSession(
@@ -61,7 +57,8 @@ public extension MutagenDaemon {
     }
 
     func deleteSessions(ids: [String]) async throws(DaemonError) {
-        // Terminating sessions does not require prompting
+        // Terminating sessions does not require prompting, according to the
+        // Mutagen CLI
         let (stream, promptID) = try await host(allowPrompts: false)
         defer { stream.cancel() }
         guard case .running = state else { return }
@@ -79,7 +76,9 @@ public extension MutagenDaemon {
     }
 
     func pauseSessions(ids: [String]) async throws(DaemonError) {
-        let (stream, promptID) = try await host()
+        // Pausing sessions does not require prompting, according to the
+        // Mutagen CLI
+        let (stream, promptID) = try await host(allowPrompts: false)
         defer { stream.cancel() }
         guard case .running = state else { return }
         do {
@@ -96,7 +95,9 @@ public extension MutagenDaemon {
     }
 
     func resumeSessions(ids: [String]) async throws(DaemonError) {
-        let (stream, promptID) = try await host()
+        // Resuming sessions does not require prompting, according to the
+        // Mutagen CLI
+        let (stream, promptID) = try await host(allowPrompts: false)
         defer { stream.cancel() }
         guard case .running = state else { return }
         do {

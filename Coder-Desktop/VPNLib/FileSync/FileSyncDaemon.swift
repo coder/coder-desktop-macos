@@ -77,6 +77,10 @@ public class MutagenDaemon: FileSyncDaemon {
                 return
             }
             await refreshSessions()
+            if sessionState.isEmpty {
+                logger.info("No sync sessions found on startup, stopping daemon")
+                await stop()
+            }
         }
     }
 
