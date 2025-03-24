@@ -41,9 +41,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         vpn.installSystemExtension()
         #if arch(arm64)
-        let mutagenBinary = "mutagen-darwin-arm64"
+            let mutagenBinary = "mutagen-darwin-arm64"
         #elseif arch(x86_64)
-        let mutagenBinary = "mutagen-darwin-amd64"
+            let mutagenBinary = "mutagen-darwin-amd64"
         #endif
         fileSyncDaemon = MutagenDaemon(
             mutagenPath: Bundle.main.url(forResource: mutagenBinary, withExtension: nil)
