@@ -29,6 +29,12 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 }
                 .width(min: 60, ideal: 80)
             }
+            .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { _ in },
+                 primaryAction: { selectedSessions in
+                    if let session = selectedSessions.first {
+                        editingSession = fileSync.sessionState.first(where: { $0.id == session })
+                    }
+            })
             .frame(minWidth: 400, minHeight: 200)
             .padding(.bottom, 25)
             .overlay(alignment: .bottom) {
