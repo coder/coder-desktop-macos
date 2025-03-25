@@ -26,12 +26,11 @@ public struct FileSyncSession: Identifiable {
             "Unknown"
         }
         if state.session.beta.protocol == Url_Protocol.ssh, !state.session.beta.host.isEmpty {
-            let host = state.session.beta.host
             // TOOD: We need to either:
             // - make this compatible with custom suffixes
             // - always strip the tld
             // - always keep the tld
-            agentHost = host.hasSuffix(".coder") ? String(host.dropLast(6)) : host
+            agentHost = state.session.beta.host
         } else {
             agentHost = "Unknown"
         }
