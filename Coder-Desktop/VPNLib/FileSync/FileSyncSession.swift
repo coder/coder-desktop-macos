@@ -9,7 +9,6 @@ public struct FileSyncSession: Identifiable {
     public let betaPath: String
     public let status: FileSyncStatus
 
-    public let maxSize: FileSyncSessionEndpointSize
     public let localSize: FileSyncSessionEndpointSize
     public let remoteSize: FileSyncSessionEndpointSize
 
@@ -25,14 +24,14 @@ public struct FileSyncSession: Identifiable {
         } else {
             "Unknown"
         }
-        if state.session.beta.protocol == Url_Protocol.ssh, !state.session.beta.host.isEmpty {
+        agentHost = if state.session.beta.protocol == Url_Protocol.ssh, !state.session.beta.host.isEmpty {
             // TOOD: We need to either:
             // - make this compatible with custom suffixes
             // - always strip the tld
             // - always keep the tld
-            agentHost = state.session.beta.host
+            state.session.beta.host
         } else {
-            agentHost = "Unknown"
+            "Unknown"
         }
         betaPath = if !state.session.beta.path.isEmpty {
             state.session.beta.path
@@ -64,7 +63,6 @@ public struct FileSyncSession: Identifiable {
             dirCount: state.betaState.directories,
             symLinkCount: state.betaState.symbolicLinks
         )
-        maxSize = localSize.maxOf(other: remoteSize)
 
         errors = accumulateErrors(from: state)
     }
@@ -77,9 +75,6 @@ public struct FileSyncSession: Identifiable {
 
     public var sizeDescription: String {
         var out = ""
-        if localSize != remoteSize {
-            out += "Maximum:\n\(maxSize.description(linePrefix: " "))\n\n"
-        }
         out += "Local:\n\(localSize.description(linePrefix: " "))\n\n"
         out += "Remote:\n\(remoteSize.description(linePrefix: " "))"
         return out
@@ -97,15 +92,6 @@ public struct FileSyncSessionEndpointSize: Equatable {
         self.fileCount = fileCount
         self.dirCount = dirCount
         self.symLinkCount = symLinkCount
-    }
-
-    func maxOf(other: FileSyncSessionEndpointSize) -> FileSyncSessionEndpointSize {
-        FileSyncSessionEndpointSize(
-            sizeBytes: max(sizeBytes, other.sizeBytes),
-            fileCount: max(fileCount, other.fileCount),
-            dirCount: max(dirCount, other.dirCount),
-            symLinkCount: max(symLinkCount, other.symLinkCount)
-        )
     }
 
     public var humanSizeBytes: String {

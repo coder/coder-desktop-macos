@@ -24,7 +24,7 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     .width(min: 100, ideal: 120)
                 TableColumn("Status") { $0.status.column.help($0.statusAndErrors) }
                     .width(min: 80, ideal: 100)
-                TableColumn("Size") { Text($0.maxSize.humanSizeBytes).help($0.sizeDescription) }
+                TableColumn("Size") { Text($0.localSize.humanSizeBytes).help($0.sizeDescription) }
                     .width(min: 60, ideal: 80)
             }
             .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { _ in },
