@@ -23,7 +23,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.state)
         }
         .windowResizability(.contentSize)
-        Window("File Sync", id: Windows.fileSync.rawValue) {
+        Window("Coder File Sync", id: Windows.fileSync.rawValue) {
             FileSyncConfig<CoderVPNService, MutagenDaemon>()
                 .environmentObject(appDelegate.state)
                 .environmentObject(appDelegate.fileSyncDaemon)

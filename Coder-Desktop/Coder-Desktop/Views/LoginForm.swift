@@ -49,7 +49,7 @@ struct LoginForm: View {
                 }
             }
         )) {} message: {
-            Text(loginError?.description ?? "An unknown error occurred. This should never happen.")
+            Text(loginError?.description ?? "An unknown error occurred.")
         }.disabled(loading)
         .frame(width: 550)
         .fixedSize()

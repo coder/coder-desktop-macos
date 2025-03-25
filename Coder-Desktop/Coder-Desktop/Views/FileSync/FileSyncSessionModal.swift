@@ -52,9 +52,6 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             Divider()
             HStack {
                 Spacer()
-                if loading {
-                    ProgressView()
-                }
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}
                     .keyboardShortcut(.defaultAction)
@@ -73,7 +70,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 get: { createError != nil },
                 set: { if $0 { createError = nil } }
             )) {} message: {
-                Text(createError?.description ?? "An unknown error occurred. This should never happen.")
+                Text(createError?.description ?? "An unknown error occurred.")
             }
     }
 
