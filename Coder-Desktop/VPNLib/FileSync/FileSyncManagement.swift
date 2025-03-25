@@ -1,3 +1,5 @@
+import NIOCore
+
 public extension MutagenDaemon {
     func refreshSessions() async {
         guard case .running = state else { return }
@@ -49,7 +51,7 @@ public extension MutagenDaemon {
             }
         }
         do {
-            _ = try await client!.sync.create(req)
+            _ = try await client!.sync.create(req, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
         } catch {
             throw .grpcFailure(error)
         }
@@ -68,7 +70,7 @@ public extension MutagenDaemon {
                 req.selection = .with { selection in
                     selection.specifications = ids
                 }
-            })
+            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
         } catch {
             throw .grpcFailure(error)
         }
@@ -87,7 +89,7 @@ public extension MutagenDaemon {
                 req.selection = .with { selection in
                     selection.specifications = ids
                 }
-            })
+            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
         } catch {
             throw .grpcFailure(error)
         }
@@ -106,7 +108,7 @@ public extension MutagenDaemon {
                 req.selection = .with { selection in
                     selection.specifications = ids
                 }
-            })
+            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
         } catch {
             throw .grpcFailure(error)
         }
