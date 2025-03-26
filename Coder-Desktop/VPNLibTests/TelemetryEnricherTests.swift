@@ -3,7 +3,6 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct TelemetryEnricherTests {
-
     @Test func testEnrichStartRequest() throws {
         let enricher0 = TelemetryEnricher()
         let original = Vpn_StartRequest.with { req in
@@ -14,7 +13,7 @@ struct TelemetryEnricherTests {
         #expect(enriched.coderURL == "https://example.com")
         #expect(enriched.tunnelFileDescriptor == 123)
         #expect(enriched.deviceOs == "macOS")
-        #expect(enriched.coderDesktopVersion.contains(try Regex(#"^\d+\.\d+\.\d+$"#)))
+        #expect(try enriched.coderDesktopVersion.contains(Regex(#"^\d+\.\d+\.\d+$"#)))
         let deviceID = enriched.deviceID
         #expect(!deviceID.isEmpty)
         
@@ -23,5 +22,4 @@ struct TelemetryEnricherTests {
         enriched = enricher1.enrich(original)
         #expect(enriched.deviceID == deviceID)
     }
-
 }
