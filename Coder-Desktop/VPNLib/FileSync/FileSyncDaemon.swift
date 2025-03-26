@@ -43,8 +43,8 @@ public class MutagenDaemon: FileSyncDaemon {
     private let mutagenDataDirectory: URL
     private let mutagenDaemonSocket: URL
 
-    // Managing sync sessions can take a while, especially with prompting
-    let sessionMgmtReqTimeout: TimeAmount = .seconds(5)
+    // Managing sync sessions could take a while, especially with prompting
+    let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
 
     // Non-nil when the daemon is running
     var client: DaemonClient?

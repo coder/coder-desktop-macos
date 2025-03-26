@@ -51,7 +51,10 @@ public extension MutagenDaemon {
             }
         }
         do {
-            _ = try await client!.sync.create(req, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
+            // The first creation will need to transfer the agent binary
+            // TODO: Because this is pretty long, we should show progress updates
+            // using the prompter messages
+            _ = try await client!.sync.create(req, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout * 4)))
         } catch {
             throw .grpcFailure(error)
         }
