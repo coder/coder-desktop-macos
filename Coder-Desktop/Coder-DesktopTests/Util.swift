@@ -33,13 +33,13 @@ class MockFileSyncDaemon: FileSyncDaemon {
 
     func refreshSessions() async {}
 
+    var recentLogs: [String] = []
+
     func deleteSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 
     var state: VPNLib.DaemonState = .running
 
-    func start() async throws(VPNLib.DaemonError) {
-        return
-    }
+    func tryStart() async {}
 
     func stop() async {}
 

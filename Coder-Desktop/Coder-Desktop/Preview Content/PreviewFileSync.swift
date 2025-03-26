@@ -6,11 +6,13 @@ final class PreviewFileSync: FileSyncDaemon {
 
     var state: DaemonState = .running
 
+    var recentLogs: [String] = []
+
     init() {}
 
     func refreshSessions() async {}
 
-    func start() async throws(DaemonError) {
+    func tryStart() async {
         state = .running
     }
 

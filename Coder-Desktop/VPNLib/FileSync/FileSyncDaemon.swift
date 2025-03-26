@@ -10,7 +10,8 @@ import SwiftUI
 public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
     var sessionState: [FileSyncSession] { get }
-    func start() async throws(DaemonError)
+    var recentLogs: [String] { get }
+    func tryStart() async
     func stop() async
     func refreshSessions() async
     func createSession(localPath: String, agentHost: String, remotePath: String) async throws(DaemonError)
@@ -38,6 +39,10 @@ public class MutagenDaemon: FileSyncDaemon {
 
     @Published public var sessionState: [FileSyncSession] = []
 
+    // We store the last N log lines to show in the UI if the daemon crashes
+    private var logBuffer: RingBuffer<String>
+    public var recentLogs: [String] { logBuffer.elements }
+
     private var mutagenProcess: Subprocess?
     private let mutagenPath: URL!
     private let mutagenDataDirectory: URL
@@ -50,6 +55,7 @@ public class MutagenDaemon: FileSyncDaemon {
     var client: DaemonClient?
     private var group: MultiThreadedEventLoopGroup?
     private var channel: GRPCChannel?
+    private var waitForExit: (@Sendable () async -> Void)?
 
     // Protect start & stop transitions against re-entrancy
     private let transition = AsyncSemaphore(value: 1)
@@ -58,8 +64,10 @@ public class MutagenDaemon: FileSyncDaemon {
                 mutagenDataDirectory: URL = FileManager.default.urls(
                     for: .applicationSupportDirectory,
                     in: .userDomainMask
-                ).first!.appending(path: "Coder Desktop").appending(path: "Mutagen"))
+                ).first!.appending(path: "Coder Desktop").appending(path: "Mutagen"),
+                logBufferCapacity: Int = 10)
     {
+        logBuffer = .init(capacity: logBufferCapacity)
         self.mutagenPath = mutagenPath
         self.mutagenDataDirectory = mutagenDataDirectory
         mutagenDaemonSocket = mutagenDataDirectory.appending(path: "daemon").appending(path: "daemon.sock")
@@ -87,12 +95,30 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    public func start() async throws(DaemonError) {
+    public func tryStart() async {
+        if case .failed = state { state = .stopped }
+        do throws(DaemonError) {
+            try await start()
+        } catch {
+            state = .failed(error)
+        }
+    }
+
+    func start() async throws(DaemonError) {
         if case .unavailable = state { return }
 
         // Stop an orphaned daemon, if there is one
         try? await connect()
         await stop()
+
+        // Creating the same process twice from Swift will crash the MainActor,
+        // so we need to wait for an earlier process to die
+        if let waitForExit {
+            await waitForExit()
+            // We *need* to be sure the process is dead or the app ends up in an
+            // unrecoverable state
+            try? await Task.sleep(for: .seconds(1))
+        }
 
         await transition.wait()
         defer { transition.signal() }
@@ -106,6 +132,7 @@ public class MutagenDaemon: FileSyncDaemon {
         } catch {
             throw .daemonStartFailure(error)
         }
+        self.waitForExit = waitForExit
 
         Task {
             await streamHandler(io: standardOutput)
@@ -259,6 +286,7 @@ public class MutagenDaemon: FileSyncDaemon {
     private func streamHandler(io: Pipe.AsyncBytes) async {
         for await line in io.lines {
             logger.info("\(line, privacy: .public)")
+            logBuffer.append(line)
         }
     }
 }
@@ -282,7 +310,7 @@ public enum DaemonState {
         case .stopped:
             "Stopped"
         case let .failed(error):
-            "Failed: \(error)"
+            "\(error.description)"
         case .unavailable:
             "Unavailable"
         }
@@ -299,6 +327,15 @@ public enum DaemonState {
         case .unavailable:
             .gray
         }
+    }
+
+    // `if case`s are a pain to work with: they're not bools (such as for ORing)
+    // and you can't negate them without doing `if case .. {} else`.
+    public var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
     }
 }
 
