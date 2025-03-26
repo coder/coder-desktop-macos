@@ -68,7 +68,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
         }.disabled(loading)
             .alert("Error", isPresented: Binding(
                 get: { createError != nil },
-                set: { if $0 { createError = nil } }
+                set: { if !$0 { createError = nil } }
             )) {} message: {
                 Text(createError?.description ?? "An unknown error occurred.")
             }
