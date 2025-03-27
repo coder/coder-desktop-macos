@@ -52,6 +52,8 @@ class MockFileSyncDaemon: FileSyncDaemon {
     func pauseSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 
     func resumeSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
+
+    func resetSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 }
 
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}

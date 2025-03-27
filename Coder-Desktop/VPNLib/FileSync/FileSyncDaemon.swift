@@ -18,6 +18,7 @@ public protocol FileSyncDaemon: ObservableObject {
     func deleteSessions(ids: [String]) async throws(DaemonError)
     func pauseSessions(ids: [String]) async throws(DaemonError)
     func resumeSessions(ids: [String]) async throws(DaemonError)
+    func resetSessions(ids: [String]) async throws(DaemonError)
 }
 
 @MainActor
