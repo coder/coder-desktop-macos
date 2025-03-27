@@ -16,7 +16,7 @@ struct TelemetryEnricherTests {
         #expect(try enriched.coderDesktopVersion.contains(Regex(#"^\d+\.\d+\.\d+$"#)))
         let deviceID = enriched.deviceID
         #expect(!deviceID.isEmpty)
-        
+
         // check we get the same deviceID from a new enricher
         let enricher1 = TelemetryEnricher()
         enriched = enricher1.enrich(original)

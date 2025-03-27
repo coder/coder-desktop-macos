@@ -23,8 +23,8 @@ public struct TelemetryEnricher {
         var req = original
         req.deviceOs = "macOS"
         req.deviceID = deviceID
-        if version != nil {
-            req.coderDesktopVersion = version!
+        if let version {
+            req.coderDesktopVersion = version
         }
         return req
     }

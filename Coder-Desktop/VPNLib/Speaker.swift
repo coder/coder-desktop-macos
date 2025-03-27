@@ -89,7 +89,9 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     /// Does the VPN Protocol handshake and validates the result
     public func handshake() async throws(HandshakeError) {
         let hndsh = Handshaker(writeFD: writeFD, dispatch: dispatch, queue: queue, role: role)
-        // ignore the version for now because we know it can only be 1.0
+        // ignore the version for now because we know it can only be 1.0 or 1.1.
+        // 1.1 adds support for telemetry to StartRequest, but since setting these
+        // fields won't adversely affect a 1.0 speaker, we set them regardless.
         try _ = await hndsh.handshake()
     }
 
@@ -178,7 +180,7 @@ actor Handshaker {
 
     init(writeFD: FileHandle, dispatch: DispatchIO, queue: DispatchQueue,
          role: ProtoRole,
-         versions: [ProtoVersion] = [.init(1, 0)])
+         versions: [ProtoVersion] = [.init(1, 1)])
     {
         self.writeFD = writeFD
         self.dispatch = dispatch
