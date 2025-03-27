@@ -10,7 +10,7 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
     @State private var editingSession: FileSyncSession?
 
     @State private var loading: Bool = false
-    @State private var deleteError: DaemonError?
+    @State private var actionError: DaemonError?
     @State private var isVisible: Bool = false
     @State private var dontRetry: Bool = false
 
@@ -50,14 +50,14 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 FileSyncSessionModal<VPN, FS>(existingSession: session)
                     .frame(width: 700)
             }.alert("Error", isPresented: Binding(
-                get: { deleteError != nil },
+                get: { actionError != nil },
                 set: { isPresented in
                     if !isPresented {
-                        deleteError = nil
+                        actionError = nil
                     }
                 }
             )) {} message: {
-                Text(deleteError?.description ?? "An unknown error occurred.")
+                Text(actionError?.description ?? "An unknown error occurred.")
             }.alert("Error", isPresented: Binding(
                 // We only show the alert if the file config window is open
                 // Users will see the alert symbol on the menu bar to prompt them to
@@ -120,58 +120,90 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     addingNewSession = true
                 } label: {
                     Image(systemName: "plus")
-                        .frame(width: 24, height: 24)
+                        .frame(width: 24, height: 24).help("Create")
                 }.disabled(vpn.menuState.agents.isEmpty)
-                Divider()
-                Button {
-                    Task {
-                        loading = true
-                        defer { loading = false }
-                        do throws(DaemonError) {
-                            // TODO: Support selecting & deleting multiple sessions at once
-                            try await fileSync.deleteSessions(ids: [selection!])
-                            if fileSync.sessionState.isEmpty {
-                                // Last session was deleted, stop the daemon
-                                await fileSync.stop()
-                            }
-                        } catch {
-                            deleteError = error
-                        }
-                        selection = nil
-                    }
-                } label: {
-                    Image(systemName: "minus").frame(width: 24, height: 24)
-                }.disabled(selection == nil)
-                if let selection {
-                    if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
-                        Divider()
-                        Button {
-                            Task {
-                                // TODO: Support pausing & resuming multiple sessions at once
-                                loading = true
-                                defer { loading = false }
-                                switch selectedSession.status {
-                                case .paused:
-                                    try await fileSync.resumeSessions(ids: [selectedSession.id])
-                                default:
-                                    try await fileSync.pauseSessions(ids: [selectedSession.id])
-                                }
-                            }
-                        } label: {
-                            switch selectedSession.status {
-                            case .paused:
-                                Image(systemName: "play").frame(width: 24, height: 24)
-                            default:
-                                Image(systemName: "pause").frame(width: 24, height: 24)
-                            }
-                        }
-                    }
-                }
+                sessionControls
             }
             .buttonStyle(.borderless)
         }
         .background(.primary.opacity(0.04))
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    var sessionControls: some View {
+        Group {
+            if let selection {
+                if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
+                    Divider()
+                    Button { Task { await delete(session: selectedSession) } }
+                        label: {
+                            Image(systemName: "minus").frame(width: 24, height: 24).help("Terminate")
+                        }
+                    Divider()
+                    Button { Task { await pauseResume(session: selectedSession) } }
+                        label: {
+                            switch selectedSession.status {
+                            case .paused, .error(.haltedOnRootEmptied),
+                                 .error(.haltedOnRootDeletion),
+                                 .error(.haltedOnRootTypeChange):
+                                Image(systemName: "play").frame(width: 24, height: 24).help("Pause")
+                            default:
+                                Image(systemName: "pause").frame(width: 24, height: 24).help("Resume")
+                            }
+                        }
+                    Divider()
+                    Button { Task { await reset(session: selectedSession) } }
+                        label: {
+                            Image(systemName: "arrow.clockwise").frame(width: 24, height: 24).help("Reset")
+                        }
+                }
+            }
+        }
+    }
+
+    // TODO: Support selecting & deleting multiple sessions at once
+    func delete(session _: FileSyncSession) async {
+        loading = true
+        defer { loading = false }
+        do throws(DaemonError) {
+            try await fileSync.deleteSessions(ids: [selection!])
+            if fileSync.sessionState.isEmpty {
+                // Last session was deleted, stop the daemon
+                await fileSync.stop()
+            }
+        } catch {
+            actionError = error
+        }
+        selection = nil
+    }
+
+    // TODO: Support pausing & resuming multiple sessions at once
+    func pauseResume(session: FileSyncSession) async {
+        loading = true
+        defer { loading = false }
+        do throws(DaemonError) {
+            switch session.status {
+            case .paused, .error(.haltedOnRootEmptied),
+                 .error(.haltedOnRootDeletion),
+                 .error(.haltedOnRootTypeChange):
+                try await fileSync.resumeSessions(ids: [session.id])
+            default:
+                try await fileSync.pauseSessions(ids: [session.id])
+            }
+        } catch {
+            actionError = error
+        }
+    }
+
+    // TODO: Support restarting multiple sessions at once
+    func reset(session: FileSyncSession) async {
+        loading = true
+        defer { loading = false }
+        do throws(DaemonError) {
+            try await fileSync.resetSessions(ids: [session.id])
+        } catch {
+            actionError = error
+        }
     }
 }
 
