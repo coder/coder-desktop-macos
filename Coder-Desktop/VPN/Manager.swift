@@ -6,6 +6,7 @@ import VPNLib
 actor Manager {
     let ptp: PacketTunnelProvider
     let cfg: ManagerConfig
+    let telemetryEnricher: TelemetryEnricher
 
     let tunnelHandle: TunnelHandle
     let speaker: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>
@@ -19,6 +20,7 @@ actor Manager {
     init(with: PacketTunnelProvider, cfg: ManagerConfig) async throws(ManagerError) {
         ptp = with
         self.cfg = cfg
+        telemetryEnricher = TelemetryEnricher()
         #if arch(arm64)
             let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-arm64.dylib")
         #elseif arch(x86_64)
@@ -176,6 +178,7 @@ actor Manager {
                                 req.value = header.value
                             }
                         }
+                        req = telemetryEnricher.enrich(req)
                     }
                 })
         } catch {

@@ -29,14 +29,15 @@ struct SpeakerTests: Sendable {
         handshaker = Handshaker(
             writeFD: pipeMT.fileHandleForWriting,
             dispatch: dispatch, queue: queue,
-            role: .manager
+            role: .manager,
+            versions: [ProtoVersion(1, 1)]
         )
     }
 
     @Test func handshake() async throws {
         async let v = handshaker.handshake()
         try await uut.handshake()
-        #expect(try await v == ProtoVersion(1, 0))
+        #expect(try await v == ProtoVersion(1, 1))
     }
 
     @Test func handleSingleMessage() async throws {
