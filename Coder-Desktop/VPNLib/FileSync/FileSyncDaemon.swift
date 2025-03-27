@@ -9,19 +9,12 @@ import SwiftUI
 @MainActor
 public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
+    var sessionState: [FileSyncSession] { get }
     func start() async throws(DaemonError)
     func stop() async
-    func listSessions() async throws -> [FileSyncSession]
-    func createSession(with: FileSyncSession) async throws
-}
-
-public struct FileSyncSession {
-    public let id: String
-    public let name: String
-    public let localPath: URL
-    public let workspace: String
-    public let agent: String
-    public let remotePath: URL
+    func refreshSessions() async
+    func createSession(localPath: String, agentHost: String, remotePath: String) async throws(DaemonError)
+    func deleteSessions(ids: [String]) async throws(DaemonError)
 }
 
 @MainActor
@@ -40,6 +33,8 @@ public class MutagenDaemon: FileSyncDaemon {
             }
         }
     }
+
+    @Published public var sessionState: [FileSyncSession] = []
 
     private var mutagenProcess: Subprocess?
     private let mutagenPath: URL!
@@ -79,7 +74,7 @@ public class MutagenDaemon: FileSyncDaemon {
                 state = .failed(error)
                 return
             }
-            await stopIfNoSessions()
+            await refreshSessions()
         }
     }
 
@@ -227,6 +222,7 @@ public class MutagenDaemon: FileSyncDaemon {
         let process = Subprocess([mutagenPath.path, "daemon", "run"])
         process.environment = [
             "MUTAGEN_DATA_DIRECTORY": mutagenDataDirectory.path,
+            "MUTAGEN_SSH_PATH": "/usr/bin",
         ]
         logger.info("setting mutagen data directory: \(self.mutagenDataDirectory.path, privacy: .public)")
         return process
@@ -256,27 +252,28 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    public func listSessions() async throws -> [FileSyncSession] {
-        guard case .running = state else {
-            return []
-        }
+    public func refreshSessions() async {
+        guard case .running = state else { return }
         // TODO: Implement
-        return []
     }
 
-    public func createSession(with _: FileSyncSession) async throws {
+    public func createSession(
+        localPath _: String,
+        agentHost _: String,
+        remotePath _: String
+    ) async throws(DaemonError) {
         if case .stopped = state {
             do throws(DaemonError) {
                 try await start()
             } catch {
                 state = .failed(error)
-                return
+                throw error
             }
         }
-        // TODO: Add Session
+        // TODO: Add session
     }
 
-    public func deleteSession() async throws {
+    public func deleteSessions(ids _: [String]) async throws(DaemonError) {
         // TODO: Delete session
         await stopIfNoSessions()
     }
@@ -346,7 +343,7 @@ public enum DaemonError: Error {
     case terminatedUnexpectedly
     case grpcFailure(Error)
 
-    var description: String {
+    public var description: String {
         switch self {
         case let .daemonStartFailure(error):
             "Daemon start failure: \(error)"
@@ -361,5 +358,5 @@ public enum DaemonError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    public var localizedDescription: String { description }
 }

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import VPNLib
 
-struct Agent: Identifiable, Equatable, Comparable {
+struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let id: UUID
     let name: String
     let status: AgentStatus
@@ -133,6 +133,10 @@ struct VPNMenuState {
             value.agents.isEmpty
         }.map { VPNMenuItem.offlineWorkspace(Workspace(id: $0.key, name: $0.value.name, agents: $0.value.agents)) }
         return items.sorted()
+    }
+
+    var onlineAgents: [Agent] {
+        agents.map(\.value).filter { $0.primaryHost != nil }
     }
 
     mutating func clear() {
