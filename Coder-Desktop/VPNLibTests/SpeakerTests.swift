@@ -29,7 +29,8 @@ struct SpeakerTests: Sendable {
         handshaker = Handshaker(
             writeFD: pipeMT.fileHandleForWriting,
             dispatch: dispatch, queue: queue,
-            role: .manager
+            role: .manager,
+            versions: [ProtoVersion(1, 1)]
         )
     }
 
