@@ -46,7 +46,12 @@ public struct FileSyncSession: Identifiable {
         }
         if case .error = status {} else {
             if state.conflicts.count > 0 {
-                status = .conflicts
+                status = .conflicts(
+                    formatConflicts(
+                        conflicts: state.conflicts,
+                        excludedConflicts: state.excludedConflicts
+                    )
+                )
             }
         }
         self.status = status
@@ -121,7 +126,7 @@ public enum FileSyncStatus {
     case error(FileSyncErrorStatus)
     case ok
     case paused
-    case conflicts
+    case conflicts(String)
     case working(FileSyncWorkingStatus)
 
     public var color: Color {
@@ -168,8 +173,8 @@ public enum FileSyncStatus {
             "The session is watching for filesystem changes."
         case .paused:
             "The session is paused."
-        case .conflicts:
-            "The session has conflicts that need to be resolved."
+        case let .conflicts(details):
+            "The session has conflicts that need to be resolved:\n\n\(details)"
         case let .working(status):
             status.description
         }
@@ -177,6 +182,18 @@ public enum FileSyncStatus {
 
     public var column: some View {
         Text(type).foregroundColor(color)
+    }
+
+    public var isResumable: Bool {
+        switch self {
+        case .paused,
+             .error(.haltedOnRootEmptied),
+             .error(.haltedOnRootDeletion),
+             .error(.haltedOnRootTypeChange):
+            true
+        default:
+            false
+        }
     }
 }
 
@@ -272,8 +289,8 @@ public enum FileSyncErrorStatus {
 }
 
 public enum FileSyncEndpoint {
-    case local
-    case remote
+    case alpha
+    case beta
 }
 
 public enum FileSyncProblemType {
@@ -284,6 +301,7 @@ public enum FileSyncProblemType {
 public enum FileSyncError {
     case generic(String)
     case problem(FileSyncEndpoint, FileSyncProblemType, path: String, error: String)
+    case excludedProblems(FileSyncEndpoint, FileSyncProblemType, UInt64)
 
     var description: String {
         switch self {
@@ -291,6 +309,8 @@ public enum FileSyncError {
             error
         case let .problem(endpoint, type, path, error):
             "\(endpoint) \(type) error at \(path): \(error)"
+        case let .excludedProblems(endpoint, type, count):
+            "+ \(count) \(endpoint) \(type) problems"
         }
     }
 }
