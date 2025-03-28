@@ -57,3 +57,26 @@ func accumulateErrors(from state: Synchronization_State) -> [FileSyncError] {
 func humanReadableBytes(_ bytes: UInt64) -> String {
     ByteCountFormatter().string(fromByteCount: Int64(bytes))
 }
+
+extension Prompting_HostResponse {
+    func ensureValid(first: Bool, allowPrompts: Bool) throws(DaemonError) {
+        if first {
+            if identifier.isEmpty {
+                throw .invalidGrpcResponse("empty prompter identifier")
+            }
+            if isPrompt {
+                throw .invalidGrpcResponse("unexpected message type specification")
+            }
+            if !message.isEmpty {
+                throw .invalidGrpcResponse("unexpected message")
+            }
+        } else {
+            if !identifier.isEmpty {
+                throw .invalidGrpcResponse("unexpected prompter identifier")
+            }
+            if isPrompt, !allowPrompts {
+                throw .invalidGrpcResponse("disallowed prompt message type")
+            }
+        }
+    }
+}
