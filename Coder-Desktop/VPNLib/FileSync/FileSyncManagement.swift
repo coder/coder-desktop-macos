@@ -100,13 +100,30 @@ public extension MutagenDaemon {
     }
 
     func resumeSessions(ids: [String]) async throws(DaemonError) {
-        // Resuming sessions does not require prompting, according to the
-        // Mutagen CLI
-        let (stream, promptID) = try await host(allowPrompts: false)
+        // Resuming sessions does use prompting, as it may start a new SSH connection
+        let (stream, promptID) = try await host(allowPrompts: true)
         defer { stream.cancel() }
         guard case .running = state else { return }
         do {
             _ = try await client!.sync.resume(Synchronization_ResumeRequest.with { req in
+                req.prompter = promptID
+                req.selection = .with { selection in
+                    selection.specifications = ids
+                }
+            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
+        } catch {
+            throw .grpcFailure(error)
+        }
+        await refreshSessions()
+    }
+
+    func resetSessions(ids: [String]) async throws(DaemonError) {
+        // Resetting a session involves pausing & resuming, so it does use prompting
+        let (stream, promptID) = try await host(allowPrompts: true)
+        defer { stream.cancel() }
+        guard case .running = state else { return }
+        do {
+            _ = try await client!.sync.reset(Synchronization_ResetRequest.with { req in
                 req.prompter = promptID
                 req.selection = .with { selection in
                     selection.specifications = ids
