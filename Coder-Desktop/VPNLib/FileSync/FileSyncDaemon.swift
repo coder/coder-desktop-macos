@@ -10,7 +10,7 @@ import SwiftUI
 public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
     var sessionState: [FileSyncSession] { get }
-    var recentLogs: [String] { get }
+    var logFile: URL { get }
     func tryStart() async
     func stop() async
     func refreshSessions() async
@@ -39,14 +39,12 @@ public class MutagenDaemon: FileSyncDaemon {
 
     @Published public var sessionState: [FileSyncSession] = []
 
-    // We store the last N log lines to show in the UI if the daemon crashes
-    private var logBuffer: RingBuffer<String>
-    public var recentLogs: [String] { logBuffer.elements }
-
     private var mutagenProcess: Subprocess?
     private let mutagenPath: URL!
     private let mutagenDataDirectory: URL
     private let mutagenDaemonSocket: URL
+
+    public let logFile: URL
 
     // Managing sync sessions could take a while, especially with prompting
     let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
@@ -64,13 +62,12 @@ public class MutagenDaemon: FileSyncDaemon {
                 mutagenDataDirectory: URL = FileManager.default.urls(
                     for: .applicationSupportDirectory,
                     in: .userDomainMask
-                ).first!.appending(path: "Coder Desktop").appending(path: "Mutagen"),
-                logBufferCapacity: Int = 10)
+                ).first!.appending(path: "Coder Desktop").appending(path: "Mutagen"))
     {
-        logBuffer = .init(capacity: logBufferCapacity)
         self.mutagenPath = mutagenPath
         self.mutagenDataDirectory = mutagenDataDirectory
         mutagenDaemonSocket = mutagenDataDirectory.appending(path: "daemon").appending(path: "daemon.sock")
+        logFile = mutagenDataDirectory.appending(path: "daemon.log")
         // It shouldn't be fatal if the app was built without Mutagen embedded,
         // but file sync will be unavailable.
         if mutagenPath == nil {
@@ -113,34 +110,23 @@ public class MutagenDaemon: FileSyncDaemon {
 
         // Creating the same process twice from Swift will crash the MainActor,
         // so we need to wait for an earlier process to die
-        if let waitForExit {
-            await waitForExit()
-            // We *need* to be sure the process is dead or the app ends up in an
-            // unrecoverable state
-            try? await Task.sleep(for: .seconds(1))
-        }
+        await waitForExit?()
 
         await transition.wait()
         defer { transition.signal() }
         logger.info("starting mutagen daemon")
 
         mutagenProcess = createMutagenProcess()
-        // swiftlint:disable:next large_tuple
-        let (standardOutput, standardError, waitForExit): (Pipe.AsyncBytes, Pipe.AsyncBytes, @Sendable () async -> Void)
+        let (standardError, waitForExit): (Pipe.AsyncBytes, @Sendable () async -> Void)
         do {
-            (standardOutput, standardError, waitForExit) = try mutagenProcess!.run()
+            (_, standardError, waitForExit) = try mutagenProcess!.run()
         } catch {
             throw .daemonStartFailure(error)
         }
         self.waitForExit = waitForExit
 
         Task {
-            await streamHandler(io: standardOutput)
-            logger.info("standard output stream closed")
-        }
-
-        Task {
-            await streamHandler(io: standardError)
+            await handleDaemonLogs(io: standardError)
             logger.info("standard error stream closed")
         }
 
@@ -283,11 +269,30 @@ public class MutagenDaemon: FileSyncDaemon {
         }
     }
 
-    private func streamHandler(io: Pipe.AsyncBytes) async {
+    private func handleDaemonLogs(io: Pipe.AsyncBytes) async {
+        if !FileManager.default.fileExists(atPath: logFile.path) {
+            guard FileManager.default.createFile(atPath: logFile.path, contents: nil) else {
+                logger.error("Failed to create log file")
+                return
+            }
+        }
+
+        guard let fileHandle = try? FileHandle(forWritingTo: logFile) else {
+            logger.error("Failed to open log file for writing")
+            return
+        }
+
         for await line in io.lines {
             logger.info("\(line, privacy: .public)")
-            logBuffer.append(line)
+
+            do {
+                try fileHandle.write(contentsOf: Data("\(line)\n".utf8))
+            } catch {
+                logger.error("Failed to write to daemon log file: \(error)")
+            }
         }
+
+        try? fileHandle.close()
     }
 }
 

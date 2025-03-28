@@ -86,10 +86,12 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     dontRetry = true
                 }
             } message: {
-                // You can't have styled text in alert messages
                 Text("""
-                File sync daemon failed: \(fileSync.state.description)\n\n\(fileSync.recentLogs.joined(separator: "\n"))
-                """)
+                File sync daemon failed. The daemon log file at\n\(fileSync.logFile.path)\nhas been opened.
+                """).onAppear {
+                    // Open the log file in the default editor
+                    NSWorkspace.shared.open(fileSync.logFile)
+                }
             }.task {
                 // When the Window is visible, poll for session updates every
                 // two seconds.

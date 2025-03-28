@@ -29,11 +29,11 @@ class MockVPNService: VPNService, ObservableObject {
 
 @MainActor
 class MockFileSyncDaemon: FileSyncDaemon {
+    var logFile: URL = .init(filePath: "~/log.txt")
+
     var sessionState: [VPNLib.FileSyncSession] = []
 
     func refreshSessions() async {}
-
-    var recentLogs: [String] = []
 
     func deleteSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 

@@ -2,11 +2,11 @@ import VPNLib
 
 @MainActor
 final class PreviewFileSync: FileSyncDaemon {
+    var logFile: URL = .init(filePath: "~/log.txt")!
+
     var sessionState: [VPNLib.FileSyncSession] = []
 
     var state: DaemonState = .running
-
-    var recentLogs: [String] = []
 
     init() {}
 
