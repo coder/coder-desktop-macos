@@ -142,7 +142,7 @@ func formatChanges(_ changesByPath: [String: (alpha: [Core_Change], beta: [Core_
                changes.alpha[0].new.kind == .file,
                changes.beta[0].new.kind == .file
             {
-                result += "File: `\(formatPath(path))`\n"
+                result += "File: '\(formatPath(path))'\n"
                 continue
             }
             // Friendly message for `<non-existent -> !<non-existent>` conflicts
@@ -152,7 +152,7 @@ func formatChanges(_ changesByPath: [String: (alpha: [Core_Change], beta: [Core_
                changes.beta[0].hasNew
             {
                 result += """
-                An entry, `\(formatPath(path))`, was created on both endpoints that does not match.
+                An entry, '\(formatPath(path))', was created on both endpoints that does not match.
                 You can resolve this conflict by deleting one of the entries.\n
                 """
                 continue
@@ -160,7 +160,7 @@ func formatChanges(_ changesByPath: [String: (alpha: [Core_Change], beta: [Core_
         }
 
         let formattedPath = formatPath(path)
-        result += "Path: \(formattedPath)\n"
+        result += "Path: '\(formattedPath)'\n"
 
         // TODO: Local & Remote should be replaced with Alpha & Beta, once it's possible to configure which is which
 
