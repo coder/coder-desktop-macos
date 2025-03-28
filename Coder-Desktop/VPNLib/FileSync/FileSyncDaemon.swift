@@ -15,6 +15,8 @@ public protocol FileSyncDaemon: ObservableObject {
     func refreshSessions() async
     func createSession(localPath: String, agentHost: String, remotePath: String) async throws(DaemonError)
     func deleteSessions(ids: [String]) async throws(DaemonError)
+    func pauseSessions(ids: [String]) async throws(DaemonError)
+    func resumeSessions(ids: [String]) async throws(DaemonError)
 }
 
 @MainActor
@@ -40,6 +42,9 @@ public class MutagenDaemon: FileSyncDaemon {
     private let mutagenPath: URL!
     private let mutagenDataDirectory: URL
     private let mutagenDaemonSocket: URL
+
+    // Managing sync sessions could take a while, especially with prompting
+    let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
 
     // Non-nil when the daemon is running
     var client: DaemonClient?
@@ -75,6 +80,10 @@ public class MutagenDaemon: FileSyncDaemon {
                 return
             }
             await refreshSessions()
+            if sessionState.isEmpty {
+                logger.info("No sync sessions found on startup, stopping daemon")
+                await stop()
+            }
         }
     }
 
@@ -162,7 +171,7 @@ public class MutagenDaemon: FileSyncDaemon {
             // Already connected
             return
         }
-        group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
         do {
             channel = try GRPCChannelPool.with(
                 target: .unixDomainSocket(mutagenDaemonSocket.path),
@@ -250,51 +259,6 @@ public class MutagenDaemon: FileSyncDaemon {
     private func streamHandler(io: Pipe.AsyncBytes) async {
         for await line in io.lines {
             logger.info("\(line, privacy: .public)")
-        }
-    }
-
-    public func refreshSessions() async {
-        guard case .running = state else { return }
-        // TODO: Implement
-    }
-
-    public func createSession(
-        localPath _: String,
-        agentHost _: String,
-        remotePath _: String
-    ) async throws(DaemonError) {
-        if case .stopped = state {
-            do throws(DaemonError) {
-                try await start()
-            } catch {
-                state = .failed(error)
-                throw error
-            }
-        }
-        // TODO: Add session
-    }
-
-    public func deleteSessions(ids _: [String]) async throws(DaemonError) {
-        // TODO: Delete session
-        await stopIfNoSessions()
-    }
-
-    private func stopIfNoSessions() async {
-        let sessions: Synchronization_ListResponse
-        do {
-            sessions = try await client!.sync.list(Synchronization_ListRequest.with { req in
-                req.selection = .with { selection in
-                    selection.all = true
-                }
-            })
-        } catch {
-            state = .failed(.daemonStartFailure(error))
-            return
-        }
-        // If there's no configured sessions, the daemon doesn't need to be running
-        if sessions.sessionStates.isEmpty {
-            logger.info("No sync sessions found")
-            await stop()
         }
     }
 }

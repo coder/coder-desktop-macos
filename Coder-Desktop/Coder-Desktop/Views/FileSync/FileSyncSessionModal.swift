@@ -68,7 +68,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
         }.disabled(loading)
             .alert("Error", isPresented: Binding(
                 get: { createError != nil },
-                set: { if $0 { createError = nil } }
+                set: { if !$0 { createError = nil } }
             )) {} message: {
                 Text(createError?.description ?? "An unknown error occurred.")
             }
@@ -83,7 +83,6 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
         defer { loading = false }
         do throws(DaemonError) {
             if let existingSession {
-                // TODO: Support selecting & deleting multiple sessions at once
                 try await fileSync.deleteSessions(ids: [existingSession.id])
             }
             try await fileSync.createSession(
