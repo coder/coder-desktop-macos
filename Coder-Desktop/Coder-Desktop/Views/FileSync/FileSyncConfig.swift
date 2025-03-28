@@ -89,7 +89,7 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 Text("""
                 File sync daemon failed. The daemon log file at\n\(fileSync.logFile.path)\nhas been opened.
                 """).onAppear {
-                    // Open the log file in the default editor
+                    // Opens the log file in Console
                     NSWorkspace.shared.open(fileSync.logFile)
                 }
             }.task {
