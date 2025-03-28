@@ -48,10 +48,8 @@ struct LoginForm: View {
                     loginError = nil
                 }
             }
-        )) {
-            Button("OK", role: .cancel) {}.keyboardShortcut(.defaultAction)
-        } message: {
-            Text(loginError?.description ?? "")
+        )) {} message: {
+            Text(loginError?.description ?? "An unknown error occurred.")
         }.disabled(loading)
         .frame(width: 550)
         .fixedSize()

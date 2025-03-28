@@ -23,6 +23,12 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.state)
         }
         .windowResizability(.contentSize)
+        Window("Coder File Sync", id: Windows.fileSync.rawValue) {
+            FileSyncConfig<CoderVPNService, MutagenDaemon>()
+                .environmentObject(appDelegate.state)
+                .environmentObject(appDelegate.fileSyncDaemon)
+                .environmentObject(appDelegate.vpn)
+        }
     }
 }
 
@@ -61,9 +67,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     await self.state.handleTokenExpiry()
                 }
             }, content: {
-                VPNMenu<CoderVPNService>().frame(width: 256)
+                VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)
                     .environmentObject(self.vpn)
                     .environmentObject(self.state)
+                    .environmentObject(self.fileSyncDaemon)
             }
         ))
         // Subscribe to system VPN updates

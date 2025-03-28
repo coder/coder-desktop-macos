@@ -7,15 +7,17 @@ import ViewInspector
 @Suite(.timeLimit(.minutes(1)))
 struct VPNMenuTests {
     let vpn: MockVPNService
+    let fsd: MockFileSyncDaemon
     let state: AppState
-    let sut: VPNMenu<MockVPNService>
+    let sut: VPNMenu<MockVPNService, MockFileSyncDaemon>
     let view: any View
 
     init() {
         vpn = MockVPNService()
         state = AppState(persistent: false)
-        sut = VPNMenu<MockVPNService>()
-        view = sut.environmentObject(vpn).environmentObject(state)
+        sut = VPNMenu<MockVPNService, MockFileSyncDaemon>()
+        fsd = MockFileSyncDaemon()
+        view = sut.environmentObject(vpn).environmentObject(state).environmentObject(fsd)
     }
 
     @Test

@@ -70,14 +70,7 @@ struct MenuItemView: View {
         HStack(spacing: 0) {
             Link(destination: wsURL) {
                 HStack(spacing: Theme.Size.trayPadding) {
-                    ZStack {
-                        Circle()
-                            .fill(item.status.color.opacity(0.4))
-                            .frame(width: 12, height: 12)
-                        Circle()
-                            .fill(item.status.color.opacity(1.0))
-                            .frame(width: 7, height: 7)
-                    }
+                    StatusDot(color: item.status.color)
                     Text(itemName).lineLimit(1).truncationMode(.tail)
                     Spacer()
                 }.padding(.horizontal, Theme.Size.trayPadding)
