@@ -29,12 +29,23 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 TableColumn("Size") { Text($0.localSize.humanSizeBytes).help($0.sizeDescription) }
                     .width(min: 60, ideal: 80)
             }
-            .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { _ in },
-                         primaryAction: { selectedSessions in
-                             if let session = selectedSessions.first {
-                                 editingSession = fileSync.sessionState.first(where: { $0.id == session })
-                             }
-                         })
+            .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { selections in
+                // TODO: We only support single selections for now
+                if let selected = selections.first,
+                   let session = fileSync.sessionState.first(where: { $0.id == selected })
+                {
+                    Button("Edit") { editingSession = session }
+                    Button(session.status.isResumable ? "Resume" : "Pause")
+                        { Task { await pauseResume(session: session) } }
+                    Button("Reset") { Task { await reset(session: session) } }
+                    Button("Terminate") { Task { await delete(session: session) } }
+                }
+            },
+            primaryAction: { selectedSessions in
+                if let session = selectedSessions.first {
+                    editingSession = fileSync.sessionState.first(where: { $0.id == session })
+                }
+            })
             .frame(minWidth: 400, minHeight: 200)
             .padding(.bottom, 25)
             .overlay(alignment: .bottom) {
@@ -142,12 +153,9 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     Divider()
                     Button { Task { await pauseResume(session: selectedSession) } }
                         label: {
-                            switch selectedSession.status {
-                            case .paused, .error(.haltedOnRootEmptied),
-                                 .error(.haltedOnRootDeletion),
-                                 .error(.haltedOnRootTypeChange):
+                            if selectedSession.status.isResumable {
                                 Image(systemName: "play").frame(width: 24, height: 24).help("Pause")
-                            default:
+                            } else {
                                 Image(systemName: "pause").frame(width: 24, height: 24).help("Resume")
                             }
                         }
@@ -182,12 +190,9 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
         loading = true
         defer { loading = false }
         do throws(DaemonError) {
-            switch session.status {
-            case .paused, .error(.haltedOnRootEmptied),
-                 .error(.haltedOnRootDeletion),
-                 .error(.haltedOnRootTypeChange):
+            if session.status.isResumable {
                 try await fileSync.resumeSessions(ids: [session.id])
-            default:
+            } else {
                 try await fileSync.pauseSessions(ids: [session.id])
             }
         } catch {
