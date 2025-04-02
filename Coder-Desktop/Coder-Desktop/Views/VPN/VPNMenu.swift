@@ -68,11 +68,12 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     } label: {
                         ButtonRowView {
                             HStack {
-                                // TODO: A future PR will provide users a way to recover from a daemon failure without
-                                // needing to restart the app
-                                if case .failed = fileSync.state, sessionsHaveError(fileSync.sessionState) {
+                                if fileSync.state.isFailed || sessionsHaveError(fileSync.sessionState) {
                                     Image(systemName: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90")
-                                        .frame(width: 12, height: 12).help("One or more sync sessions have errors")
+                                        .frame(width: 12, height: 12)
+                                        .help(fileSync.state.isFailed ?
+                                            "The file sync daemon encountered an error" :
+                                            "One or more file sync sessions have errors")
                                 }
                                 Text("File sync")
                             }

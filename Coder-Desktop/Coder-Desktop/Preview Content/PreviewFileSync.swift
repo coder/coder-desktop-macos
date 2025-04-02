@@ -2,6 +2,8 @@ import VPNLib
 
 @MainActor
 final class PreviewFileSync: FileSyncDaemon {
+    var logFile: URL = .init(filePath: "~/log.txt")!
+
     var sessionState: [VPNLib.FileSyncSession] = []
 
     var state: DaemonState = .running
@@ -10,7 +12,7 @@ final class PreviewFileSync: FileSyncDaemon {
 
     func refreshSessions() async {}
 
-    func start() async throws(DaemonError) {
+    func tryStart() async {
         state = .running
     }
 

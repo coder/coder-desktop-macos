@@ -11,6 +11,8 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
 
     @State private var loading: Bool = false
     @State private var deleteError: DaemonError?
+    @State private var isVisible: Bool = false
+    @State private var dontRetry: Bool = false
 
     var body: some View {
         Group {
@@ -36,87 +38,140 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
             .frame(minWidth: 400, minHeight: 200)
             .padding(.bottom, 25)
             .overlay(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Divider()
-                    HStack(spacing: 0) {
-                        Button {
-                            addingNewSession = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .frame(width: 24, height: 24)
-                        }.disabled(vpn.menuState.agents.isEmpty)
+                tableFooter
+            }
+            // Only the table & footer should be disabled if the daemon has crashed
+            // otherwise the alert buttons will be disabled too
+        }.disabled(fileSync.state.isFailed)
+            .sheet(isPresented: $addingNewSession) {
+                FileSyncSessionModal<VPN, FS>()
+                    .frame(width: 700)
+            }.sheet(item: $editingSession) { session in
+                FileSyncSessionModal<VPN, FS>(existingSession: session)
+                    .frame(width: 700)
+            }.alert("Error", isPresented: Binding(
+                get: { deleteError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        deleteError = nil
+                    }
+                }
+            )) {} message: {
+                Text(deleteError?.description ?? "An unknown error occurred.")
+            }.alert("Error", isPresented: Binding(
+                // We only show the alert if the file config window is open
+                // Users will see the alert symbol on the menu bar to prompt them to
+                // open it. The requirement on `!loading` prevents the alert from
+                // re-opening immediately.
+                get: { !loading && isVisible && fileSync.state.isFailed },
+                set: { isPresented in
+                    if !isPresented {
+                        if dontRetry {
+                            dontRetry = false
+                            return
+                        }
+                        loading = true
+                        Task {
+                            await fileSync.tryStart()
+                            loading = false
+                        }
+                    }
+                }
+            )) {
+                Button("Retry") {}
+                // This gives the user an out if the daemon is crashing on launch,
+                // they can cancel the alert, and it will reappear if they re-open the
+                // file sync window.
+                Button("Cancel", role: .cancel) {
+                    dontRetry = true
+                }
+            } message: {
+                Text("""
+                File sync daemon failed. The daemon log file at\n\(fileSync.logFile.path)\nhas been opened.
+                """).onAppear {
+                    // Open the log file in the default editor
+                    NSWorkspace.shared.open(fileSync.logFile)
+                }
+            }.task {
+                // When the Window is visible, poll for session updates every
+                // two seconds.
+                while !Task.isCancelled {
+                    if !fileSync.state.isFailed {
+                        await fileSync.refreshSessions()
+                    }
+                    try? await Task.sleep(for: .seconds(2))
+                }
+            }.onAppear {
+                isVisible = true
+            }.onDisappear {
+                isVisible = false
+                // If the failure alert is dismissed without restarting the daemon,
+                // (by clicking cancel) this makes it clear that the daemon
+                // is still in a failed state.
+            }.navigationTitle("Coder File Sync \(fileSync.state.isFailed ? "- Failed" : "")")
+            .disabled(loading)
+    }
+
+    var tableFooter: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Divider()
+            HStack(spacing: 0) {
+                Button {
+                    addingNewSession = true
+                } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 24, height: 24)
+                }.disabled(vpn.menuState.agents.isEmpty)
+                Divider()
+                Button {
+                    Task {
+                        loading = true
+                        defer { loading = false }
+                        do throws(DaemonError) {
+                            // TODO: Support selecting & deleting multiple sessions at once
+                            try await fileSync.deleteSessions(ids: [selection!])
+                            if fileSync.sessionState.isEmpty {
+                                // Last session was deleted, stop the daemon
+                                await fileSync.stop()
+                            }
+                        } catch {
+                            deleteError = error
+                        }
+                        selection = nil
+                    }
+                } label: {
+                    Image(systemName: "minus").frame(width: 24, height: 24)
+                }.disabled(selection == nil)
+                if let selection {
+                    if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
                         Divider()
                         Button {
                             Task {
+                                // TODO: Support pausing & resuming multiple sessions at once
                                 loading = true
                                 defer { loading = false }
-                                do throws(DaemonError) {
-                                    // TODO: Support selecting & deleting multiple sessions at once
-                                    try await fileSync.deleteSessions(ids: [selection!])
-                                    if fileSync.sessionState.isEmpty {
-                                        // Last session was deleted, stop the daemon
-                                        await fileSync.stop()
-                                    }
-                                } catch {
-                                    deleteError = error
+                                switch selectedSession.status {
+                                case .paused:
+                                    try await fileSync.resumeSessions(ids: [selectedSession.id])
+                                default:
+                                    try await fileSync.pauseSessions(ids: [selectedSession.id])
                                 }
-                                selection = nil
                             }
                         } label: {
-                            Image(systemName: "minus").frame(width: 24, height: 24)
-                        }.disabled(selection == nil)
-                        if let selection {
-                            if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
-                                Divider()
-                                Button {
-                                    Task {
-                                        // TODO: Support pausing & resuming multiple sessions at once
-                                        loading = true
-                                        defer { loading = false }
-                                        switch selectedSession.status {
-                                        case .paused:
-                                            try await fileSync.resumeSessions(ids: [selectedSession.id])
-                                        default:
-                                            try await fileSync.pauseSessions(ids: [selectedSession.id])
-                                        }
-                                    }
-                                } label: {
-                                    switch selectedSession.status {
-                                    case .paused:
-                                        Image(systemName: "play").frame(width: 24, height: 24)
-                                    default:
-                                        Image(systemName: "pause").frame(width: 24, height: 24)
-                                    }
-                                }
+                            switch selectedSession.status {
+                            case .paused:
+                                Image(systemName: "play").frame(width: 24, height: 24)
+                            default:
+                                Image(systemName: "pause").frame(width: 24, height: 24)
                             }
                         }
                     }
-                    .buttonStyle(.borderless)
-                }
-                .background(.primary.opacity(0.04))
-                .fixedSize(horizontal: false, vertical: true)
-            }
-        }.sheet(isPresented: $addingNewSession) {
-            FileSyncSessionModal<VPN, FS>()
-                .frame(width: 700)
-        }.sheet(item: $editingSession) { session in
-            FileSyncSessionModal<VPN, FS>(existingSession: session)
-                .frame(width: 700)
-        }.alert("Error", isPresented: Binding(
-            get: { deleteError != nil },
-            set: { isPresented in
-                if !isPresented {
-                    deleteError = nil
                 }
             }
-        )) {} message: {
-            Text(deleteError?.description ?? "An unknown error occurred.")
-        }.task {
-            while !Task.isCancelled {
-                await fileSync.refreshSessions()
-                try? await Task.sleep(for: .seconds(2))
-            }
-        }.disabled(loading)
+            .buttonStyle(.borderless)
+        }
+        .background(.primary.opacity(0.04))
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
