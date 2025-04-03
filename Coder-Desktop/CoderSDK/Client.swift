@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Client {
+public struct Client: Sendable {
     public let url: URL
     public var token: String?
     public var headers: [HTTPHeader]
