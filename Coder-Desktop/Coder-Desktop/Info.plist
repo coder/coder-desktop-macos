@@ -2,6 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!--
+		Required to make HTTP (not HTTPS) requests to workspace agents
+		(i.e. workspace.coder:4). These are already encrypted over wireguard.
+		-->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NetworkExtension</key>
 	<dict>
 		<key>NEMachServiceName</key>

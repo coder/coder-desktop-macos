@@ -57,3 +57,28 @@ class MockFileSyncDaemon: FileSyncDaemon {
 }
 
 extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
+
+public func eventually(
+    timeout: Duration = .milliseconds(500),
+    interval: Duration = .milliseconds(10),
+    condition: @escaping () async throws -> Bool
+) async throws -> Bool {
+    let endTime = ContinuousClock.now.advanced(by: timeout)
+
+    var lastError: Error?
+
+    while ContinuousClock.now < endTime {
+        do {
+            if try await condition() { return true }
+            lastError = nil
+        } catch {
+            lastError = error
+            try await Task.sleep(for: interval)
+        }
+    }
+
+    if let lastError {
+        throw lastError
+    }
+    return false
+}
