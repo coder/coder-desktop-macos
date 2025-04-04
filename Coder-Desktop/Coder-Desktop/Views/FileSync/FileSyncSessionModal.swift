@@ -99,9 +99,10 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 try await fileSync.deleteSessions(ids: [existingSession.id])
             }
             try await fileSync.createSession(
-                localPath: localPath,
-                agentHost: workspace.primaryHost!,
-                remotePath: remotePath
+                arg: .init(
+                    alpha: .init(path: localPath, protocolKind: .local),
+                    beta: .init(path: remotePath, protocolKind: .ssh(host: workspace.primaryHost!))
+                )
             )
         } catch {
             createError = error

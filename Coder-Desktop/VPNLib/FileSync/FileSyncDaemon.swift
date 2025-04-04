@@ -14,7 +14,7 @@ public protocol FileSyncDaemon: ObservableObject {
     func tryStart() async
     func stop() async
     func refreshSessions() async
-    func createSession(localPath: String, agentHost: String, remotePath: String) async throws(DaemonError)
+    func createSession(arg: CreateSyncSessionRequest) async throws(DaemonError)
     func deleteSessions(ids: [String]) async throws(DaemonError)
     func pauseSessions(ids: [String]) async throws(DaemonError)
     func resumeSessions(ids: [String]) async throws(DaemonError)
@@ -76,21 +76,6 @@ public class MutagenDaemon: FileSyncDaemon {
             state = .unavailable
             return
         }
-
-        // If there are sync sessions, the daemon should be running
-        Task {
-            do throws(DaemonError) {
-                try await start()
-            } catch {
-                state = .failed(error)
-                return
-            }
-            await refreshSessions()
-            if sessionState.isEmpty {
-                logger.info("No sync sessions found on startup, stopping daemon")
-                await stop()
-            }
-        }
     }
 
     public func tryStart() async {
@@ -99,6 +84,12 @@ public class MutagenDaemon: FileSyncDaemon {
             try await start()
         } catch {
             state = .failed(error)
+            return
+        }
+        await refreshSessions()
+        if sessionState.isEmpty {
+            logger.info("No sync sessions found on startup, stopping daemon")
+            await stop()
         }
     }
 

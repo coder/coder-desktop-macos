@@ -20,7 +20,7 @@ final class PreviewFileSync: FileSyncDaemon {
         state = .stopped
     }
 
-    func createSession(localPath _: String, agentHost _: String, remotePath _: String) async throws(DaemonError) {}
+    func createSession(arg _: CreateSyncSessionRequest) async throws(DaemonError) {}
 
     func deleteSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 
