@@ -17,11 +17,7 @@ public extension MutagenDaemon {
         sessionState = sessions.sessionStates.map { FileSyncSession(state: $0) }
     }
 
-    func createSession(
-        localPath: String,
-        agentHost: String,
-        remotePath: String
-    ) async throws(DaemonError) {
+    func createSession(arg: CreateSyncSessionRequest) async throws(DaemonError) {
         if case .stopped = state {
             do throws(DaemonError) {
                 try await start()
@@ -35,15 +31,8 @@ public extension MutagenDaemon {
         let req = Synchronization_CreateRequest.with { req in
             req.prompter = promptID
             req.specification = .with { spec in
-                spec.alpha = .with { alpha in
-                    alpha.protocol = .local
-                    alpha.path = localPath
-                }
-                spec.beta = .with { beta in
-                    beta.protocol = .ssh
-                    beta.host = agentHost
-                    beta.path = remotePath
-                }
+                spec.alpha = arg.alpha.mutagenURL
+                spec.beta = arg.beta.mutagenURL
                 // TODO: Ingest a config from somewhere
                 spec.configuration = Synchronization_Configuration()
                 spec.configurationAlpha = Synchronization_Configuration()
@@ -64,20 +53,26 @@ public extension MutagenDaemon {
     func deleteSessions(ids: [String]) async throws(DaemonError) {
         // Terminating sessions does not require prompting, according to the
         // Mutagen CLI
-        let (stream, promptID) = try await host(allowPrompts: false)
-        defer { stream.cancel() }
-        guard case .running = state else { return }
         do {
-            _ = try await client!.sync.terminate(Synchronization_TerminateRequest.with { req in
-                req.prompter = promptID
-                req.selection = .with { selection in
-                    selection.specifications = ids
-                }
-            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
-        } catch {
-            throw .grpcFailure(error)
+            let (stream, promptID) = try await host(allowPrompts: false)
+            defer { stream.cancel() }
+            guard case .running = state else { return }
+            do {
+                _ = try await client!.sync.terminate(Synchronization_TerminateRequest.with { req in
+                    req.prompter = promptID
+                    req.selection = .with { selection in
+                        selection.specifications = ids
+                    }
+                }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
+            } catch {
+                throw .grpcFailure(error)
+            }
         }
         await refreshSessions()
+        if sessionState.isEmpty {
+            // Last session was deleted, stop the daemon
+            await stop()
+        }
     }
 
     func pauseSessions(ids: [String]) async throws(DaemonError) {
@@ -133,5 +128,46 @@ public extension MutagenDaemon {
             throw .grpcFailure(error)
         }
         await refreshSessions()
+    }
+}
+
+public struct CreateSyncSessionRequest {
+    public let alpha: Endpoint
+    public let beta: Endpoint
+
+    public init(alpha: Endpoint, beta: Endpoint) {
+        self.alpha = alpha
+        self.beta = beta
+    }
+}
+
+public struct Endpoint {
+    public let path: String
+    public let protocolKind: ProtocolKind
+
+    public init(path: String, protocolKind: ProtocolKind) {
+        self.path = path
+        self.protocolKind = protocolKind
+    }
+
+    public enum ProtocolKind {
+        case local
+        case ssh(host: String)
+    }
+
+    var mutagenURL: Url_URL {
+        switch protocolKind {
+        case .local:
+            .with { url in
+                url.path = path
+                url.protocol = .local
+            }
+        case let .ssh(host):
+            .with { url in
+                url.path = path
+                url.protocol = .ssh
+                url.host = host
+            }
+        }
     }
 }

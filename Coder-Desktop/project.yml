@@ -164,7 +164,7 @@ targets:
         SKIP_INSTALL: NO
         LD_RUNPATH_SEARCH_PATHS:
           # Load frameworks from the SE bundle.
-          - "@executable_path/../../Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Frameworks" 
+          - "@executable_path/../../Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Frameworks"
           - "@executable_path/../Frameworks"
           - "@loader_path/Frameworks"
     dependencies:
@@ -192,6 +192,8 @@ targets:
     platform: macOS
     sources:
       - path: Coder-DesktopTests
+      - path: Resources
+        buildPhase: resources
     settings:
       base:
         BUNDLE_LOADER: "$(TEST_HOST)"
