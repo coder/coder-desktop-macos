@@ -117,12 +117,9 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
             .environmentObject(state)
             .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
             .task {
-                // If there's a file sync session error, an icon will be displayed
-                // next to the file sync button. The file sync window polls more
-                // frequently when it's open.
                 while !Task.isCancelled {
                     await fileSync.refreshSessions()
-                    try? await Task.sleep(for: .seconds(15))
+                    try? await Task.sleep(for: .seconds(2))
                 }
             }
     }
