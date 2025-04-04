@@ -116,6 +116,12 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
             .environmentObject(vpn)
             .environmentObject(state)
             .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
+            .task {
+                while !Task.isCancelled {
+                    await fileSync.refreshSessions()
+                    try? await Task.sleep(for: .seconds(2))
+                }
+            }
     }
 
     private var vpnDisabled: Bool {
