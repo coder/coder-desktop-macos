@@ -78,10 +78,10 @@ class FilePickerModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: ClientError?
 
-    let client: Client
+    let client: AgentClient
 
     init(host: String) {
-        client = Client(url: URL(string: "http://\(host):4")!)
+        client = AgentClient(agentHost: host)
     }
 
     func loadRoot() {
@@ -176,7 +176,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
     // This being a binding is pretty important performance-wise, as it's a struct
     // that would otherwise be recreated every time the the item row is rendered.
     // Removing the binding results in very noticeable lag when scrolling a file tree.
-    @Binding var client: Client
+    @Binding var client: AgentClient
 
     @Published var contents: [FilePickerItemModel]?
     @Published var isLoading = false
@@ -197,7 +197,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
 
     init(
         name: String,
-        client: Binding<Client>,
+        client: Binding<AgentClient>,
         absolute_path: String,
         path: [String],
         dir: Bool = false,
@@ -237,7 +237,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
 
 extension LSResponse {
     @MainActor
-    func toModels(client: Binding<Client>, path: [String]) -> [FilePickerItemModel] {
+    func toModels(client: Binding<AgentClient>, path: [String]) -> [FilePickerItemModel] {
         contents.compactMap { file in
             // Filter dotfiles from the picker
             guard !file.name.hasPrefix(".") else { return nil }

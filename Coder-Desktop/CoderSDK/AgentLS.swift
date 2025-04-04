@@ -1,11 +1,10 @@
-public extension Client {
-    // The Client's URL MUST be set to that of an accessible agent
+public extension AgentClient {
     func listAgentDirectory(_ req: LSRequest) async throws(ClientError) -> LSResponse {
-        let res = try await request("/api/v0/list-directory", method: .post, body: req)
+        let res = try await client.request("/api/v0/list-directory", method: .post, body: req)
         guard res.resp.statusCode == 200 else {
-            throw responseAsError(res)
+            throw client.responseAsError(res)
         }
-        return try decode(LSResponse.self, from: res.data)
+        return try client.decode(LSResponse.self, from: res.data)
     }
 }
 
