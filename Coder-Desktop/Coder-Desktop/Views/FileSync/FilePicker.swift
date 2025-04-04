@@ -21,7 +21,7 @@ struct FilePicker: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if model.isLoading {
+            if model.rootIsLoading {
                 Spacer()
                 ProgressView()
                     .controlSize(.large)
@@ -75,7 +75,7 @@ struct FilePicker: View {
 @MainActor
 class FilePickerModel: ObservableObject {
     @Published var rootFiles: [FilePickerItemModel] = []
-    @Published var isLoading: Bool = false
+    @Published var rootIsLoading: Bool = false
     @Published var error: ClientError?
 
     let client: AgentClient
@@ -86,9 +86,9 @@ class FilePickerModel: ObservableObject {
 
     func loadRoot() {
         error = nil
-        isLoading = true
+        rootIsLoading = true
         Task {
-            defer { isLoading = false }
+            defer { rootIsLoading = false }
             do throws(ClientError) {
                 rootFiles = try await client
                     .listAgentDirectory(.init(path: [], relativity: .root))
