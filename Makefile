@@ -123,7 +123,7 @@ test: $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) $(XCPROJECT) ## Ru
 		-testPlan $(TEST_PLAN) \
 		-skipPackagePluginValidation \
 		CODE_SIGNING_REQUIRED=NO \
-		CODE_SIGNING_ALLOWED=NO
+		CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 .PHONY: lint
 lint: lint/swift lint/actions ## Lint all files in the repo
