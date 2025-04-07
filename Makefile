@@ -116,14 +116,14 @@ fmt: ## Run Swift file formatter
 		$(FMTFLAGS) .
 
 .PHONY: test
-test: $(XCPROJECT) $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) ## Run all tests
+test: $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) $(XCPROJECT) ## Run all tests
 	set -o pipefail && xcodebuild test \
 		-project $(XCPROJECT) \
 		-scheme $(SCHEME) \
 		-testPlan $(TEST_PLAN) \
 		-skipPackagePluginValidation \
 		CODE_SIGNING_REQUIRED=NO \
-		CODE_SIGNING_ALLOWED=NO | xcbeautify
+		CODE_SIGNING_ALLOWED=NO
 
 .PHONY: lint
 lint: lint/swift lint/actions ## Lint all files in the repo
