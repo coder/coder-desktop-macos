@@ -16,6 +16,7 @@ class FileSyncDaemonTests {
     let mutagenAlphaDirectory: URL
     let mutagenBetaDirectory: URL
 
+    // Before each test
     init() throws {
         tempDir = FileManager.default.makeTempDir()!
         #if arch(arm64)
@@ -31,6 +32,7 @@ class FileSyncDaemonTests {
         try FileManager.default.createDirectory(at: mutagenBetaDirectory, withIntermediateDirectories: true)
     }
 
+    // After each test
     deinit {
         try? FileManager.default.removeItem(at: tempDir)
     }
