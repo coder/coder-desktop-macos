@@ -8,7 +8,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
     @EnvironmentObject private var fileSync: FS
 
     @State private var localPath: String = ""
-    @State private var chosenAgent: String?
+    @State private var remoteHostName: String?
     @State private var remotePath: String = ""
 
     @State private var loading: Bool = false
@@ -37,7 +37,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                     }
                 }
                 Section {
-                    Picker("Workspace", selection: $chosenAgent) {
+                    Picker("Workspace", selection: $remoteHostName) {
                         ForEach(agents, id: \.id) { agent in
                             Text(agent.primaryHost!).tag(agent.primaryHost!)
                         }
@@ -55,16 +55,16 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}
                     .keyboardShortcut(.defaultAction)
-                    .disabled(localPath.isEmpty || remotePath.isEmpty || chosenAgent == nil)
+                    .disabled(localPath.isEmpty || remotePath.isEmpty || remoteHostName == nil)
             }.padding(20)
         }.onAppear {
             if let existingSession {
                 localPath = existingSession.alphaPath
-                chosenAgent = agents.first { $0.primaryHost == existingSession.agentHost }?.primaryHost
+                remoteHostName = agents.first { $0.primaryHost == existingSession.agentHost }?.primaryHost
                 remotePath = existingSession.betaPath
             } else {
                 // Set the picker to the first agent by default
-                chosenAgent = agents.first?.primaryHost
+                remoteHostName = agents.first?.primaryHost
             }
         }.disabled(loading)
             .alert("Error", isPresented: Binding(
@@ -77,7 +77,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
 
     func submit() async {
         createError = nil
-        guard let chosenAgent else {
+        guard let remoteHostName else {
             return
         }
         loading = true
@@ -88,7 +88,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             }
             try await fileSync.createSession(
                 localPath: localPath,
-                agentHost: chosenAgent,
+                agentHost: remoteHostName,
                 remotePath: remotePath
             )
         } catch {
