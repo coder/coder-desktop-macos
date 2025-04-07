@@ -103,15 +103,6 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     // Opens the log file in Console
                     NSWorkspace.shared.open(fileSync.logFile)
                 }
-            }.task {
-                // When the Window is visible, poll for session updates every
-                // two seconds.
-                while !Task.isCancelled {
-                    if !fileSync.state.isFailed {
-                        await fileSync.refreshSessions()
-                    }
-                    try? await Task.sleep(for: .seconds(2))
-                }
             }.onAppear {
                 isVisible = true
             }.onDisappear {
