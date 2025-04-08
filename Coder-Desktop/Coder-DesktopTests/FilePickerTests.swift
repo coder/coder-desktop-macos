@@ -103,8 +103,8 @@ struct FilePickerTests {
                 try disclosureGroup.expand()
 
                 // Disclosure group should expand out to 3 more directories
-                try #expect(await eventually { @MainActor in
-                    return try view.findAll(ViewType.DisclosureGroup.self).count == 6
+                #expect(await eventually { @MainActor in
+                    return view.findAll(ViewType.DisclosureGroup.self).count == 6
                 })
             }
         }

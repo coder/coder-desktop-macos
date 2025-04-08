@@ -81,9 +81,9 @@ class FileSyncDaemonTests {
         // Write a file to Alpha
         let alphaFile = mutagenAlphaDirectory.appendingPathComponent("test.txt")
         try "Hello, World!".write(to: alphaFile, atomically: true, encoding: .utf8)
-        try #expect(
+        #expect(
             await eventually(timeout: .seconds(5), interval: .milliseconds(100)) { @MainActor in
-                return try FileManager.default.fileExists(
+                return FileManager.default.fileExists(
                     atPath: self.mutagenBetaDirectory.appending(path: "test.txt").path()
                 )
             })
