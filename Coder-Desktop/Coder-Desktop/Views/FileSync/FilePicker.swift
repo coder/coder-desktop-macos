@@ -92,7 +92,7 @@ class FilePickerModel: ObservableObject {
             do throws(ClientError) {
                 rootFiles = try await client
                     .listAgentDirectory(.init(path: [], relativity: .root))
-                    .toModels(client: Binding(get: { self.client }, set: { _ in }), path: [])
+                    .toModels(client: client, path: [])
             } catch {
                 self.error = error
             }
@@ -173,10 +173,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
     let absolute_path: String
     let dir: Bool
 
-    // This being a binding is pretty important performance-wise, as it's a struct
-    // that would otherwise be recreated every time the the item row is rendered.
-    // Removing the binding results in very noticeable lag when scrolling a file tree.
-    @Binding var client: AgentClient
+    let client: AgentClient
 
     @Published var contents: [FilePickerItemModel]?
     @Published var isLoading = false
@@ -197,14 +194,14 @@ class FilePickerItemModel: Identifiable, ObservableObject {
 
     init(
         name: String,
-        client: Binding<AgentClient>,
+        client: AgentClient,
         absolute_path: String,
         path: [String],
         dir: Bool = false,
         contents: [FilePickerItemModel]? = nil
     ) {
         self.name = name
-        _client = client
+        self.client = client
         self.path = path
         self.dir = dir
         self.absolute_path = absolute_path
@@ -227,7 +224,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
             do throws(ClientError) {
                 contents = try await client
                     .listAgentDirectory(.init(path: path, relativity: .root))
-                    .toModels(client: $client, path: path)
+                    .toModels(client: client, path: path)
             } catch {
                 self.error = error
             }
@@ -237,7 +234,7 @@ class FilePickerItemModel: Identifiable, ObservableObject {
 
 extension LSResponse {
     @MainActor
-    func toModels(client: Binding<AgentClient>, path: [String]) -> [FilePickerItemModel] {
+    func toModels(client: AgentClient, path: [String]) -> [FilePickerItemModel] {
         contents.compactMap { file in
             // Filter dotfiles from the picker
             guard !file.name.hasPrefix(".") else { return nil }

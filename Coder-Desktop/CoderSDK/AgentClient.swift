@@ -1,4 +1,4 @@
-public struct AgentClient: Sendable {
+public final class AgentClient: Sendable {
     let client: Client
 
     public init(agentHost: String) {
