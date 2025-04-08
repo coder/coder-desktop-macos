@@ -54,8 +54,8 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                             pickingRemote = true
                         } label: {
                             Image(systemName: "folder")
-                        }.disabled(workspace == nil)
-                            .help(workspace == nil ? "Select a workspace first" : "Open File Picker")
+                        }.disabled(remoteHostname == nil)
+                            .help(remoteHostname == nil ? "Select a workspace first" : "Open File Picker")
                     }
                 }
             }.formStyle(.grouped).scrollDisabled(true).padding(.horizontal)
@@ -83,7 +83,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             )) {} message: {
                 Text(createError?.description ?? "An unknown error occurred.")
             }.sheet(isPresented: $pickingRemote) {
-                FilePicker(host: workspace!.primaryHost!, outputAbsPath: $remotePath)
+                FilePicker(host: remoteHostname!, outputAbsPath: $remotePath)
                     .frame(width: 300, height: 400)
             }
     }
