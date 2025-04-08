@@ -102,7 +102,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             try await fileSync.createSession(
                 arg: .init(
                     alpha: .init(path: localPath, protocolKind: .local),
-                    beta: .init(path: remotePath, protocolKind: .ssh(host: workspace.primaryHost!))
+                    beta: .init(path: remotePath, protocolKind: .ssh(host: remotePath))
                 )
             )
         } catch {
