@@ -33,8 +33,12 @@ public extension MutagenDaemon {
             req.specification = .with { spec in
                 spec.alpha = arg.alpha.mutagenURL
                 spec.beta = arg.beta.mutagenURL
-                // TODO: Ingest a config from somewhere
-                spec.configuration = Synchronization_Configuration()
+                // TODO: Ingest configs from somewhere
+                spec.configuration = .with {
+                    // ALWAYS ignore VCS directories for now
+                    // https://mutagen.io/documentation/synchronization/version-control-systems/
+                    $0.ignoreVcsmode = .ignore
+                }
                 spec.configurationAlpha = Synchronization_Configuration()
                 spec.configurationBeta = Synchronization_Configuration()
             }
