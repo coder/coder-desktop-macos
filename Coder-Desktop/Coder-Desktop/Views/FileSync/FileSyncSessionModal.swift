@@ -13,6 +13,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
 
     @State private var loading: Bool = false
     @State private var createError: DaemonError?
+    @State private var pickingRemote: Bool = false
 
     var body: some View {
         let agents = vpn.menuState.onlineAgents
@@ -46,7 +47,16 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                     }
                 }
                 Section {
-                    TextField("Remote Path", text: $remotePath)
+                    HStack(spacing: 5) {
+                        TextField("Remote Path", text: $remotePath)
+                        Spacer()
+                        Button {
+                            pickingRemote = true
+                        } label: {
+                            Image(systemName: "folder")
+                        }.disabled(remoteHostname == nil)
+                            .help(remoteHostname == nil ? "Select a workspace first" : "Open File Picker")
+                    }
                 }
             }.formStyle(.grouped).scrollDisabled(true).padding(.horizontal)
             Divider()
@@ -72,6 +82,9 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 set: { if !$0 { createError = nil } }
             )) {} message: {
                 Text(createError?.description ?? "An unknown error occurred.")
+            }.sheet(isPresented: $pickingRemote) {
+                FilePicker(host: remoteHostname!, outputAbsPath: $remotePath)
+                    .frame(width: 300, height: 400)
             }
     }
 
