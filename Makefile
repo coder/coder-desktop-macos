@@ -116,7 +116,7 @@ fmt: ## Run Swift file formatter
 		$(FMTFLAGS) .
 
 .PHONY: test
-test: $(XCPROJECT) ## Run all tests
+test: $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) $(XCPROJECT) ## Run all tests
 	set -o pipefail && xcodebuild test \
 		-project $(XCPROJECT) \
 		-scheme $(SCHEME) \

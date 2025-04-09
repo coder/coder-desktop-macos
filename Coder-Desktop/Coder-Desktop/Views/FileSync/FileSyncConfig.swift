@@ -166,10 +166,6 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
         defer { loading = false }
         do throws(DaemonError) {
             try await fileSync.deleteSessions(ids: [selection!])
-            if fileSync.sessionState.isEmpty {
-                // Last session was deleted, stop the daemon
-                await fileSync.stop()
-            }
         } catch {
             actionError = error
         }

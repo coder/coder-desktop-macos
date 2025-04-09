@@ -51,9 +51,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         #elseif arch(x86_64)
             let mutagenBinary = "mutagen-darwin-amd64"
         #endif
-        fileSyncDaemon = MutagenDaemon(
+        let fileSyncDaemon = MutagenDaemon(
             mutagenPath: Bundle.main.url(forResource: mutagenBinary, withExtension: nil)
         )
+        Task {
+            await fileSyncDaemon.tryStart()
+        }
+        self.fileSyncDaemon = fileSyncDaemon
     }
 
     func applicationDidFinishLaunching(_: Notification) {

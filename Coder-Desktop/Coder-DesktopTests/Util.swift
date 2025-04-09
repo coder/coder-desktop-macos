@@ -47,7 +47,7 @@ class MockFileSyncDaemon: FileSyncDaemon {
         []
     }
 
-    func createSession(localPath _: String, agentHost _: String, remotePath _: String) async throws(DaemonError) {}
+    func createSession(arg _: CreateSyncSessionRequest) async throws(DaemonError) {}
 
     func pauseSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 
@@ -61,24 +61,32 @@ extension Inspection: @unchecked Sendable, @retroactive InspectionEmissary {}
 public func eventually(
     timeout: Duration = .milliseconds(500),
     interval: Duration = .milliseconds(10),
-    condition: @escaping () async throws -> Bool
-) async throws -> Bool {
+    condition: @Sendable () async throws -> Bool
+) async rethrows -> Bool {
     let endTime = ContinuousClock.now.advanced(by: timeout)
-
-    var lastError: Error?
 
     while ContinuousClock.now < endTime {
         do {
             if try await condition() { return true }
-            lastError = nil
         } catch {
-            lastError = error
             try await Task.sleep(for: interval)
         }
     }
 
-    if let lastError {
-        throw lastError
+    return try await condition()
+}
+
+extension FileManager {
+    func makeTempDir() -> URL? {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let directoryName = String(Int.random(in: 0 ..< 1_000_000))
+        let directoryURL = tempDirectory.appendingPathComponent(directoryName)
+
+        do {
+            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            return directoryURL
+        } catch {
+            return nil
+        }
     }
-    return false
 }
