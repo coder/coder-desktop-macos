@@ -25,12 +25,7 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published private(set) var hostnameSuffix: String {
-        didSet {
-            guard persistent else { return }
-            UserDefaults.standard.set(hostnameSuffix, forKey: Keys.hostnameSuffix)
-        }
-    }
+    @Published private(set) var hostnameSuffix: String = defaultHostnameSuffix
 
     static let defaultHostnameSuffix: String = "coder"
 
@@ -105,10 +100,6 @@ class AppState: ObservableObject {
         self.onChange = onChange
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
         _hasSession = Published(initialValue: persistent ? UserDefaults.standard.bool(forKey: Keys.hasSession) : false)
-        _hostnameSuffix = Published(
-            initialValue: persistent ? UserDefaults.standard
-                .string(forKey: Keys.hostnameSuffix) ?? Self.defaultHostnameSuffix : Self.defaultHostnameSuffix
-        )
         _baseAccessURL = Published(
             initialValue: persistent ? UserDefaults.standard.url(forKey: Keys.baseAccessURL) : nil
         )
@@ -127,6 +118,7 @@ class AppState: ObservableObject {
                 token: sessionToken!,
                 headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
             )
+            Task { await refreshDeploymentConfig() }
         }
     }
 
@@ -139,6 +131,7 @@ class AppState: ObservableObject {
             token: sessionToken,
             headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
         )
+        Task { await refreshDeploymentConfig() }
         reconfigure()
     }
 
