@@ -72,7 +72,7 @@ struct FilePicker: View {
 class FilePickerModel: ObservableObject {
     @Published var rootEntries: [FilePickerEntryModel] = []
     @Published var rootIsLoading: Bool = false
-    @Published var error: ClientError?
+    @Published var error: SDKError?
 
     // It's important that `AgentClient` is a reference type (class)
     // as we were having performance issues with a struct (unless it was a binding).
@@ -87,7 +87,7 @@ class FilePickerModel: ObservableObject {
         rootIsLoading = true
         Task {
             defer { rootIsLoading = false }
-            do throws(ClientError) {
+            do throws(SDKError) {
                 rootEntries = try await client
                     .listAgentDirectory(.init(path: [], relativity: .root))
                     .toModels(client: client)
@@ -149,7 +149,7 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
 
     @Published var entries: [FilePickerEntryModel]?
     @Published var isLoading = false
-    @Published var error: ClientError?
+    @Published var error: SDKError?
     @Published private var innerIsExpanded = false
     var isExpanded: Bool {
         get { innerIsExpanded }
@@ -193,7 +193,7 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
                     innerIsExpanded = true
                 }
             }
-            do throws(ClientError) {
+            do throws(SDKError) {
                 entries = try await client
                     .listAgentDirectory(.init(path: path, relativity: .root))
                     .toModels(client: client)

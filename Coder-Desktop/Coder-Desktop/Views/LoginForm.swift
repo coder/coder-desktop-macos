@@ -207,7 +207,7 @@ enum LoginError: Error {
     case invalidURL
     case outdatedCoderVersion
     case missingServerVersion
-    case failedAuth(ClientError)
+    case failedAuth(SDKError)
 
     var description: String {
         switch self {

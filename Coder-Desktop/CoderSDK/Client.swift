@@ -11,95 +11,38 @@ public struct Client: Sendable {
         self.headers = headers
     }
 
-    static let decoder: JSONDecoder = {
-        var dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601withOptionalFractionalSeconds
-        return dec
-    }()
-
-    static let encoder: JSONEncoder = {
-        var enc = JSONEncoder()
-        enc.dateEncodingStrategy = .iso8601withFractionalSeconds
-        return enc
-    }()
-
-    private func doRequest(
-        path: String,
-        method: HTTPMethod,
-        body: Data? = nil
-    ) async throws(ClientError) -> HTTPResponse {
-        let url = url.appendingPathComponent(path)
-        var req = URLRequest(url: url)
-        if let token { req.addValue(token, forHTTPHeaderField: Headers.sessionToken) }
-        req.httpMethod = method.rawValue
-        for header in headers {
-            req.addValue(header.value, forHTTPHeaderField: header.name)
-        }
-        req.httpBody = body
-        let data: Data
-        let resp: URLResponse
-        do {
-            (data, resp) = try await URLSession.shared.data(for: req)
-        } catch {
-            throw .network(error)
-        }
-        guard let httpResponse = resp as? HTTPURLResponse else {
-            throw .unexpectedResponse(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
-        }
-        return HTTPResponse(resp: httpResponse, data: data, req: req)
-    }
-
     func request(
         _ path: String,
         method: HTTPMethod,
         body: some Encodable & Sendable
-    ) async throws(ClientError) -> HTTPResponse {
-        let encodedBody: Data?
-        do {
-            encodedBody = try Client.encoder.encode(body)
-        } catch {
-            throw .encodeFailure(error)
+    ) async throws(SDKError) -> HTTPResponse {
+        var headers = headers
+        if let token {
+            headers += [.init(name: Headers.sessionToken, value: token)]
         }
-        return try await doRequest(path: path, method: method, body: encodedBody)
+        return try await CoderSDK.request(
+            baseURL: url,
+            path: path,
+            method: method,
+            headers: headers,
+            body: body
+        )
     }
 
     func request(
         _ path: String,
         method: HTTPMethod
-    ) async throws(ClientError) -> HTTPResponse {
-        try await doRequest(path: path, method: method)
-    }
-
-    func responseAsError(_ resp: HTTPResponse) -> ClientError {
-        do {
-            let body = try decode(Response.self, from: resp.data)
-            let out = APIError(
-                response: body,
-                statusCode: resp.resp.statusCode,
-                method: resp.req.httpMethod!,
-                url: resp.req.url!
-            )
-            return .api(out)
-        } catch {
-            return .unexpectedResponse(String(data: resp.data, encoding: .utf8) ?? "<non-utf8 data>")
+    ) async throws(SDKError) -> HTTPResponse {
+        var headers = headers
+        if let token {
+            headers += [.init(name: Headers.sessionToken, value: token)]
         }
-    }
-
-    // Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
-    func decode<T>(_: T.Type, from data: Data) throws(ClientError) -> T where T: Decodable {
-        do {
-            return try Client.decoder.decode(T.self, from: data)
-        } catch let DecodingError.keyNotFound(_, context) {
-            throw .unexpectedResponse("Key not found: \(context.debugDescription)")
-        } catch let DecodingError.valueNotFound(_, context) {
-            throw .unexpectedResponse("Value not found: \(context.debugDescription)")
-        } catch let DecodingError.typeMismatch(_, context) {
-            throw .unexpectedResponse("Type mismatch: \(context.debugDescription)")
-        } catch let DecodingError.dataCorrupted(context) {
-            throw .unexpectedResponse("Data corrupted: \(context.debugDescription)")
-        } catch {
-            throw .unexpectedResponse(String(data: data.prefix(1024), encoding: .utf8) ?? "<non-utf8 data>")
-        }
+        return try await CoderSDK.request(
+            baseURL: url,
+            path: path,
+            method: method,
+            headers: headers
+        )
     }
 }
 
@@ -133,7 +76,7 @@ public struct FieldValidation: Decodable, Sendable {
     let detail: String
 }
 
-public enum ClientError: Error {
+public enum SDKError: Error {
     case api(APIError)
     case network(any Error)
     case unexpectedResponse(String)
@@ -153,4 +96,111 @@ public enum ClientError: Error {
     }
 
     public var localizedDescription: String { description }
+}
+
+let decoder: JSONDecoder = {
+    var dec = JSONDecoder()
+    dec.dateDecodingStrategy = .iso8601withOptionalFractionalSeconds
+    return dec
+}()
+
+let encoder: JSONEncoder = {
+    var enc = JSONEncoder()
+    enc.dateEncodingStrategy = .iso8601withFractionalSeconds
+    return enc
+}()
+
+func doRequest(
+    baseURL: URL,
+    path: String,
+    method: HTTPMethod,
+    headers: [HTTPHeader] = [],
+    body: Data? = nil
+) async throws(SDKError) -> HTTPResponse {
+    let url = baseURL.appendingPathComponent(path)
+    var req = URLRequest(url: url)
+    req.httpMethod = method.rawValue
+    for header in headers {
+        req.addValue(header.value, forHTTPHeaderField: header.name)
+    }
+    req.httpBody = body
+    let data: Data
+    let resp: URLResponse
+    do {
+        (data, resp) = try await URLSession.shared.data(for: req)
+    } catch {
+        throw .network(error)
+    }
+    guard let httpResponse = resp as? HTTPURLResponse else {
+        throw .unexpectedResponse(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
+    }
+    return HTTPResponse(resp: httpResponse, data: data, req: req)
+}
+
+func request(
+    baseURL: URL,
+    path: String,
+    method: HTTPMethod,
+    headers: [HTTPHeader] = [],
+    body: some Encodable & Sendable
+) async throws(SDKError) -> HTTPResponse {
+    let encodedBody: Data
+    do {
+        encodedBody = try encoder.encode(body)
+    } catch {
+        throw .encodeFailure(error)
+    }
+    return try await doRequest(
+        baseURL: baseURL,
+        path: path,
+        method: method,
+        headers: headers,
+        body: encodedBody
+    )
+}
+
+func request(
+    baseURL: URL,
+    path: String,
+    method: HTTPMethod,
+    headers: [HTTPHeader] = []
+) async throws(SDKError) -> HTTPResponse {
+    try await doRequest(
+        baseURL: baseURL,
+        path: path,
+        method: method,
+        headers: headers
+    )
+}
+
+func responseAsError(_ resp: HTTPResponse) -> SDKError {
+    do {
+        let body = try decode(Response.self, from: resp.data)
+        let out = APIError(
+            response: body,
+            statusCode: resp.resp.statusCode,
+            method: resp.req.httpMethod!,
+            url: resp.req.url!
+        )
+        return .api(out)
+    } catch {
+        return .unexpectedResponse(String(data: resp.data, encoding: .utf8) ?? "<non-utf8 data>")
+    }
+}
+
+// Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
+func decode<T: Decodable>(_: T.Type, from data: Data) throws(SDKError) -> T {
+    do {
+        return try decoder.decode(T.self, from: data)
+    } catch let DecodingError.keyNotFound(_, context) {
+        throw .unexpectedResponse("Key not found: \(context.debugDescription)")
+    } catch let DecodingError.valueNotFound(_, context) {
+        throw .unexpectedResponse("Value not found: \(context.debugDescription)")
+    } catch let DecodingError.typeMismatch(_, context) {
+        throw .unexpectedResponse("Type mismatch: \(context.debugDescription)")
+    } catch let DecodingError.dataCorrupted(context) {
+        throw .unexpectedResponse("Data corrupted: \(context.debugDescription)")
+    } catch {
+        throw .unexpectedResponse(String(data: data.prefix(1024), encoding: .utf8) ?? "<non-utf8 data>")
+    }
 }

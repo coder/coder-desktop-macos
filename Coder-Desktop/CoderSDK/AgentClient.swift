@@ -1,7 +1,22 @@
 public final class AgentClient: Sendable {
-    let client: Client
+    let agentURL: URL
 
     public init(agentHost: String) {
-        client = Client(url: URL(string: "http://\(agentHost):4")!)
+        agentURL = URL(string: "http://\(agentHost):4")!
+    }
+
+    func request(
+        _ path: String,
+        method: HTTPMethod
+    ) async throws(SDKError) -> HTTPResponse {
+        try await CoderSDK.request(baseURL: agentURL, path: path, method: method)
+    }
+
+    func request(
+        _ path: String,
+        method: HTTPMethod,
+        body: some Encodable & Sendable
+    ) async throws(SDKError) -> HTTPResponse {
+        try await CoderSDK.request(baseURL: agentURL, path: path, method: method, body: body)
     }
 }

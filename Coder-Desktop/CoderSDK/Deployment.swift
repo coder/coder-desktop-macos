@@ -1,7 +1,7 @@
 import Foundation
 
 public extension Client {
-    func buildInfo() async throws(ClientError) -> BuildInfoResponse {
+    func buildInfo() async throws(SDKError) -> BuildInfoResponse {
         let res = try await request("/api/v2/buildinfo", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)

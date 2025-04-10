@@ -1,10 +1,10 @@
 public extension AgentClient {
-    func listAgentDirectory(_ req: LSRequest) async throws(ClientError) -> LSResponse {
-        let res = try await client.request("/api/v0/list-directory", method: .post, body: req)
+    func listAgentDirectory(_ req: LSRequest) async throws(SDKError) -> LSResponse {
+        let res = try await request("/api/v0/list-directory", method: .post, body: req)
         guard res.resp.statusCode == 200 else {
-            throw client.responseAsError(res)
+            throw responseAsError(res)
         }
-        return try client.decode(LSResponse.self, from: res.data)
+        return try decode(LSResponse.self, from: res.data)
     }
 }
 

@@ -19,7 +19,7 @@ struct CoderSDKTests {
             url: url.appending(path: "api/v2/users/johndoe"),
             contentType: .json,
             statusCode: 200,
-            data: [.get: Client.encoder.encode(user)]
+            data: [.get: CoderSDK.encoder.encode(user)]
         )
         var correctHeaders = false
         mock.onRequestHandler = OnRequestHandler { req in
@@ -45,7 +45,7 @@ struct CoderSDKTests {
             url: url.appending(path: "api/v2/buildinfo"),
             contentType: .json,
             statusCode: 200,
-            data: [.get: Client.encoder.encode(buildInfo)]
+            data: [.get: CoderSDK.encoder.encode(buildInfo)]
         ).register()
 
         let retBuildInfo = try await client.buildInfo()

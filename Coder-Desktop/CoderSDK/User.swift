@@ -1,7 +1,7 @@
 import Foundation
 
 public extension Client {
-    func user(_ ident: String) async throws(ClientError) -> User {
+    func user(_ ident: String) async throws(SDKError) -> User {
         let res = try await request("/api/v2/users/\(ident)", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)

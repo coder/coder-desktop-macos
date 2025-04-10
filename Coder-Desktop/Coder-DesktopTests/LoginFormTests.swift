@@ -79,7 +79,7 @@ struct LoginTests {
         try Mock(
             url: url.appendingPathComponent("/api/v2/buildinfo"),
             statusCode: 200,
-            data: [.get: Client.encoder.encode(buildInfo)]
+            data: [.get: CoderSDK.encoder.encode(buildInfo)]
         ).register()
         Mock(url: url.appendingPathComponent("/api/v2/users/me"), statusCode: 401, data: [.get: Data()]).register()
 
@@ -104,13 +104,13 @@ struct LoginTests {
         try Mock(
             url: url.appendingPathComponent("/api/v2/buildinfo"),
             statusCode: 200,
-            data: [.get: Client.encoder.encode(buildInfo)]
+            data: [.get: CoderSDK.encoder.encode(buildInfo)]
         ).register()
 
         try Mock(
             url: url.appendingPathComponent("/api/v2/users/me"),
             statusCode: 200,
-            data: [.get: Client.encoder.encode(User(id: UUID(), username: "username"))]
+            data: [.get: CoderSDK.encoder.encode(User(id: UUID(), username: "username"))]
         ).register()
 
         try await ViewHosting.host(view) {
@@ -140,13 +140,13 @@ struct LoginTests {
         try Mock(
             url: url.appendingPathComponent("/api/v2/users/me"),
             statusCode: 200,
-            data: [.get: Client.encoder.encode(user)]
+            data: [.get: CoderSDK.encoder.encode(user)]
         ).register()
 
         try Mock(
             url: url.appendingPathComponent("/api/v2/buildinfo"),
             statusCode: 200,
-            data: [.get: Client.encoder.encode(buildInfo)]
+            data: [.get: CoderSDK.encoder.encode(buildInfo)]
         ).register()
 
         try await ViewHosting.host(view) {
