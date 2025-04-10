@@ -122,7 +122,7 @@ class AppState: ObservableObject {
             let client = Client(url: baseAccessURL!, token: sessionToken!)
             do {
                 _ = try await client.user("me")
-            } catch let ClientError.api(apiErr) {
+            } catch let SDKError.api(apiErr) {
                 // Expired token
                 if apiErr.statusCode == 401 {
                     clearSession()

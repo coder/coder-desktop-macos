@@ -60,7 +60,7 @@ struct FilePickerTests {
         try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
             statusCode: 200,
-            data: [.post: Client.encoder.encode(mockResponse)]
+            data: [.post: CoderSDK.encoder.encode(mockResponse)]
         ).register()
 
         try await ViewHosting.host(view) {
@@ -88,7 +88,7 @@ struct FilePickerTests {
         try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
             statusCode: 200,
-            data: [.post: Client.encoder.encode(mockResponse)]
+            data: [.post: CoderSDK.encoder.encode(mockResponse)]
         ).register()
 
         try await ViewHosting.host(view) {
