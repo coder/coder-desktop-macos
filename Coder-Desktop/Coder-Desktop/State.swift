@@ -25,6 +25,15 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published private(set) var hostnameSuffix: String {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(hostnameSuffix, forKey: Keys.hostnameSuffix)
+        }
+    }
+
+    static let defaultHostnameSuffix: String = "coder"
+
     // Stored in Keychain
     @Published private(set) var sessionToken: String? {
         didSet {
@@ -32,6 +41,8 @@ class AppState: ObservableObject {
             keychainSet(sessionToken, for: Keys.sessionToken)
         }
     }
+
+    var client: Client?
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
@@ -80,7 +91,7 @@ class AppState: ObservableObject {
     private let keychain: Keychain
     private let persistent: Bool
 
-    let onChange: ((NETunnelProviderProtocol?) -> Void)?
+    private let onChange: ((NETunnelProviderProtocol?) -> Void)?
 
     // reconfigure must be called when any property used to configure the VPN changes
     public func reconfigure() {
@@ -94,6 +105,10 @@ class AppState: ObservableObject {
         self.onChange = onChange
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
         _hasSession = Published(initialValue: persistent ? UserDefaults.standard.bool(forKey: Keys.hasSession) : false)
+        _hostnameSuffix = Published(
+            initialValue: persistent ? UserDefaults.standard
+                .string(forKey: Keys.hostnameSuffix) ?? Self.defaultHostnameSuffix : Self.defaultHostnameSuffix
+        )
         _baseAccessURL = Published(
             initialValue: persistent ? UserDefaults.standard.url(forKey: Keys.baseAccessURL) : nil
         )
@@ -107,6 +122,11 @@ class AppState: ObservableObject {
             if sessionToken == nil || sessionToken!.isEmpty == true {
                 clearSession()
             }
+            client = Client(
+                url: baseAccessURL!,
+                token: sessionToken!,
+                headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
+            )
         }
     }
 
@@ -114,14 +134,18 @@ class AppState: ObservableObject {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
+        client = Client(
+            url: baseAccessURL,
+            token: sessionToken,
+            headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
+        )
         reconfigure()
     }
 
     public func handleTokenExpiry() async {
         if hasSession {
-            let client = Client(url: baseAccessURL!, token: sessionToken!)
             do {
-                _ = try await client.user("me")
+                _ = try await client!.user("me")
             } catch let SDKError.api(apiErr) {
                 // Expired token
                 if apiErr.statusCode == 401 {
@@ -135,9 +159,24 @@ class AppState: ObservableObject {
         }
     }
 
+    public func refreshDeploymentConfig() async {
+        if hasSession {
+            do {
+                let config = try await client!.sshConfiguration()
+                hostnameSuffix = config.hostname_suffix ?? Self.defaultHostnameSuffix
+            } catch {
+                // If fetching the config fails, there's likely a bigger issue.
+                // We'll show an error in the UI if they try and do something
+                logger.error("failed to refresh deployment config: \(error)")
+                return
+            }
+        }
+    }
+
     public func clearSession() {
         hasSession = false
         sessionToken = nil
+        client = nil
         reconfigure()
     }
 
@@ -159,6 +198,7 @@ class AppState: ObservableObject {
         static let hasSession = "hasSession"
         static let baseAccessURL = "baseAccessURL"
         static let sessionToken = "sessionToken"
+        static let hostnameSuffix = "hostnameSuffix"
 
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"

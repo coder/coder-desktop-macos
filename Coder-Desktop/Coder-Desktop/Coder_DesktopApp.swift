@@ -65,10 +65,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             title: "Coder Desktop",
             image: "MenuBarIcon",
             onAppear: {
-                // If the VPN is enabled, it's likely the token isn't expired
+                // If the VPN is enabled, it's likely the token hasn't expired,
+                // and the deployment config is up to date.
                 guard case .disabled = self.vpn.state, self.state.hasSession else { return }
                 Task { @MainActor in
                     await self.state.handleTokenExpiry()
+                    await self.state.refreshDeploymentConfig()
                 }
             }, content: {
                 VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)
