@@ -37,7 +37,7 @@ class AppState: ObservableObject {
         }
     }
 
-    var client: Client?
+    private var client: Client?
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
@@ -118,7 +118,10 @@ class AppState: ObservableObject {
                 token: sessionToken!,
                 headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
             )
-            Task { await refreshDeploymentConfig() }
+            Task {
+                await handleTokenExpiry()
+                await refreshDeploymentConfig()
+            }
         }
     }
 
