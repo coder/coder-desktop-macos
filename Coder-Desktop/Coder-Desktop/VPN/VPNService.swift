@@ -76,6 +76,7 @@ final class CoderVPNService: NSObject, VPNService {
 
     // Whether the VPN should start as soon as possible
     var startWhenReady: Bool = false
+    var onStart: (() -> Void)?
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
@@ -182,8 +183,11 @@ extension CoderVPNService {
         // Connected -> Connected: no-op
         case (.connected, .connected):
             break
-        // Non-connecting -> Connecting: Establish XPC
+        // Non-connecting -> Connecting:
+        // - Establish XPC
+        // - Run `onStart` closure
         case (_, .connecting):
+            onStart?()
             xpc.connect()
             xpc.ping()
             tunnelState = .connecting
