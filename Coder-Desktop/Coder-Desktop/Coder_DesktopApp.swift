@@ -41,10 +41,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     override init() {
         vpn = CoderVPNService()
-        state = AppState(onChange: vpn.configureTunnelProviderProtocol)
+        let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
+        vpn.onStart = {
+            // We don't need this to have finished before the VPN actually starts
+            Task { await state.refreshDeploymentConfig() }
+        }
         if state.startVPNOnLaunch {
             vpn.startWhenReady = true
         }
+        self.state = state
         vpn.installSystemExtension()
         #if arch(arm64)
             let mutagenBinary = "mutagen-darwin-arm64"
@@ -65,12 +70,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             title: "Coder Desktop",
             image: "MenuBarIcon",
             onAppear: {
-                // If the VPN is enabled, it's likely the token hasn't expired,
-                // and the deployment config is up to date.
+                // If the VPN is enabled, it's likely the token isn't expired
                 guard case .disabled = self.vpn.state, self.state.hasSession else { return }
                 Task { @MainActor in
                     await self.state.handleTokenExpiry()
-                    await self.state.refreshDeploymentConfig()
                 }
             }, content: {
                 VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)

@@ -76,6 +76,7 @@ final class CoderVPNService: NSObject, VPNService {
 
     // Whether the VPN should start as soon as possible
     var startWhenReady: Bool = false
+    var onStart: (() -> Void)?
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
@@ -95,6 +96,8 @@ final class CoderVPNService: NSObject, VPNService {
         default:
             return
         }
+
+        onStart?()
 
         menuState.clear()
         await startTunnel()
