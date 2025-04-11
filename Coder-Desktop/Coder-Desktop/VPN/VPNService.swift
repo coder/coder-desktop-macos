@@ -97,8 +97,6 @@ final class CoderVPNService: NSObject, VPNService {
             return
         }
 
-        onStart?()
-
         menuState.clear()
         await startTunnel()
         logger.debug("network extension enabled")
@@ -185,8 +183,11 @@ extension CoderVPNService {
         // Connected -> Connected: no-op
         case (.connected, .connected):
             break
-        // Non-connecting -> Connecting: Establish XPC
+        // Non-connecting -> Connecting:
+        // - Establish XPC
+        // - Run `onStart` closure
         case (_, .connecting):
+            onStart?()
             xpc.connect()
             xpc.ping()
             tunnelState = .connecting
