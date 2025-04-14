@@ -163,13 +163,18 @@ class AppState: ObservableObject {
 
             refreshTask = Task {
                 let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
-                    let config = try await client.agentConnectionInfoGeneric()
-                    return config.hostname_suffix
+                    do {
+                        let config = try await client.agentConnectionInfoGeneric()
+                        return config.hostname_suffix
+                    } catch {
+                        logger.error("failed to get agent connection info (retrying): \(error)")
+                        throw error
+                    }
                 }
                 return res
             }
 
-            self.hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
+            hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
         }
     }
 
