@@ -58,8 +58,8 @@ struct MenuItemView: View {
         var formattedName = AttributedString(name)
         formattedName.foregroundColor = .primary
 
-        if let lastDot = formattedName.range(of: ".", options: .backwards) {
-            formattedName[lastDot.lowerBound ..< formattedName.endIndex].foregroundColor = .secondary
+        if let range = formattedName.range(of: ".\(state.hostnameSuffix)", options: .backwards) {
+            formattedName[range].foregroundColor = .secondary
         }
         return formattedName
     }

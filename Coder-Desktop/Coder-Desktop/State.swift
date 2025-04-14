@@ -157,15 +157,11 @@ class AppState: ObservableObject {
 
     public func refreshDeploymentConfig() async {
         if hasSession {
-            do {
-                let config = try await client!.sshConfiguration()
-                hostnameSuffix = config.hostname_suffix ?? Self.defaultHostnameSuffix
-            } catch {
-                // If fetching the config fails, there's likely a bigger issue.
-                // We'll show an error in the UI if they try and do something
-                logger.error("failed to refresh deployment config: \(error)")
-                return
+            let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
+                let config = try await client!.agentConnectionInfoGeneric()
+                return config.hostname_suffix
             }
+            hostnameSuffix = res ?? Self.defaultHostnameSuffix
         }
     }
 
@@ -194,7 +190,6 @@ class AppState: ObservableObject {
         static let hasSession = "hasSession"
         static let baseAccessURL = "baseAccessURL"
         static let sessionToken = "sessionToken"
-        static let hostnameSuffix = "hostnameSuffix"
 
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"
