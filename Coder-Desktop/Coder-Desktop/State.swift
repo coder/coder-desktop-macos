@@ -155,19 +155,28 @@ class AppState: ObservableObject {
         }
     }
 
+    private var refreshTask: Task<String?, Never>?
     public func refreshDeploymentConfig() async {
-        if hasSession {
-            let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
-                let config = try await client!.agentConnectionInfoGeneric()
-                return config.hostname_suffix
+        // Client is non-nil if there's a sesssion
+        if hasSession, let client {
+            refreshTask?.cancel()
+
+            refreshTask = Task {
+                let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
+                    let config = try await client.agentConnectionInfoGeneric()
+                    return config.hostname_suffix
+                }
+                return res
             }
-            hostnameSuffix = res ?? Self.defaultHostnameSuffix
+
+            self.hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
         }
     }
 
     public func clearSession() {
         hasSession = false
         sessionToken = nil
+        refreshTask?.cancel()
         client = nil
         reconfigure()
     }
