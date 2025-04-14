@@ -183,16 +183,16 @@ extension CoderVPNService {
         // Connected -> Connected: no-op
         case (.connected, .connected):
             break
-        // Non-connecting -> Connecting:
-        // - Establish XPC
-        // - Run `onStart` closure
+        // Non-connecting -> Connecting: Establish XPC
         case (_, .connecting):
-            onStart?()
             xpc.connect()
             xpc.ping()
             tunnelState = .connecting
-        // Non-connected -> Connected: Retrieve Peers
+        // Non-connected -> Connected:
+        // - Retrieve Peers
+        // - Run `onStart` closure
         case (_, .connected):
+            onStart?()
             xpc.connect()
             xpc.getPeerState()
             tunnelState = .connected
