@@ -9,20 +9,22 @@ if pgrep 'Coder Desktop'; then
   touch $RUNNING_MARKER_FILE
 fi
 
+vpn_name=$(scutil --nc list | grep "com.coder.Coder-Desktop" | awk -F'"' '{print $2}')
+
 echo "Turning off VPN"
-if scutil --nc list | grep -q "Coder"; then
+if [[ -n "$vpn_name" ]]; then
   echo "CoderVPN found. Stopping..."
-  if scutil --nc status "Coder" | grep -q "^Connected$"; then
+  if scutil --nc status "$vpn_name" | grep -q "^Connected$"; then
     touch $VPN_MARKER_FILE
   fi
-  scutil --nc stop "Coder"
+  scutil --nc stop "$vpn_name"
 
   # Wait for VPN to be disconnected
-  while scutil --nc status "Coder" | grep -q "^Connected$"; do
+  while scutil --nc status "$vpn_name" | grep -q "^Connected$"; do
     echo "Waiting for VPN to disconnect..."
     sleep 1
   done
-  while scutil --nc status "Coder" | grep -q "^Disconnecting$"; do
+  while scutil --nc status "$vpn_name" | grep -q "^Disconnecting$"; do
     echo "Waiting for VPN to complete disconnect..."
     sleep 1
   done
