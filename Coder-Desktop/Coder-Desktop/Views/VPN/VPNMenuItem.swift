@@ -42,6 +42,8 @@ enum VPNMenuItem: Equatable, Comparable, Identifiable {
 }
 
 struct MenuItemView: View {
+    @EnvironmentObject var state: AppState
+
     let item: VPNMenuItem
     let baseAccessURL: URL
     @State private var nameIsSelected: Bool = false
@@ -49,13 +51,14 @@ struct MenuItemView: View {
 
     private var itemName: AttributedString {
         let name = switch item {
-        case let .agent(agent): agent.primaryHost ?? "\(item.wsName).coder"
-        case .offlineWorkspace: "\(item.wsName).coder"
+        case let .agent(agent): agent.primaryHost ?? "\(item.wsName).\(state.hostnameSuffix)"
+        case .offlineWorkspace: "\(item.wsName).\(state.hostnameSuffix)"
         }
 
         var formattedName = AttributedString(name)
         formattedName.foregroundColor = .primary
-        if let range = formattedName.range(of: ".coder") {
+
+        if let range = formattedName.range(of: ".\(state.hostnameSuffix)", options: .backwards) {
             formattedName[range].foregroundColor = .secondary
         }
         return formattedName

@@ -41,10 +41,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     override init() {
         vpn = CoderVPNService()
-        state = AppState(onChange: vpn.configureTunnelProviderProtocol)
+        let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
+        vpn.onStart = {
+            // We don't need this to have finished before the VPN actually starts
+            Task { await state.refreshDeploymentConfig() }
+        }
         if state.startVPNOnLaunch {
             vpn.startWhenReady = true
         }
+        self.state = state
         vpn.installSystemExtension()
         #if arch(arm64)
             let mutagenBinary = "mutagen-darwin-arm64"

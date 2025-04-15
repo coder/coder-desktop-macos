@@ -25,6 +25,10 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published private(set) var hostnameSuffix: String = defaultHostnameSuffix
+
+    static let defaultHostnameSuffix: String = "coder"
+
     // Stored in Keychain
     @Published private(set) var sessionToken: String? {
         didSet {
@@ -32,6 +36,8 @@ class AppState: ObservableObject {
             keychainSet(sessionToken, for: Keys.sessionToken)
         }
     }
+
+    private var client: Client?
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
@@ -80,7 +86,7 @@ class AppState: ObservableObject {
     private let keychain: Keychain
     private let persistent: Bool
 
-    let onChange: ((NETunnelProviderProtocol?) -> Void)?
+    private let onChange: ((NETunnelProviderProtocol?) -> Void)?
 
     // reconfigure must be called when any property used to configure the VPN changes
     public func reconfigure() {
@@ -107,6 +113,15 @@ class AppState: ObservableObject {
             if sessionToken == nil || sessionToken!.isEmpty == true {
                 clearSession()
             }
+            client = Client(
+                url: baseAccessURL!,
+                token: sessionToken!,
+                headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
+            )
+            Task {
+                await handleTokenExpiry()
+                await refreshDeploymentConfig()
+            }
         }
     }
 
@@ -114,14 +129,19 @@ class AppState: ObservableObject {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
+        client = Client(
+            url: baseAccessURL,
+            token: sessionToken,
+            headers: useLiteralHeaders ? literalHeaders.map { $0.toSDKHeader() } : []
+        )
+        Task { await refreshDeploymentConfig() }
         reconfigure()
     }
 
     public func handleTokenExpiry() async {
         if hasSession {
-            let client = Client(url: baseAccessURL!, token: sessionToken!)
             do {
-                _ = try await client.user("me")
+                _ = try await client!.user("me")
             } catch let SDKError.api(apiErr) {
                 // Expired token
                 if apiErr.statusCode == 401 {
@@ -135,9 +155,34 @@ class AppState: ObservableObject {
         }
     }
 
+    private var refreshTask: Task<String?, Never>?
+    public func refreshDeploymentConfig() async {
+        // Client is non-nil if there's a sesssion
+        if hasSession, let client {
+            refreshTask?.cancel()
+
+            refreshTask = Task {
+                let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
+                    do {
+                        let config = try await client.agentConnectionInfoGeneric()
+                        return config.hostname_suffix
+                    } catch {
+                        logger.error("failed to get agent connection info (retrying): \(error)")
+                        throw error
+                    }
+                }
+                return res
+            }
+
+            hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
+        }
+    }
+
     public func clearSession() {
         hasSession = false
         sessionToken = nil
+        refreshTask?.cancel()
+        client = nil
         reconfigure()
     }
 
