@@ -72,7 +72,7 @@ struct WorkspaceApp {
     init(
         _ original: CoderSDK.WorkspaceApp,
         iconBaseURL: URL,
-        sessionToken: String,
+        sessionToken: String
     ) throws(WorkspaceAppError) {
         slug = original.slug
         displayName = original.display_name
