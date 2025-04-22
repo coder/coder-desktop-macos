@@ -20,8 +20,7 @@ fi
 
 mutagen_tag="$1"
 
-# TODO: Change this to `coder/mutagen` once we add a version tag there
-repo="mutagen-io/mutagen"
+repo="coder/mutagen"
 proto_prefix="pkg"
 # Right now, we only care about the synchronization and daemon management gRPC
 entry_files=("service/synchronization/synchronization.proto" "service/daemon/daemon.proto" "service/prompting/prompting.proto")
