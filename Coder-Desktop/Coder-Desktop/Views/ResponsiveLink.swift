@@ -13,13 +13,8 @@ struct ResponsiveLink: View {
             .font(.subheadline)
             .foregroundColor(isPressed ? .red : .blue)
             .underline(isHovered, color: isPressed ? .red : .blue)
-            .onHover { hovering in
+            .onHoverWithPointingHand { hovering in
                 isHovered = hovering
-                if hovering {
-                    NSCursor.pointingHand.push()
-                } else {
-                    NSCursor.pop()
-                }
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)

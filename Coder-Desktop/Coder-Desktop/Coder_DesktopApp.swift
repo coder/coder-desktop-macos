@@ -1,5 +1,7 @@
 import FluidMenuBarExtra
 import NetworkExtension
+import SDWebImageSVGCoder
+import SDWebImageSwiftUI
 import SwiftUI
 import VPNLib
 
@@ -66,6 +68,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        // Init SVG loader
+        SDImageCodersManager.shared.addCoder(SDImageSVGCoder.shared)
+
         menuBar = .init(menuBarExtra: FluidMenuBarExtra(
             title: "Coder Desktop",
             image: "MenuBarIcon",

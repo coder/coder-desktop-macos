@@ -31,3 +31,16 @@ extension UUID {
         self.init(uuid: uuid)
     }
 }
+
+public extension View {
+    @inlinable nonisolated func onHoverWithPointingHand(perform action: @escaping (Bool) -> Void) -> some View {
+        onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+            action(hovering)
+        }
+    }
+}
