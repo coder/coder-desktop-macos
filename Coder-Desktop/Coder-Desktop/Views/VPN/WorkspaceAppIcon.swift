@@ -73,7 +73,6 @@ struct WorkspaceApp {
         _ original: CoderSDK.WorkspaceApp,
         iconBaseURL: URL,
         sessionToken: String,
-        newAppHost: String
     ) throws(WorkspaceAppError) {
         slug = original.slug
         displayName = original.display_name
@@ -90,28 +89,20 @@ struct WorkspaceApp {
             throw .isCommandApp
         }
 
-        guard var urlComponents = URLComponents(url: originalUrl, resolvingAgainstBaseURL: false) else {
-            throw .invalidURL
+        // We don't want to show buttons for any websites, like internal wikies
+        // or portals. Those *should* have 'external' set, but if they don't:
+        guard originalUrl.scheme != "https", originalUrl.scheme != "http" else {
+            throw .isWebApp
         }
 
-        var url: URL
-        if urlComponents.host == "localhost" {
-            urlComponents.host = newAppHost
-            guard let newUrl = urlComponents.url else {
-                throw .invalidURL
-            }
-            url = newUrl
-        } else {
-            url = originalUrl
-        }
-
-        let newUrlString = url.absoluteString.replacingOccurrences(of: Self.magicTokenString, with: sessionToken)
+        let newUrlString = originalUrl.absoluteString.replacingOccurrences(
+            of: Self.magicTokenString,
+            with: sessionToken
+        )
         guard let newUrl = URL(string: newUrlString) else {
             throw .invalidURL
         }
         url = newUrl
-
-        self.url = url
 
         var icon = original.icon
         if let originalIcon = original.icon,
@@ -162,7 +153,7 @@ func agentToApps(
 ) -> [WorkspaceApp] {
     let workspaceApps = agent.apps.compactMap { app in
         do throws(WorkspaceAppError) {
-            return try WorkspaceApp(app, iconBaseURL: baseAccessURL, sessionToken: sessionToken, newAppHost: host)
+            return try WorkspaceApp(app, iconBaseURL: baseAccessURL, sessionToken: sessionToken)
         } catch {
             logger.warning("Skipping WorkspaceApp '\(app.slug)' for \(host): \(error.localizedDescription)")
             return nil
