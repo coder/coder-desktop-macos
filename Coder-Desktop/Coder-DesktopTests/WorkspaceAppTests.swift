@@ -16,7 +16,7 @@ struct WorkspaceAppTests {
         let sdkApp = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app")!,
-            external: false,
+            external: true,
             slug: "test-app",
             display_name: "Test App",
             command: nil,
@@ -43,7 +43,7 @@ struct WorkspaceAppTests {
         let sdkApp = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app?token=$SESSION_TOKEN")!,
-            external: false,
+            external: true,
             slug: "token-app",
             display_name: "Token App",
             command: nil,
@@ -69,7 +69,7 @@ struct WorkspaceAppTests {
         let sdkApp = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: nil,
-            external: false,
+            external: true,
             slug: "no-url-app",
             display_name: "No URL App",
             command: nil,
@@ -93,7 +93,7 @@ struct WorkspaceAppTests {
         let sdkApp = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app")!,
-            external: false,
+            external: true,
             slug: "command-app",
             display_name: "Command App",
             command: "echo 'hello'",
@@ -154,7 +154,7 @@ struct WorkspaceAppTests {
         let sdkApp1 = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app1")!,
-            external: false,
+            external: true,
             slug: "app1",
             display_name: "App 1",
             command: nil,
@@ -166,7 +166,7 @@ struct WorkspaceAppTests {
         let sdkApp2 = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app2")!,
-            external: false,
+            external: true,
             slug: "app2",
             display_name: "App 2",
             command: nil,
@@ -179,7 +179,7 @@ struct WorkspaceAppTests {
         let sdkApp3 = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: URL(string: "https://localhost:3000/app3")!,
-            external: false,
+            external: true,
             slug: "app3",
             display_name: "App 3",
             command: "echo 'skip me'",
@@ -188,14 +188,25 @@ struct WorkspaceAppTests {
             subdomain_name: nil
         )
 
-        let agent = createMockAgent(apps: [sdkApp1, sdkApp2, sdkApp3], displayApps: [.vscode])
+        // Web app skipped
+        let sdkApp4 = CoderSDK.WorkspaceApp(
+            id: UUID(),
+            url: URL(string: "https://localhost:3000/app4")!,
+            external: false,
+            slug: "app4",
+            display_name: "App 4",
+            command: nil,
+            icon: URL(string: "/icon/app4.svg")!,
+            subdomain: false, subdomain_name: nil
+        )
+
+        let agent = createMockAgent(apps: [sdkApp1, sdkApp2, sdkApp3, sdkApp4], displayApps: [.vscode])
         let apps = agentToApps(logger, agent, host, baseAccessURL, sessionToken)
 
         #expect(apps.count == 3)
         let appSlugs = apps.map(\.slug)
         #expect(appSlugs.contains("app1"))
         #expect(appSlugs.contains("app2"))
-        #expect(!appSlugs.contains("app3"))
         #expect(appSlugs.contains("-vscode"))
     }
 

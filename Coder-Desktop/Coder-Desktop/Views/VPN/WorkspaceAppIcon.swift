@@ -78,6 +78,10 @@ struct WorkspaceApp {
         slug = original.slug
         displayName = original.display_name
 
+        guard original.external else {
+            throw .isWebApp
+        }
+
         guard let originalUrl = original.url else {
             throw .missingURL
         }
@@ -131,6 +135,7 @@ enum WorkspaceAppError: Error {
     case invalidURL
     case missingURL
     case isCommandApp
+    case isWebApp
 
     var description: String {
         switch self {
@@ -140,6 +145,8 @@ enum WorkspaceAppError: Error {
             "Missing URL"
         case .isCommandApp:
             "is a Command App"
+        case .isWebApp:
+            "is an External App"
         }
     }
 
