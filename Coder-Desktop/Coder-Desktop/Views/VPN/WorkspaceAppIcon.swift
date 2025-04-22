@@ -191,7 +191,7 @@ func vscodeDisplayApp(hostname: String, baseIconURL: URL, path: String? = nil) -
         // Leading hyphen as to not conflict with a real app slug, since we only use
         // slugs as SwiftUI IDs
         slug: "-vscode",
-        displayName: "VS Code",
+        displayName: "VS Code Desktop",
         url: URL(string: "vscode://vscode-remote/ssh-remote+\(hostname)\(path ?? "")")!,
         icon: icon
     )
@@ -201,7 +201,7 @@ func vscodeInsidersDisplayApp(hostname: String, baseIconURL: URL, path: String? 
     let icon = baseIconURL.appendingPathComponent("/icon/code.svg")
     return WorkspaceApp(
         slug: "-vscode-insiders",
-        displayName: "VS Code Insiders",
+        displayName: "VS Code Insiders Desktop",
         url: URL(string: "vscode-insiders://vscode-remote/ssh-remote+\(hostname)\(path ?? "")")!,
         icon: icon
     )
