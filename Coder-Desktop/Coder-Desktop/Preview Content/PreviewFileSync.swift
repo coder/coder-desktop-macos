@@ -3,6 +3,7 @@ import VPNLib
 @MainActor
 final class PreviewFileSync: FileSyncDaemon {
     var logFile: URL = .init(filePath: "~/log.txt")!
+    var lastPromptMessage: String?
 
     var sessionState: [VPNLib.FileSyncSession] = []
 

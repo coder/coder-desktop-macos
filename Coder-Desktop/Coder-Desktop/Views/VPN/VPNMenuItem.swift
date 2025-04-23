@@ -66,7 +66,7 @@ struct MenuItemView: View {
 
     private var itemName: AttributedString {
         let name = switch item {
-        case let .agent(agent): agent.primaryHost ?? "\(item.wsName).\(state.hostnameSuffix)"
+        case let .agent(agent): agent.primaryHost
         case .offlineWorkspace: "\(item.wsName).\(state.hostnameSuffix)"
         }
 
@@ -103,10 +103,10 @@ struct MenuItemView: View {
                         }
                     Spacer()
                 }.buttonStyle(.plain)
-                if case let .agent(agent) = item, let copyableDNS = agent.primaryHost {
+                if case let .agent(agent) = item {
                     Button {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(copyableDNS, forType: .string)
+                        NSPasteboard.general.setString(agent.primaryHost, forType: .string)
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .symbolVariant(.fill)
@@ -143,7 +143,6 @@ struct MenuItemView: View {
         // If this menu item is an agent, and the user is logged in
         if case let .agent(agent) = item,
            let client = state.client,
-           let host = agent.primaryHost,
            let baseAccessURL = state.baseAccessURL,
            // Like the CLI, we'll re-use the existing session token to populate the URL
            let sessionToken = state.sessionToken
@@ -166,7 +165,7 @@ struct MenuItemView: View {
                 .flatMap(\.self)
                 .first(where: { $0.id == agent.id })
             {
-                apps = agentToApps(logger, wsAgent, host, baseAccessURL, sessionToken)
+                apps = agentToApps(logger, wsAgent, agent.primaryHost, baseAccessURL, sessionToken)
             } else {
                 logger.error("Could not find agent '\(agent.id)' in workspace '\(item.wsName)' resources")
             }

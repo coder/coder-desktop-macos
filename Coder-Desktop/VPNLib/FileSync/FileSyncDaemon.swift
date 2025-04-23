@@ -11,6 +11,7 @@ public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
     var sessionState: [FileSyncSession] { get }
     var logFile: URL { get }
+    var lastPromptMessage: String? { get }
     func tryStart() async
     func stop() async
     func refreshSessions() async
@@ -46,6 +47,8 @@ public class MutagenDaemon: FileSyncDaemon {
     private let mutagenDaemonSocket: URL
 
     public let logFile: URL
+
+    @Published public var lastPromptMessage: String?
 
     // Managing sync sessions could take a while, especially with prompting
     let sessionMgmtReqTimeout: TimeAmount = .seconds(15)

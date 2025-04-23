@@ -40,7 +40,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 Section {
                     Picker("Workspace", selection: $remoteHostname) {
                         ForEach(agents, id: \.id) { agent in
-                            Text(agent.primaryHost!).tag(agent.primaryHost!)
+                            Text(agent.primaryHost).tag(agent.primaryHost)
                         }
                         // HACK: Silence error logs for no-selection.
                         Divider().tag(nil as String?)
@@ -62,6 +62,9 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             Divider()
             HStack {
                 Spacer()
+                if let lastMessage = fileSync.lastPromptMessage {
+                    Text(lastMessage).foregroundStyle(.secondary)
+                }
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}
                     .keyboardShortcut(.defaultAction)
