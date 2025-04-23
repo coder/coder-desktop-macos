@@ -89,7 +89,7 @@ struct WorkspaceApp {
             throw .isCommandApp
         }
 
-        // We don't want to show buttons for any websites, like internal wikies
+        // We don't want to show buttons for any websites, like internal wikis
         // or portals. Those *should* have 'external' set, but if they don't:
         guard originalUrl.scheme != "https", originalUrl.scheme != "http" else {
             throw .isWebApp
@@ -190,7 +190,7 @@ func vscodeDisplayApp(hostname: String, baseIconURL: URL, path: String? = nil) -
         // slugs as SwiftUI IDs
         slug: "-vscode",
         displayName: "VS Code Desktop",
-        url: URL(string: "vscode://vscode-remote/ssh-remote+\(hostname)\(path ?? "")")!,
+        url: URL(string: "vscode://vscode-remote/ssh-remote+\(hostname)/\(path ?? "")")!,
         icon: icon
     )
 }
@@ -200,7 +200,7 @@ func vscodeInsidersDisplayApp(hostname: String, baseIconURL: URL, path: String? 
     return WorkspaceApp(
         slug: "-vscode-insiders",
         displayName: "VS Code Insiders Desktop",
-        url: URL(string: "vscode-insiders://vscode-remote/ssh-remote+\(hostname)\(path ?? "")")!,
+        url: URL(string: "vscode-insiders://vscode-remote/ssh-remote+\(hostname)/\(path ?? "")")!,
         icon: icon
     )
 }

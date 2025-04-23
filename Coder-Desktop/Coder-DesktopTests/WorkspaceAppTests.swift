@@ -117,7 +117,7 @@ struct WorkspaceAppTests {
         #expect(apps.count == 1)
         #expect(apps[0].slug == "-vscode")
         #expect(apps[0].displayName == "VS Code Desktop")
-        #expect(apps[0].url.absoluteString == "vscode://vscode-remote/ssh-remote+test-workspace.coder.test/home/user")
+        #expect(apps[0].url.absoluteString == "vscode://vscode-remote/ssh-remote+test-workspace.coder.test//home/user")
         #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code.svg")
     }
 
@@ -140,7 +140,7 @@ struct WorkspaceAppTests {
         #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code.svg")
         #expect(
             apps[0].url.absoluteString == """
-            vscode-insiders://vscode-remote/ssh-remote+test-workspace.coder.test/home/user
+            vscode-insiders://vscode-remote/ssh-remote+test-workspace.coder.test//home/user
             """
         )
     }
