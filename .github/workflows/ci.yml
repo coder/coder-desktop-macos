@@ -36,7 +36,7 @@ jobs:
         with:
           # (ThomasK33): depot.dev does not yet support Xcode 16.1 or 16.2 GA, thus we're stuck with 16.0.0 for now.
           # I've already reached out, so hopefully this comment will soon be obsolete.
-          xcode-version: "16.0.0"
+          xcode-version: "16.3.0"
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
@@ -59,7 +59,7 @@ jobs:
         with:
           # (ThomasK33): depot.dev does not yet support Xcode 16.1 or 16.2 GA, thus we're stuck with 16.0.0 for now.
           # I've already reached out, so hopefully this comment will soon be obsolete.
-          xcode-version: "16.0.0"
+          xcode-version: "16.3.0"
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
