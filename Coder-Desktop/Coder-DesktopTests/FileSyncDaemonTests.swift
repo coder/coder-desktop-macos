@@ -61,6 +61,7 @@ class FileSyncDaemonTests {
         #expect(statesEqual(daemon.state, .stopped))
         #expect(daemon.sessionState.count == 0)
 
+        var promptMessages: [String] = []
         try await daemon.createSession(
             arg: .init(
                 alpha: .init(
@@ -71,8 +72,15 @@ class FileSyncDaemonTests {
                     path: mutagenBetaDirectory.path(),
                     protocolKind: .local
                 )
-            )
+            ),
+            promptCallback: {
+                promptMessages.append($0)
+            }
         )
+
+        // There should be at least one prompt message
+        // Usually "Creating session..."
+        #expect(promptMessages.count > 0)
 
         // Daemon should have started itself
         #expect(statesEqual(daemon.state, .running))
