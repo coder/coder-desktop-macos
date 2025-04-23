@@ -3,7 +3,10 @@ import GRPC
 extension MutagenDaemon {
     typealias PromptStream = GRPCAsyncBidirectionalStreamingCall<Prompting_HostRequest, Prompting_HostResponse>
 
-    func host(allowPrompts: Bool = true) async throws(DaemonError) -> (PromptStream, identifier: String) {
+    func host(
+        allowPrompts: Bool = true,
+        promptCallback: (@MainActor (String) -> Void)? = nil
+    ) async throws(DaemonError) -> (PromptStream, identifier: String) {
         let stream = client!.prompt.makeHostCall()
 
         do {
@@ -28,7 +31,6 @@ extension MutagenDaemon {
         try initResp.ensureValid(first: true, allowPrompts: allowPrompts)
 
         Task.detached(priority: .background) {
-            defer { Task { @MainActor in self.lastPromptMessage = nil } }
             do {
                 while let msg = try await iter.next() {
                     try msg.ensureValid(first: false, allowPrompts: allowPrompts)
@@ -41,7 +43,7 @@ extension MutagenDaemon {
                         // Any other messages that require a non-empty response will
                         // cause the create op to fail, showing an error. This is ok for now.
                     } else {
-                        Task { @MainActor in self.lastPromptMessage = msg.message }
+                        Task { @MainActor in promptCallback?(msg.message) }
                     }
                     try await stream.requestStream.send(reply)
                 }

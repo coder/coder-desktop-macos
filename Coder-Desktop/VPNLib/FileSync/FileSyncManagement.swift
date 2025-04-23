@@ -17,7 +17,10 @@ public extension MutagenDaemon {
         sessionState = sessions.sessionStates.map { FileSyncSession(state: $0) }
     }
 
-    func createSession(arg: CreateSyncSessionRequest) async throws(DaemonError) {
+    func createSession(
+        arg: CreateSyncSessionRequest,
+        promptCallback: (@MainActor (String) -> Void)? = nil
+    ) async throws(DaemonError) {
         if case .stopped = state {
             do throws(DaemonError) {
                 try await start()
@@ -26,7 +29,7 @@ public extension MutagenDaemon {
                 throw error
             }
         }
-        let (stream, promptID) = try await host()
+        let (stream, promptID) = try await host(promptCallback: promptCallback)
         defer { stream.cancel() }
         let req = Synchronization_CreateRequest.with { req in
             req.prompter = promptID

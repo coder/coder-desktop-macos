@@ -3,7 +3,6 @@ import VPNLib
 @MainActor
 final class PreviewFileSync: FileSyncDaemon {
     var logFile: URL = .init(filePath: "~/log.txt")!
-    var lastPromptMessage: String?
 
     var sessionState: [VPNLib.FileSyncSession] = []
 
@@ -21,7 +20,12 @@ final class PreviewFileSync: FileSyncDaemon {
         state = .stopped
     }
 
-    func createSession(arg _: CreateSyncSessionRequest) async throws(DaemonError) {}
+    func createSession(
+        arg _: CreateSyncSessionRequest,
+        promptCallback _: (
+            @MainActor (String) -> Void
+        )?
+    ) async throws(DaemonError) {}
 
     func deleteSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 

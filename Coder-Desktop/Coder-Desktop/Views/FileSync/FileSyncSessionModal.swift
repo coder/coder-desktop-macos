@@ -15,6 +15,8 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
     @State private var createError: DaemonError?
     @State private var pickingRemote: Bool = false
 
+    @State private var lastPromptMessage: String?
+
     var body: some View {
         let agents = vpn.menuState.onlineAgents
         VStack(spacing: 0) {
@@ -62,8 +64,11 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             Divider()
             HStack {
                 Spacer()
-                if let lastMessage = fileSync.lastPromptMessage {
-                    Text(lastMessage).foregroundStyle(.secondary)
+                if let msg = lastPromptMessage {
+                    Text(msg).foregroundStyle(.secondary)
+                }
+                if loading {
+                    ProgressView().controlSize(.small)
                 }
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}
@@ -106,8 +111,10 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 arg: .init(
                     alpha: .init(path: localPath, protocolKind: .local),
                     beta: .init(path: remotePath, protocolKind: .ssh(host: remoteHostname))
-                )
+                ),
+                promptCallback: { lastPromptMessage = $0 },
             )
+            lastPromptMessage = nil
         } catch {
             createError = error
             return

@@ -87,7 +87,7 @@ struct VPNMenuState {
             wsName: workspace.name,
             wsID: wsID,
             // Hosts arrive sorted by length, the shortest looks best in the UI.
-            primaryHost: nonEmptyHosts.first!,
+            primaryHost: nonEmptyHosts.first!
         )
     }
 

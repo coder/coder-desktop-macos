@@ -11,11 +11,13 @@ public protocol FileSyncDaemon: ObservableObject {
     var state: DaemonState { get }
     var sessionState: [FileSyncSession] { get }
     var logFile: URL { get }
-    var lastPromptMessage: String? { get }
     func tryStart() async
     func stop() async
     func refreshSessions() async
-    func createSession(arg: CreateSyncSessionRequest) async throws(DaemonError)
+    func createSession(
+        arg: CreateSyncSessionRequest,
+        promptCallback: (@MainActor (String) -> Void)?
+    ) async throws(DaemonError)
     func deleteSessions(ids: [String]) async throws(DaemonError)
     func pauseSessions(ids: [String]) async throws(DaemonError)
     func resumeSessions(ids: [String]) async throws(DaemonError)
@@ -47,8 +49,6 @@ public class MutagenDaemon: FileSyncDaemon {
     private let mutagenDaemonSocket: URL
 
     public let logFile: URL
-
-    @Published public var lastPromptMessage: String?
 
     // Managing sync sessions could take a while, especially with prompting
     let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
