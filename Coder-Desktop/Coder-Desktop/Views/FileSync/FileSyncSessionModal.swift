@@ -112,7 +112,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                     alpha: .init(path: localPath, protocolKind: .local),
                     beta: .init(path: remotePath, protocolKind: .ssh(host: remoteHostname))
                 ),
-                promptCallback: { lastPromptMessage = $0 },
+                promptCallback: { lastPromptMessage = $0 }
             )
             lastPromptMessage = nil
         } catch {
