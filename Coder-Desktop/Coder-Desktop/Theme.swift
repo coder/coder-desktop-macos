@@ -13,5 +13,9 @@ enum Theme {
         static let appIconSize: CGSize = .init(width: appIconWidth, height: appIconHeight)
     }
 
+    enum Animation {
+        static let collapsibleDuration = 0.2
+    }
+
     static let defaultVisibleAgents = 5
 }

@@ -4,6 +4,7 @@ struct Agents<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var state: AppState
     @State private var viewAll = false
+    @State private var expandedItem: VPNMenuItem.ID?
     private let defaultVisibleRows = 5
 
     let inspection = Inspection<Self>()
@@ -15,7 +16,7 @@ struct Agents<VPN: VPNService>: View {
                 let items = vpn.menuState.sorted
                 let visibleItems = viewAll ? items[...] : items.prefix(defaultVisibleRows)
                 ForEach(visibleItems, id: \.id) { agent in
-                    MenuItemView(item: agent, baseAccessURL: state.baseAccessURL!)
+                    MenuItemView(item: agent, baseAccessURL: state.baseAccessURL!, expandedItem: $expandedItem)
                         .padding(.horizontal, Theme.Size.trayMargin)
                 }
                 if items.count == 0 {

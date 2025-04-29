@@ -37,7 +37,7 @@ struct WorkspaceAppIcon: View {
             RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2)
                 .stroke(.secondary, lineWidth: 1)
                 .opacity(isHovering && !isPressed ? 0.6 : 0.3)
-        ).onHoverWithPointingHand { hovering in isHovering = hovering }
+        ).onHover { hovering in isHovering = hovering }
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
