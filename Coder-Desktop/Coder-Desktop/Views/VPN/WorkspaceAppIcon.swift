@@ -26,7 +26,10 @@ struct WorkspaceAppIcon: View {
                                 height: Theme.Size.appIconHeight
                             )
                         }
-                    }
+                    }.frame(
+                        width: Theme.Size.appIconWidth,
+                        height: Theme.Size.appIconHeight
+                    )
             }.padding(4)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
