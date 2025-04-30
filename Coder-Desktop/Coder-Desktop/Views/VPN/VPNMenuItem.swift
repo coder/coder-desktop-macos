@@ -233,9 +233,7 @@ struct MenuItemIconButton: View {
     let action: @MainActor () -> Void
 
     var body: some View {
-        Button {
-            action()
-        } label: {
+        Button(action: action) {
             Image(systemName: systemName)
                 .padding(3)
                 .contentShape(Rectangle())
@@ -259,16 +257,3 @@ struct AnimatedChevron: View {
             .animation(.easeInOut(duration: Theme.Animation.collapsibleDuration), value: isExpanded)
     }
 }
-
-#if DEBUG
-    #Preview {
-        let appState = AppState(persistent: false)
-        appState.login(baseAccessURL: URL(string: "http://127.0.0.1:8080")!, sessionToken: "")
-        // appState.clearSession()
-
-        return VPNMenu<PreviewVPN, PreviewFileSync>().frame(width: 256)
-            .environmentObject(PreviewVPN())
-            .environmentObject(appState)
-            .environmentObject(PreviewFileSync())
-    }
-#endif
