@@ -10,7 +10,7 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let wsName: String
     let wsID: UUID
 
-    // Agents are sorted by stauts, and then by name
+    // Agents are sorted by status, and then by name
     static func < (lhs: Agent, rhs: Agent) -> Bool {
         if lhs.status != rhs.status {
             return lhs.status < rhs.status
