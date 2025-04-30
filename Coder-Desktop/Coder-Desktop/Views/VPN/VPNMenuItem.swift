@@ -66,6 +66,7 @@ struct MenuItemView: View {
     let item: VPNMenuItem
     let baseAccessURL: URL
     @Binding var expandedItem: VPNMenuItem.ID?
+    @Binding var userInteracted: Bool
 
     @State private var nameIsSelected: Bool = false
 
@@ -95,6 +96,7 @@ struct MenuItemView: View {
     }
 
     private func toggleExpanded() {
+        userInteracted = true
         if isExpanded {
             withAnimation(.snappy(duration: Theme.Animation.collapsibleDuration)) {
                 expandedItem = nil
@@ -254,6 +256,5 @@ struct AnimatedChevron: View {
             .font(.system(size: 12, weight: .semibold))
             .foregroundColor(color)
             .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            .animation(.easeInOut(duration: Theme.Animation.collapsibleDuration), value: isExpanded)
     }
 }
