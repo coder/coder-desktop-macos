@@ -62,7 +62,7 @@ struct AgentsTests {
         let forEach = try view.inspect().find(ViewType.ForEach.self)
         #expect(forEach.count == Theme.defaultVisibleAgents)
         // Agents are sorted by status, and then by name in alphabetical order
-        #expect(throws: Never.self) { try view.inspect().find(link: "a1.coder") }
+        #expect(throws: Never.self) { try view.inspect().find(text: "a1.coder") }
     }
 
     @Test
@@ -115,7 +115,7 @@ struct AgentsTests {
             try await sut.inspection.inspect { view in
                 let forEach = try view.find(ViewType.ForEach.self)
                 #expect(forEach.count == Theme.defaultVisibleAgents)
-                #expect(throws: Never.self) { try view.find(link: "offline.coder") }
+                #expect(throws: Never.self) { try view.find(text: "offline.coder") }
             }
         }
     }
