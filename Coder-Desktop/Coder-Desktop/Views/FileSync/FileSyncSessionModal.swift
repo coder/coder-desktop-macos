@@ -15,6 +15,8 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
     @State private var createError: DaemonError?
     @State private var pickingRemote: Bool = false
 
+    @State private var lastPromptMessage: String?
+
     var body: some View {
         let agents = vpn.menuState.onlineAgents
         VStack(spacing: 0) {
@@ -40,7 +42,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 Section {
                     Picker("Workspace", selection: $remoteHostname) {
                         ForEach(agents, id: \.id) { agent in
-                            Text(agent.primaryHost!).tag(agent.primaryHost!)
+                            Text(agent.primaryHost).tag(agent.primaryHost)
                         }
                         // HACK: Silence error logs for no-selection.
                         Divider().tag(nil as String?)
@@ -62,6 +64,12 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
             Divider()
             HStack {
                 Spacer()
+                if let msg = lastPromptMessage {
+                    Text(msg).foregroundStyle(.secondary)
+                }
+                if loading {
+                    ProgressView().controlSize(.small)
+                }
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}
                     .keyboardShortcut(.defaultAction)
@@ -103,8 +111,10 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                 arg: .init(
                     alpha: .init(path: localPath, protocolKind: .local),
                     beta: .init(path: remotePath, protocolKind: .ssh(host: remoteHostname))
-                )
+                ),
+                promptCallback: { lastPromptMessage = $0 }
             )
+            lastPromptMessage = nil
         } catch {
             createError = error
             return

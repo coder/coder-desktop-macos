@@ -20,7 +20,12 @@ final class PreviewFileSync: FileSyncDaemon {
         state = .stopped
     }
 
-    func createSession(arg _: CreateSyncSessionRequest) async throws(DaemonError) {}
+    func createSession(
+        arg _: CreateSyncSessionRequest,
+        promptCallback _: (
+            @MainActor (String) -> Void
+        )?
+    ) async throws(DaemonError) {}
 
     func deleteSessions(ids _: [String]) async throws(VPNLib.DaemonError) {}
 

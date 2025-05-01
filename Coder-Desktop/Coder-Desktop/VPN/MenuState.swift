@@ -18,8 +18,7 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
         return lhs.wsName.localizedCompare(rhs.wsName) == .orderedAscending
     }
 
-    // Hosts arrive sorted by length, the shortest looks best in the UI.
-    var primaryHost: String? { hosts.first }
+    let primaryHost: String
 }
 
 enum AgentStatus: Int, Equatable, Comparable {
@@ -69,6 +68,9 @@ struct VPNMenuState {
             invalidAgents.append(agent)
             return
         }
+        // Remove trailing dot if present
+        let nonEmptyHosts = agent.fqdn.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 }
+
         // An existing agent with the same name, belonging to the same workspace
         // is from a previous workspace build, and should be removed.
         agents.filter { $0.value.name == agent.name && $0.value.wsID == wsID }
@@ -81,10 +83,11 @@ struct VPNMenuState {
             name: agent.name,
             // If last handshake was not within last five minutes, the agent is unhealthy
             status: agent.lastHandshake.date > Date.now.addingTimeInterval(-300) ? .okay : .warn,
-            // Remove trailing dot if present
-            hosts: agent.fqdn.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 },
+            hosts: nonEmptyHosts,
             wsName: workspace.name,
-            wsID: wsID
+            wsID: wsID,
+            // Hosts arrive sorted by length, the shortest looks best in the UI.
+            primaryHost: nonEmptyHosts.first!
         )
     }
 
@@ -135,9 +138,7 @@ struct VPNMenuState {
         return items.sorted()
     }
 
-    var onlineAgents: [Agent] {
-        agents.map(\.value).filter { $0.primaryHost != nil }
-    }
+    var onlineAgents: [Agent] { agents.map(\.value) }
 
     mutating func clear() {
         agents.removeAll()
