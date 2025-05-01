@@ -10,7 +10,7 @@
 
 //
 // This file was taken from
-// https://github.com/mutagen-io/mutagen/tree/v0.18.1/pkg/filesystem/behavior/probe_mode.proto
+// https://github.com/coder/mutagen/tree/v0.18.3/pkg/filesystem/behavior/probe_mode.proto
 //
 // MIT License
 // 
