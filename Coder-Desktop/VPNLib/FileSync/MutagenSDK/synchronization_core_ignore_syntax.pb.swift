@@ -10,7 +10,7 @@
 
 //
 // This file was taken from
-// https://github.com/mutagen-io/mutagen/tree/v0.18.1/pkg/synchronization/core/ignore/syntax.proto
+// https://github.com/coder/mutagen/tree/v0.18.3/pkg/synchronization/core/ignore/syntax.proto
 //
 // MIT License
 // 

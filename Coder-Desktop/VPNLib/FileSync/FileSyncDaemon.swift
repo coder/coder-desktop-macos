@@ -241,6 +241,9 @@ public class MutagenDaemon: FileSyncDaemon {
         process.environment = [
             "MUTAGEN_DATA_DIRECTORY": mutagenDataDirectory.path,
             "MUTAGEN_SSH_PATH": "/usr/bin",
+            // Do not use `~/.ssh/config`, as it may contain an entry for
+            // '*.<hostnameSuffix' that uses `coder ssh`.
+            "MUTAGEN_SSH_CONFIG_PATH": "none",
         ]
         logger.info("setting mutagen data directory: \(self.mutagenDataDirectory.path, privacy: .public)")
         return process

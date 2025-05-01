@@ -10,7 +10,7 @@
 
 //
 // This file was taken from
-// https://github.com/mutagen-io/mutagen/tree/v0.18.1/pkg/selection/selection.proto
+// https://github.com/coder/mutagen/tree/v0.18.3/pkg/selection/selection.proto
 //
 // MIT License
 // 
