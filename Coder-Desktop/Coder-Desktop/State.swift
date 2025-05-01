@@ -37,7 +37,7 @@ class AppState: ObservableObject {
         }
     }
 
-    private var client: Client?
+    public var client: Client?
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {

@@ -7,6 +7,10 @@ enum Theme {
         static let trayInset: CGFloat = trayMargin + trayPadding
 
         static let rectCornerRadius: CGFloat = 4
+
+        static let appIconWidth: CGFloat = 30
+        static let appIconHeight: CGFloat = 30
+        static let appIconSize: CGSize = .init(width: appIconWidth, height: appIconHeight)
     }
 
     static let defaultVisibleAgents = 5
