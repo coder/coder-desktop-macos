@@ -33,8 +33,9 @@ public enum RouterError: Error {
     case invalidAuthority(String)
     case matchError(url: URL)
     case noSession
+    case openError(OpenError)
 
-    public var description: String {
+    var description: String {
         switch self {
         case let .invalidAuthority(authority):
             "Authority '\(authority)' does not match the host of the current Coder deployment."
@@ -42,6 +43,30 @@ public enum RouterError: Error {
             "Failed to handle \(url.absoluteString) because the format is unsupported."
         case .noSession:
             "Not logged in."
+        case let .openError(error):
+            error.description
+        }
+    }
+
+    var localizedDescription: String { description }
+}
+
+public enum OpenError: Error {
+    case invalidWorkspace(workspace: String)
+    case invalidAgent(workspace: String, agent: String)
+    case coderConnectOffline
+    case couldNotCreateRDPURL(String)
+
+    public var description: String {
+        switch self {
+        case let .invalidWorkspace(ws):
+            "Could not find workspace '\(ws)'. Does it exist?"
+        case .coderConnectOffline:
+            "Coder Connect must be running."
+        case let .invalidAgent(workspace: workspace, agent: agent):
+            "Could not find agent '\(agent)' in workspace '\(workspace)'. Is the workspace running?"
+        case let .couldNotCreateRDPURL(rdpString):
+            "Could not create construct RDP url from '\(rdpString)'."
         }
     }
 
