@@ -125,6 +125,7 @@ xcodebuild \
   -configuration "Release" \
   -archivePath "$ARCHIVE_PATH" \
   archive \
+  -skipMacroValidation \
   -skipPackagePluginValidation \
   CODE_SIGN_STYLE=Manual \
   CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \

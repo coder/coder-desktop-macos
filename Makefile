@@ -121,6 +121,7 @@ test: $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) $(XCPROJECT) ## Ru
 		-project $(XCPROJECT) \
 		-scheme $(SCHEME) \
 		-testPlan $(TEST_PLAN) \
+		-skipMacroValidation \
 		-skipPackagePluginValidation \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
