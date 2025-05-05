@@ -131,7 +131,7 @@ xcodebuild \
   CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
   CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
   CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION=YES \
-  OTHER_CODE_SIGN_FLAGS='--timestamp' | LC_ALL="en_US.UTF-8" xcpretty
+  OTHER_CODE_SIGN_FLAGS='--timestamp' | xcbeautify
 
 # Create exportOptions.plist
 EXPORT_OPTIONS_PATH="./build/exportOptions.plist"
