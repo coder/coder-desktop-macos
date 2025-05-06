@@ -67,7 +67,7 @@ public enum OpenError: Error {
         case let .invalidAgent(workspace: workspace, agent: agent):
             "Could not find agent '\(agent)' in workspace '\(workspace)'. Is the workspace running?"
         case let .couldNotCreateRDPURL(rdpString):
-            "Could not create construct RDP url from '\(rdpString)'."
+            "Could not construct RDP URL from '\(rdpString)'."
         }
     }
 
