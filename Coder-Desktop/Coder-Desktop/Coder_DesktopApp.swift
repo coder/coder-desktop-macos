@@ -151,7 +151,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do { try urlHandler.handle(url) } catch let handleError {
             Task {
                 do {
-                    try await sendNotification(title: "Failed to open link", body: handleError.description)
+                    try await sendNotification(title: "Failed to handle link", body: handleError.description)
                 } catch let notifError {
                     logger.error("Failed to send notification (\(handleError.description)): \(notifError)")
                 }
