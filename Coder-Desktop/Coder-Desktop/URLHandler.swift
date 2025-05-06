@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import VPNLib
 
 @MainActor
@@ -29,24 +30,28 @@ class URLHandler {
 
         switch route {
         case let .open(workspace, agent, type):
-            switch type {
-            case let .rdp(creds):
-                try handleRDP(workspace: workspace, agent: agent, creds: creds)
+            do {
+                switch type {
+                case let .rdp(creds):
+                    try handleRDP(workspace: workspace, agent: agent, creds: creds)
+                }
+            } catch {
+                throw .openError(error)
             }
         }
     }
 
-    private func handleRDP(workspace: String, agent: String, creds: RDPCredentials) throws(URLError) {
+    private func handleRDP(workspace: String, agent: String, creds: RDPCredentials) throws(OpenError) {
         guard vpn.state == .connected else {
-            throw .openError(.coderConnectOffline)
+            throw .coderConnectOffline
         }
 
         guard let workspace = vpn.menuState.findWorkspace(name: workspace) else {
-            throw .openError(.invalidWorkspace(workspace: workspace))
+            throw .invalidWorkspace(workspace: workspace)
         }
 
         guard let agent = vpn.menuState.findAgent(workspaceID: workspace.id, name: agent) else {
-            throw .openError(.invalidAgent(workspace: workspace.name, agent: agent))
+            throw .invalidAgent(workspace: workspace.name, agent: agent)
         }
 
         var rdpString = "rdp:full address=s:\(agent.primaryHost):3389"
@@ -54,7 +59,7 @@ class URLHandler {
             rdpString += "&username=s:\(username)"
         }
         guard let url = URL(string: rdpString) else {
-            throw .openError(.couldNotCreateRDPURL(rdpString))
+            throw .couldNotCreateRDPURL(rdpString)
         }
 
         let alert = NSAlert()

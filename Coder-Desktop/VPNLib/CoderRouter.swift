@@ -35,7 +35,7 @@ public enum RouterError: Error {
     case noSession
     case openError(OpenError)
 
-    var description: String {
+    public var description: String {
         switch self {
         case let .invalidAuthority(authority):
             "Authority '\(authority)' does not match the host of the current Coder deployment."
@@ -48,7 +48,7 @@ public enum RouterError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    public var localizedDescription: String { description }
 }
 
 public enum OpenError: Error {
