@@ -2,6 +2,7 @@ import Foundation
 import URLRouting
 
 // This is in VPNLib to avoid depending on `swift-collections` in both the app & extension.
+// https://github.com/coder/coder-desktop-macos/issues/149
 public struct CoderRouter: ParserPrinter {
     public init() {}
 

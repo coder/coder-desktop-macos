@@ -24,6 +24,9 @@ public protocol FileSyncDaemon: ObservableObject {
     func resetSessions(ids: [String]) async throws(DaemonError)
 }
 
+
+// File Sync related code is in VPNLib to workaround a linking issue
+// https://github.com/coder/coder-desktop-macos/issues/149
 @MainActor
 public class MutagenDaemon: FileSyncDaemon {
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "mutagen")
