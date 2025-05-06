@@ -7,6 +7,7 @@ public struct CoderRouter: ParserPrinter {
 
     public var body: some ParserPrinter<URLRequestData, CoderRoute> {
         Route(.case(CoderRoute.open(workspace:agent:route:))) {
+            Scheme("coder")
             // v0/open/ws/<workspace>/agent/<agent>/<openType>
             Path { "v0"; "open"; "ws"; Parse(.string); "agent"; Parse(.string) }
             openRouter

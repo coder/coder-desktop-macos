@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLIconFile</key>
-			<string>1024</string>
+			<string>1024Icon</string>
 			<key>CFBundleURLName</key>
 			<string>com.coder.Coder-Desktop</string>
 			<key>CFBundleURLSchemes</key>

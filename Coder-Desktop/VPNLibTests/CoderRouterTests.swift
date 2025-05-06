@@ -87,6 +87,11 @@ struct CoderRouterTests {
             expectedRoute: nil,
             description: "Missing agent segment"
         ),
+        RouteTestCase(
+            urlString: "http://coder.example.com/v0/open/ws/workspace-123/agent/agent-456",
+            expectedRoute: nil,
+            description: "Wrong scheme"
+        ),
     ])
     func testRdpRoutes(testCase: RouteTestCase) throws {
         let url = URL(string: testCase.urlString)!
