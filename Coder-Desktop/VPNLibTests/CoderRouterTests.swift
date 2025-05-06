@@ -1,7 +1,7 @@
-@testable import Coder_Desktop
 import Foundation
 import Testing
 import URLRouting
+@testable import VPNLib
 
 @MainActor
 @Suite(.timeLimit(.minutes(1)))

@@ -189,7 +189,6 @@ targets:
       - package: LaunchAtLogin
       - package: SDWebImageSwiftUI
       - package: SDWebImageSVGCoder
-      - package: URLRouting
     scheme:
       testPlans:
         - path: Coder-Desktop.xctestplan
@@ -295,6 +294,7 @@ targets:
       - package: GRPC
       - package: Subprocess
       - package: Semaphore
+      - package: URLRouting
       - target: CoderSDK
         embed: false
 
