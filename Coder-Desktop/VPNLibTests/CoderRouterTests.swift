@@ -21,7 +21,7 @@ struct CoderRouterTests {
     @Test("RDP routes", arguments: [
         // Valid routes
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/myworkspace/agent/dev/rdp?username=user&password=pass",
+            urlString: "coder://coder.example.com/v0/open/ws/myworkspace/agent/dev/rdp?username=user&password=pass",
             expectedRoute: .open(
                 workspace: "myworkspace",
                 agent: "dev",
@@ -30,7 +30,7 @@ struct CoderRouterTests {
             description: "RDP with username and password"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp",
+            urlString: "coder://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp",
             expectedRoute: .open(
                 workspace: "workspace-123",
                 agent: "agent-456",
@@ -39,7 +39,7 @@ struct CoderRouterTests {
             description: "RDP without credentials"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp?username=user",
+            urlString: "coder://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp?username=user",
             expectedRoute: .open(
                 workspace: "workspace-123",
                 agent: "agent-456",
@@ -48,7 +48,7 @@ struct CoderRouterTests {
             description: "RDP with username only"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp?password=pass",
+            urlString: "coder://coder.example.com/v0/open/ws/workspace-123/agent/agent-456/rdp?password=pass",
             expectedRoute: .open(
                 workspace: "workspace-123",
                 agent: "agent-456",
@@ -57,7 +57,7 @@ struct CoderRouterTests {
             description: "RDP with password only"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/ws-special-chars/agent/agent-with-dashes/rdp",
+            urlString: "coder://coder.example.com/v0/open/ws/ws-special-chars/agent/agent-with-dashes/rdp",
             expectedRoute: .open(
                 workspace: "ws-special-chars",
                 agent: "agent-with-dashes",
@@ -68,22 +68,22 @@ struct CoderRouterTests {
 
         // Invalid routes
         RouteTestCase(
-            urlString: "https://coder.example.com/invalid/path",
+            urlString: "coder://coder.example.com/invalid/path",
             expectedRoute: nil,
             description: "Completely invalid path"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v1/open/ws/workspace-123/agent/agent-456/rdp",
+            urlString: "coder://coder.example.com/v1/open/ws/workspace-123/agent/agent-456/rdp",
             expectedRoute: nil,
             description: "Invalid version prefix (v1 instead of v0)"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/workspace-123/agent/agent-456/rdp",
+            urlString: "coder://coder.example.com/v0/open/workspace-123/agent/agent-456/rdp",
             expectedRoute: nil,
             description: "Missing 'ws' segment"
         ),
         RouteTestCase(
-            urlString: "https://coder.example.com/v0/open/ws/workspace-123/rdp",
+            urlString: "coder://coder.example.com/v0/open/ws/workspace-123/rdp",
             expectedRoute: nil,
             description: "Missing agent segment"
         ),
