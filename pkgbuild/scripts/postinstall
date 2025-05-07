@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
-VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
 
 # Before this script, or the user, opens the app, make sure
 # Gatekeeper has ingested the notarization ticket.
@@ -17,16 +16,6 @@ if [ -f "$RUNNING_MARKER_FILE" ]; then
   open -a "Coder Desktop"
   rm "$RUNNING_MARKER_FILE"
   echo "Coder Desktop started."
-fi
-
-# Restart VPN if it was running before
-if [ -f "$VPN_MARKER_FILE" ]; then
-  echo "Restarting CoderVPN..."
-  echo "Sleeping for 3..."
-  sleep 3
-  scutil --nc start "$(scutil --nc list | grep "com.coder.Coder-Desktop" | awk -F'"' '{print $2}')"
-  rm "$VPN_MARKER_FILE"
-  echo "CoderVPN started."
 fi
 
 exit 0

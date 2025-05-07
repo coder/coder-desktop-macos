@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
-VPN_MARKER_FILE="/tmp/coder_vpn_was_running"
 
-rm $VPN_MARKER_FILE $RUNNING_MARKER_FILE || true
+rm $RUNNING_MARKER_FILE || true
 
 if pgrep 'Coder Desktop'; then
   touch $RUNNING_MARKER_FILE
@@ -14,9 +13,6 @@ vpn_name=$(scutil --nc list | grep "com.coder.Coder-Desktop" | awk -F'"' '{print
 echo "Turning off VPN"
 if [[ -n "$vpn_name" ]]; then
   echo "CoderVPN found. Stopping..."
-  if scutil --nc status "$vpn_name" | grep -q "^Connected$"; then
-    touch $VPN_MARKER_FILE
-  fi
   scutil --nc stop "$vpn_name"
 
   # Wait for VPN to be disconnected
