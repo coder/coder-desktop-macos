@@ -180,20 +180,18 @@ struct MenuItemView: View {
 }
 
 struct MenuItemCollapsibleView: View {
-    private let defaultVisibleApps = 5
+    private let defaultVisibleApps = 6
     let apps: [WorkspaceApp]
 
     var body: some View {
-        HStack(spacing: 17) {
+        HStack(spacing: 16) {
             ForEach(apps.prefix(defaultVisibleApps), id: \.id) { app in
                 WorkspaceAppIcon(app: app)
                     .frame(width: Theme.Size.appIconWidth, height: Theme.Size.appIconHeight)
             }
-            if apps.count < defaultVisibleApps {
-                Spacer()
-            }
+            Spacer()
         }
-        .padding(.leading, apps.count < defaultVisibleApps ? 14 : 0)
+        .padding(.leading, 32)
         .padding(.bottom, 5)
         .padding(.top, 10)
     }

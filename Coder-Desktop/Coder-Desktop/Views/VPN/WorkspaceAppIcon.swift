@@ -19,9 +19,9 @@ struct WorkspaceAppIcon: View {
                 ) { $0 }
                     placeholder: {
                         if app.icon != nil {
-                            ProgressView()
+                            ProgressView().controlSize(.small)
                         } else {
-                            Text(app.displayName).frame(
+                            Image(systemName: "questionmark").frame(
                                 width: Theme.Size.appIconWidth,
                                 height: Theme.Size.appIconHeight
                             )
@@ -30,14 +30,11 @@ struct WorkspaceAppIcon: View {
                         width: Theme.Size.appIconWidth,
                         height: Theme.Size.appIconHeight
                     )
-            }.padding(4)
+            }.padding(6)
         }
+        .background(isHovering ? Color.accentColor.opacity(0.8) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2)
-                .stroke(.secondary, lineWidth: 1)
-                .opacity(isHovering && !isPressed ? 0.6 : 0.3)
-        ).onHover { hovering in isHovering = hovering }
+        .onHover { hovering in isHovering = hovering }
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
