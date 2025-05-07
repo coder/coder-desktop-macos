@@ -8,8 +8,8 @@ enum Theme {
 
         static let rectCornerRadius: CGFloat = 4
 
-        static let appIconWidth: CGFloat = 30
-        static let appIconHeight: CGFloat = 30
+        static let appIconWidth: CGFloat = 17
+        static let appIconHeight: CGFloat = 17
         static let appIconSize: CGSize = .init(width: appIconWidth, height: appIconHeight)
     }
 
