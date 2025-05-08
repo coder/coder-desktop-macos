@@ -55,7 +55,8 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var stopVPNOnQuit: Bool = UserDefaults.standard.bool(forKey: Keys.stopVPNOnQuit) {
+    // Defaults to `true`
+    @Published var stopVPNOnQuit: Bool = UserDefaults.standard.optionalBool(forKey: Keys.stopVPNOnQuit) ?? true {
         didSet {
             guard persistent else { return }
             UserDefaults.standard.set(stopVPNOnQuit, forKey: Keys.stopVPNOnQuit)
@@ -237,5 +238,16 @@ struct LiteralHeader: Hashable, Identifiable, Equatable, Codable {
 extension LiteralHeader {
     func toSDKHeader() -> HTTPHeader {
         .init(name: name, value: value)
+    }
+}
+
+extension UserDefaults {
+    // Unlike the exisitng `bool(forKey:)` method which returns `false` for both
+    // missing values this method can return `nil`.
+    func optionalBool(forKey key: String) -> Bool? {
+        guard object(forKey: key) != nil else {
+            return nil
+        }
+        return bool(forKey: key)
     }
 }
