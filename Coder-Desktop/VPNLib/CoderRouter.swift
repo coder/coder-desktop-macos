@@ -2,6 +2,7 @@ import Foundation
 import URLRouting
 
 // This is in VPNLib to avoid depending on `swift-collections` in both the app & extension.
+// https://github.com/coder/coder-desktop-macos/issues/149
 public struct CoderRouter: ParserPrinter {
     public init() {}
 
@@ -33,6 +34,7 @@ public enum RouterError: Error {
     case invalidAuthority(String)
     case matchError(url: URL)
     case noSession
+    case openError(OpenError)
 
     public var description: String {
         switch self {
@@ -42,6 +44,30 @@ public enum RouterError: Error {
             "Failed to handle \(url.absoluteString) because the format is unsupported."
         case .noSession:
             "Not logged in."
+        case let .openError(error):
+            error.description
+        }
+    }
+
+    public var localizedDescription: String { description }
+}
+
+public enum OpenError: Error {
+    case invalidWorkspace(workspace: String)
+    case invalidAgent(workspace: String, agent: String)
+    case coderConnectOffline
+    case couldNotCreateRDPURL(String)
+
+    public var description: String {
+        switch self {
+        case let .invalidWorkspace(ws):
+            "Could not find workspace '\(ws)'. Does it exist?"
+        case .coderConnectOffline:
+            "Coder Connect must be running."
+        case let .invalidAgent(workspace: workspace, agent: agent):
+            "Could not find agent '\(agent)' in workspace '\(workspace)'. Is the workspace running?"
+        case let .couldNotCreateRDPURL(rdpString):
+            "Could not construct RDP URL from '\(rdpString)'."
         }
     }
 

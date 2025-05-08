@@ -58,6 +58,15 @@ struct VPNMenuState {
     // or have any invalid UUIDs.
     var invalidAgents: [Vpn_Agent] = []
 
+    public func findAgent(workspaceID: UUID, name: String) -> Agent? {
+        agents.first(where: { $0.value.wsID == workspaceID && $0.value.name == name })?.value
+    }
+
+    public func findWorkspace(name: String) -> Workspace? {
+        workspaces
+            .first(where: { $0.value.name == name })?.value
+    }
+
     mutating func upsertAgent(_ agent: Vpn_Agent) {
         guard
             let id = UUID(uuidData: agent.id),
