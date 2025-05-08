@@ -137,7 +137,7 @@ struct WorkspaceAppTests {
         #expect(apps.count == 1)
         #expect(apps[0].slug == "-vscode-insiders")
         #expect(apps[0].displayName == "VS Code Insiders Desktop")
-        #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code.svg")
+        #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code-insiders.svg")
         #expect(
             apps[0].url.absoluteString == """
             vscode-insiders://vscode-remote/ssh-remote+test-workspace.coder.test//home/user
