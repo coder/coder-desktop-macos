@@ -69,6 +69,13 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published var skipHiddenIconAlert: Bool = UserDefaults.standard.bool(forKey: Keys.skipHiddenIconAlert) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(skipHiddenIconAlert, forKey: Keys.skipHiddenIconAlert)
+        }
+    }
+
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
@@ -209,6 +216,8 @@ class AppState: ObservableObject {
         static let literalHeaders = "LiteralHeaders"
         static let stopVPNOnQuit = "StopVPNOnQuit"
         static let startVPNOnLaunch = "StartVPNOnLaunch"
+
+        static let skipHiddenIconAlert = "SkipHiddenIconAlert"
     }
 }
 
