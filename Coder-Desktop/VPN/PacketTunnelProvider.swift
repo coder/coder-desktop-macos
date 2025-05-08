@@ -57,7 +57,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         start(completionHandler)
     }
 
-    // called by `startTunnel` and on `wake`
+    // called by `startTunnel`
     func start(_ completionHandler: @escaping (Error?) -> Void) {
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
@@ -108,7 +108,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         teardown(completionHandler)
     }
 
-    // called by `stopTunnel` and `sleep`
+    // called by `stopTunnel`
     func teardown(_ completionHandler: @escaping () -> Void) {
         guard let manager else {
             logger.error("teardown called with nil Manager")
@@ -135,34 +135,6 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         // Add code here to handle the message.
         if let handler = completionHandler {
             handler(messageData)
-        }
-    }
-
-    // sleep and wake reference: https://developer.apple.com/forums/thread/95988
-    override func sleep(completionHandler: @escaping () -> Void) {
-        logger.debug("sleep called")
-        teardown(completionHandler)
-    }
-
-    override func wake() {
-        // It's possible the tunnel is still starting up, if it is, wake should
-        // be a no-op.
-        guard !reasserting else { return }
-        guard manager == nil else {
-            logger.error("wake called with non-nil Manager")
-            return
-        }
-        logger.debug("wake called")
-        reasserting = true
-        currentSettings = .init(tunnelRemoteAddress: "127.0.0.1")
-        setTunnelNetworkSettings(nil)
-        start { error in
-            if let error {
-                self.logger.error("error starting tunnel after wake: \(error.localizedDescription)")
-                self.cancelTunnelWithError(error)
-            } else {
-                self.reasserting = false
-            }
         }
     }
 
