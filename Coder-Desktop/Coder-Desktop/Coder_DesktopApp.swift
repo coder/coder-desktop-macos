@@ -126,6 +126,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
+
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        if !state.skipHiddenIconAlert, let menuBar, !menuBar.menuBarExtra.isVisible {
+            displayIconHiddenAlert()
+        }
+        return true
+    }
+
+    private func displayIconHiddenAlert() {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Coder Desktop is hidden!"
+        alert.informativeText = """
+        Coder Desktop is running, but there's no space in the menu bar for it's icon.
+        You can rearrange icons by holding command.
+        """
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Don't show again")
+        let resp = alert.runModal()
+        if resp == .alertSecondButtonReturn {
+            state.skipHiddenIconAlert = true
+        }
+    }
 }
 
 extension AppDelegate {
