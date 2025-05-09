@@ -126,6 +126,10 @@ packages:
   SDWebImageSVGCoder:
     url: https://github.com/SDWebImage/SDWebImageSVGCoder
     exactVersion: 1.7.0
+  URLRouting:
+    url: https://github.com/pointfreeco/swift-url-routing
+    revision: 09b155d
+
 
 targets:
   Coder Desktop:
@@ -290,6 +294,7 @@ targets:
       - package: GRPC
       - package: Subprocess
       - package: Semaphore
+      - package: URLRouting
       - target: CoderSDK
         embed: false
 
