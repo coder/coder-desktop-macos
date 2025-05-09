@@ -56,11 +56,10 @@ public struct WorkspaceAgent: Codable, Identifiable, Sendable {
 
 public struct WorkspaceApp: Codable, Identifiable, Sendable {
     public let id: UUID
-    // Not `omitempty`, but `coderd` sends empty string if `command` is set
-    public var url: URL?
+    public var url: URL? // `omitempty`
     public let external: Bool
     public let slug: String
-    public let display_name: String
+    public let display_name: String? // `omitempty`
     public let command: String? // `omitempty`
     public let icon: URL? // `omitempty`
     public let subdomain: Bool

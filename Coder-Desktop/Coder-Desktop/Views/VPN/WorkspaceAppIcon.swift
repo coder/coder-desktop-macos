@@ -75,7 +75,8 @@ struct WorkspaceApp {
         sessionToken: String
     ) throws(WorkspaceAppError) {
         slug = original.slug
-        displayName = original.display_name
+        // Same behaviour as the web UI
+        displayName = original.display_name ?? original.slug
 
         guard original.external else {
             throw .isWebApp
@@ -196,7 +197,7 @@ func vscodeDisplayApp(hostname: String, baseIconURL: URL, path: String? = nil) -
 }
 
 func vscodeInsidersDisplayApp(hostname: String, baseIconURL: URL, path: String? = nil) -> WorkspaceApp {
-    let icon = baseIconURL.appendingPathComponent("/icon/code.svg")
+    let icon = baseIconURL.appendingPathComponent("/icon/code-insiders.svg")
     return WorkspaceApp(
         slug: "-vscode-insiders",
         displayName: "VS Code Insiders Desktop",
