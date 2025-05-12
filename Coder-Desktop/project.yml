@@ -147,6 +147,7 @@ targets:
         com.apple.developer.system-extension.install: true
         com.apple.security.application-groups:
           - $(TeamIdentifierPrefix)com.coder.Coder-Desktop
+        aps-environment: development
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon # Sets the app icon to "AppIcon".

@@ -1,8 +1,10 @@
 import FluidMenuBarExtra
 import NetworkExtension
+import os
 import SDWebImageSVGCoder
 import SDWebImageSwiftUI
 import SwiftUI
+import UserNotifications
 import VPNLib
 
 @main
@@ -36,13 +38,16 @@ struct DesktopApp: App {
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "app-delegate")
     private var menuBar: MenuBarController?
     let vpn: CoderVPNService
     let state: AppState
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
+    let notifDelegate: NotifDelegate
 
     override init() {
+        notifDelegate = NotifDelegate()
         vpn = CoderVPNService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         vpn.onStart = {
@@ -67,6 +72,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.fileSyncDaemon = fileSyncDaemon
         urlHandler = URLHandler(state: state, vpn: vpn)
+        // `delegate` is weak
+        UNUserNotificationCenter.current().delegate = notifDelegate
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -141,9 +148,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // We only accept one at time, for now
             return
         }
-        do { try urlHandler.handle(url) } catch {
-            // TODO: Push notification
-            print(error.description)
+        do { try urlHandler.handle(url) } catch let handleError {
+            Task {
+                do {
+                    try await sendNotification(title: "Failed to handle link", body: handleError.description)
+                } catch let notifError {
+                    logger.error("Failed to send notification (\(handleError.description)): \(notifError)")
+                }
+            }
         }
     }
 
