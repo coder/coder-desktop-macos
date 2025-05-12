@@ -17,8 +17,8 @@ struct DesktopApp: App {
         Window("Sign In", id: Windows.login.rawValue) {
             LoginForm()
                 .environmentObject(appDelegate.state)
-        }
-        .windowResizability(.contentSize)
+        }.handlesExternalEvents(matching: Set()) // Don't handle deep links
+            .windowResizability(.contentSize)
         SwiftUI.Settings {
             SettingsView<CoderVPNService>()
                 .environmentObject(appDelegate.vpn)
@@ -30,7 +30,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.state)
                 .environmentObject(appDelegate.fileSyncDaemon)
                 .environmentObject(appDelegate.vpn)
-        }
+        }.handlesExternalEvents(matching: Set()) // Don't handle deep links
     }
 }
 
@@ -40,6 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let vpn: CoderVPNService
     let state: AppState
     let fileSyncDaemon: MutagenDaemon
+    let urlHandler: URLHandler
 
     override init() {
         vpn = CoderVPNService()
@@ -65,6 +66,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await fileSyncDaemon.tryStart()
         }
         self.fileSyncDaemon = fileSyncDaemon
+        urlHandler = URLHandler(state: state, vpn: vpn)
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -132,6 +134,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             displayIconHiddenAlert()
         }
         return true
+    }
+
+    func application(_: NSApplication, open urls: [URL]) {
+        guard let url = urls.first else {
+            // We only accept one at time, for now
+            return
+        }
+        do { try urlHandler.handle(url) } catch {
+            // TODO: Push notification
+            print(error.description)
+        }
     }
 
     private func displayIconHiddenAlert() {
