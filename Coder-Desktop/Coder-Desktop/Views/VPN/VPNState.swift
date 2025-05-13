@@ -17,6 +17,10 @@ struct VPNState<VPN: VPNService>: View {
                 Text("Sign in to use Coder Desktop")
                     .font(.body)
                     .foregroundColor(.secondary)
+            case (.failed(.networkExtensionError(.unconfigured)), _):
+                Text("The system VPN requires reconfiguration.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             case (.disabled, _):
                 Text("Enable Coder Connect to see workspaces")
                     .font(.body)
@@ -38,7 +42,7 @@ struct VPNState<VPN: VPNService>: View {
                     .padding(.horizontal, Theme.Size.trayInset)
                     .padding(.vertical, Theme.Size.trayPadding)
                     .frame(maxWidth: .infinity)
-            default:
+            case (.connected, true):
                 EmptyView()
             }
         }

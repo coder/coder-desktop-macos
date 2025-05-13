@@ -22,6 +22,35 @@ enum SystemExtensionState: Equatable, Sendable {
     }
 }
 
+let extensionBundle: Bundle = {
+    let extensionsDirectoryURL = URL(
+        fileURLWithPath: "Contents/Library/SystemExtensions",
+        relativeTo: Bundle.main.bundleURL
+    )
+    let extensionURLs: [URL]
+    do {
+        extensionURLs = try FileManager.default.contentsOfDirectory(at: extensionsDirectoryURL,
+                                                                    includingPropertiesForKeys: nil,
+                                                                    options: .skipsHiddenFiles)
+    } catch {
+        fatalError("Failed to get the contents of " +
+            "\(extensionsDirectoryURL.absoluteString): \(error.localizedDescription)")
+    }
+
+    // here we're just going to assume that there is only ever going to be one SystemExtension
+    // packaged up in the application bundle. If we ever need to ship multiple versions or have
+    // multiple extensions, we'll need to revisit this assumption.
+    guard let extensionURL = extensionURLs.first else {
+        fatalError("Failed to find any system extensions")
+    }
+
+    guard let extensionBundle = Bundle(url: extensionURL) else {
+        fatalError("Failed to create a bundle with URL \(extensionURL.absoluteString)")
+    }
+
+    return extensionBundle
+}()
+
 protocol SystemExtensionAsyncRecorder: Sendable {
     func recordSystemExtensionState(_ state: SystemExtensionState) async
 }
@@ -36,35 +65,6 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
         }
     }
 
-    var extensionBundle: Bundle {
-        let extensionsDirectoryURL = URL(
-            fileURLWithPath: "Contents/Library/SystemExtensions",
-            relativeTo: Bundle.main.bundleURL
-        )
-        let extensionURLs: [URL]
-        do {
-            extensionURLs = try FileManager.default.contentsOfDirectory(at: extensionsDirectoryURL,
-                                                                        includingPropertiesForKeys: nil,
-                                                                        options: .skipsHiddenFiles)
-        } catch {
-            fatalError("Failed to get the contents of " +
-                "\(extensionsDirectoryURL.absoluteString): \(error.localizedDescription)")
-        }
-
-        // here we're just going to assume that there is only ever going to be one SystemExtension
-        // packaged up in the application bundle. If we ever need to ship multiple versions or have
-        // multiple extensions, we'll need to revisit this assumption.
-        guard let extensionURL = extensionURLs.first else {
-            fatalError("Failed to find any system extensions")
-        }
-
-        guard let extensionBundle = Bundle(url: extensionURL) else {
-            fatalError("Failed to create a bundle with URL \(extensionURL.absoluteString)")
-        }
-
-        return extensionBundle
-    }
-
     func installSystemExtension() {
         logger.info("activating SystemExtension")
         guard let bundleID = extensionBundle.bundleIdentifier else {
@@ -75,9 +75,7 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
             forExtensionWithIdentifier: bundleID,
             queue: .main
         )
-        let delegate = SystemExtensionDelegate(asyncDelegate: self)
-        systemExtnDelegate = delegate
-        request.delegate = delegate
+        request.delegate = systemExtnDelegate
         OSSystemExtensionManager.shared.submitRequest(request)
         logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
     }
@@ -90,6 +88,10 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
 {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn-installer")
     private var asyncDelegate: AsyncDelegate
+    // The `didFinishWithResult` function is called for both activation,
+    // deactivation, and replacement requests. The API provides no way to
+    // differentiate them. https://developer.apple.com/forums/thread/684021
+    private var state: SystemExtensionDelegateState = .installing
 
     init(asyncDelegate: AsyncDelegate) {
         self.asyncDelegate = asyncDelegate
@@ -109,9 +111,35 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
             }
             return
         }
-        logger.info("SystemExtension activated")
-        Task { [asyncDelegate] in
-            await asyncDelegate.recordSystemExtensionState(SystemExtensionState.installed)
+        switch state {
+        case .installing:
+            logger.info("SystemExtension installed")
+            Task { [asyncDelegate] in
+                await asyncDelegate.recordSystemExtensionState(SystemExtensionState.installed)
+            }
+        case .deleting:
+            logger.info("SystemExtension deleted")
+            Task { [asyncDelegate] in
+                await asyncDelegate.recordSystemExtensionState(SystemExtensionState.uninstalled)
+            }
+            let request = OSSystemExtensionRequest.activationRequest(
+                forExtensionWithIdentifier: extensionBundle.bundleIdentifier!,
+                queue: .main
+            )
+            request.delegate = self
+            state = .installing
+            OSSystemExtensionManager.shared.submitRequest(request)
+        case .replacing:
+            logger.info("SystemExtension replaced")
+            // The installed extension now has the same version strings as this
+            // bundle, so sending the deactivationRequest will work.
+            let request = OSSystemExtensionRequest.deactivationRequest(
+                forExtensionWithIdentifier: extensionBundle.bundleIdentifier!,
+                queue: .main
+            )
+            request.delegate = self
+            state = .deleting
+            OSSystemExtensionManager.shared.submitRequest(request)
         }
     }
 
@@ -135,8 +163,30 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         actionForReplacingExtension existing: OSSystemExtensionProperties,
         withExtension extension: OSSystemExtensionProperties
     ) -> OSSystemExtensionRequest.ReplacementAction {
-        // swiftlint:disable:next line_length
-        logger.info("Replacing \(request.identifier) v\(existing.bundleShortVersion) with v\(`extension`.bundleShortVersion)")
+        logger.info("Replacing \(request.identifier) v\(existing.bundleVersion) with v\(`extension`.bundleVersion)")
+        // This is counterintuitive, but this function is only called if the
+        // versions are the same in a dev environment.
+        // In a release build, this only gets called when the version string is
+        // different. We don't want to manually reinstall the extension in a dev
+        // environment, because the bug doesn't happen.
+        if existing.bundleVersion == `extension`.bundleVersion {
+            return .replace
+        }
+        // To work around the bug described in
+        // https://github.com/coder/coder-desktop-macos/issues/121,
+        // we're going to manually reinstall after the replacement is done.
+        // If we returned `.cancel` here the deactivation request will fail as
+        // it looks for an extension with the *current* version string.
+        // There's no way to modify the deactivate request to use a different
+        // version string (i.e. `existing.bundleVersion`).
+        logger.info("App upgrade detected, replacing and then reinstalling")
+        state = .replacing
         return .replace
     }
+}
+
+enum SystemExtensionDelegateState {
+    case installing
+    case replacing
+    case deleting
 }
