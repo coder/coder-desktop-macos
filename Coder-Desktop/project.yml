@@ -139,6 +139,13 @@ targets:
       - path: Coder-Desktop
       - path: Resources
         buildPhase: resources
+      - path: Coder-DesktopHelper/com.coder.Coder-Desktop.Helper.plist
+        attributes:
+          - CodeSignOnCopy
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
     entitlements:
       path: Coder-Desktop/Coder-Desktop.entitlements
       properties:
@@ -185,6 +192,11 @@ targets:
         embed: false # Loaded from SE bundle
       - target: VPN
         embed: without-signing # Embed without signing.
+      - target: Coder-DesktopHelper
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
       - package: FluidMenuBarExtra
       - package: KeychainAccess
       - package: LaunchAtLogin
@@ -235,6 +247,7 @@ targets:
     platform: macOS
     sources:
       - path: VPN
+      - path: Coder-DesktopHelper/HelperXPCProtocol.swift
     entitlements:
       path: VPN/VPN.entitlements
       properties:
@@ -347,3 +360,15 @@ targets:
       base:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Coder Desktop.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Coder Desktop"
         PRODUCT_BUNDLE_IDENTIFIER: com.coder.Coder-Desktop.CoderSDKTests
+
+  Coder-DesktopHelper:
+    type: tool
+    platform: macOS
+    sources: Coder-DesktopHelper
+    settings:
+      base:
+        ENABLE_HARDENED_RUNTIME: YES
+        PRODUCT_BUNDLE_IDENTIFIER: "com.coder.Coder-Desktop.Helper"
+        PRODUCT_MODULE_NAME: "$(PRODUCT_NAME:c99extidentifier)"
+        PRODUCT_NAME: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+        SKIP_INSTALL: YES
