@@ -81,13 +81,12 @@ final class CoderVPNService: NSObject, VPNService {
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
     // only stores a weak reference to the delegate.
-    var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>!
+    var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     var serverAddress: String?
 
     override init() {
         super.init()
-        systemExtnDelegate = SystemExtensionDelegate(asyncDelegate: self)
     }
 
     func start() async {

@@ -66,18 +66,8 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
     }
 
     func installSystemExtension() {
-        logger.info("activating SystemExtension")
-        guard let bundleID = extensionBundle.bundleIdentifier else {
-            logger.error("Bundle has no identifier")
-            return
-        }
-        let request = OSSystemExtensionRequest.activationRequest(
-            forExtensionWithIdentifier: bundleID,
-            queue: .main
-        )
-        request.delegate = systemExtnDelegate
-        OSSystemExtensionManager.shared.submitRequest(request)
-        logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
+        systemExtnDelegate = SystemExtensionDelegate(asyncDelegate: self)
+        systemExtnDelegate!.installSystemExtension()
     }
 }
 
@@ -91,12 +81,26 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
     // The `didFinishWithResult` function is called for both activation,
     // deactivation, and replacement requests. The API provides no way to
     // differentiate them. https://developer.apple.com/forums/thread/684021
-    private var state: SystemExtensionDelegateState = .installing
+    // This tracks the last request type made, to handle them accordingly.
+    private var action: SystemExtensionDelegateAction = .none
 
     init(asyncDelegate: AsyncDelegate) {
         self.asyncDelegate = asyncDelegate
         super.init()
         logger.info("SystemExtensionDelegate initialized")
+    }
+
+    func installSystemExtension() {
+        logger.info("activating SystemExtension")
+        let bundleID = extensionBundle.bundleIdentifier!
+        let request = OSSystemExtensionRequest.activationRequest(
+            forExtensionWithIdentifier: bundleID,
+            queue: .main
+        )
+        request.delegate = self
+        action = .installing
+        OSSystemExtensionManager.shared.submitRequest(request)
+        logger.info("submitted SystemExtension request with bundleID: \(bundleID)")
     }
 
     func request(
@@ -111,23 +115,24 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
             }
             return
         }
-        switch state {
+        switch action {
         case .installing:
             logger.info("SystemExtension installed")
             Task { [asyncDelegate] in
-                await asyncDelegate.recordSystemExtensionState(SystemExtensionState.installed)
+                await asyncDelegate.recordSystemExtensionState(.installed)
             }
+            action = .none
         case .deleting:
             logger.info("SystemExtension deleted")
             Task { [asyncDelegate] in
-                await asyncDelegate.recordSystemExtensionState(SystemExtensionState.uninstalled)
+                await asyncDelegate.recordSystemExtensionState(.uninstalled)
             }
             let request = OSSystemExtensionRequest.activationRequest(
                 forExtensionWithIdentifier: extensionBundle.bundleIdentifier!,
                 queue: .main
             )
             request.delegate = self
-            state = .installing
+            action = .installing
             OSSystemExtensionManager.shared.submitRequest(request)
         case .replacing:
             logger.info("SystemExtension replaced")
@@ -138,8 +143,11 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
                 queue: .main
             )
             request.delegate = self
-            state = .deleting
+            action = .deleting
             OSSystemExtensionManager.shared.submitRequest(request)
+        case .none:
+            logger.warning("Received an unexpected request result")
+            break
         }
     }
 
@@ -147,14 +155,14 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         logger.error("System extension request failed: \(error.localizedDescription)")
         Task { [asyncDelegate] in
             await asyncDelegate.recordSystemExtensionState(
-                SystemExtensionState.failed(error.localizedDescription))
+                .failed(error.localizedDescription))
         }
     }
 
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
         logger.error("Extension \(request.identifier) requires user approval")
         Task { [asyncDelegate] in
-            await asyncDelegate.recordSystemExtensionState(SystemExtensionState.needsUserApproval)
+            await asyncDelegate.recordSystemExtensionState(.needsUserApproval)
         }
     }
 
@@ -180,12 +188,13 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         // There's no way to modify the deactivate request to use a different
         // version string (i.e. `existing.bundleVersion`).
         logger.info("App upgrade detected, replacing and then reinstalling")
-        state = .replacing
+        action = .replacing
         return .replace
     }
 }
 
-enum SystemExtensionDelegateState {
+enum SystemExtensionDelegateAction {
+    case none
     case installing
     case replacing
     case deleting
