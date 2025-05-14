@@ -147,7 +147,6 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
             OSSystemExtensionManager.shared.submitRequest(request)
         case .none:
             logger.warning("Received an unexpected request result")
-            break
         }
     }
 
