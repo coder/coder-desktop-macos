@@ -35,7 +35,13 @@ actor Manager {
             // Timeout after 5 minutes, or if there's no data for 60 seconds
             sessionConfig.timeoutIntervalForRequest = 60
             sessionConfig.timeoutIntervalForResource = 300
-            try await download(src: dylibPath, dest: dest, urlSession: URLSession(configuration: sessionConfig))
+            try await download(
+                src: dylibPath,
+                dest: dest,
+                urlSession: URLSession(configuration: sessionConfig)
+            ) { progress in
+                pushProgress(msg: "Downloading library...\n\(progress.description)")
+            }
         } catch {
             throw .download(error)
         }
