@@ -33,8 +33,8 @@ class HelperToolDelegate: NSObject, NSXPCListenerDelegate, HelperXPCProtocol {
 
         task.standardOutput = pipe
         task.standardError = pipe
-        task.arguments = ["-c", "xattr -d com.apple.quarantine '\(path)'"]
-        task.executableURL = URL(fileURLWithPath: "/bin/bash")
+        task.arguments = ["-d", "com.apple.quarantine", path]
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
 
         do {
             try task.run()
