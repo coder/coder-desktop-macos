@@ -162,6 +162,7 @@ actor Manager {
     }
 
     func startVPN() async throws(ManagerError) {
+        // Clear progress message
         pushProgress(msg: nil)
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
@@ -241,10 +242,10 @@ actor Manager {
 
 func pushProgress(msg: String?) {
     guard let conn = globalXPCListenerDelegate.conn else {
-        logger.error("couldn't send progress message to app: no connection")
+        logger.warning("couldn't send progress message to app: no connection")
         return
     }
-    logger.info("sending progress message to app: \(msg ?? "nil")")
+    logger.debug("sending progress message to app: \(msg ?? "nil")")
     conn.onProgress(msg: msg)
 }
 
