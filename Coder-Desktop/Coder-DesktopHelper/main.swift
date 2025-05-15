@@ -22,19 +22,25 @@ class HelperToolDelegate: NSObject, NSXPCListenerDelegate, HelperXPCProtocol {
         return true
     }
 
-    func runCommand(command: String, withReply reply: @escaping (Int32, String) -> Void) {
+    func removeQuarantine(path: String, withReply reply: @escaping (Int32, String) -> Void) {
+        guard isCoderDesktopDylib(at: path) else {
+            reply(1, "Path is not to a Coder Desktop dylib: \(path)")
+            return
+        }
+
         let task = Process()
         let pipe = Pipe()
 
         task.standardOutput = pipe
         task.standardError = pipe
-        task.arguments = ["-c", command]
+        task.arguments = ["-c", "xattr -d com.apple.quarantine '\(path)'"]
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
 
         do {
             try task.run()
         } catch {
             reply(1, "Failed to start command: \(error)")
+            return
         }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -43,6 +49,20 @@ class HelperToolDelegate: NSObject, NSXPCListenerDelegate, HelperXPCProtocol {
         task.waitUntilExit()
         reply(task.terminationStatus, output)
     }
+}
+
+func isCoderDesktopDylib(at rawPath: String) -> Bool {
+    let url = URL(fileURLWithPath: rawPath)
+        .standardizedFileURL
+        .resolvingSymlinksInPath()
+
+    // *Must* be within the Coder Desktop System Extension sandbox
+    let requiredPrefix = ["/", "var", "root", "Library", "Containers",
+                          "com.coder.Coder-Desktop.VPN"]
+    guard url.pathComponents.starts(with: requiredPrefix) else { return false }
+    guard url.pathExtension.lowercased() == "dylib" else { return false }
+    guard FileManager.default.fileExists(atPath: url.path) else { return false }
+    return true
 }
 
 let delegate = HelperToolDelegate()

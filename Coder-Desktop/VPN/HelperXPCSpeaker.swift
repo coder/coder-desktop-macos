@@ -16,7 +16,7 @@ final class HelperXPCSpeaker: @unchecked Sendable {
                 continuation.resume(returning: false)
                 return
             }
-            proxy.runCommand(command: "xattr -d com.apple.quarantine \(path)") { status, output in
+            proxy.removeQuarantine(path: path) { status, output in
                 if status == 0 {
                     self.logger.info("Successfully removed quarantine for \(path)")
                     continuation.resume(returning: true)
