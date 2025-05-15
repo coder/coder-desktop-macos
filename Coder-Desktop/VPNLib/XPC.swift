@@ -10,5 +10,6 @@ import Foundation
 @objc public protocol VPNXPCClientCallbackProtocol {
     // data is a serialized `Vpn_PeerUpdate`
     func onPeerUpdate(_ data: Data)
+    func onProgress(msg: String?)
     func removeQuarantine(path: String, reply: @escaping (Bool) -> Void)
 }
