@@ -92,6 +92,8 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 logger.info("vpn started")
                 self.manager = manager
                 completionHandler(nil)
+                // Clear progress message
+                pushProgress(msg: nil)
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
                 completionHandler(

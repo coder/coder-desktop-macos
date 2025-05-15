@@ -39,6 +39,7 @@ actor Manager {
         } catch {
             throw .download(error)
         }
+        pushProgress(msg: "Fetching server version...")
         let client = Client(url: cfg.serverUrl)
         let buildInfo: BuildInfoResponse
         do {
@@ -49,6 +50,7 @@ actor Manager {
         guard let semver = buildInfo.semver else {
             throw .serverInfo("invalid version: \(buildInfo.version)")
         }
+        pushProgress(msg: "Validating library...")
         do {
             try SignatureValidator.validate(path: dest, expectedVersion: semver)
         } catch {
@@ -59,11 +61,13 @@ actor Manager {
         // so it's safe to execute. However, the SE must be sandboxed, so we defer to the app.
         try await removeQuarantine(dest)
 
+        pushProgress(msg: "Opening library...")
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
             throw .tunnelSetup(error)
         }
+        pushProgress(msg: "Setting up tunnel...")
         speaker = await Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>(
             writeFD: tunnelHandle.writeHandle,
             readFD: tunnelHandle.readHandle
@@ -158,6 +162,7 @@ actor Manager {
     }
 
     func startVPN() async throws(ManagerError) {
+        pushProgress(msg: nil)
         logger.info("sending start rpc")
         guard let tunFd = ptp.tunnelFileDescriptor else {
             logger.error("no fd")
@@ -232,6 +237,15 @@ actor Manager {
         }
         return resp.peerUpdate
     }
+}
+
+func pushProgress(msg: String?) {
+    guard let conn = globalXPCListenerDelegate.conn else {
+        logger.error("couldn't send progress message to app: no connection")
+        return
+    }
+    logger.info("sending progress message to app: \(msg ?? "nil")")
+    conn.onProgress(msg: msg)
 }
 
 struct ManagerConfig {
@@ -312,6 +326,7 @@ private func removeQuarantine(_ dest: URL) async throws(ManagerError) {
     let file = NSURL(fileURLWithPath: dest.path)
     try? file.getResourceValue(&flag, forKey: kCFURLQuarantinePropertiesKey as URLResourceKey)
     if flag != nil {
+        pushProgress(msg: "Unquarantining download...")
         // Try the privileged helper first (it may not even be registered)
         if await globalHelperXPCSpeaker.tryRemoveQuarantine(path: dest.path) {
             // Success!
