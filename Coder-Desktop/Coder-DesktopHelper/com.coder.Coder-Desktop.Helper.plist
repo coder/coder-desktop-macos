@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.coder.Coder-Desktop.Helper</string>
+	<key>BundleProgram</key>
+	<string>Contents/MacOS/com.coder.Coder-Desktop.Helper</string>
+	<key>MachServices</key>
+	<dict>
+		<!-- $(TeamIdentifierPrefix) isn't populated here, so this value is hardcoded -->
+		<key>4399GN35BJ.com.coder.Coder-Desktop.Helper</key>
+		<true/>
+	</dict>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>com.coder.Coder-Desktop</string>
+	</array>
+</dict>
+</plist>

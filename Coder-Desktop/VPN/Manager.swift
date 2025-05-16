@@ -312,7 +312,14 @@ private func removeQuarantine(_ dest: URL) async throws(ManagerError) {
     let file = NSURL(fileURLWithPath: dest.path)
     try? file.getResourceValue(&flag, forKey: kCFURLQuarantinePropertiesKey as URLResourceKey)
     if flag != nil {
+        // Try the privileged helper first (it may not even be registered)
+        if await globalHelperXPCSpeaker.tryRemoveQuarantine(path: dest.path) {
+            // Success!
+            return
+        }
+        // Then try the app
         guard let conn = globalXPCListenerDelegate.conn else {
+            // If neither are available, we can't execute the dylib
             throw .noApp
         }
         // Wait for unsandboxed app to accept our file
