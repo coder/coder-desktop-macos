@@ -71,9 +71,9 @@ import VPNLib
         }
     }
 
-    func onProgress(msg: String?) {
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?) {
         Task { @MainActor in
-            svc.onProgress(msg)
+            svc.onProgress(stage: stage, downloadProgress: downloadProgress)
         }
     }
 
