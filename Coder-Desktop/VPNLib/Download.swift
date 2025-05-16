@@ -251,14 +251,34 @@ extension DownloadManager: URLSessionDownloadDelegate {
     }
 }
 
-public struct DownloadProgress: Sendable, CustomStringConvertible {
-    let totalBytesWritten: Int64
-    let totalBytesToWrite: Int64?
+@objc public final class DownloadProgress: NSObject, NSSecureCoding, @unchecked Sendable {
+    public static var supportsSecureCoding: Bool { true }
 
-    public var description: String {
+    public let totalBytesWritten: Int64
+    public let totalBytesToWrite: Int64?
+
+    public init(totalBytesWritten: Int64, totalBytesToWrite: Int64?) {
+        self.totalBytesWritten = totalBytesWritten
+        self.totalBytesToWrite = totalBytesToWrite
+    }
+
+    public required convenience init?(coder: NSCoder) {
+        let written = coder.decodeInt64(forKey: "written")
+        let total = coder.containsValue(forKey: "total") ? coder.decodeInt64(forKey: "total") : nil
+        self.init(totalBytesWritten: written, totalBytesToWrite: total)
+    }
+
+    public func encode(with coder: NSCoder) {
+        coder.encode(totalBytesWritten, forKey: "written")
+        if let total = totalBytesToWrite {
+            coder.encode(total, forKey: "total")
+        }
+    }
+
+    override public var description: String {
         let fmt = ByteCountFormatter()
         let done = fmt.string(fromByteCount: totalBytesWritten)
-        let total = totalBytesToWrite.map { fmt.string(fromByteCount: $0) } ?? "Unknown"
-        return "\(done) / \(total)"
+        let tot = totalBytesToWrite.map { fmt.string(fromByteCount: $0) } ?? "Unknown"
+        return "\(done) / \(tot)"
     }
 }

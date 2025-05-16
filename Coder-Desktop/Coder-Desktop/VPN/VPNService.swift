@@ -7,7 +7,7 @@ import VPNLib
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
     var menuState: VPNMenuState { get }
-    var progressMessage: String? { get }
+    var progress: VPNProgress { get }
     func start() async
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
@@ -73,7 +73,7 @@ final class CoderVPNService: NSObject, VPNService {
         return tunnelState
     }
 
-    @Published var progressMessage: String?
+    @Published var progress: VPNProgress = .init(stage: .none, downloadProgress: nil)
 
     @Published var menuState: VPNMenuState = .init()
 
@@ -158,8 +158,8 @@ final class CoderVPNService: NSObject, VPNService {
         }
     }
 
-    func onProgress(_ msg: String?) {
-        progressMessage = msg
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?) {
+        progress = .init(stage: stage, downloadProgress: downloadProgress)
     }
 
     func applyPeerUpdate(with update: Vpn_PeerUpdate) {

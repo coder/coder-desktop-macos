@@ -93,7 +93,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
                 self.manager = manager
                 completionHandler(nil)
                 // Clear progress message
-                pushProgress(msg: nil)
+                pushProgress(stage: .none, downloadProgress: nil)
             } catch {
                 logger.error("error starting manager: \(error.description, privacy: .public)")
                 completionHandler(

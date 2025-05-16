@@ -6,14 +6,6 @@ struct VPNState<VPN: VPNService>: View {
 
     let inspection = Inspection<Self>()
 
-    var progressMessage: String {
-        if let msg = vpn.progressMessage {
-            msg
-        } else {
-            vpn.state == .connecting ? "Starting Coder Connect..." : "Stopping Coder Connect..."
-        }
-    }
-
     var body: some View {
         Group {
             switch (vpn.state, state.hasSession) {
@@ -36,11 +28,7 @@ struct VPNState<VPN: VPNService>: View {
             case (.connecting, _), (.disconnecting, _):
                 HStack {
                     Spacer()
-                    ProgressView {
-                        Text(progressMessage)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
+                    VPNProgressView(state: vpn.state, progress: vpn.progress)
                     Spacer()
                 }
             case let (.failed(vpnErr), _):
