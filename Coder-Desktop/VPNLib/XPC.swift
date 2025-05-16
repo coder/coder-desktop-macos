@@ -15,7 +15,7 @@ import Foundation
 }
 
 @objc public enum ProgressStage: Int, Sendable {
-    case none
+    case initial
     case downloading
     case validating
     case removingQuarantine
@@ -25,7 +25,7 @@ import Foundation
 
     public var description: String? {
         switch self {
-        case .none:
+        case .initial:
             nil
         case .downloading:
             "Downloading library..."

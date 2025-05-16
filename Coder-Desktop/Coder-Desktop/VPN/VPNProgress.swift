@@ -41,7 +41,7 @@ struct VPNProgressView: View {
             return nil
         }
         switch progress.stage {
-        case .none:
+        case .initial:
             return 0.10
         case .downloading:
             guard let downloadProgress = progress.downloadProgress else {
