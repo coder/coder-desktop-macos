@@ -58,8 +58,9 @@ extension CoderVPNService {
             try await tm.saveToPreferences()
             neState = .disabled
         } catch {
+            // This typically fails when the user declines the permission dialog
             logger.error("save tunnel failed: \(error)")
-            neState = .failed(error.localizedDescription)
+            neState = .failed("Failed to save tunnel: \(error.localizedDescription). Try logging in and out again.")
         }
     }
 
