@@ -71,6 +71,12 @@ import VPNLib
         }
     }
 
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?) {
+        Task { @MainActor in
+            svc.onProgress(stage: stage, downloadProgress: downloadProgress)
+        }
+    }
+
     // The NE has verified the dylib and knows better than Gatekeeper
     func removeQuarantine(path: String, reply: @escaping (Bool) -> Void) {
         let reply = CallbackWrapper(reply)

@@ -33,6 +33,8 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         self.shouldFail = shouldFail
     }
 
+    @Published var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
+
     var startTask: Task<Void, Never>?
     func start() async {
         if await startTask?.value != nil {
