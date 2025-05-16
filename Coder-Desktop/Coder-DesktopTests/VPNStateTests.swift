@@ -38,8 +38,7 @@ struct VPNStateTests {
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
-                let progressView = try view.find(ViewType.ProgressView.self)
-                #expect(try progressView.labelView().text().string() == "Starting Coder Connect...")
+                _ = try view.find(text: "Starting Coder Connect...")
             }
         }
     }
@@ -50,8 +49,7 @@ struct VPNStateTests {
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
-                let progressView = try view.find(ViewType.ProgressView.self)
-                #expect(try progressView.labelView().text().string() == "Stopping Coder Connect...")
+                _ = try view.find(text: "Stopping Coder Connect...")
             }
         }
     }
