@@ -63,6 +63,10 @@ extension CoderVPNService: SystemExtensionAsyncRecorder {
             // system extension was successfully installed, so we don't need the delegate any more
             systemExtnDelegate = nil
         }
+        if state == .uninstalled {
+            // System extension was deleted, and the VPN configurations go with it
+            neState = .unconfigured
+        }
     }
 
     func installSystemExtension() {
