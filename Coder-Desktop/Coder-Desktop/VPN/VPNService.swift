@@ -56,7 +56,14 @@ final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: VPNXPCInterface = .init(vpn: self)
 
-    @Published var tunnelState: VPNServiceState = .disabled
+    @Published var tunnelState: VPNServiceState = .disabled {
+        didSet {
+            if tunnelState == .connecting {
+                progress = .init(stage: .initial, downloadProgress: nil)
+            }
+        }
+    }
+
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured
     var state: VPNServiceState {
@@ -73,7 +80,7 @@ final class CoderVPNService: NSObject, VPNService {
         return tunnelState
     }
 
-    @Published var progress: VPNProgress = .init(stage: .none, downloadProgress: nil)
+    @Published var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
 
     @Published var menuState: VPNMenuState = .init()
 
