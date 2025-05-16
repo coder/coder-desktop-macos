@@ -10,7 +10,7 @@ class MockVPNService: VPNService, ObservableObject {
     @Published var state: Coder_Desktop.VPNServiceState = .disabled
     @Published var baseAccessURL: URL = .init(string: "https://dev.coder.com")!
     @Published var menuState: VPNMenuState = .init()
-    @Published var progressMessage: String?
+    @Published var progress: VPNProgress = .init(stage: .none, downloadProgress: nil)
     var onStart: (() async -> Void)?
     var onStop: (() async -> Void)?
 
