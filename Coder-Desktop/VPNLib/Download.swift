@@ -129,9 +129,14 @@ public func download(
     src: URL,
     dest: URL,
     urlSession: URLSession,
-    progressUpdates: ((DownloadProgress) -> Void)? = nil
+    progressUpdates: (@Sendable (DownloadProgress) -> Void)? = nil
 ) async throws(DownloadError) {
-    try await DownloadManager().download(src: src, dest: dest, urlSession: urlSession, progressUpdates: progressUpdates)
+    try await DownloadManager().download(
+        src: src,
+        dest: dest,
+        urlSession: urlSession,
+        progressUpdates: progressUpdates.flatMap { throttle(interval: .milliseconds(10), $0) },
+    )
 }
 
 func etag(data: Data) -> String {
@@ -173,7 +178,7 @@ private final class DownloadManager: NSObject, @unchecked Sendable {
         src: URL,
         dest: URL,
         urlSession: URLSession,
-        progressUpdates: ((DownloadProgress) -> Void)?
+        progressUpdates: (@Sendable (DownloadProgress) -> Void)?
     ) async throws(DownloadError) {
         var req = URLRequest(url: src)
         if FileManager.default.fileExists(atPath: dest.path) {
