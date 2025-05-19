@@ -13,9 +13,9 @@ struct VPNProgressView: View {
     var body: some View {
         VStack {
             CircularProgressView(value: value)
-                // We'll estimate that the last 25% takes 9 seconds
+                // We estimate that the last half takes 8 seconds
                 // so it doesn't appear stuck
-                .autoComplete(threshold: 0.75, duration: 9)
+                .autoComplete(threshold: 0.5, duration: 8)
             Text(progressMessage)
                 .multilineTextAlignment(.center)
         }
@@ -42,7 +42,7 @@ struct VPNProgressView: View {
         }
         switch progress.stage {
         case .initial:
-            return 0.10
+            return 0.05
         case .downloading:
             guard let downloadProgress = progress.downloadProgress else {
                 // We can't make this illegal state unrepresentable because XPC
@@ -52,17 +52,17 @@ struct VPNProgressView: View {
             // 40MB if the server doesn't give us the expected size
             let totalBytes = downloadProgress.totalBytesToWrite ?? 40_000_000
             let downloadPercent = min(1.0, Float(downloadProgress.totalBytesWritten) / Float(totalBytes))
-            return 0.10 + 0.6 * downloadPercent
+            return 0.05 + 0.4 * downloadPercent
         case .validating:
-            return 0.71
+            return 0.42
         case .removingQuarantine:
-            return 0.72
+            return 0.44
         case .opening:
-            return 0.73
+            return 0.46
         case .settingUpTunnel:
-            return 0.74
+            return 0.48
         case .startingTunnel:
-            return 0.75
+            return 0.50
         }
     }
 }

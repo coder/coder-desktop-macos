@@ -238,6 +238,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
             try FileManager.default.moveItem(at: location, to: dest)
         } catch {
             continuation.resume(throwing: DownloadError.fileOpError(error))
+            return
         }
 
         continuation.resume()
@@ -278,7 +279,8 @@ extension DownloadManager: URLSessionDownloadDelegate {
     override public var description: String {
         let fmt = ByteCountFormatter()
         let done = fmt.string(fromByteCount: totalBytesWritten)
-        let tot = totalBytesToWrite.map { fmt.string(fromByteCount: $0) } ?? "Unknown"
-        return "\(done) / \(tot)"
+            .padding(toLength: 7, withPad: " ", startingAt: 0)
+        let total = totalBytesToWrite.map { fmt.string(fromByteCount: $0) } ?? "Unknown"
+        return "\(done) / \(total)"
     }
 }
