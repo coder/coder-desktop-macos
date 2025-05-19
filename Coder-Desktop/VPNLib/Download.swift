@@ -135,7 +135,7 @@ public func download(
         src: src,
         dest: dest,
         urlSession: urlSession,
-        progressUpdates: progressUpdates.flatMap { throttle(interval: .milliseconds(10), $0) },
+        progressUpdates: progressUpdates.flatMap { throttle(interval: .milliseconds(10), $0) }
     )
 }
 
