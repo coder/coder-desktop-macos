@@ -32,7 +32,7 @@ public class MutagenDaemon: FileSyncDaemon {
 
     @Published public var state: DaemonState = .stopped {
         didSet {
-            logger.info("daemon state set: \(self.state.description, privacy: .public)")
+            logger.info("mutagen daemon state set: \(self.state.description, privacy: .public)")
             if case .failed = state {
                 Task {
                     try? await cleanupGRPC()

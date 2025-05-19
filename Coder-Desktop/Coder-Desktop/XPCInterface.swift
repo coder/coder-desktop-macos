@@ -14,9 +14,9 @@ import VPNLib
     }
 
     func connect() {
-        logger.debug("xpc connect called")
+        logger.debug("VPN xpc connect called")
         guard xpc == nil else {
-            logger.debug("xpc already exists")
+            logger.debug("VPN xpc already exists")
             return
         }
         let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
@@ -34,14 +34,14 @@ import VPNLib
         xpcConn.exportedObject = self
         xpcConn.invalidationHandler = { [logger] in
             Task { @MainActor in
-                logger.error("XPC connection invalidated.")
+                logger.error("VPN XPC connection invalidated.")
                 self.xpc = nil
                 self.connect()
             }
         }
         xpcConn.interruptionHandler = { [logger] in
             Task { @MainActor in
-                logger.error("XPC connection interrupted.")
+                logger.error("VPN XPC connection interrupted.")
                 self.xpc = nil
                 self.connect()
             }

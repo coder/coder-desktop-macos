@@ -25,6 +25,7 @@ struct DesktopApp: App {
             SettingsView<CoderVPNService>()
                 .environmentObject(appDelegate.vpn)
                 .environmentObject(appDelegate.state)
+                .environmentObject(appDelegate.helper)
         }
         .windowResizability(.contentSize)
         Window("Coder File Sync", id: Windows.fileSync.rawValue) {
@@ -45,10 +46,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
     let notifDelegate: NotifDelegate
+    let helper: HelperService
 
     override init() {
         notifDelegate = NotifDelegate()
         vpn = CoderVPNService()
+        helper = HelperService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         vpn.onStart = {
             // We don't need this to have finished before the VPN actually starts
