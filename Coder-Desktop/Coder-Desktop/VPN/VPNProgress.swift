@@ -42,7 +42,7 @@ struct VPNProgressView: View {
         }
         switch progress.stage {
         case .initial:
-            return 0.05
+            return 0
         case .downloading:
             guard let downloadProgress = progress.downloadProgress else {
                 // We can't make this illegal state unrepresentable because XPC
@@ -52,15 +52,11 @@ struct VPNProgressView: View {
             // 40MB if the server doesn't give us the expected size
             let totalBytes = downloadProgress.totalBytesToWrite ?? 40_000_000
             let downloadPercent = min(1.0, Float(downloadProgress.totalBytesWritten) / Float(totalBytes))
-            return 0.05 + 0.4 * downloadPercent
+            return 0.4 * downloadPercent
         case .validating:
-            return 0.42
+            return 0.43
         case .removingQuarantine:
-            return 0.44
-        case .opening:
             return 0.46
-        case .settingUpTunnel:
-            return 0.48
         case .startingTunnel:
             return 0.50
         }

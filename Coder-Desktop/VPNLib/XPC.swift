@@ -19,8 +19,6 @@ import Foundation
     case downloading
     case validating
     case removingQuarantine
-    case opening
-    case settingUpTunnel
     case startingTunnel
 
     public var description: String? {
@@ -33,10 +31,6 @@ import Foundation
             "Validating library..."
         case .removingQuarantine:
             "Removing quarantine..."
-        case .opening:
-            "Opening library..."
-        case .settingUpTunnel:
-            "Setting up tunnel..."
         case .startingTunnel:
             nil
         }

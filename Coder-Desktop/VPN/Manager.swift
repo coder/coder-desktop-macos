@@ -67,13 +67,11 @@ actor Manager {
         // so it's safe to execute. However, the SE must be sandboxed, so we defer to the app.
         try await removeQuarantine(dest)
 
-        pushProgress(stage: .opening)
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
             throw .tunnelSetup(error)
         }
-        pushProgress(stage: .settingUpTunnel)
         speaker = await Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>(
             writeFD: tunnelHandle.writeHandle,
             readFD: tunnelHandle.readHandle
