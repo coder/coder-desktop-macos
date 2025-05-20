@@ -72,6 +72,8 @@ struct MenuItemView: View {
 
     @State private var apps: [WorkspaceApp] = []
 
+    @State private var loadingApps: Bool = true
+
     var hasApps: Bool { !apps.isEmpty }
 
     private var itemName: AttributedString {
@@ -129,9 +131,13 @@ struct MenuItemView: View {
                 MenuItemIcons(item: item, wsURL: wsURL)
             }
             if isExpanded {
-                if hasApps {
+                switch (loadingApps, hasApps) {
+                case (true, _):
+                    CircularProgressView(value: nil, strokeWidth: 3, diameter: 15)
+                        .padding(.top, 5)
+                case (false, true):
                     MenuItemCollapsibleView(apps: apps)
-                } else {
+                case (false, false):
                     HStack {
                         Text(item.status == .off ? "Workspace is offline." : "No apps available.")
                             .font(.body)
@@ -146,6 +152,7 @@ struct MenuItemView: View {
     }
 
     func loadApps() async {
+        defer { loadingApps = false }
         // If this menu item is an agent, and the user is logged in
         if case let .agent(agent) = item,
            let client = state.client,
