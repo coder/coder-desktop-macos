@@ -20,7 +20,6 @@ struct VPNProgressView: View {
                 .multilineTextAlignment(.center)
         }
         .padding()
-        .progressViewStyle(.circular)
         .foregroundStyle(.secondary)
     }
 
