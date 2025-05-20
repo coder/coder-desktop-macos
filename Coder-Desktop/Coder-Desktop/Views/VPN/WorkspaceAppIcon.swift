@@ -19,7 +19,7 @@ struct WorkspaceAppIcon: View {
                 ) { $0 }
                     placeholder: {
                         if app.icon != nil {
-                            ProgressView().controlSize(.small)
+                            CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
                         } else {
                             Image(systemName: "questionmark").frame(
                                 width: Theme.Size.appIconWidth,
