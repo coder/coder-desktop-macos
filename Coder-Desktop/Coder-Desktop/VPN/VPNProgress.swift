@@ -48,8 +48,8 @@ struct VPNProgressView: View {
                 // doesn't support enums with associated values.
                 return 0.05
             }
-            // 40MB if the server doesn't give us the expected size
-            let totalBytes = downloadProgress.totalBytesToWrite ?? 40_000_000
+            // 35MB if the server doesn't give us the expected size
+            let totalBytes = downloadProgress.totalBytesToWrite ?? 35_000_000
             let downloadPercent = min(1.0, Float(downloadProgress.totalBytesWritten) / Float(totalBytes))
             return 0.4 * downloadPercent
         case .validating:
