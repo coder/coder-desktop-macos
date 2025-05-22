@@ -7,6 +7,7 @@ import VPNLib
 protocol VPNService: ObservableObject {
     var state: VPNServiceState { get }
     var menuState: VPNMenuState { get }
+    var progress: VPNProgress { get }
     func start() async
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
@@ -55,7 +56,14 @@ final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: VPNXPCInterface = .init(vpn: self)
 
-    @Published var tunnelState: VPNServiceState = .disabled
+    @Published var tunnelState: VPNServiceState = .disabled {
+        didSet {
+            if tunnelState == .connecting {
+                progress = .init(stage: .initial, downloadProgress: nil)
+            }
+        }
+    }
+
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured
     var state: VPNServiceState {
@@ -71,6 +79,8 @@ final class CoderVPNService: NSObject, VPNService {
         }
         return tunnelState
     }
+
+    @Published var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
 
     @Published var menuState: VPNMenuState = .init()
 
@@ -153,6 +163,10 @@ final class CoderVPNService: NSObject, VPNService {
         } catch {
             logger.error("failed to decode peer update \(error)")
         }
+    }
+
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?) {
+        progress = .init(stage: stage, downloadProgress: downloadProgress)
     }
 
     func applyPeerUpdate(with update: Vpn_PeerUpdate) {

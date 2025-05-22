@@ -33,7 +33,9 @@ struct Agents<VPN: VPNService>: View {
                     if hasToggledExpansion {
                         return
                     }
-                    expandedItem = visibleItems.first?.id
+                    withAnimation(.snappy(duration: Theme.Animation.collapsibleDuration)) {
+                        expandedItem = visibleItems.first?.id
+                    }
                     hasToggledExpansion = true
                 }
                 if items.count == 0 {

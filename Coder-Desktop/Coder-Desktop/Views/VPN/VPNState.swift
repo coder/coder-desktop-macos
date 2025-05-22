@@ -28,9 +28,7 @@ struct VPNState<VPN: VPNService>: View {
             case (.connecting, _), (.disconnecting, _):
                 HStack {
                     Spacer()
-                    ProgressView(
-                        vpn.state == .connecting ? "Starting Coder Connect..." : "Stopping Coder Connect..."
-                    ).padding()
+                    VPNProgressView(state: vpn.state, progress: vpn.progress)
                     Spacer()
                 }
             case let (.failed(vpnErr), _):
