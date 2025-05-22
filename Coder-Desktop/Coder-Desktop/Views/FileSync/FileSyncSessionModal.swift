@@ -68,7 +68,7 @@ struct FileSyncSessionModal<VPN: VPNService, FS: FileSyncDaemon>: View {
                     Text(msg).foregroundStyle(.secondary)
                 }
                 if loading {
-                    ProgressView().controlSize(.small)
+                    CircularProgressView(value: nil, strokeWidth: 3, diameter: 15)
                 }
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button(existingSession == nil ? "Add" : "Save") { Task { await submit() }}

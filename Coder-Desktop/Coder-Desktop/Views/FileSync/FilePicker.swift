@@ -23,8 +23,7 @@ struct FilePicker: View {
         VStack(spacing: 0) {
             if model.rootIsLoading {
                 Spacer()
-                ProgressView()
-                    .controlSize(.large)
+                CircularProgressView(value: nil)
                 Spacer()
             } else if let loadError = model.error {
                 Text("\(loadError.description)")
@@ -125,7 +124,8 @@ struct FilePickerEntry: View {
             Label {
                 Text(entry.name)
                 ZStack {
-                    ProgressView().controlSize(.small).opacity(entry.isLoading && entry.error == nil ? 1 : 0)
+                    CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
+                        .opacity(entry.isLoading && entry.error == nil ? 1 : 0)
                     Image(systemName: "exclamationmark.triangle.fill")
                         .opacity(entry.error != nil ? 1 : 0)
                 }
