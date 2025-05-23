@@ -129,6 +129,9 @@ packages:
   URLRouting:
     url: https://github.com/pointfreeco/swift-url-routing
     revision: 09b155d
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.7.0
 
 
 targets:
@@ -202,6 +205,7 @@ targets:
       - package: LaunchAtLogin
       - package: SDWebImageSwiftUI
       - package: SDWebImageSVGCoder
+      - package: Sparkle
     scheme:
       testPlans:
         - path: Coder-Desktop.xctestplan

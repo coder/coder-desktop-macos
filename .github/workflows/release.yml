@@ -56,6 +56,7 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_NOTARYTOOL_PASSWORD }}
           APP_PROF: ${{ secrets.CODER_DESKTOP_APP_PROVISIONPROFILE_B64 }}
           EXT_PROF: ${{ secrets.CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64 }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: make release
 
       # Upload as artifact in dry-run mode
