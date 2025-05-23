@@ -201,7 +201,7 @@ xcrun notarytool submit "$PKG_PATH" \
 xcrun stapler staple "$PKG_PATH"
 xcrun stapler staple "$BUILT_APP_PATH"
 
-signature=$(echo "$SPARKLE_PRIVATE_KEY" | ~/Library/Developer/Xcode/DerivedData/Coder-Desktop-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update "$PKG_PATH" -ed-key-file -)
+signature=$(echo "$SPARKLE_PRIVATE_KEY" | ~/Library/Developer/Xcode/DerivedData/Coder-Desktop-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update "$PKG_PATH" --ed-key-file -)
 echo "$signature" >"$PKG_PATH.sig"
 
 # Add dsym to build artifacts
