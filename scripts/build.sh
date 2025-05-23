@@ -16,15 +16,17 @@ APP_PROF_PATH=${APP_PROF_PATH:-""}
 EXT_PROF_PATH=${EXT_PROF_PATH:-""}
 KEYCHAIN=${KEYCHAIN:-""}
 VERSION=${VERSION:-""}
+SPARKLE_PRIVATE_KEY=${SPARKLE_PRIVATE_KEY:-""}
 
 # Function to display usage
 usage() {
   echo "Usage: $0 [--app-prof-path <path>] [--ext-prof-path <path>] [--keychain <path>]"
-  echo "  --app-prof-path <path>     Set the APP_PROF_PATH variable"
-  echo "  --ext-prof-path <path>     Set the EXT_PROF_PATH variable"
-  echo "  --keychain      <path>     Set the KEYCHAIN variable"
-  echo "  --version       <version>  Set the VERSION variable to fetch and generate the cask file for"
-  echo "  -h, --help                 Display this help message"
+  echo "  --app-prof-path       <path>     Set the APP_PROF_PATH variable"
+  echo "  --ext-prof-path       <path>     Set the EXT_PROF_PATH variable"
+  echo "  --keychain            <path>     Set the KEYCHAIN variable"
+  echo "  --sparkle-private-key <path>     Set the SPARKLE_PRIVATE_KEY variable"
+  echo "  --version             <version>  Set the VERSION variable to fetch and generate the cask file for"
+  echo "  -h, --help                       Display this help message"
 }
 
 # Parse command line arguments
@@ -40,6 +42,10 @@ while [[ "$#" -gt 0 ]]; do
     ;;
   --keychain)
     KEYCHAIN="$2"
+    shift 2
+    ;;
+  --sparkle-private-key)
+    SPARKLE_PRIVATE_KEY="$2"
     shift 2
     ;;
   --version)
@@ -59,7 +65,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Check if required variables are set
-if [[ -z "$APP_PROF_PATH" || -z "$EXT_PROF_PATH" || -z "$KEYCHAIN" ]]; then
+if [[ -z "$APP_PROF_PATH" || -z "$EXT_PROF_PATH" || -z "$KEYCHAIN" || -z "$SPARKLE_PRIVATE_KEY" ]]; then
   echo "Missing required values"
   echo "APP_PROF_PATH: $APP_PROF_PATH"
   echo "EXT_PROF_PATH: $EXT_PROF_PATH"
@@ -194,6 +200,9 @@ xcrun notarytool submit "$PKG_PATH" \
 # Staple the notarization to the app and pkg, so they work without internet
 xcrun stapler staple "$PKG_PATH"
 xcrun stapler staple "$BUILT_APP_PATH"
+
+signature=$(echo "$SPARKLE_PRIVATE_KEY" | ~/Library/Developer/Xcode/DerivedData/Coder-Desktop-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update "$PKG_PATH" --ed-key-file -)
+echo "$signature" >"$PKG_PATH.sig"
 
 # Add dsym to build artifacts
 (cd "$ARCHIVE_PATH/dSYMs" && zip -9 -r --symlinks "$DSYM_ZIPPED_PATH" ./*)

@@ -106,7 +106,8 @@ release: $(KEYCHAIN_FILE) ## Create a release build of Coder Desktop
 		--app-prof-path "$$APP_PROF_PATH" \
 		--ext-prof-path "$$EXT_PROF_PATH" \
 		--version $(MARKETING_VERSION) \
-		--keychain "$(APP_SIGNING_KEYCHAIN)"; \
+		--keychain "$(APP_SIGNING_KEYCHAIN)" \
+		--sparkle-private-key "$$SPARKLE_PRIVATE_KEY"; \
 	rm "$$APP_PROF_PATH" "$$EXT_PROF_PATH"
 
 .PHONY: fmt
