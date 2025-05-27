@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     echo "Usage: $0 [--short] [--hash]"
-    echo "  --short     Output only the version (X.Y.Z or X.Y.Z.N)"
+    echo "  --short     Output a CFBundleShortVersionString compatible version (X.Y.Z)"
     echo "  --hash      Output only the commit hash"
     echo "  -h, --help  Display this help message"
     echo ""
