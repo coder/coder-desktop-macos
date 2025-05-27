@@ -33,5 +33,7 @@
 	</dict>
 	<key>SUPublicEDKey</key>
     <string>Ae2oQLTcx89/a73XrpOt+IVvqdo+fMTjo3UKEm77VdA=</string>
+	<key>CommitHash</key>
+	<string>$(GIT_COMMIT_HASH)</string>
 </dict>
 </plist>

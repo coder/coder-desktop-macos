@@ -32,17 +32,27 @@ $(error MUTAGEN_VERSION must be a valid version)
 endif
 
 ifndef CURRENT_PROJECT_VERSION
-CURRENT_PROJECT_VERSION:=$(shell git describe --match 'v[0-9]*' --dirty='.devel' --always --tags)
+# Must be X.Y.Z[.N]
+CURRENT_PROJECT_VERSION:=$(shell ./scripts/version.sh)
 endif
 ifeq ($(strip $(CURRENT_PROJECT_VERSION)),)
 $(error CURRENT_PROJECT_VERSION cannot be empty)
 endif
 
 ifndef MARKETING_VERSION
-MARKETING_VERSION:=$(shell git describe --match 'v[0-9]*' --tags --abbrev=0 | sed 's/^v//' | sed 's/-.*$$//')
+# Must be X.Y.Z
+MARKETING_VERSION:=$(shell ./scripts/version.sh --short)
 endif
 ifeq ($(strip $(MARKETING_VERSION)),)
 $(error MARKETING_VERSION cannot be empty)
+endif
+
+ifndef GIT_COMMIT_HASH
+# Must be a valid git commit hash
+GIT_COMMIT_HASH := $(shell ./scripts/version.sh --hash)
+endif
+ifeq ($(strip $(GIT_COMMIT_HASH)),)
+$(error GIT_COMMIT_HASH cannot be empty)
 endif
 
 # Define the keychain file name first
@@ -70,6 +80,7 @@ $(XCPROJECT): $(PROJECT)/project.yml
 		EXT_PROVISIONING_PROFILE_ID=${EXT_PROVISIONING_PROFILE_ID} \
 		CURRENT_PROJECT_VERSION=$(CURRENT_PROJECT_VERSION) \
 		MARKETING_VERSION=$(MARKETING_VERSION) \
+		GIT_COMMIT_HASH=$(GIT_COMMIT_HASH) \
 		xcodegen
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto

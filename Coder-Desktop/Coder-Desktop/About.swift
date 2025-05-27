@@ -31,11 +31,18 @@ enum About {
         return coder
     }
 
+    private static var version: NSString {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let commitHash = Bundle.main.infoDictionary?["CommitHash"] as? String ?? "Unknown"
+        return "Version \(version) - \(commitHash)" as NSString
+    }
+
     @MainActor
     static func open() {
         appActivate()
         NSApp.orderFrontStandardAboutPanel(options: [
             .credits: credits,
+            .applicationVersion: version,
         ])
     }
 }
