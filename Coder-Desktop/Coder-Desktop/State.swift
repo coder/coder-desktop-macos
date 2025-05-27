@@ -120,6 +120,7 @@ class AppState: ObservableObject {
             _sessionToken = Published(initialValue: keychainGet(for: Keys.sessionToken))
             if sessionToken == nil || sessionToken!.isEmpty == true {
                 clearSession()
+                return
             }
             client = Client(
                 url: baseAccessURL!,
