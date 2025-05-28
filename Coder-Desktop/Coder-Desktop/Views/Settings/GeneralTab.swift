@@ -1,4 +1,5 @@
 import LaunchAtLogin
+import SDWebImage
 import SwiftUI
 
 struct GeneralTab: View {
@@ -16,6 +17,16 @@ struct GeneralTab: View {
             Section {
                 Toggle(isOn: $state.startVPNOnLaunch) {
                     Text("Start Coder Connect on launch")
+                }
+            }
+            Section {
+                HStack {
+                    Text("Icon cache")
+                    Spacer()
+                    Button("Clear") {
+                        SDImageCache.shared.clearMemory()
+                        SDImageCache.shared.clearDisk()
+                    }
                 }
             }
         }.formStyle(.grouped)
