@@ -48,7 +48,9 @@ if [[ $describe_output =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-([0-9]+)-g[a-f0-9]+)?$ ]];
     version=${BASH_REMATCH[1]}  # X.Y.Z
     commits=${BASH_REMATCH[3]}  # number of commits since tag
 
-    if [[ "$SHORT" == true ]]; then
+    # If we're producing a short version string, or this is a release version
+    # (no commits since tag)
+    if [[ "$SHORT" == true ]] || [[ -z "$commits" ]]; then
         echo "$version"
         exit 0
     fi
