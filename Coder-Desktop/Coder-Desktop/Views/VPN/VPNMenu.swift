@@ -81,6 +81,7 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     }.buttonStyle(.plain)
                     TrayDivider()
                 }
+                AuthButton<VPN>()
                 Button {
                     openSettings()
                     appActivate()

@@ -12,7 +12,6 @@ struct VPNState<VPN: VPNService>: View {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
                 VStack {
                     Text("Awaiting System Extension approval")
-                        .font(.headline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -32,7 +31,6 @@ struct VPNState<VPN: VPNService>: View {
             case (.failed(.networkExtensionError(.unconfigured)), _):
                 VStack {
                     Text("The system VPN requires reconfiguration")
-                        .font(.headline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
