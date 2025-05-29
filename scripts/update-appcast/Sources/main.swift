@@ -4,6 +4,7 @@ import RegexBuilder
 #if canImport(FoundationXML)
     import FoundationXML
 #endif
+import Parsley
 
 /// UpdateAppcast
 /// -------------
@@ -35,6 +36,9 @@ struct UpdateAppcast: AsyncParsableCommand {
 
     @Option(name: .shortAndLong, help: "The project version (X.Y.Z for stable builds, X.Y.Z.N for preview builds).")
     var version: String
+
+    @Option(name: .shortAndLong, help: "A description of the release written in GFM.")
+    var description: String?
 
     @Option(name: .shortAndLong, help: "Path where the updated appcast should be written.")
     var output: String
@@ -94,16 +98,27 @@ struct UpdateAppcast: AsyncParsableCommand {
             item.addChild(XMLElement(name: "title", stringValue: "Preview"))
         }
 
+        if let description  {
+            let description = description.replacingOccurrences(of: #"\r\n"#, with: "\n")
+            let descriptionDoc: Document
+            do {
+                descriptionDoc = try Parsley.parse(description)
+            } catch {
+                throw RuntimeError("Failed to parse GFM description: \(error)")
+            }
+            // <description><![CDATA[ …HTML… ]]></description>
+            let descriptionElement = XMLElement(name: "description")
+            let cdata = XMLNode(kind: .text, options: .nodeIsCDATA)
+            let html = descriptionDoc.body
+
+            cdata.stringValue = html
+            descriptionElement.addChild(cdata)
+            item.addChild(descriptionElement)
+        }
+
         item.addChild(XMLElement(name: "pubDate", stringValue: rfc822Date()))
         item.addChild(XMLElement(name: "sparkle:channel", stringValue: channel.rawValue))
         item.addChild(XMLElement(name: "sparkle:version", stringValue: version))
-        // We only have chanegelogs for stable releases
-        if case .stable = channel {
-            item.addChild(XMLElement(
-                name: "sparkle:releaseNotesLink",
-                stringValue: "https://github.com/coder/coder-desktop-macos/releases/tag/v\(version)"
-            ))
-        }
         item.addChild(XMLElement(
             name: "sparkle:fullReleaseNotesLink",
             stringValue: "https://github.com/coder/coder-desktop-macos/releases"
