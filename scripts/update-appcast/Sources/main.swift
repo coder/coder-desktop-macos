@@ -98,7 +98,7 @@ struct UpdateAppcast: AsyncParsableCommand {
             item.addChild(XMLElement(name: "title", stringValue: "Preview"))
         }
 
-        if let description  {
+        if let description {
             let description = description.replacingOccurrences(of: #"\r\n"#, with: "\n")
             let descriptionDoc: Document
             do {

@@ -16,7 +16,7 @@ let package = Package(
         .executableTarget(
             name: "update-appcast", dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Parsley", package: "Parsley")
+                .product(name: "Parsley", package: "Parsley"),
             ]
         ),
     ]
