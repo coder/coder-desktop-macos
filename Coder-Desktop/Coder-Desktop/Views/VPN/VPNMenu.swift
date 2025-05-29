@@ -81,30 +81,6 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     }.buttonStyle(.plain)
                     TrayDivider()
                 }
-                // This shows when
-                // 1. The user is logged in
-                // 2. The network extension is installed
-                // 3. The VPN is unconfigured
-                // It's accompanied by a message in the VPNState view
-                // that the user needs to reconfigure.
-                if state.hasSession, vpn.state == .failed(.networkExtensionError(.unconfigured)) {
-                    Button {
-                        state.reconfigure()
-                    } label: {
-                        ButtonRowView {
-                            Text("Reconfigure VPN")
-                        }
-                    }.buttonStyle(.plain)
-                }
-                if vpn.state == .failed(.systemExtensionError(.needsUserApproval)) {
-                    Button {
-                        openSystemExtensionSettings()
-                    } label: {
-                        ButtonRowView { Text("Approve in System Settings") }
-                    }.buttonStyle(.plain)
-                } else {
-                    AuthButton<VPN>()
-                }
                 Button {
                     openSettings()
                     appActivate()

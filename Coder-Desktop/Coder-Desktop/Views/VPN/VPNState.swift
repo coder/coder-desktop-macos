@@ -10,17 +10,45 @@ struct VPNState<VPN: VPNService>: View {
         Group {
             switch (vpn.state, state.hasSession) {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
-                Text("Awaiting System Extension approval")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                VStack {
+                    Text("Awaiting System Extension approval")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Theme.Size.trayInset)
+                        .padding(.vertical, Theme.Size.trayPadding)
+                        .frame(maxWidth: .infinity)
+                    Button {
+                        openSystemExtensionSettings()
+                    } label: {
+                        Text("Approve in System Settings")
+                    }
+                }
             case (_, false):
                 Text("Sign in to use Coder Desktop")
                     .font(.body)
                     .foregroundColor(.secondary)
             case (.failed(.networkExtensionError(.unconfigured)), _):
-                Text("The system VPN requires reconfiguration.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                VStack {
+                    Text("The system VPN requires reconfiguration")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Theme.Size.trayInset)
+                        .padding(.vertical, Theme.Size.trayPadding)
+                        .frame(maxWidth: .infinity)
+                    Button {
+                        state.reconfigure()
+                    } label: {
+                        Text("Reconfigure VPN")
+                    }
+                }.onAppear {
+                    // Show the prompt onAppear, so the user doesn't have to
+                    // open the menu bar an extra time
+                    state.reconfigure()
+                }
             case (.disabled, _):
                 Text("Enable Coder Connect to see workspaces")
                     .font(.body)
