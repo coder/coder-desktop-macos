@@ -59,16 +59,6 @@ jobs:
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
 
-      - name: Download Appcast
-        # if: ${{ !inputs.dryrun }}
-        run: |
-         gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./appcast.xml
-
-      - name: Upload Appcast
-        # if: ${{ !inputs.dryrun }}
-        run: |
-          gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
-
       - name: Build
         env:
           APPLE_DEVELOPER_ID_PKCS12_B64: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_B64 }}
@@ -100,12 +90,12 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
 
       - name: Download Appcast
-        # if: ${{ !inputs.dryrun }}
+        if: ${{ !inputs.dryrun }}
         run: |
          gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
 
       - name: Update Appcast
-        # if: ${{ !inputs.dryrun }}
+        if: ${{ !inputs.dryrun }}
         run: |
           pushd scripts/update-appcast
           swift run update-appcast \
@@ -120,7 +110,7 @@ jobs:
 
 
       - name: Upload Appcast
-        # if: ${{ !inputs.dryrun }}
+        if: ${{ !inputs.dryrun }}
         run: |
           gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
 
