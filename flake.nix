@@ -60,6 +60,14 @@
                 xcpretty
                 zizmor
               ];
+              shellHook = ''
+                # Copied from https://github.com/ghostty-org/ghostty/blob/c4088f0c73af1c153c743fc006637cc76c1ee127/nix/devShell.nix#L189-L199
+                # We want to rely on the system Xcode tools in CI!
+                unset SDKROOT
+                unset DEVELOPER_DIR
+                # We need to remove the nix "xcrun" from the PATH.
+                export PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '$0 !~ /xcrun/ || $0 == "/usr/bin" {print}' | sed 's/:$//')
+              '';
             };
 
             default = pkgs.mkShellNoCC {
