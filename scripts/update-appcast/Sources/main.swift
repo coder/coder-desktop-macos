@@ -68,7 +68,7 @@ struct UpdateAppcast: AsyncParsableCommand {
         }
 
         let xmlData = try Data(contentsOf: URL(fileURLWithPath: input))
-        let doc = try XMLDocument(data: xmlData, options: .nodePrettyPrint)
+        let doc = try XMLDocument(data: xmlData, options: [.nodePrettyPrint, .nodePreserveAll])
 
         guard let channelElem = try doc.nodes(forXPath: "/rss/channel").first as? XMLElement else {
             throw RuntimeError("<channel> element not found in appcast.")
@@ -98,7 +98,7 @@ struct UpdateAppcast: AsyncParsableCommand {
             item.addChild(XMLElement(name: "title", stringValue: "Preview"))
         }
 
-        if let description {
+        if let description, !description.isEmpty {
             let description = description.replacingOccurrences(of: #"\r\n"#, with: "\n")
             let descriptionDoc: Document
             do {
@@ -143,7 +143,7 @@ struct UpdateAppcast: AsyncParsableCommand {
 
         channelElem.insertChild(item, at: insertionIndex)
 
-        let outputStr = doc.xmlString(options: [.nodePrettyPrint]) + "\n"
+        let outputStr = doc.xmlString(options: [.nodePrettyPrint, .nodePreserveAll]) + "\n"
         try outputStr.write(to: URL(fileURLWithPath: output), atomically: true, encoding: .utf8)
     }
 
