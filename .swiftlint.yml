@@ -2,3 +2,4 @@
 excluded:
   - "**/*.pb.swift"
   - "**/*.grpc.swift"
+  - "**/.build/"
