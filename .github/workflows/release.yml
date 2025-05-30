@@ -99,7 +99,7 @@ jobs:
             -i ../../oldappcast.xml \
             -s "$out"/Coder-Desktop.pkg.sig \
             -v "$(../version.sh)" \
-            -o ../../appcast.xml
+            -o ../../appcast.xml \
             -d "$VERSION_DESCRIPTION"
           popd
         env:
