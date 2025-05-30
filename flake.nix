@@ -49,7 +49,6 @@
                 gh
                 git
                 gnumake
-                google-cloud-sdk
                 protobuf_28
                 grpc-swift.packages.${system}.protoc-gen-grpc-swift
                 grpc-swift.packages.${system}.protoc-gen-swift
