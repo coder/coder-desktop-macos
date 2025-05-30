@@ -46,6 +46,14 @@ jobs:
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
 
+      - name: Authenticate to Google Cloud
+        id: gcloud_auth
+        uses: google-github-actions/auth@71f986410dfbc7added4569d411d040a91dc6935 # v2.1.8
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: "access_token"
+
       - name: Build
         env:
           APPLE_DEVELOPER_ID_PKCS12_B64: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_B64 }}
@@ -68,6 +76,11 @@ jobs:
           path: ${{ github.workspace }}/outputs/out
           retention-days: 7
 
+      - name: Get version string
+        id: version_string
+        run: |
+          echo "versionstring=$(./scripts/version.sh)" >> "$GITHUB_OUTPUT"
+
       # Upload to release in non-dry-run mode
       - name: Upload Release Assets
         if: ${{ !inputs.dryrun }}
@@ -75,6 +88,32 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+
+      - name: Download Appcast
+        # if: ${{ !inputs.dryrun }}
+        run: |
+         gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
+
+      - name: Update Appcast
+        # if: ${{ !inputs.dryrun }}
+        run: |
+          pushd scripts/update-appcast
+          swift run update-appcast \
+            -i ../../oldappcast.xml \
+            -s "$out"/Coder-Desktop.pkg.sig \
+            -v "$VERSION_STRING" \
+            -o ../../appcast.xml
+            -d "$VERSION_DESCRIPTION"
+          popd
+        env:
+          VERSION_STRING: ${{ steps.version_string.outputs.versionstring }}
+          VERSION_DESCRIPTION: ${{ github.event_name == 'release' && github.event.release.body || '' }}
+
+
+      - name: Upload Appcast
+        # if: ${{ !inputs.dryrun }}
+        run: |
+          gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
 
   update-cask:
     name: Update homebrew-coder cask
