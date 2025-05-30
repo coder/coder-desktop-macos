@@ -56,6 +56,9 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           token_format: "access_token"
 
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
+
       - name: Download Appcast
         # if: ${{ !inputs.dryrun }}
         run: |
@@ -64,8 +67,6 @@ jobs:
       - name: Upload Appcast
         # if: ${{ !inputs.dryrun }}
         run: |
-          gcloud auth login
-          gcloud auth application-default login
           gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
 
       - name: Build
