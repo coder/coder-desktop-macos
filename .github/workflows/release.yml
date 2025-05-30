@@ -76,11 +76,6 @@ jobs:
           path: ${{ github.workspace }}/outputs/out
           retention-days: 7
 
-      - name: Get version string
-        id: version_string
-        run: |
-          echo "versionstring=$(./scripts/version.sh)" >> "$GITHUB_OUTPUT"
-
       # Upload to release in non-dry-run mode
       - name: Upload Release Assets
         if: ${{ !inputs.dryrun }}
@@ -101,12 +96,11 @@ jobs:
           swift run update-appcast \
             -i ../../oldappcast.xml \
             -s "$out"/Coder-Desktop.pkg.sig \
-            -v "$VERSION_STRING" \
+            -v "$(../version.sh)" \
             -o ../../appcast.xml
             -d "$VERSION_DESCRIPTION"
           popd
         env:
-          VERSION_STRING: ${{ steps.version_string.outputs.versionstring }}
           VERSION_DESCRIPTION: ${{ github.event_name == 'release' && github.event.release.body || '' }}
 
 
