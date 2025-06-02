@@ -11,8 +11,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: ${MARKETING_VERSION} # Sets the version number.
-    CURRENT_PROJECT_VERSION: ${CURRENT_PROJECT_VERSION} # Sets the build number.
+    MARKETING_VERSION: ${MARKETING_VERSION} # Sets CFBundleShortVersionString
+    CURRENT_PROJECT_VERSION: ${CURRENT_PROJECT_VERSION} # CFBundleVersion
     GIT_COMMIT_HASH: ${GIT_COMMIT_HASH}
 
     ALWAYS_SEARCH_USER_PATHS: NO

@@ -174,7 +174,7 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         actionForReplacingExtension existing: OSSystemExtensionProperties,
         withExtension extension: OSSystemExtensionProperties
     ) -> OSSystemExtensionRequest.ReplacementAction {
-        logger.info("Replacing \(request.identifier) v\(existing.bundleVersion) with v\(`extension`.bundleVersion)")
+        logger.info("Replacing \(request.identifier) \(existing.bundleVersion) with \(`extension`.bundleVersion)")
         // This is counterintuitive, but this function is only called if the
         // versions are the same in a dev environment.
         // In a release build, this only gets called when the version string is

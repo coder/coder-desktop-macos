@@ -3,6 +3,7 @@ import NetworkExtension
 import os
 import SDWebImageSVGCoder
 import SDWebImageSwiftUI
+import Sparkle
 import SwiftUI
 import UserNotifications
 import VPNLib
@@ -26,6 +27,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.vpn)
                 .environmentObject(appDelegate.state)
                 .environmentObject(appDelegate.helper)
+                .environmentObject(appDelegate.autoUpdater)
         }
         .windowResizability(.contentSize)
         Window("Coder File Sync", id: Windows.fileSync.rawValue) {
@@ -47,11 +49,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let urlHandler: URLHandler
     let notifDelegate: NotifDelegate
     let helper: HelperService
+    let autoUpdater: UpdaterService
 
     override init() {
         notifDelegate = NotifDelegate()
         vpn = CoderVPNService()
         helper = HelperService()
+        autoUpdater = UpdaterService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         vpn.onStart = {
             // We don't need this to have finished before the VPN actually starts

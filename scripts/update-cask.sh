@@ -101,6 +101,7 @@ cask "coder-desktop${SUFFIX}" do
   name "Coder Desktop"
   desc "Native desktop client for Coder"
   homepage "https://github.com/coder/coder-desktop-macos"
+  auto_updates true
 
   conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
   depends_on macos: ">= :sonoma"
