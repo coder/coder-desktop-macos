@@ -4,12 +4,12 @@ set -euo pipefail
 usage() {
   echo "Usage: $0 [--version <version>] [--assignee <github handle>]"
   echo "  --version  <version>        Set the VERSION variable to fetch and generate the cask file for"
-  echo "  --assignee <github handle>  Set the ASSIGNE variable to assign the PR to (optional)"
+  echo "  --assignee <github handle>  Set the ASSIGNEE variable to assign the PR to (optional)"
   echo "  -h, --help                  Display this help message"
 }
 
 VERSION=""
-ASSIGNE=""
+ASSIGNEE=""
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -19,7 +19,7 @@ while [[ "$#" -gt 0 ]]; do
     shift 2
     ;;
   --assignee)
-    ASSIGNE="$2"
+    ASSIGNEE="$2"
     shift 2
     ;;
   -h | --help)
@@ -55,11 +55,11 @@ gh release download "$VERSION" \
 HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/Coder-Desktop.pkg | awk '{print $1}' | tr -d '\n')
 
 # Check out the homebrew tap repo
-TAP_CHECHOUT_FOLDER=$(mktemp -d)
+TAP_CHECKOUT_FOLDER=$(mktemp -d)
 
-gh repo clone "coder/homebrew-coder" "$TAP_CHECHOUT_FOLDER"
+gh repo clone "coder/homebrew-coder" "$TAP_CHECKOUT_FOLDER"
 
-cd "$TAP_CHECHOUT_FOLDER"
+cd "$TAP_CHECKOUT_FOLDER"
 
 BREW_BRANCH="auto-release/desktop-$VERSION"
 
@@ -73,10 +73,10 @@ fi
 
 git checkout -b "$BREW_BRANCH"
 
-mkdir -p "$TAP_CHECHOUT_FOLDER"/Casks
+mkdir -p "$TAP_CHECKOUT_FOLDER"/Casks
 
 # Overwrite the cask file
-cat >"$TAP_CHECHOUT_FOLDER"/Casks/coder-desktop.rb <<EOF
+cat >"$TAP_CHECKOUT_FOLDER"/Casks/coder-desktop.rb <<EOF
 cask "coder-desktop" do
   version "${VERSION#v}"
   sha256 "${HASH}"
@@ -116,5 +116,5 @@ if [[ "$pr_count" -eq 0 ]]; then
     --base master --head "$BREW_BRANCH" \
     --title "Coder Desktop $VERSION" \
     --body "This automatic PR was triggered by the release of Coder Desktop $VERSION" \
-    ${ASSIGNE:+ --assignee "$ASSIGNE" --reviewer "$ASSIGNE"}
+    ${ASSIGNEE:+ --assignee "$ASSIGNEE" --reviewer "$ASSIGNEE"}
 fi
