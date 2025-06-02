@@ -30,6 +30,8 @@ jobs:
     permissions:
       # To upload assets to the release
       contents: write
+      # for GCP auth
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -45,6 +47,17 @@ jobs:
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
+
+      - name: Authenticate to Google Cloud
+        id: gcloud_auth
+        uses: google-github-actions/auth@71f986410dfbc7added4569d411d040a91dc6935 # v2.1.8
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: "access_token"
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
 
       - name: Build
         env:
@@ -75,6 +88,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+
+      - name: Update Appcast
+        if: ${{ !inputs.dryrun }}
+        run: |
+          gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
+          pushd scripts/update-appcast
+          swift run update-appcast \
+            -i ../../oldappcast.xml \
+            -s "$out"/Coder-Desktop.pkg.sig \
+            -v "$(../version.sh)" \
+            -o ../../appcast.xml \
+            -d "$VERSION_DESCRIPTION"
+          popd
+          gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
+        env:
+          VERSION_DESCRIPTION: ${{ github.event_name == 'release' && github.event.release.body || '' }}
 
   update-cask:
     name: Update homebrew-coder cask

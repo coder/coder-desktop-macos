@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "update-appcast",
     platforms: [
-        .macOS(.v15),
+        .macOS(.v14),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
