@@ -10,9 +10,9 @@ final class UpdaterService: NSObject, ObservableObject {
     private var updater: SPUUpdater!
     @Published var canCheckForUpdates = true
 
-    @Published var autoCheckForUpdates: Bool = false {
+    @Published var autoCheckForUpdates: Bool! {
         didSet {
-            if autoCheckForUpdates != oldValue {
+            if let autoCheckForUpdates, autoCheckForUpdates != oldValue {
                 updater.automaticallyChecksForUpdates = autoCheckForUpdates
             }
         }
@@ -31,6 +31,7 @@ final class UpdaterService: NSObject, ObservableObject {
             .flatMap { UpdateChannel(rawValue: $0) } ?? .stable
         super.init()
         updater = inner.updater
+        autoCheckForUpdates = updater.automaticallyChecksForUpdates
         updater.publisher(for: \.canCheckForUpdates).assign(to: &$canCheckForUpdates)
     }
 
