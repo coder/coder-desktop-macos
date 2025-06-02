@@ -89,14 +89,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
 
-      - name: Download Appcast
-        if: ${{ !inputs.dryrun }}
-        run: |
-         gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
-
       - name: Update Appcast
         if: ${{ !inputs.dryrun }}
         run: |
+          gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
           pushd scripts/update-appcast
           swift run update-appcast \
             -i ../../oldappcast.xml \
@@ -105,14 +101,9 @@ jobs:
             -o ../../appcast.xml \
             -d "$VERSION_DESCRIPTION"
           popd
+          gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
         env:
           VERSION_DESCRIPTION: ${{ github.event_name == 'release' && github.event.release.body || '' }}
-
-
-      - name: Upload Appcast
-        if: ${{ !inputs.dryrun }}
-        run: |
-          gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
 
   update-cask:
     name: Update homebrew-coder cask
