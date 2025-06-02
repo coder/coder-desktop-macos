@@ -5,7 +5,7 @@ final class UpdaterService: NSObject, ObservableObject {
     private lazy var inner: SPUStandardUpdaterController = .init(
         startingUpdater: true,
         updaterDelegate: self,
-        userDriverDelegate: self,
+        userDriverDelegate: self
     )
     private var updater: SPUUpdater!
     @Published var canCheckForUpdates = true
