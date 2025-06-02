@@ -85,8 +85,8 @@ cask "coder-desktop" do
   name "Coder Desktop"
   desc "Native desktop client for Coder"
   homepage "https://github.com/coder/coder-desktop-macos"
-  auto_updates true
 
+  auto_updates true
   depends_on macos: ">= :sonoma"
 
   pkg "Coder-Desktop.pkg"
