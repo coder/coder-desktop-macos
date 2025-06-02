@@ -4,12 +4,12 @@ set -euo pipefail
 usage() {
   echo "Usage: $0 [--version <version>] [--assignee <github handle>]"
   echo "  --version  <version>        Set the VERSION variable to fetch and generate the cask file for"
-  echo "  --assignee <github handle>  Set the ASSIGNE variable to assign the PR to (optional)"
+  echo "  --assignee <github handle>  Set the ASSIGNEE variable to assign the PR to (optional)"
   echo "  -h, --help                  Display this help message"
 }
 
 VERSION=""
-ASSIGNE=""
+ASSIGNEE=""
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -19,7 +19,7 @@ while [[ "$#" -gt 0 ]]; do
     shift 2
     ;;
   --assignee)
-    ASSIGNE="$2"
+    ASSIGNEE="$2"
     shift 2
     ;;
   -h | --help)
@@ -39,7 +39,7 @@ done
   echo "Error: VERSION cannot be empty"
   exit 1
 }
-[[ "$VERSION" =~ ^v || "$VERSION" == "preview" ]] || {
+[[ "$VERSION" =~ ^v ]] || {
   echo "Error: VERSION must start with a 'v'"
   exit 1
 }
@@ -54,55 +54,39 @@ gh release download "$VERSION" \
 
 HASH=$(shasum -a 256 "$GH_RELEASE_FOLDER"/Coder-Desktop.pkg | awk '{print $1}' | tr -d '\n')
 
-IS_PREVIEW=false
-if [[ "$VERSION" == "preview" ]]; then
-  IS_PREVIEW=true
-  VERSION=$(make 'print-CURRENT_PROJECT_VERSION' | sed 's/CURRENT_PROJECT_VERSION=//g')
-fi
-
 # Check out the homebrew tap repo
-TAP_CHECHOUT_FOLDER=$(mktemp -d)
+TAP_CHECKOUT_FOLDER=$(mktemp -d)
 
-gh repo clone "coder/homebrew-coder" "$TAP_CHECHOUT_FOLDER"
+gh repo clone "coder/homebrew-coder" "$TAP_CHECKOUT_FOLDER"
 
-cd "$TAP_CHECHOUT_FOLDER"
+cd "$TAP_CHECKOUT_FOLDER"
 
 BREW_BRANCH="auto-release/desktop-$VERSION"
 
 # Check if a PR already exists.
 # Continue on a main branch release, as the sha256 will change.
 pr_count="$(gh pr list --search "head:$BREW_BRANCH" --json id,closed | jq -r ".[] | select(.closed == false) | .id" | wc -l)"
-if [[ "$pr_count" -gt 0 && "$IS_PREVIEW" == false ]]; then
+if [[ "$pr_count" -gt 0 ]]; then
   echo "Bailing out as PR already exists" 2>&1
   exit 0
 fi
 
 git checkout -b "$BREW_BRANCH"
 
-# If this is a main branch build, append a preview suffix to the cask.
-SUFFIX=""
-CONFLICTS_WITH="coder-desktop-preview"
-TAG=$VERSION
-if [[ "$IS_PREVIEW" == true ]]; then
-  SUFFIX="-preview"
-  CONFLICTS_WITH="coder-desktop"
-  TAG="preview"
-fi
-
-mkdir -p "$TAP_CHECHOUT_FOLDER"/Casks
+mkdir -p "$TAP_CHECKOUT_FOLDER"/Casks
 
 # Overwrite the cask file
-cat >"$TAP_CHECHOUT_FOLDER"/Casks/coder-desktop${SUFFIX}.rb <<EOF
-cask "coder-desktop${SUFFIX}" do
+cat >"$TAP_CHECKOUT_FOLDER"/Casks/coder-desktop.rb <<EOF
+cask "coder-desktop" do
   version "${VERSION#v}"
-  sha256 $([ "$IS_PREVIEW" = true ] && echo ":no_check" || echo "\"${HASH}\"")
+  sha256 "${HASH}"
 
-  url "https://github.com/coder/coder-desktop-macos/releases/download/$([ "$IS_PREVIEW" = true ] && echo "${TAG}" || echo "v#{version}")/Coder-Desktop.pkg"
+  url "https://github.com/coder/coder-desktop-macos/releases/download/v#{version}/Coder-Desktop.pkg"
   name "Coder Desktop"
   desc "Native desktop client for Coder"
   homepage "https://github.com/coder/coder-desktop-macos"
+  auto_updates true
 
-  conflicts_with cask: "coder/coder/${CONFLICTS_WITH}"
   depends_on macos: ">= :sonoma"
 
   pkg "Coder-Desktop.pkg"
@@ -132,5 +116,5 @@ if [[ "$pr_count" -eq 0 ]]; then
     --base master --head "$BREW_BRANCH" \
     --title "Coder Desktop $VERSION" \
     --body "This automatic PR was triggered by the release of Coder Desktop $VERSION" \
-    ${ASSIGNE:+ --assignee "$ASSIGNE" --reviewer "$ASSIGNE"}
+    ${ASSIGNEE:+ --assignee "$ASSIGNEE" --reviewer "$ASSIGNEE"}
 fi

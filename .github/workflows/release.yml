@@ -108,7 +108,7 @@ jobs:
   update-cask:
     name: Update homebrew-coder cask
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-latest' || 'macos-latest'}}
-    if: ${{ github.repository_owner == 'coder' && !inputs.dryrun }}
+    if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
     needs: build
     steps:
       - name: Checkout
@@ -124,7 +124,7 @@ jobs:
       - name: Update homebrew-coder
         env:
           GH_TOKEN: ${{ secrets.CODERCI_GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
           ASSIGNEE: ${{ github.actor }}
         run: |
           git config --global user.email "ci@coder.com"

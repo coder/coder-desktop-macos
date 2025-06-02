@@ -3,6 +3,7 @@ import SwiftUI
 
 struct GeneralTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var updater: UpdaterService
     var body: some View {
         Form {
             Section {
@@ -18,10 +19,20 @@ struct GeneralTab: View {
                     Text("Start Coder Connect on launch")
                 }
             }
+            Section {
+                Toggle(isOn: $updater.autoCheckForUpdates) {
+                    Text("Automatically check for updates")
+                }
+                Picker("Update channel", selection: $updater.updateChannel) {
+                    ForEach(UpdateChannel.allCases) { channel in
+                        Text(channel.name).tag(channel)
+                    }
+                }
+                HStack {
+                    Spacer()
+                    Button("Check for updates") { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
+                }
+            }
         }.formStyle(.grouped)
     }
-}
-
-#Preview {
-    GeneralTab()
 }
