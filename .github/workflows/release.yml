@@ -103,7 +103,7 @@ jobs:
           popd
           gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
         env:
-          VERSION_DESCRIPTION: ${{ github.event_name == 'release' && github.event.release.body || '' }}
+          VERSION_DESCRIPTION: ${{ (github.event_name == 'release' && github.event.release.body) || (github.event_name == 'push' && github.event.head_commit.message) || '' }}
 
   update-cask:
     name: Update homebrew-coder cask
