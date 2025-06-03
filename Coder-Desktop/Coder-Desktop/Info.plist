@@ -37,5 +37,7 @@
 	<string>$(GIT_COMMIT_HASH)</string>
 	<key>SUFeedURL</key>
 	<string>https://releases.coder.com/coder-desktop/mac/appcast.xml</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 </dict>
 </plist>
