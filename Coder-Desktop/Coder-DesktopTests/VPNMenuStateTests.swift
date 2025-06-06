@@ -99,7 +99,7 @@ struct VPNMenuStateTests {
         state.upsertAgent(agent)
 
         let storedAgent = try #require(state.agents[agentID])
-        #expect(storedAgent.status == .warn)
+        #expect(storedAgent.status == .high_latency)
     }
 
     @Test
@@ -139,7 +139,7 @@ struct VPNMenuStateTests {
         state.upsertAgent(agent)
 
         let storedAgent = try #require(state.agents[agentID])
-        #expect(storedAgent.status == .error)
+        #expect(storedAgent.status == .no_recent_handshake)
     }
 
     @Test

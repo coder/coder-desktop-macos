@@ -43,27 +43,32 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
     }
 
     var statusString: String {
-        if status == .error {
+        switch status {
+        case .okay, .high_latency:
+            break
+        default:
             return status.description
         }
 
         guard let lastPing else {
-            // either:
-            // - old coder deployment
-            // - we haven't received any pings yet
+            // Either:
+            // - Old coder deployment
+            // - We haven't received any pings yet
             return status.description
         }
+
+        let highLatencyWarning = status == .high_latency ? "(High latency)" : ""
 
         var str: String
         if lastPing.didP2p {
             str = """
-            You're connected peer-to-peer.
+            You're connected peer-to-peer. \(highLatencyWarning)
 
             You ↔ \(lastPing.latency.prettyPrintMs) ↔ \(wsName)
             """
         } else {
             str = """
-            You're connected through a DERP relay.
+            You're connected through a DERP relay. \(highLatencyWarning)
             We'll switch over to peer-to-peer when available.
 
             Total latency: \(lastPing.latency.prettyPrintMs)
@@ -104,16 +109,16 @@ struct LastPing: Equatable, Hashable {
 enum AgentStatus: Int, Equatable, Comparable {
     case okay = 0
     case connecting = 1
-    case warn = 2
-    case error = 3
+    case high_latency = 2
+    case no_recent_handshake = 3
     case off = 4
 
     public var description: String {
         switch self {
         case .okay: "Connected"
         case .connecting: "Connecting..."
-        case .warn: "Connected, but with high latency" // Currently unused
-        case .error: "Could not establish a connection to the agent. Retrying..."
+        case .high_latency: "Connected, but with high latency" // Message currently unused
+        case .no_recent_handshake: "Could not establish a connection to the agent. Retrying..."
         case .off: "Offline"
         }
     }
@@ -121,8 +126,8 @@ enum AgentStatus: Int, Equatable, Comparable {
     public var color: Color {
         switch self {
         case .okay: .green
-        case .warn: .yellow
-        case .error: .red
+        case .high_latency: .yellow
+        case .no_recent_handshake: .red
         case .off: .secondary
         case .connecting: .yellow
         }
@@ -287,26 +292,21 @@ extension Vpn_Agent {
     var healthyPingMax: TimeInterval { 0.15 } // 150ms
 
     var status: AgentStatus {
+        // Initially the handshake is missing
         guard let lastHandshake = lastHandshake.maybeDate else {
-            // Initially the handshake is missing
             return .connecting
         }
-
-        return if lastHandshake < healthyLastHandshakeMin {
-            // If last handshake was not within the last five minutes, the agent
-            // is potentially unhealthy.
-            .error
-        } else if hasLastPing, lastPing.latency.timeInterval < healthyPingMax {
-            // If latency is less than 150ms
-            .okay
-        } else if hasLastPing, lastPing.latency.timeInterval >= healthyPingMax {
-            // if latency is greater than 150ms
-            .warn
-        } else {
-            // No ping data, but we have a recent handshake.
-            // We show green for backwards compatibility with old Coder
-            // deployments.
-            .okay
+        // If last handshake was not within the last five minutes, the agent
+        // is potentially unhealthy.
+        guard lastHandshake >= healthyLastHandshakeMin else {
+            return .no_recent_handshake
         }
+        // No ping data, but we have a recent handshake.
+        // We show green for backwards compatibility with old Coder
+        // deployments.
+        guard hasLastPing else {
+            return .okay
+        }
+        return lastPing.latency.timeInterval < healthyPingMax ? .okay : .high_latency
     }
 }
