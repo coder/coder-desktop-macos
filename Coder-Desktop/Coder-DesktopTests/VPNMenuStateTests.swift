@@ -18,6 +18,9 @@ struct VPNMenuStateTests {
             $0.workspaceID = workspaceID.uuidData
             $0.name = "dev"
             $0.lastHandshake = .init(date: Date.now)
+            $0.lastPing = .with {
+                $0.latency = .init(floatLiteral: 0.05)
+            }
             $0.fqdn = ["foo.coder"]
         }
 
@@ -73,6 +76,29 @@ struct VPNMenuStateTests {
     }
 
     @Test
+    mutating func testUpsertAgent_poorConnection() async throws {
+        let agentID = UUID()
+        let workspaceID = UUID()
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
+
+        let agent = Vpn_Agent.with {
+            $0.id = agentID.uuidData
+            $0.workspaceID = workspaceID.uuidData
+            $0.name = "agent1"
+            $0.lastHandshake = .init(date: Date.now)
+            $0.lastPing = .with {
+                $0.latency = .init(seconds: 1)
+            }
+            $0.fqdn = ["foo.coder"]
+        }
+
+        state.upsertAgent(agent)
+
+        let storedAgent = try #require(state.agents[agentID])
+        #expect(storedAgent.status == .warn)
+    }
+
+    @Test
     mutating func testUpsertAgent_unhealthyAgent() async throws {
         let agentID = UUID()
         let workspaceID = UUID()
@@ -89,7 +115,7 @@ struct VPNMenuStateTests {
         state.upsertAgent(agent)
 
         let storedAgent = try #require(state.agents[agentID])
-        #expect(storedAgent.status == .warn)
+        #expect(storedAgent.status == .error)
     }
 
     @Test
@@ -114,6 +140,9 @@ struct VPNMenuStateTests {
             $0.workspaceID = workspaceID.uuidData
             $0.name = "agent1" // Same name as old agent
             $0.lastHandshake = .init(date: Date.now)
+            $0.lastPing = .with {
+                $0.latency = .init(floatLiteral: 0.05)
+            }
             $0.fqdn = ["foo.coder"]
         }
 
@@ -146,6 +175,9 @@ struct VPNMenuStateTests {
             $0.workspaceID = workspaceID.uuidData
             $0.name = "agent1"
             $0.lastHandshake = .init(date: Date.now.addingTimeInterval(-200))
+            $0.lastPing = .with {
+                $0.latency = .init(floatLiteral: 0.05)
+            }
             $0.fqdn = ["foo.coder"]
         }
         state.upsertAgent(agent)

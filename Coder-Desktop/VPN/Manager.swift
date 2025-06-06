@@ -40,7 +40,6 @@ actor Manager {
                 dest: dest,
                 urlSession: URLSession(configuration: sessionConfig)
             ) { progress in
-                // TODO: Debounce, somehow
                 pushProgress(stage: .downloading, downloadProgress: progress)
             }
         } catch {
@@ -322,7 +321,7 @@ func writeVpnLog(_ log: Vpn_Log) {
         category: log.loggerNames.joined(separator: ".")
     )
     let fields = log.fields.map { "\($0.name): \($0.value)" }.joined(separator: ", ")
-    logger.log(level: level, "\(log.message, privacy: .public): \(fields, privacy: .public)")
+    logger.log(level: level, "\(log.message, privacy: .public)\(fields.isEmpty ? "" : ": \(fields)", privacy: .public)")
 }
 
 private func removeQuarantine(_ dest: URL) async throws(ManagerError) {

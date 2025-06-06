@@ -520,11 +520,63 @@ public struct Vpn_Agent: @unchecked Sendable {
   /// Clears the value of `lastHandshake`. Subsequent reads from it will return its default value.
   public mutating func clearLastHandshake() {self._lastHandshake = nil}
 
+  /// If unset, a successful ping has not yet been made.
+  public var lastPing: Vpn_LastPing {
+    get {return _lastPing ?? Vpn_LastPing()}
+    set {_lastPing = newValue}
+  }
+  /// Returns true if `lastPing` has been explicitly set.
+  public var hasLastPing: Bool {return self._lastPing != nil}
+  /// Clears the value of `lastPing`. Subsequent reads from it will return its default value.
+  public mutating func clearLastPing() {self._lastPing = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _lastHandshake: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _lastPing: Vpn_LastPing? = nil
+}
+
+public struct Vpn_LastPing: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// latency is the RTT of the ping to the agent.
+  public var latency: SwiftProtobuf.Google_Protobuf_Duration {
+    get {return _latency ?? SwiftProtobuf.Google_Protobuf_Duration()}
+    set {_latency = newValue}
+  }
+  /// Returns true if `latency` has been explicitly set.
+  public var hasLatency: Bool {return self._latency != nil}
+  /// Clears the value of `latency`. Subsequent reads from it will return its default value.
+  public mutating func clearLatency() {self._latency = nil}
+
+  /// did_p2p indicates whether the ping was sent P2P, or over DERP.
+  public var didP2P: Bool = false
+
+  /// preferred_derp is the human readable name of the preferred DERP region,
+  /// or the region used for the last ping, if it was sent over DERP.
+  public var preferredDerp: String = String()
+
+  /// preferred_derp_latency is the last known latency to the preferred DERP
+  /// region. Unset if the region does not appear in the DERP map.
+  public var preferredDerpLatency: SwiftProtobuf.Google_Protobuf_Duration {
+    get {return _preferredDerpLatency ?? SwiftProtobuf.Google_Protobuf_Duration()}
+    set {_preferredDerpLatency = newValue}
+  }
+  /// Returns true if `preferredDerpLatency` has been explicitly set.
+  public var hasPreferredDerpLatency: Bool {return self._preferredDerpLatency != nil}
+  /// Clears the value of `preferredDerpLatency`. Subsequent reads from it will return its default value.
+  public mutating func clearPreferredDerpLatency() {self._preferredDerpLatency = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _latency: SwiftProtobuf.Google_Protobuf_Duration? = nil
+  fileprivate var _preferredDerpLatency: SwiftProtobuf.Google_Protobuf_Duration? = nil
 }
 
 /// NetworkSettingsRequest is based on
@@ -1579,6 +1631,7 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
     4: .same(proto: "fqdn"),
     5: .standard(proto: "ip_addrs"),
     6: .standard(proto: "last_handshake"),
+    7: .standard(proto: "last_ping"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1593,6 +1646,7 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
       case 4: try { try decoder.decodeRepeatedStringField(value: &self.fqdn) }()
       case 5: try { try decoder.decodeRepeatedStringField(value: &self.ipAddrs) }()
       case 6: try { try decoder.decodeSingularMessageField(value: &self._lastHandshake) }()
+      case 7: try { try decoder.decodeSingularMessageField(value: &self._lastPing) }()
       default: break
       }
     }
@@ -1621,6 +1675,9 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
     try { if let v = self._lastHandshake {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
     } }()
+    try { if let v = self._lastPing {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -1631,6 +1688,61 @@ extension Vpn_Agent: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementation
     if lhs.fqdn != rhs.fqdn {return false}
     if lhs.ipAddrs != rhs.ipAddrs {return false}
     if lhs._lastHandshake != rhs._lastHandshake {return false}
+    if lhs._lastPing != rhs._lastPing {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Vpn_LastPing: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".LastPing"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "latency"),
+    2: .standard(proto: "did_p2p"),
+    3: .standard(proto: "preferred_derp"),
+    4: .standard(proto: "preferred_derp_latency"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._latency) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.didP2P) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.preferredDerp) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &self._preferredDerpLatency) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._latency {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    if self.didP2P != false {
+      try visitor.visitSingularBoolField(value: self.didP2P, fieldNumber: 2)
+    }
+    if !self.preferredDerp.isEmpty {
+      try visitor.visitSingularStringField(value: self.preferredDerp, fieldNumber: 3)
+    }
+    try { if let v = self._preferredDerpLatency {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Vpn_LastPing, rhs: Vpn_LastPing) -> Bool {
+    if lhs._latency != rhs._latency {return false}
+    if lhs.didP2P != rhs.didP2P {return false}
+    if lhs.preferredDerp != rhs.preferredDerp {return false}
+    if lhs._preferredDerpLatency != rhs._preferredDerpLatency {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

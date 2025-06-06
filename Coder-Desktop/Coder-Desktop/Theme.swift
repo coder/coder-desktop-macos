@@ -15,6 +15,7 @@ enum Theme {
 
     enum Animation {
         static let collapsibleDuration = 0.2
+        static let tooltipDelay: Int = 250 // milliseconds
     }
 
     static let defaultVisibleAgents = 5
