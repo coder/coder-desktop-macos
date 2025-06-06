@@ -84,6 +84,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        // We have important file sync and network info behind tooltips,
+        // so the default delay is too long.
+        UserDefaults.standard.setValue(Theme.Animation.tooltipDelay, forKey: "NSInitialToolTipDelay")
         // Init SVG loader
         SDImageCodersManager.shared.addCoder(SDImageSVGCoder.shared)
 

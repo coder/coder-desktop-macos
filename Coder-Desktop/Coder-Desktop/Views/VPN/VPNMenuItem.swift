@@ -21,6 +21,13 @@ enum VPNMenuItem: Equatable, Comparable, Identifiable {
         }
     }
 
+    var statusString: String {
+        switch self {
+        case let .agent(agent): agent.statusString
+        case .offlineWorkspace: status.description
+        }
+    }
+
     var id: UUID {
         switch self {
         case let .agent(agent): agent.id
@@ -224,6 +231,7 @@ struct MenuItemIcons: View {
         StatusDot(color: item.status.color)
             .padding(.trailing, 3)
             .padding(.top, 1)
+            .help(item.statusString)
         MenuItemIconButton(systemName: "doc.on.doc", action: copyToClipboard)
             .font(.system(size: 9))
             .symbolVariant(.fill)

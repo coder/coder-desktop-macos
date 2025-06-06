@@ -28,6 +28,7 @@ struct AgentsTests {
                 hosts: ["a\($0).coder"],
                 wsName: "ws\($0)",
                 wsID: UUID(),
+                lastPing: nil,
                 primaryHost: "a\($0).coder"
             )
             return (agent.id, agent)
