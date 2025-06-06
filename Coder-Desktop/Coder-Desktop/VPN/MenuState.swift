@@ -282,7 +282,7 @@ extension SwiftProtobuf.Google_Protobuf_Timestamp {
 
 extension Vpn_Agent {
     var healthyLastHandshakeMin: Date {
-        Date.now.addingTimeInterval(-500) // 5 minutes ago
+        Date.now.addingTimeInterval(-300) // 5 minutes ago
     }
 
     var healthyPingMax: TimeInterval { 0.15 } // 150ms
