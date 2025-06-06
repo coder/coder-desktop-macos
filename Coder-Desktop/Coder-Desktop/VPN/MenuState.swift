@@ -89,9 +89,8 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
 
 extension TimeInterval {
     var prettyPrintMs: String {
-        Measurement(value: self * 1000, unit: UnitDuration.milliseconds)
-            .formatted(.measurement(width: .abbreviated,
-                                    numberFormatStyle: .number.precision(.fractionLength(2))))
+        let milliseconds = self * 1000
+        return "\(milliseconds.formatted(.number.precision(.fractionLength(2)))) ms"
     }
 }
 

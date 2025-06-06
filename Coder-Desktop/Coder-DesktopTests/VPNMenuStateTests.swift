@@ -20,6 +20,7 @@ struct VPNMenuStateTests {
             $0.lastHandshake = .init(date: Date.now)
             $0.lastPing = .with {
                 $0.latency = .init(floatLiteral: 0.05)
+                $0.didP2P = true
             }
             $0.fqdn = ["foo.coder"]
         }
@@ -32,6 +33,9 @@ struct VPNMenuStateTests {
         #expect(storedAgent.wsName == "foo")
         #expect(storedAgent.primaryHost == "foo.coder")
         #expect(storedAgent.status == .okay)
+        #expect(storedAgent.statusString.contains("You're connected peer-to-peer."))
+        #expect(storedAgent.statusString.contains("You ↔ 50.00 ms ↔ foo"))
+        #expect(storedAgent.statusString.contains("Last handshake: Just now"))
     }
 
     @Test
@@ -96,6 +100,26 @@ struct VPNMenuStateTests {
 
         let storedAgent = try #require(state.agents[agentID])
         #expect(storedAgent.status == .warn)
+    }
+
+    @Test
+    mutating func testUpsertAgent_connecting() async throws {
+        let agentID = UUID()
+        let workspaceID = UUID()
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
+
+        let agent = Vpn_Agent.with {
+            $0.id = agentID.uuidData
+            $0.workspaceID = workspaceID.uuidData
+            $0.name = "agent1"
+            $0.lastHandshake = .init()
+            $0.fqdn = ["foo.coder"]
+        }
+
+        state.upsertAgent(agent)
+
+        let storedAgent = try #require(state.agents[agentID])
+        #expect(storedAgent.status == .connecting)
     }
 
     @Test
@@ -176,6 +200,7 @@ struct VPNMenuStateTests {
             $0.name = "agent1"
             $0.lastHandshake = .init(date: Date.now.addingTimeInterval(-200))
             $0.lastPing = .with {
+                $0.didP2P = false
                 $0.latency = .init(floatLiteral: 0.05)
             }
             $0.fqdn = ["foo.coder"]
@@ -187,6 +212,10 @@ struct VPNMenuStateTests {
         #expect(output[0].id == agentID)
         #expect(output[0].wsName == "foo")
         #expect(output[0].status == .okay)
+        let storedAgentFromSort = try #require(state.agents[agentID])
+        #expect(storedAgentFromSort.statusString.contains("You're connected through a DERP relay."))
+        #expect(storedAgentFromSort.statusString.contains("Total latency: 50.00 ms"))
+        #expect(storedAgentFromSort.statusString.contains("Last handshake: 3 minutes ago"))
     }
 
     @Test
