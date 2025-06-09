@@ -1,4 +1,5 @@
 import Foundation
+import SwiftProtobuf
 import SwiftUI
 import VPNLib
 
@@ -9,6 +10,29 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let hosts: [String]
     let wsName: String
     let wsID: UUID
+    let lastPing: LastPing?
+    let lastHandshake: Date?
+
+    init(id: UUID,
+         name: String,
+         status: AgentStatus,
+         hosts: [String],
+         wsName: String,
+         wsID: UUID,
+         lastPing: LastPing? = nil,
+         lastHandshake: Date? = nil,
+         primaryHost: String)
+    {
+        self.id = id
+        self.name = name
+        self.status = status
+        self.hosts = hosts
+        self.wsName = wsName
+        self.wsID = wsID
+        self.lastPing = lastPing
+        self.lastHandshake = lastHandshake
+        self.primaryHost = primaryHost
+    }
 
     // Agents are sorted by status, and then by name
     static func < (lhs: Agent, rhs: Agent) -> Bool {
@@ -18,21 +42,94 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
         return lhs.wsName.localizedCompare(rhs.wsName) == .orderedAscending
     }
 
+    var statusString: String {
+        switch status {
+        case .okay, .high_latency:
+            break
+        default:
+            return status.description
+        }
+
+        guard let lastPing else {
+            // Either:
+            // - Old coder deployment
+            // - We haven't received any pings yet
+            return status.description
+        }
+
+        let highLatencyWarning = status == .high_latency ? "(High latency)" : ""
+
+        var str: String
+        if lastPing.didP2p {
+            str = """
+            You're connected peer-to-peer. \(highLatencyWarning)
+
+            You ↔ \(lastPing.latency.prettyPrintMs) ↔ \(wsName)
+            """
+        } else {
+            str = """
+            You're connected through a DERP relay. \(highLatencyWarning)
+            We'll switch over to peer-to-peer when available.
+
+            Total latency: \(lastPing.latency.prettyPrintMs)
+            """
+            // We're not guranteed to have the preferred DERP latency
+            if let preferredDerpLatency = lastPing.preferredDerpLatency {
+                str += "\nYou ↔ \(lastPing.preferredDerp): \(preferredDerpLatency.prettyPrintMs)"
+                let derpToWorkspaceEstLatency = lastPing.latency - preferredDerpLatency
+                // We're not guaranteed the preferred derp latency is less than
+                // the total, as they might have been recorded at slightly
+                // different times, and we don't want to show a negative value.
+                if derpToWorkspaceEstLatency > 0 {
+                    str += "\n\(lastPing.preferredDerp) ↔ \(wsName): \(derpToWorkspaceEstLatency.prettyPrintMs)"
+                }
+            }
+        }
+        str += "\n\nLast handshake: \(lastHandshake?.relativeTimeString ?? "Unknown")"
+        return str
+    }
+
     let primaryHost: String
+}
+
+extension TimeInterval {
+    var prettyPrintMs: String {
+        let milliseconds = self * 1000
+        return "\(milliseconds.formatted(.number.precision(.fractionLength(2)))) ms"
+    }
+}
+
+struct LastPing: Equatable, Hashable {
+    let latency: TimeInterval
+    let didP2p: Bool
+    let preferredDerp: String
+    let preferredDerpLatency: TimeInterval?
 }
 
 enum AgentStatus: Int, Equatable, Comparable {
     case okay = 0
-    case warn = 1
-    case error = 2
-    case off = 3
+    case connecting = 1
+    case high_latency = 2
+    case no_recent_handshake = 3
+    case off = 4
+
+    public var description: String {
+        switch self {
+        case .okay: "Connected"
+        case .connecting: "Connecting..."
+        case .high_latency: "Connected, but with high latency" // Message currently unused
+        case .no_recent_handshake: "Could not establish a connection to the agent. Retrying..."
+        case .off: "Offline"
+        }
+    }
 
     public var color: Color {
         switch self {
         case .okay: .green
-        case .warn: .yellow
-        case .error: .red
+        case .high_latency: .yellow
+        case .no_recent_handshake: .red
         case .off: .secondary
+        case .connecting: .yellow
         }
     }
 
@@ -87,14 +184,27 @@ struct VPNMenuState {
         workspace.agents.insert(id)
         workspaces[wsID] = workspace
 
+        var lastPing: LastPing?
+        if agent.hasLastPing {
+            lastPing = LastPing(
+                latency: agent.lastPing.latency.timeInterval,
+                didP2p: agent.lastPing.didP2P,
+                preferredDerp: agent.lastPing.preferredDerp,
+                preferredDerpLatency:
+                agent.lastPing.hasPreferredDerpLatency
+                    ? agent.lastPing.preferredDerpLatency.timeInterval
+                    : nil
+            )
+        }
         agents[id] = Agent(
             id: id,
             name: agent.name,
-            // If last handshake was not within last five minutes, the agent is unhealthy
-            status: agent.lastHandshake.date > Date.now.addingTimeInterval(-300) ? .okay : .warn,
+            status: agent.status,
             hosts: nonEmptyHosts,
             wsName: workspace.name,
             wsID: wsID,
+            lastPing: lastPing,
+            lastHandshake: agent.lastHandshake.maybeDate,
             // Hosts arrive sorted by length, the shortest looks best in the UI.
             primaryHost: nonEmptyHosts.first!
         )
@@ -152,5 +262,51 @@ struct VPNMenuState {
     mutating func clear() {
         agents.removeAll()
         workspaces.removeAll()
+    }
+}
+
+extension Date {
+    var relativeTimeString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        if Date.now.timeIntervalSince(self) < 1.0 {
+            // Instead of showing "in 0 seconds"
+            return "Just now"
+        }
+        return formatter.localizedString(for: self, relativeTo: Date.now)
+    }
+}
+
+extension SwiftProtobuf.Google_Protobuf_Timestamp {
+    var maybeDate: Date? {
+        guard seconds > 0 else { return nil }
+        return date
+    }
+}
+
+extension Vpn_Agent {
+    var healthyLastHandshakeMin: Date {
+        Date.now.addingTimeInterval(-300) // 5 minutes ago
+    }
+
+    var healthyPingMax: TimeInterval { 0.15 } // 150ms
+
+    var status: AgentStatus {
+        // Initially the handshake is missing
+        guard let lastHandshake = lastHandshake.maybeDate else {
+            return .connecting
+        }
+        // If last handshake was not within the last five minutes, the agent
+        // is potentially unhealthy.
+        guard lastHandshake >= healthyLastHandshakeMin else {
+            return .no_recent_handshake
+        }
+        // No ping data, but we have a recent handshake.
+        // We show green for backwards compatibility with old Coder
+        // deployments.
+        guard hasLastPing else {
+            return .okay
+        }
+        return lastPing.latency.timeInterval < healthyPingMax ? .okay : .high_latency
     }
 }
