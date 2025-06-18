@@ -47,7 +47,7 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 }
             })
             .frame(minWidth: 400, minHeight: 200)
-            .padding(.bottom, 25)
+            .padding(.bottom, Theme.Size.tableFooterIconSize)
             .overlay(alignment: .bottom) {
                 tableFooter
             }
@@ -121,8 +121,8 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                 Button {
                     addingNewSession = true
                 } label: {
-                    Image(systemName: "plus")
-                        .frame(width: 24, height: 24).help("Create")
+                    FooterIcon(systemName: "plus")
+                        .help("Create")
                 }.disabled(vpn.menuState.agents.isEmpty)
                 sessionControls
             }
@@ -139,21 +139,25 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                     Divider()
                     Button { Task { await delete(session: selectedSession) } }
                         label: {
-                            Image(systemName: "minus").frame(width: 24, height: 24).help("Terminate")
+                            FooterIcon(systemName: "minus")
+                                .help("Terminate")
                         }
                     Divider()
                     Button { Task { await pauseResume(session: selectedSession) } }
                         label: {
                             if selectedSession.status.isResumable {
-                                Image(systemName: "play").frame(width: 24, height: 24).help("Pause")
+                                FooterIcon(systemName: "play")
+                                    .help("Pause")
                             } else {
-                                Image(systemName: "pause").frame(width: 24, height: 24).help("Resume")
+                                FooterIcon(systemName: "pause")
+                                    .help("Resume")
                             }
                         }
                     Divider()
                     Button { Task { await reset(session: selectedSession) } }
                         label: {
-                            Image(systemName: "arrow.clockwise").frame(width: 24, height: 24).help("Reset")
+                            FooterIcon(systemName: "arrow.clockwise")
+                                .help("Reset")
                         }
                 }
             }
@@ -196,6 +200,18 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
         } catch {
             actionError = error
         }
+    }
+}
+
+struct FooterIcon: View {
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .frame(
+                width: Theme.Size.tableFooterIconSize,
+                height: Theme.Size.tableFooterIconSize
+            )
     }
 }
 

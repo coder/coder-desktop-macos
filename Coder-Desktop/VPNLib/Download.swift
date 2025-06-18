@@ -146,15 +146,15 @@ func etag(data: Data) -> String {
 }
 
 public enum DownloadError: Error {
-    case unexpectedStatusCode(Int)
+    case unexpectedStatusCode(Int, url: String)
     case invalidResponse
     case networkError(any Error, url: String)
     case fileOpError(any Error)
 
     public var description: String {
         switch self {
-        case let .unexpectedStatusCode(code):
-            "Unexpected HTTP status code: \(code)"
+        case let .unexpectedStatusCode(code, url):
+            "Unexpected HTTP status code: \(code) - \(url)"
         case let .networkError(error, url):
             "Network error: \(url) - \(error.localizedDescription)"
         case let .fileOpError(error):
@@ -232,7 +232,12 @@ extension DownloadManager: URLSessionDownloadDelegate {
         }
 
         guard httpResponse.statusCode == 200 else {
-            continuation.resume(throwing: DownloadError.unexpectedStatusCode(httpResponse.statusCode))
+            continuation.resume(
+                throwing: DownloadError.unexpectedStatusCode(
+                    httpResponse.statusCode,
+                    url: httpResponse.url?.absoluteString ?? "Unknown URL"
+                )
+            )
             return
         }
 

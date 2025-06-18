@@ -235,10 +235,12 @@ struct MenuItemIcons: View {
         MenuItemIconButton(systemName: "doc.on.doc", action: copyToClipboard)
             .font(.system(size: 9))
             .symbolVariant(.fill)
+            .help("Copy hostname")
         MenuItemIconButton(systemName: "globe", action: { openURL(wsURL) })
             .contentShape(Rectangle())
             .font(.system(size: 12))
             .padding(.trailing, Theme.Size.trayMargin)
+            .help("Open in browser")
     }
 }
 
