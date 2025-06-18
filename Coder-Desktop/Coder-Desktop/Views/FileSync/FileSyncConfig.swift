@@ -147,10 +147,10 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
                         label: {
                             if selectedSession.status.isResumable {
                                 FooterIcon(systemName: "play")
-                                    .help("Pause")
+                                    .help("Resume")
                             } else {
                                 FooterIcon(systemName: "pause")
-                                    .help("Resume")
+                                    .help("Pause")
                             }
                         }
                     Divider()

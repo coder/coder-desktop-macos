@@ -12,7 +12,7 @@ enum Theme {
         static let appIconHeight: CGFloat = 17
         static let appIconSize: CGSize = .init(width: appIconWidth, height: appIconHeight)
 
-        static let tableFooterIconSize: CGFloat = 30
+        static let tableFooterIconSize: CGFloat = 28
     }
 
     enum Animation {
