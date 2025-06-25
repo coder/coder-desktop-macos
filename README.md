@@ -3,10 +3,12 @@
 Coder Desktop allows you to work on your Coder workspaces as though they're
 on your local network, with no port-forwarding required.
 
-- Coder Connect makes your workspaces accessible from a `.coder` hostname.
-- File Sync provides bidirectional synchronization between local and remote
+## Features:
+
+- Make your workspaces accessible from a `.coder` hostname.
+- Configure bidirectional file sync sessions between local and remote
   directories.
-- Convenient one-click access to Coder workspace app IDEs and tools.
+- Convenient one-click access to Coder workspace app IDEs, tools and VNC/RDP clients.
 
 Learn more about Coder Desktop in the
 [official documentation](https://coder.com/docs/user-guides/desktop).
