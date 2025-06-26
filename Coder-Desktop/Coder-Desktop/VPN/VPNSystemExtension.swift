@@ -183,6 +183,7 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         if existing.bundleVersion == `extension`.bundleVersion {
             return .replace
         }
+        // TODO: Workaround disabled, as we're trying another workaround
         // To work around the bug described in
         // https://github.com/coder/coder-desktop-macos/issues/121,
         // we're going to manually reinstall after the replacement is done.
@@ -190,8 +191,8 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         // it looks for an extension with the *current* version string.
         // There's no way to modify the deactivate request to use a different
         // version string (i.e. `existing.bundleVersion`).
-        logger.info("App upgrade detected, replacing and then reinstalling")
-        action = .replacing
+        // logger.info("App upgrade detected, replacing and then reinstalling")
+        // action = .replacing
         return .replace
     }
 }
