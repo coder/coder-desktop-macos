@@ -29,7 +29,12 @@
 	<key>NetworkExtension</key>
 	<dict>
 		<key>NEMachServiceName</key>
-		<string>$(TeamIdentifierPrefix)com.coder.Coder-Desktop.VPN</string>
+		<!-- We append the CFBundleVersion to the service name to ensure a new
+		 service is used for each version. This works around the issue described
+		 in https://github.com/coder/coder-desktop-macos/issues/121, presumably
+		 caused by the XPC service cache not being invalidated on update.
+		-->
+		<string>$(TeamIdentifierPrefix)com.coder.Coder-Desktop.VPN.$(CURRENT_PROJECT_VERSION)</string>
 	</dict>
 	<key>SUPublicEDKey</key>
 	<string>Ae2oQLTcx89/a73XrpOt+IVvqdo+fMTjo3UKEm77VdA=</string>
