@@ -123,12 +123,18 @@ struct FilePickerEntry: View {
         } label: {
             Label {
                 Text(entry.name)
-                ZStack {
-                    CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
-                        .opacity(entry.isLoading && entry.error == nil ? 1 : 0)
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .opacity(entry.error != nil ? 1 : 0)
-                }
+                    // The NSView within the CircularProgressView breaks
+                    // the chevron alignment within the DisclosureGroup view.
+                    // So, we overlay the progressview with a manual offset
+                    .padding(.trailing, 20)
+                    .overlay(alignment: .trailing) {
+                        ZStack {
+                            CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
+                                .opacity(entry.isLoading && entry.error == nil ? 1 : 0)
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .opacity(entry.error != nil ? 1 : 0)
+                        }
+                    }
             } icon: {
                 Image(systemName: "folder")
             }.help(entry.error != nil ? entry.error!.description : entry.absolute_path)
