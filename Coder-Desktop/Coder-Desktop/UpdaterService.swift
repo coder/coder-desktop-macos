@@ -64,7 +64,7 @@ extension UpdaterService: SPUUpdaterDelegate {
         [updateChannel.rawValue]
     }
 
-    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+    func updater(_: SPUUpdater, didFindValidUpdate _: SUAppcastItem) {
         Task { @MainActor in appActivate() }
     }
 }
