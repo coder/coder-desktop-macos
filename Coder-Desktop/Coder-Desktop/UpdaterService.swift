@@ -63,6 +63,10 @@ extension UpdaterService: SPUUpdaterDelegate {
         // preview >= stable
         [updateChannel.rawValue]
     }
+
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        Task { @MainActor in appActivate() }
+    }
 }
 
 extension UpdaterService: SUVersionDisplay {
