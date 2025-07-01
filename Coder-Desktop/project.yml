@@ -98,7 +98,7 @@ packages:
     # - Set onAppear/disappear handlers.
     # The upstream repo has a purposefully limited API
     url: https://github.com/coder/fluid-menu-bar-extra
-    revision: 8e1d8b8
+    revision: afc9256
   KeychainAccess:
     url: https://github.com/kishikawakatsumi/KeychainAccess
     branch: e0c7eebc5a4465a3c4680764f26b7a61f567cdaf

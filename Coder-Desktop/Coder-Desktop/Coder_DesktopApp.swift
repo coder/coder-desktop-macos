@@ -42,17 +42,16 @@ struct DesktopApp: App {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "app-delegate")
-    private var menuBar: MenuBarController?
+    var menuBar: MenuBarController?
     let vpn: CoderVPNService
     let state: AppState
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
-    let notifDelegate: NotifDelegate
     let helper: HelperService
     let autoUpdater: UpdaterService
 
     override init() {
-        notifDelegate = NotifDelegate()
+        AppDelegate.registerNotificationCategories()
         vpn = CoderVPNService()
         helper = HelperService()
         autoUpdater = UpdaterService()
@@ -79,8 +78,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.fileSyncDaemon = fileSyncDaemon
         urlHandler = URLHandler(state: state, vpn: vpn)
+        super.init()
         // `delegate` is weak
-        UNUserNotificationCenter.current().delegate = notifDelegate
+        UNUserNotificationCenter.current().delegate = self
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -161,7 +161,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do { try urlHandler.handle(url) } catch let handleError {
             Task {
                 do {
-                    try await sendNotification(title: "Failed to handle link", body: handleError.description)
+                    try await sendNotification(
+                        title: "Failed to handle link",
+                        body: handleError.description,
+                        category: .uriFailure
+                    )
                 } catch let notifError {
                     logger.error("Failed to send notification (\(handleError.description)): \(notifError)")
                 }
