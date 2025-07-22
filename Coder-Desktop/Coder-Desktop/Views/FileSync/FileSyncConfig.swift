@@ -165,11 +165,11 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
     }
 
     // TODO: Support selecting & deleting multiple sessions at once
-    func delete(session _: FileSyncSession) async {
+    func delete(session: FileSyncSession) async {
         loading = true
         defer { loading = false }
         do throws(DaemonError) {
-            try await fileSync.deleteSessions(ids: [selection!])
+            try await fileSync.deleteSessions(ids: [session.id])
         } catch {
             actionError = error
         }
