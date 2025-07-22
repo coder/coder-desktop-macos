@@ -1,3 +1,4 @@
 --selfrequired log,info,error,debug,critical,fault
 --exclude **.pb.swift,**.grpc.swift
 --condassignment always
+--disable unusedArguments
