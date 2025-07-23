@@ -117,12 +117,15 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
     }
 
     private var vpnDisabled: Bool {
-        vpn.state == .connecting ||
-            vpn.state == .disconnecting ||
-            // Prevent starting the VPN before the user has approved the system extension.
-            vpn.state == .failed(.systemExtensionError(.needsUserApproval)) ||
-            // Prevent starting the VPN without a VPN configuration.
-            vpn.state == .failed(.networkExtensionError(.unconfigured))
+        // Always enabled if signed out, as that will open the sign in window
+        state.hasSession && (
+            vpn.state == .connecting ||
+                vpn.state == .disconnecting ||
+                // Prevent starting the VPN before the user has approved the system extension.
+                vpn.state == .failed(.systemExtensionError(.needsUserApproval)) ||
+                // Prevent starting the VPN without a VPN configuration.
+                vpn.state == .failed(.networkExtensionError(.unconfigured))
+        )
     }
 }
 

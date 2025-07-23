@@ -33,6 +33,21 @@ struct VPNMenuTests {
     }
 
     @Test
+    func testVPNLoggedOutUnconfigured() async throws {
+        vpn.state = .failed(.networkExtensionError(.unconfigured))
+        try await ViewHosting.host(view) {
+            try await sut.inspection.inspect { view in
+                let toggle = try view.find(ViewType.Toggle.self)
+                // Toggle should be enabled even with a failure that would
+                // normally make it disabled, because we're signed out.
+                #expect(!toggle.isDisabled())
+                #expect(throws: Never.self) { try view.find(text: "Sign in to use Coder Desktop") }
+                #expect(throws: Never.self) { try view.find(button: "Sign in") }
+            }
+        }
+    }
+
+    @Test
     func testStartStopCalled() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -59,6 +74,7 @@ struct VPNMenuTests {
     @Test
     func testVPNDisabledWhileConnecting() async throws {
         vpn.state = .disabled
+        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -79,6 +95,7 @@ struct VPNMenuTests {
     @Test
     func testVPNDisabledWhileDisconnecting() async throws {
         vpn.state = .disabled
+        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
