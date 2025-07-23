@@ -4,7 +4,6 @@ import os
 import VPNLib
 
 actor Manager {
-    let ptp: PacketTunnelProvider
     let cfg: ManagerConfig
     let telemetryEnricher: TelemetryEnricher
 
@@ -12,13 +11,13 @@ actor Manager {
     let speaker: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>
     var readLoop: Task<Void, any Error>!
 
-    private let dest = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+    // /var/root/Downloads
+    private let dest = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)
         .first!.appending(path: "coder-vpn.dylib")
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
     // swiftlint:disable:next function_body_length
-    init(with: PacketTunnelProvider, cfg: ManagerConfig) async throws(ManagerError) {
-        ptp = with
+    init(cfg: ManagerConfig) async throws(ManagerError) {
         self.cfg = cfg
         telemetryEnricher = TelemetryEnricher()
         #if arch(arm64)
@@ -62,10 +61,6 @@ actor Manager {
             throw .validation(error)
         }
 
-        // HACK: The downloaded dylib may be quarantined, but we've validated it's signature
-        // so it's safe to execute. However, the SE must be sandboxed, so we defer to the app.
-        try await removeQuarantine(dest)
-
         do {
             try tunnelHandle = TunnelHandle(dylibPath: dest)
         } catch {
@@ -105,14 +100,14 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
-            ptp.cancelTunnelWithError(
+            try await NEXPCListenerDelegate.cancelProvider(error:
                 makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
             )
             return
         }
         logger.info("tunnel read loop exited")
         try await tunnelHandle.close()
-        ptp.cancelTunnelWithError(nil)
+        try await NEXPCListenerDelegate.cancelProvider(error: nil)
     }
 
     func handleMessage(_ msg: Vpn_TunnelMessage) {
@@ -122,14 +117,7 @@ actor Manager {
         }
         switch msgType {
         case .peerUpdate:
-            if let conn = globalXPCListenerDelegate.conn {
-                do {
-                    let data = try msg.peerUpdate.serializedData()
-                    conn.onPeerUpdate(data)
-                } catch {
-                    logger.error("failed to send peer update to client: \(error)")
-                }
-            }
+            Task { try? await appXPCListenerDelegate.onPeerUpdate(update: msg.peerUpdate) }
         case let .log(logMsg):
             writeVpnLog(logMsg)
         case .networkSettings, .start, .stop:
@@ -145,7 +133,7 @@ actor Manager {
         switch msgType {
         case let .networkSettings(ns):
             do {
-                try await ptp.applyTunnelNetworkSettings(ns)
+                try await NEXPCListenerDelegate.applyTunnelNetworkSettings(diff: ns)
                 try? await rpc.sendReply(.with { resp in
                     resp.networkSettings = .with { settings in
                         settings.success = true
@@ -167,16 +155,12 @@ actor Manager {
     func startVPN() async throws(ManagerError) {
         pushProgress(stage: .startingTunnel)
         logger.info("sending start rpc")
-        guard let tunFd = ptp.tunnelFileDescriptor else {
-            logger.error("no fd")
-            throw .noTunnelFileDescriptor
-        }
         let resp: Vpn_TunnelMessage
         do {
             resp = try await speaker.unaryRPC(
                 .with { msg in
                     msg.start = .with { req in
-                        req.tunnelFileDescriptor = tunFd
+                        req.tunnelFileDescriptor = cfg.tunFd
                         req.apiToken = cfg.apiToken
                         req.coderURL = cfg.serverUrl.absoluteString
                         req.headers = cfg.literalHeaders.map { header in
@@ -243,17 +227,13 @@ actor Manager {
 }
 
 func pushProgress(stage: ProgressStage, downloadProgress: DownloadProgress? = nil) {
-    guard let conn = globalXPCListenerDelegate.conn else {
-        logger.warning("couldn't send progress message to app: no connection")
-        return
-    }
-    logger.debug("sending progress message to app")
-    conn.onProgress(stage: stage, downloadProgress: downloadProgress)
+    Task { try? await appXPCListenerDelegate.onProgress(stage: stage, downloadProgress: downloadProgress) }
 }
 
 struct ManagerConfig {
     let apiToken: String
     let serverUrl: URL
+    let tunFd: Int32
     let literalHeaders: [HTTPHeader]
 }
 
@@ -322,32 +302,4 @@ func writeVpnLog(_ log: Vpn_Log) {
     )
     let fields = log.fields.map { "\($0.name): \($0.value)" }.joined(separator: ", ")
     logger.log(level: level, "\(log.message, privacy: .public)\(fields.isEmpty ? "" : ": \(fields)", privacy: .public)")
-}
-
-private func removeQuarantine(_ dest: URL) async throws(ManagerError) {
-    var flag: AnyObject?
-    let file = NSURL(fileURLWithPath: dest.path)
-    try? file.getResourceValue(&flag, forKey: kCFURLQuarantinePropertiesKey as URLResourceKey)
-    if flag != nil {
-        pushProgress(stage: .removingQuarantine)
-        // Try the privileged helper first (it may not even be registered)
-        if await globalHelperXPCSpeaker.tryRemoveQuarantine(path: dest.path) {
-            // Success!
-            return
-        }
-        // Then try the app
-        guard let conn = globalXPCListenerDelegate.conn else {
-            // If neither are available, we can't execute the dylib
-            throw .noApp
-        }
-        // Wait for unsandboxed app to accept our file
-        let success = await withCheckedContinuation { [dest] continuation in
-            conn.removeQuarantine(path: dest.path) { success in
-                continuation.resume(returning: success)
-            }
-        }
-        if !success {
-            throw .permissionDenied
-        }
-    }
 }
