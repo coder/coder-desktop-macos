@@ -1,32 +1,11 @@
 import Foundation
 import os
+import VPNLib
 
-final class HelperXPCSpeaker: @unchecked Sendable {
+final class HelperXPCSpeaker: NEXPCInterface, @unchecked Sendable {
+    var ptp: PacketTunnelProvider?
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperXPCSpeaker")
     private var connection: NSXPCConnection?
-
-    func tryRemoveQuarantine(path: String) async -> Bool {
-        let conn = connect()
-        return await withCheckedContinuation { continuation in
-            guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
-                self.logger.error("Failed to connect to HelperXPC \(err)")
-                continuation.resume(returning: false)
-            }) as? HelperXPCProtocol else {
-                self.logger.error("Failed to get proxy for HelperXPC")
-                continuation.resume(returning: false)
-                return
-            }
-            proxy.removeQuarantine(path: path) { status, output in
-                if status == 0 {
-                    self.logger.info("Successfully removed quarantine for \(path)")
-                    continuation.resume(returning: true)
-                } else {
-                    self.logger.error("Failed to remove quarantine for \(path): \(output)")
-                    continuation.resume(returning: false)
-                }
-            }
-        }
-    }
 
     private func connect() -> NSXPCConnection {
         if let connection = self.connection {
@@ -38,10 +17,12 @@ final class HelperXPCSpeaker: @unchecked Sendable {
         // the team identifier.
         // https://developer.apple.com/forums/thread/654466
         let connection = NSXPCConnection(
-            machServiceName: "4399GN35BJ.com.coder.Coder-Desktop.Helper",
+            machServiceName: helperNEMachServiceName,
             options: .privileged
         )
-        connection.remoteObjectInterface = NSXPCInterface(with: HelperXPCProtocol.self)
+        connection.remoteObjectInterface = NSXPCInterface(with: HelperNEXPCInterface.self)
+        connection.exportedInterface = NSXPCInterface(with: NEXPCInterface.self)
+        connection.exportedObject = self
         connection.invalidationHandler = { [weak self] in
             self?.connection = nil
         }
@@ -51,5 +32,74 @@ final class HelperXPCSpeaker: @unchecked Sendable {
         connection.resume()
         self.connection = connection
         return connection
+    }
+
+    func applyTunnelNetworkSettings(diff: Data, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        guard let diff = try? Vpn_NetworkSettingsRequest(serializedBytes: diff) else {
+            reply()
+            return
+        }
+        Task {
+            try? await ptp?.applyTunnelNetworkSettings(diff)
+            reply()
+        }
+    }
+
+    func cancelProvider(error: Error?, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        Task {
+            ptp?.cancelTunnelWithError(error)
+            reply()
+        }
+    }
+}
+
+// These methods are called to start and stop the daemon run by the Helper.
+extension HelperXPCSpeaker {
+    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?) async throws {
+        let conn = connect()
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperXPC \(err.localizedDescription, privacy: .public)")
+                continuation.resume(throwing: err)
+            }) as? HelperNEXPCInterface else {
+                self.logger.error("failed to get proxy for HelperXPC")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
+            }
+            proxy.startDaemon(accessURL: accessURL, token: token, tun: tun, headers: headers) { err in
+                if let error = err {
+                    self.logger.error("Failed to start daemon: \(error.localizedDescription, privacy: .public)")
+                    continuation.resume(throwing: error)
+                } else {
+                    self.logger.info("successfully started daemon")
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    func stopDaemon() async throws {
+        let conn = connect()
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperXPC \(err)")
+                continuation.resume(throwing: err)
+            }) as? HelperNEXPCInterface else {
+                self.logger.error("failed to get proxy for HelperXPC")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
+            }
+            proxy.stopDaemon { err in
+                if let error = err {
+                    self.logger.error("failed to stop daemon: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                } else {
+                    self.logger.info("Successfully stopped daemon")
+                    continuation.resume()
+                }
+            }
+        }
     }
 }

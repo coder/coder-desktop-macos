@@ -192,13 +192,13 @@ struct LoginForm: View {
 @discardableResult
 func validateURL(_ url: String) throws(LoginError) -> URL {
     guard let url = URL(string: url) else {
-        throw LoginError.invalidURL
+        throw .invalidURL
     }
     guard url.scheme == "https" else {
-        throw LoginError.httpsRequired
+        throw .httpsRequired
     }
     guard url.host != nil else {
-        throw LoginError.noHost
+        throw .noHost
     }
     return url
 }
