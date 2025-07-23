@@ -3,6 +3,8 @@ disabled_rules:
   - trailing_comma
   - blanket_disable_command # Used by Protobuf
   - opening_brace # Handled by SwiftFormat
+opt_in_rules:
+  - unused_parameter
 type_name:
   allowed_symbols: "_"
 identifier_name:
