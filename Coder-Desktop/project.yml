@@ -252,7 +252,6 @@ targets:
     platform: macOS
     sources:
       - path: VPN
-      - path: Coder-DesktopHelper/HelperXPCProtocol.swift
     entitlements:
       path: VPN/VPN.entitlements
       properties:
@@ -272,7 +271,7 @@ targets:
         PRODUCT_MODULE_NAME: "$(PRODUCT_NAME:c99extidentifier)"
         PRODUCT_NAME: "$(PRODUCT_BUNDLE_IDENTIFIER)"
         SWIFT_EMIT_LOC_STRINGS: YES
-        SWIFT_OBJC_BRIDGING_HEADER: "VPN/com_coder_Coder_Desktop_VPN-Bridging-Header.h"
+        SWIFT_OBJC_BRIDGING_HEADER: "Coder-DesktopHelper/com_coder_Coder_Desktop_VPN-Bridging-Header.h"
         # `CODE_SIGN_*` are overriden during a release build
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
@@ -370,10 +369,19 @@ targets:
     type: tool
     platform: macOS
     sources: Coder-DesktopHelper
+    dependencies:
+      - target: VPNLib
+        embed: false # Loaded from SE bundle.
     settings:
       base:
         ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_OBJC_BRIDGING_HEADER: "Coder-DesktopHelper/com_coder_Coder_Desktop_VPN-Bridging-Header.h"
         PRODUCT_BUNDLE_IDENTIFIER: "com.coder.Coder-Desktop.Helper"
         PRODUCT_MODULE_NAME: "$(PRODUCT_NAME:c99extidentifier)"
         PRODUCT_NAME: "$(PRODUCT_BUNDLE_IDENTIFIER)"
         SKIP_INSTALL: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          # Load frameworks from the SE bundle.
+          - "@executable_path/../../Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Frameworks"
+          - "@executable_path/../Frameworks"
+          - "@loader_path/Frameworks"
