@@ -3,112 +3,98 @@ import NetworkExtension
 import os
 import VPNLib
 
-@objc final class VPNXPCInterface: NSObject, VPNXPCClientCallbackProtocol, @unchecked Sendable {
+@objc final class AppXPCListener: NSObject, AppXPCInterface, @unchecked Sendable {
     private var svc: CoderVPNService
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNXPCInterface")
-    private var xpc: VPNXPCProtocol?
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "AppXPCListener")
+    private var connection: NSXPCConnection?
 
     init(vpn: CoderVPNService) {
         svc = vpn
         super.init()
     }
 
-    func connect() {
-        logger.debug("VPN xpc connect called")
-        guard xpc == nil else {
-            logger.debug("VPN xpc already exists")
-            return
+    func connect() -> NSXPCConnection {
+        if let connection {
+            return connection
         }
-        let networkExtDict = Bundle.main.object(forInfoDictionaryKey: "NetworkExtension") as? [String: Any]
-        let machServiceName = networkExtDict?["NEMachServiceName"] as? String
-        let xpcConn = NSXPCConnection(machServiceName: machServiceName!)
-        xpcConn.remoteObjectInterface = NSXPCInterface(with: VPNXPCProtocol.self)
-        xpcConn.exportedInterface = NSXPCInterface(with: VPNXPCClientCallbackProtocol.self)
-        guard let proxy = xpcConn.remoteObjectProxy as? VPNXPCProtocol else {
-            fatalError("invalid xpc cast")
-        }
-        xpc = proxy
 
-        logger.debug("connecting to machServiceName: \(machServiceName!)")
-
-        xpcConn.exportedObject = self
-        xpcConn.invalidationHandler = { [logger] in
-            Task { @MainActor in
-                logger.error("VPN XPC connection invalidated.")
-                self.xpc = nil
-                self.connect()
-            }
+        let connection = NSXPCConnection(
+            machServiceName: helperAppMachServiceName,
+            options: .privileged
+        )
+        connection.remoteObjectInterface = NSXPCInterface(with: HelperAppXPCInterface.self)
+        connection.exportedInterface = NSXPCInterface(with: AppXPCInterface.self)
+        connection.exportedObject = self
+        connection.invalidationHandler = {
+            self.logger.error("XPC connection invalidated")
+            self.connection = nil
+            _ = self.connect()
         }
-        xpcConn.interruptionHandler = { [logger] in
-            Task { @MainActor in
-                logger.error("VPN XPC connection interrupted.")
-                self.xpc = nil
-                self.connect()
-            }
+        connection.interruptionHandler = {
+            self.logger.error("XPC connection interrupted")
+            self.connection = nil
+            _ = self.connect()
         }
-        xpcConn.resume()
+        logger.info("connecting to \(helperAppMachServiceName)")
+        connection.resume()
+        self.connection = connection
+        return connection
     }
 
-    func ping() {
-        xpc?.ping {
-            Task { @MainActor in
-                self.logger.info("Connected to NE over XPC")
-            }
-        }
-    }
-
-    func getPeerState() {
-        xpc?.getPeerState { data in
-            Task { @MainActor in
-                self.svc.onExtensionPeerState(data)
-            }
-        }
-    }
-
-    func onPeerUpdate(_ data: Data) {
+    func onPeerUpdate(_ diff: Data, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
         Task { @MainActor in
-            svc.onExtensionPeerUpdate(data)
+            svc.onExtensionPeerUpdate(diff)
+            reply()
         }
     }
 
-    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?) {
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
         Task { @MainActor in
             svc.onProgress(stage: stage, downloadProgress: downloadProgress)
+            reply()
+        }
+    }
+}
+
+// These methods are called to request updatess from the Helper.
+extension AppXPCListener {
+    func ping() async throws {
+        let conn = connect()
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperXPC \(err.localizedDescription, privacy: .public)")
+                continuation.resume(throwing: err)
+            }) as? HelperAppXPCInterface else {
+                self.logger.error("failed to get proxy for HelperXPC")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
+            }
+            proxy.ping {
+                self.logger.info("Connected to Helper over XPC")
+                continuation.resume()
+            }
         }
     }
 
-    // The NE has verified the dylib and knows better than Gatekeeper
-    func removeQuarantine(path: String, reply: @escaping (Bool) -> Void) {
-        let reply = CallbackWrapper(reply)
-        Task { @MainActor in
-            let prompt = """
-            Coder Desktop wants to execute code downloaded from \
-            \(svc.serverAddress ?? "the Coder deployment"). The code has been \
-            verified to be signed by Coder.
-            """
-            let source = """
-            do shell script "xattr -d com.apple.quarantine \(path)" \
-            with prompt "\(prompt)" \
-            with administrator privileges
-            """
-            let success = await withCheckedContinuation { continuation in
-                guard let script = NSAppleScript(source: source) else {
-                    continuation.resume(returning: false)
-                    return
-                }
-                // Run on a background thread
-                Task.detached {
-                    var error: NSDictionary?
-                    script.executeAndReturnError(&error)
-                    if let error {
-                        self.logger.error("AppleScript error: \(error)")
-                        continuation.resume(returning: false)
-                    } else {
-                        continuation.resume(returning: true)
-                    }
-                }
+    func getPeerState() async throws {
+        let conn = connect()
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperXPC \(err.localizedDescription, privacy: .public)")
+                continuation.resume(throwing: err)
+            }) as? HelperAppXPCInterface else {
+                self.logger.error("failed to get proxy for HelperXPC")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
             }
-            reply(success)
+            proxy.getPeerState { data in
+                Task { @MainActor in
+                    self.svc.onExtensionPeerState(data)
+                }
+                continuation.resume()
+            }
         }
     }
 }

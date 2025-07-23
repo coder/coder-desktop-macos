@@ -9,7 +9,9 @@
 	<key>MachServices</key>
 	<dict>
 		<!-- $(TeamIdentifierPrefix) isn't populated here, so this value is hardcoded -->
-		<key>4399GN35BJ.com.coder.Coder-Desktop.Helper</key>
+		<key>4399GN35BJ.com.coder.Coder-Desktop.HelperNE</key>
+		<true/>
+		<key>4399GN35BJ.com.coder.Coder-Desktop.HelperApp</key>
 		<true/>
 	</dict>
 	<key>AssociatedBundleIdentifiers</key>
