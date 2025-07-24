@@ -32,6 +32,7 @@ class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface
             conns.removeAll { $0 == newConnection }
             logger.debug("connection interrupted")
         }
+        newConnection.setCodeSigningRequirement(SignatureValidator.peerRequirement)
         newConnection.resume()
         conns.append(newConnection)
         return true
@@ -149,6 +150,7 @@ class HelperAppXPCListener: NSObject, NSXPCListenerDelegate, HelperAppXPCInterfa
             conns.removeAll { $0 == newConnection }
             logger.debug("app connection invalidated")
         }
+        newConnection.setCodeSigningRequirement(SignatureValidator.peerRequirement)
         newConnection.resume()
         conns.append(newConnection)
         return true

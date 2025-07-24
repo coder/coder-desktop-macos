@@ -29,6 +29,7 @@ final class HelperXPCSpeaker: NEXPCInterface, @unchecked Sendable {
         connection.interruptionHandler = { [weak self] in
             self?.connection = nil
         }
+        connection.setCodeSigningRequirement(SignatureValidator.peerRequirement)
         connection.resume()
         self.connection = connection
         return connection
