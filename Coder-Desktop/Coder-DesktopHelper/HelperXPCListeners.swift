@@ -32,6 +32,7 @@ class HelperNEXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
             conns.removeAll { $0 == newConnection }
             logger.debug("connection interrupted")
         }
+        newConnection.setCodeSigningRequirement(Validator.xpcPeerRequirement)
         newConnection.resume()
         conns.append(newConnection)
         return true
@@ -145,6 +146,7 @@ class HelperAppXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
             conns.removeAll { $0 == newConnection }
             logger.debug("app connection invalidated")
         }
+        newConnection.setCodeSigningRequirement(Validator.xpcPeerRequirement)
         newConnection.resume()
         conns.append(newConnection)
         return true

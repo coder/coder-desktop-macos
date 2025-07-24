@@ -37,6 +37,7 @@ import VPNLib
             _ = self.connect()
         }
         logger.info("connecting to \(helperAppMachServiceName)")
+        connection.setCodeSigningRequirement(Validator.xpcPeerRequirement)
         connection.resume()
         self.connection = connection
         return connection
