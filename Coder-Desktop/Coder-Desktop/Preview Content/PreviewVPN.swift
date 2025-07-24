@@ -81,5 +81,7 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         state = .connecting
     }
 
+    func updateHelperState() {}
+
     var startWhenReady: Bool = false
 }

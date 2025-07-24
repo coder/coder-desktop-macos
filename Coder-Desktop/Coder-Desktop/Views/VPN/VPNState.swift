@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 
 struct VPNState<VPN: VPNService>: View {
@@ -10,20 +11,10 @@ struct VPNState<VPN: VPNService>: View {
         Group {
             switch (vpn.state, state.hasSession) {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
-                VStack {
-                    Text("Awaiting System Extension approval")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, Theme.Size.trayInset)
-                        .padding(.vertical, Theme.Size.trayPadding)
-                        .frame(maxWidth: .infinity)
-                    Button {
-                        openSystemExtensionSettings()
-                    } label: {
-                        Text("Approve in System Settings")
-                    }
-                }
+                ApprovalRequiredView<VPN>(
+                    message: "Awaiting System Extension approval",
+                    action: openSystemExtensionSettings
+                )
             case (_, false):
                 Text("Sign in to use Coder Desktop")
                     .font(.body)
@@ -32,11 +23,7 @@ struct VPNState<VPN: VPNService>: View {
                 VStack {
                     Text("The system VPN requires reconfiguration")
                         .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, Theme.Size.trayInset)
-                        .padding(.vertical, Theme.Size.trayPadding)
-                        .frame(maxWidth: .infinity)
+                        .vpnStateMessage()
                     Button {
                         state.reconfigure()
                     } label: {
@@ -47,6 +34,13 @@ struct VPNState<VPN: VPNService>: View {
                     // open the menu bar an extra time
                     state.reconfigure()
                 }
+            case (.failed(.helperError(.requiresApproval)), _):
+                ApprovalRequiredView<VPN>(
+                    message: "Awaiting Background Item approval",
+                    action: SMAppService.openSystemSettingsLoginItems
+                )
+            case (.failed(.helperError(.installing)), _):
+                HelperProgressView()
             case (.disabled, _):
                 Text("Enable Coder Connect to see workspaces")
                     .font(.body)
@@ -61,15 +55,63 @@ struct VPNState<VPN: VPNService>: View {
                 Text("\(vpnErr.description)")
                     .font(.headline)
                     .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, Theme.Size.trayInset)
-                    .padding(.vertical, Theme.Size.trayPadding)
-                    .frame(maxWidth: .infinity)
+                    .vpnStateMessage()
             case (.connected, true):
                 EmptyView()
             }
         }
         .onReceive(inspection.notice) { inspection.visit(self, $0) } // viewInspector
+    }
+}
+
+struct HelperProgressView: View {
+    var body: some View {
+        HStack {
+            Spacer()
+            VStack {
+                CircularProgressView(value: nil)
+                Text("Installing Helper...")
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+            .foregroundStyle(.secondary)
+            Spacer()
+        }
+    }
+}
+
+struct ApprovalRequiredView<VPN: VPNService>: View {
+    @EnvironmentObject var vpn: VPN
+    let message: String
+    let action: () -> Void
+
+    var body: some View {
+        VStack {
+            Text(message)
+                .foregroundColor(.secondary)
+                .vpnStateMessage()
+            Button {
+                action()
+            } label: {
+                Text("Approve in System Settings")
+            }
+        }
+    }
+}
+
+struct VPNStateMessageTextModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, Theme.Size.trayInset)
+            .padding(.vertical, Theme.Size.trayPadding)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+extension View {
+    func vpnStateMessage() -> some View {
+        modifier(VPNStateMessageTextModifier())
     }
 }
