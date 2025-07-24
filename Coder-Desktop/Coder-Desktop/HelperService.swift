@@ -12,10 +12,8 @@ extension CoderVPNService {
     func setupHelper() async {
         refreshHelperState()
         switch helperState {
-        case .uninstalled, .failed:
-            await installHelper()
-        case .installed:
-            uninstallHelper()
+        case .uninstalled, .failed, .installed:
+            await uninstallHelper()
             await installHelper()
         case .requiresApproval, .installing:
             break
@@ -63,10 +61,10 @@ extension CoderVPNService {
         helperState = .failed(.unknown(lastUnknownError?.localizedDescription ?? "Unknown"))
     }
 
-    private func uninstallHelper() {
+    private func uninstallHelper() async {
         let daemon = SMAppService.daemon(plistName: plistName)
         do {
-            try daemon.unregister()
+            try await daemon.unregister()
         } catch let error as NSError {
             helperState = .failed(.init(error: error))
         } catch {

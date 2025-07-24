@@ -8,7 +8,6 @@ let CTLIOCGINFO: UInt = 0xC064_4E03
 
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
-    private var manager: Manager?
     // a `tunnelRemoteAddress` is required, but not currently used.
     private var currentSettings: NEPacketTunnelNetworkSettings = .init(tunnelRemoteAddress: "127.0.0.1")
 
@@ -45,90 +44,41 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func startTunnel(
-        options _: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void
-    ) {
-        logger.info("startTunnel called")
-        guard manager == nil else {
-            logger.error("startTunnel called with non-nil Manager")
-            // If the tunnel is already running, then we can just mark as connected.
-            completionHandler(nil)
-            return
-        }
-        start(completionHandler)
-    }
-
-    // called by `startTunnel`
-    func start(_ completionHandler: @escaping (Error?) -> Void) {
+        options _: [String: NSObject]?
+    ) async throws {
+        globalHelperXPCSpeaker.ptp = self
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
             logger.error("startTunnel called with nil protocolConfiguration")
-            completionHandler(makeNSError(suffix: "PTP", desc: "Missing Configuration"))
-            return
+            throw makeNSError(suffix: "PTP", desc: "Missing Configuration")
         }
         // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
         guard let token = proto.providerConfiguration?["token"] as? String else {
             logger.error("startTunnel called with nil token")
-            completionHandler(makeNSError(suffix: "PTP", desc: "Missing Token"))
-            return
+            throw makeNSError(suffix: "PTP", desc: "Missing Token")
         }
-        let headers: [HTTPHeader] = (proto.providerConfiguration?["literalHeaders"] as? Data)
-            .flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? []
+        let headers = proto.providerConfiguration?["literalHeaders"] as? Data
         logger.debug("retrieved token & access URL")
-        let completionHandler = CallbackWrapper(completionHandler)
-        Task {
-            do throws(ManagerError) {
-                logger.debug("creating manager")
-                let manager = try await Manager(
-                    with: self,
-                    cfg: .init(
-                        apiToken: token, serverUrl: .init(string: baseAccessURL)!,
-                        literalHeaders: headers
-                    )
-                )
-                globalXPCListenerDelegate.vpnXPCInterface.manager = manager
-                logger.debug("starting vpn")
-                try await manager.startVPN()
-                logger.info("vpn started")
-                self.manager = manager
-                completionHandler(nil)
-            } catch {
-                logger.error("error starting manager: \(error.description, privacy: .public)")
-                completionHandler(
-                    makeNSError(suffix: "Manager", desc: error.description)
-                )
-            }
+        guard let tunFd = tunnelFileDescriptor else {
+            logger.error("startTunnel called with nil tunnelFileDescriptor")
+            throw makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor")
         }
+        try await globalHelperXPCSpeaker.startDaemon(
+            accessURL: .init(string: baseAccessURL)!,
+            token: token,
+            tun: FileHandle(fileDescriptor: tunFd),
+            headers: headers
+        )
     }
 
     override func stopTunnel(
-        with _: NEProviderStopReason, completionHandler: @escaping () -> Void
-    ) {
-        logger.debug("stopTunnel called")
-        teardown(completionHandler)
-    }
-
-    // called by `stopTunnel`
-    func teardown(_ completionHandler: @escaping () -> Void) {
-        guard let manager else {
-            logger.error("teardown called with nil Manager")
-            completionHandler()
-            return
-        }
-
-        let completionHandler = CompletionWrapper(completionHandler)
-        Task { [manager] in
-            do throws(ManagerError) {
-                try await manager.stopVPN()
-            } catch {
-                logger.error("error stopping manager: \(error.description, privacy: .public)")
-            }
-            globalXPCListenerDelegate.vpnXPCInterface.manager = nil
-            // Mark teardown as complete by setting manager to nil, and
-            // calling the completion handler.
-            self.manager = nil
-            completionHandler()
-        }
+        with _: NEProviderStopReason
+    ) async {
+        logger.debug("stopping tunnel")
+        try? await globalHelperXPCSpeaker.stopDaemon()
+        logger.info("tunnel stopped")
+        globalHelperXPCSpeaker.ptp = nil
     }
 
     override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
