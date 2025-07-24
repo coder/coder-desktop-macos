@@ -58,6 +58,7 @@ struct LoginForm: View {
 
     func submit() async {
         loginError = nil
+        sessionToken = sessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
         guard sessionToken != "" else {
             return
         }
@@ -164,6 +165,7 @@ struct LoginForm: View {
     }
 
     private func next() {
+        baseAccessURL = baseAccessURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard baseAccessURL != "" else {
             return
         }
