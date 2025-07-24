@@ -61,6 +61,18 @@ final class CoderVPNService: NSObject, VPNService {
             if tunnelState == .connecting {
                 progress = .init(stage: .initial, downloadProgress: nil)
             }
+            if case let .failed(tunnelError) = tunnelState, tunnelState != oldValue {
+                Task {
+                    do {
+                        try await sendNotification(
+                            title: "Coder Connect has failed!",
+                            body: tunnelError.description, category: .vpnFailure
+                        )
+                    } catch let notifError {
+                        logger.error("Failed to send notification (\(tunnelError.description)): \(notifError)")
+                    }
+                }
+            }
         }
     }
 
