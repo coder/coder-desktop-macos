@@ -138,24 +138,25 @@ struct MenuItemView: View {
                 MenuItemIcons(item: item, wsURL: wsURL)
             }
             if isExpanded {
-                switch (loadingApps, hasApps) {
-                case (true, _):
-                    CircularProgressView(value: nil, strokeWidth: 3, diameter: 15)
-                        .padding(.top, 5)
-                case (false, true):
-                    MenuItemCollapsibleView(apps: apps)
-                case (false, false):
-                    HStack {
-                        Text(item.status == .off ? "Workspace is offline." : "No apps available.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, Theme.Size.trayInset)
-                            .padding(.top, 7)
+                Group {
+                    switch (loadingApps, hasApps) {
+                    case (true, _):
+                        CircularProgressView(value: nil, strokeWidth: 3, diameter: 15)
+                            .padding(.top, 5)
+                    case (false, true):
+                        MenuItemCollapsibleView(apps: apps)
+                    case (false, false):
+                        HStack {
+                            Text(item.status == .off ? "Workspace is offline." : "No apps available.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, Theme.Size.trayInset)
+                                .padding(.top, 7)
+                        }
                     }
-                }
+                }.task { await loadApps() }
             }
         }
-        .task { await loadApps() }
     }
 
     func loadApps() async {
