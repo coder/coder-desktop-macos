@@ -124,7 +124,11 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                 // Prevent starting the VPN before the user has approved the system extension.
                 vpn.state == .failed(.systemExtensionError(.needsUserApproval)) ||
                 // Prevent starting the VPN without a VPN configuration.
-                vpn.state == .failed(.networkExtensionError(.unconfigured))
+                vpn.state == .failed(.networkExtensionError(.unconfigured)) ||
+                // Prevent starting the VPN before the Helper is approved
+                vpn.state == .failed(.helperError(.requiresApproval)) ||
+                // Prevent starting the VPN before the Helper is installed
+                vpn.state == .failed(.helperError(.installing))
         )
     }
 }

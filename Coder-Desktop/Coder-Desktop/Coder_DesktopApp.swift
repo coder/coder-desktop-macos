@@ -26,7 +26,6 @@ struct DesktopApp: App {
             SettingsView<CoderVPNService>()
                 .environmentObject(appDelegate.vpn)
                 .environmentObject(appDelegate.state)
-                .environmentObject(appDelegate.helper)
                 .environmentObject(appDelegate.autoUpdater)
         }
         .windowResizability(.contentSize)
@@ -48,13 +47,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
     let notifDelegate: NotifDelegate
-    let helper: HelperService
     let autoUpdater: UpdaterService
 
     override init() {
         notifDelegate = NotifDelegate()
         vpn = CoderVPNService()
-        helper = HelperService()
         autoUpdater = UpdaterService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         vpn.onStart = {
@@ -95,9 +92,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             image: "MenuBarIcon",
             onAppear: {
                 // If the VPN is enabled, it's likely the token isn't expired
-                guard self.vpn.state != .connected, self.state.hasSession else { return }
                 Task { @MainActor in
+                    guard self.vpn.state != .connected, self.state.hasSession else { return }
                     await self.state.handleTokenExpiry()
+                }
+                // If the Helper is pending approval, we should check if it's
+                // been approved when the tray is opened.
+                Task { @MainActor in
+                    guard self.vpn.state == .failed(.helperError(.requiresApproval)) else { return }
+                    self.vpn.refreshHelperState()
                 }
             }, content: {
                 VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)
@@ -119,6 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if await !vpn.loadNetworkExtensionConfig() {
                 state.reconfigure()
             }
+            await vpn.setupHelper()
         }
     }
 
