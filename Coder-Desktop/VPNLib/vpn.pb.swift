@@ -757,6 +757,8 @@ public struct Vpn_StartRequest: Sendable {
 
   public var tunnelFileDescriptor: Int32 = 0
 
+  public var tunnelUseSoftNetIsolation: Bool = false
+
   public var coderURL: String = String()
 
   public var apiToken: String = String()
@@ -2156,6 +2158,7 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
   public static let protoMessageName: String = _protobuf_package + ".StartRequest"
   public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .standard(proto: "tunnel_file_descriptor"),
+    8: .standard(proto: "tunnel_use_soft_net_isolation"),
     2: .standard(proto: "coder_url"),
     3: .standard(proto: "api_token"),
     4: .same(proto: "headers"),
@@ -2177,6 +2180,7 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
       case 5: try { try decoder.decodeSingularStringField(value: &self.deviceID) }()
       case 6: try { try decoder.decodeSingularStringField(value: &self.deviceOs) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.coderDesktopVersion) }()
+      case 8: try { try decoder.decodeSingularBoolField(value: &self.tunnelUseSoftNetIsolation) }()
       default: break
       }
     }
@@ -2204,11 +2208,15 @@ extension Vpn_StartRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     if !self.coderDesktopVersion.isEmpty {
       try visitor.visitSingularStringField(value: self.coderDesktopVersion, fieldNumber: 7)
     }
+    if self.tunnelUseSoftNetIsolation != false {
+      try visitor.visitSingularBoolField(value: self.tunnelUseSoftNetIsolation, fieldNumber: 8)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Vpn_StartRequest, rhs: Vpn_StartRequest) -> Bool {
     if lhs.tunnelFileDescriptor != rhs.tunnelFileDescriptor {return false}
+    if lhs.tunnelUseSoftNetIsolation != rhs.tunnelUseSoftNetIsolation {return false}
     if lhs.coderURL != rhs.coderURL {return false}
     if lhs.apiToken != rhs.apiToken {return false}
     if lhs.headers != rhs.headers {return false}

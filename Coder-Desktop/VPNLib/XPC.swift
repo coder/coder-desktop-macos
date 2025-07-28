@@ -25,8 +25,16 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
 // This is the XPC interface the Helper exposes to the Network Extension.
 @preconcurrency
 @objc public protocol HelperNEXPCInterface {
-    // headers is a JSON `[HTTPHeader]`
-    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?, reply: @escaping (Error?) -> Void)
+    // swiftlint:disable:next function_parameter_count
+    func startDaemon(
+        accessURL: URL,
+        token: String,
+        tun: FileHandle,
+        // headers is a JSON encoded `[HTTPHeader]`
+        headers: Data?,
+        useSoftNetIsolation: Bool,
+        reply: @escaping (Error?) -> Void
+    )
     func stopDaemon(reply: @escaping (Error?) -> Void)
 }
 

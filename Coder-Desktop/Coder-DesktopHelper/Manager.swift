@@ -160,6 +160,7 @@ actor Manager {
             resp = try await speaker.unaryRPC(
                 .with { msg in
                     msg.start = .with { req in
+                        req.tunnelUseSoftNetIsolation = cfg.useSoftNetIsolation
                         req.tunnelFileDescriptor = cfg.tunFd
                         req.apiToken = cfg.apiToken
                         req.coderURL = cfg.serverUrl.absoluteString
@@ -234,6 +235,7 @@ struct ManagerConfig {
     let apiToken: String
     let serverUrl: URL
     let tunFd: Int32
+    let useSoftNetIsolation: Bool
     let literalHeaders: [HTTPHeader]
 }
 

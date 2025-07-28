@@ -4,6 +4,7 @@ import KeychainAccess
 import NetworkExtension
 import os
 import SwiftUI
+import VPNLib
 
 @MainActor
 class AppState: ObservableObject {
@@ -70,6 +71,14 @@ class AppState: ObservableObject {
         }
     }
 
+    @Published var useSoftNetIsolation: Bool = UserDefaults.standard.bool(forKey: Keys.useSoftNetIsolation) {
+        didSet {
+            reconfigure()
+            guard persistent else { return }
+            UserDefaults.standard.set(useSoftNetIsolation, forKey: Keys.useSoftNetIsolation)
+        }
+    }
+
     @Published var skipHiddenIconAlert: Bool = UserDefaults.standard.bool(forKey: Keys.skipHiddenIconAlert) {
         didSet {
             guard persistent else { return }
@@ -81,11 +90,18 @@ class AppState: ObservableObject {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = "\(appId).VPN"
-        // HACK: We can't write to the system keychain, and the user keychain
-        // isn't accessible, so we'll use providerConfiguration, which is over XPC.
-        proto.providerConfiguration = ["token": sessionToken!]
-        if useLiteralHeaders, let headers = try? JSONEncoder().encode(literalHeaders) {
-            proto.providerConfiguration?["literalHeaders"] = headers
+
+        proto.providerConfiguration = [
+            // HACK: We can't write to the system keychain, and the user keychain
+            // isn't accessible, so we'll use providerConfiguration, which
+            // writes to disk.
+            VPNConfigurationKeys.token: sessionToken!,
+            VPNConfigurationKeys.useSoftNetIsolation: useSoftNetIsolation,
+        ]
+        if useLiteralHeaders {
+            proto.providerConfiguration?[
+                VPNConfigurationKeys.literalHeaders
+            ] = literalHeaders.map { ($0.name, $0.value) }
         }
         proto.serverAddress = baseAccessURL!.absoluteString
         return proto
@@ -188,6 +204,7 @@ class AppState: ObservableObject {
     }
 
     public func clearSession() {
+        logger.info("clearing session")
         hasSession = false
         sessionToken = nil
         refreshTask?.cancel()
@@ -216,6 +233,7 @@ class AppState: ObservableObject {
 
         static let useLiteralHeaders = "UseLiteralHeaders"
         static let literalHeaders = "LiteralHeaders"
+        static let useSoftNetIsolation = "UseSoftNetIsolation"
         static let stopVPNOnQuit = "StopVPNOnQuit"
         static let startVPNOnLaunch = "StartVPNOnLaunch"
 

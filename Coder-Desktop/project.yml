@@ -181,7 +181,7 @@ targets:
         # so that macOS stops complaining about the app being run from an
         # untrusted folder.
         DEPLOYMENT_LOCATION: YES
-        DSTROOT: $(LOCAL_APPS_DIR)/Coder
+        DSTROOT: $(LOCAL_APPS_DIR)
         INSTALL_PATH: /
         SKIP_INSTALL: NO
         LD_RUNPATH_SEARCH_PATHS:

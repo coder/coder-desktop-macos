@@ -40,11 +40,13 @@ class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface
 
     let startSymbol = "OpenTunnel"
 
+    // swiftlint:disable:next function_parameter_count
     func startDaemon(
         accessURL: URL,
         token: String,
         tun: FileHandle,
         headers: Data?,
+        useSoftNetIsolation: Bool,
         reply: @escaping (Error?) -> Void
     ) {
         logger.info("startDaemon called")
@@ -57,6 +59,7 @@ class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface
                         apiToken: token,
                         serverUrl: accessURL,
                         tunFd: tun.fileDescriptor,
+                        useSoftNetIsolation: useSoftNetIsolation,
                         literalHeaders: headers.flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? []
                     )
                 )

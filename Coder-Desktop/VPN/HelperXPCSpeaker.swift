@@ -58,7 +58,13 @@ final class HelperXPCSpeaker: NEXPCInterface, @unchecked Sendable {
 
 // These methods are called to start and stop the daemon run by the Helper.
 extension HelperXPCSpeaker {
-    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?) async throws {
+    func startDaemon(
+        accessURL: URL,
+        token: String,
+        tun: FileHandle,
+        headers: Data?,
+        useSoftNetIsolation: Bool
+    ) async throws {
         let conn = connect()
         return try await withCheckedThrowingContinuation { continuation in
             guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
@@ -69,7 +75,13 @@ extension HelperXPCSpeaker {
                 continuation.resume(throwing: XPCError.wrongProxyType)
                 return
             }
-            proxy.startDaemon(accessURL: accessURL, token: token, tun: tun, headers: headers) { err in
+            proxy.startDaemon(
+                accessURL: accessURL,
+                token: token,
+                tun: tun,
+                headers: headers,
+                useSoftNetIsolation: useSoftNetIsolation
+            ) { err in
                 if let error = err {
                     self.logger.error("Failed to start daemon: \(error.localizedDescription, privacy: .public)")
                     continuation.resume(throwing: error)

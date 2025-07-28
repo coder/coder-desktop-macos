@@ -150,15 +150,15 @@ extension DownloadManager: URLSessionDownloadDelegate {
     }
 
     public required convenience init?(coder: NSCoder) {
-        let written = coder.decodeInt64(forKey: "written")
-        let total = coder.containsValue(forKey: "total") ? coder.decodeInt64(forKey: "total") : nil
+        let written = coder.decodeInt64(forKey: Keys.written)
+        let total = coder.containsValue(forKey: Keys.total) ? coder.decodeInt64(forKey: Keys.total) : nil
         self.init(totalBytesWritten: written, totalBytesToWrite: total)
     }
 
     public func encode(with coder: NSCoder) {
-        coder.encode(totalBytesWritten, forKey: "written")
+        coder.encode(totalBytesWritten, forKey: Keys.written)
         if let total = totalBytesToWrite {
-            coder.encode(total, forKey: "total")
+            coder.encode(total, forKey: Keys.total)
         }
     }
 
@@ -168,5 +168,10 @@ extension DownloadManager: URLSessionDownloadDelegate {
             .padding(toLength: 7, withPad: " ", startingAt: 0)
         let total = totalBytesToWrite.map { fmt.string(fromByteCount: $0) } ?? "Unknown"
         return "\(done) / \(total)"
+    }
+
+    enum Keys {
+        static let written = "written"
+        static let total = "total"
     }
 }

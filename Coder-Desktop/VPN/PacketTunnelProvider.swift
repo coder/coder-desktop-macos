@@ -48,27 +48,31 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     ) async throws {
         globalHelperXPCSpeaker.ptp = self
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
-              let baseAccessURL = proto.serverAddress
+              let accessURL = proto.serverAddress
         else {
             logger.error("startTunnel called with nil protocolConfiguration")
             throw makeNSError(suffix: "PTP", desc: "Missing Configuration")
         }
         // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
-        guard let token = proto.providerConfiguration?["token"] as? String else {
+        guard let token = proto.providerConfiguration?[VPNConfigurationKeys.token] as? String else {
             logger.error("startTunnel called with nil token")
             throw makeNSError(suffix: "PTP", desc: "Missing Token")
         }
-        let headers = proto.providerConfiguration?["literalHeaders"] as? Data
-        logger.debug("retrieved token & access URL")
+        let headers = proto.providerConfiguration?[VPNConfigurationKeys.literalHeaders] as? Data
+        let useSoftNetIsolation = proto.providerConfiguration?[
+            VPNConfigurationKeys.useSoftNetIsolation
+        ] as? Bool ?? false
+        logger.debug("retrieved vpn configuration settings")
         guard let tunFd = tunnelFileDescriptor else {
             logger.error("startTunnel called with nil tunnelFileDescriptor")
             throw makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor")
         }
         try await globalHelperXPCSpeaker.startDaemon(
-            accessURL: .init(string: baseAccessURL)!,
+            accessURL: .init(string: accessURL)!,
             token: token,
             tun: FileHandle(fileDescriptor: tunFd),
-            headers: headers
+            headers: headers,
+            useSoftNetIsolation: useSoftNetIsolation
         )
     }
 
