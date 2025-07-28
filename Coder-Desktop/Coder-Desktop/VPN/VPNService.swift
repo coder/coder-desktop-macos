@@ -37,7 +37,7 @@ enum VPNServiceError: Error, Equatable {
     case systemExtensionError(SystemExtensionState)
     case networkExtensionError(NetworkExtensionState)
 
-    var description: String {
+    public var description: String {
         switch self {
         case let .internalError(description):
             "Internal Error: \(description)"
@@ -48,7 +48,7 @@ enum VPNServiceError: Error, Equatable {
         }
     }
 
-    var localizedDescription: String { description }
+    public var localizedDescription: String { description }
 }
 
 @MainActor
@@ -126,13 +126,13 @@ final class CoderVPNService: NSObject, VPNService {
                 // this just configures the VPN, it doesn't enable it
                 tunnelState = .disabled
             } else {
-                do {
+                do throws(VPNServiceError) {
                     try await removeNetworkExtension()
                     neState = .unconfigured
                     tunnelState = .disabled
                 } catch {
-                    logger.error("failed to remove network extension: \(error)")
-                    neState = .failed(error.localizedDescription)
+                    logger.error("failed to remove configuration: \(error)")
+                    neState = .failed("Failed to remove configuration: \(error.description)")
                 }
             }
         }

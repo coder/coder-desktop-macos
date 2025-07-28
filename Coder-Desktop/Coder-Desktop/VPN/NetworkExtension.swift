@@ -16,7 +16,7 @@ enum NetworkExtensionState: Equatable {
         case .disabled:
             "NetworkExtension tunnel disabled"
         case let .failed(error):
-            "NetworkExtension config failed: \(error)"
+            "NetworkExtension: \(error)"
         }
     }
 }
@@ -44,7 +44,7 @@ extension CoderVPNService {
             try await removeNetworkExtension()
         } catch {
             logger.error("remove tunnel failed: \(error)")
-            neState = .failed(error.localizedDescription)
+            neState = .failed("Failed to remove configuration: \(error.description)")
             return
         }
         logger.debug("inserting new tunnel")
@@ -60,7 +60,9 @@ extension CoderVPNService {
         } catch {
             // This typically fails when the user declines the permission dialog
             logger.error("save tunnel failed: \(error)")
-            neState = .failed("Failed to save tunnel: \(error.localizedDescription). Try logging in and out again.")
+            neState = .failed(
+                "Failed to save configuration: \(error.localizedDescription). Try logging in and out again."
+            )
         }
     }
 
@@ -71,17 +73,24 @@ extension CoderVPNService {
                 try await tunnel.removeFromPreferences()
             }
         } catch {
-            throw .internalError("couldn't remove tunnels: \(error)")
+            throw .internalError(error.localizedDescription)
         }
     }
 
     func startTunnel() async {
+        let tm: NETunnelProviderManager
         do {
-            let tm = try await getTunnelManager()
+            tm = try await getTunnelManager()
+        } catch {
+            logger.error("get tunnel: \(error)")
+            neState = .failed("Failed to get VPN configuration: \(error.description)")
+            return
+        }
+        do {
             try tm.connection.startVPNTunnel()
         } catch {
             logger.error("start tunnel: \(error)")
-            neState = .failed(error.localizedDescription)
+            neState = .failed("Failed to start VPN tunnel: \(error.localizedDescription)")
             return
         }
         logger.debug("started tunnel")
@@ -94,7 +103,7 @@ extension CoderVPNService {
             tm.connection.stopVPNTunnel()
         } catch {
             logger.error("stop tunnel: \(error)")
-            neState = .failed(error.localizedDescription)
+            neState = .failed("Failed to stop VPN tunnel: \(error.localizedDescription)")
             return
         }
         logger.debug("stopped tunnel")
