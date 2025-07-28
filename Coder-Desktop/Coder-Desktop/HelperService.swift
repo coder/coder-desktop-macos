@@ -1,54 +1,84 @@
 import os
 import ServiceManagement
 
-// Whilst the GUI app installs the helper, the System Extension communicates
-// with it over XPC
-@MainActor
-class HelperService: ObservableObject {
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperService")
-    let plistName = "com.coder.Coder-Desktop.Helper.plist"
-    @Published var state: HelperState = .uninstalled {
-        didSet {
-            logger.info("helper daemon state set: \(self.state.description, privacy: .public)")
+extension CoderVPNService {
+    var plistName: String { "com.coder.Coder-Desktop.Helper.plist" }
+
+    func refreshHelperState() {
+        let daemon = SMAppService.daemon(plistName: plistName)
+        helperState = HelperState(status: daemon.status)
+    }
+
+    func setupHelper() async {
+        refreshHelperState()
+        switch helperState {
+        case .uninstalled, .failed:
+            await installHelper()
+        case .installed:
+            uninstallHelper()
+            await installHelper()
+        case .requiresApproval, .installing:
+            break
         }
     }
 
-    init() {
-        update()
-    }
+    private func installHelper() async {
+        // Worst case, this setup takes a few seconds. We'll show a loading
+        // indicator in the meantime.
+        helperState = .installing
+        var lastUnknownError: Error?
+        // Registration may fail with a permissions error if it was
+        // just unregistered, so we retry a few times.
+        for _ in 0 ... 10 {
+            let daemon = SMAppService.daemon(plistName: plistName)
+            do {
+                try daemon.register()
+                helperState = HelperState(status: daemon.status)
+                return
+            } catch {
+                if daemon.status == .requiresApproval {
+                    helperState = .requiresApproval
+                    return
+                }
+                let helperError = HelperError(error: error as NSError)
+                switch helperError {
+                case .alreadyRegistered:
+                    helperState = .installed
+                    return
+                case .launchDeniedByUser, .invalidSignature:
+                    // Something weird happened, we should update the UI
+                    helperState = .failed(helperError)
+                    return
+                case .unknown:
+                    // Likely intermittent permissions error, we'll retry
+                    lastUnknownError = error
+                    logger.warning("failed to register helper: \(helperError.localizedDescription)")
+                }
 
-    func update() {
-        let daemon = SMAppService.daemon(plistName: plistName)
-        state = HelperState(status: daemon.status)
-    }
-
-    func install() {
-        let daemon = SMAppService.daemon(plistName: plistName)
-        do {
-            try daemon.register()
-        } catch let error as NSError {
-            self.state = .failed(.init(error: error))
-        } catch {
-            state = .failed(.unknown(error.localizedDescription))
+                // Short delay before retrying
+                try? await Task.sleep(for: .milliseconds(500))
+            }
         }
-        state = HelperState(status: daemon.status)
+        // Give up, update the UI with the error
+        helperState = .failed(.unknown(lastUnknownError?.localizedDescription ?? "Unknown"))
     }
 
-    func uninstall() {
+    private func uninstallHelper() {
         let daemon = SMAppService.daemon(plistName: plistName)
         do {
             try daemon.unregister()
         } catch let error as NSError {
-            self.state = .failed(.init(error: error))
+            helperState = .failed(.init(error: error))
         } catch {
-            state = .failed(.unknown(error.localizedDescription))
+            helperState = .failed(.unknown(error.localizedDescription))
         }
-        state = HelperState(status: daemon.status)
+        helperState = HelperState(status: daemon.status)
     }
 }
 
 enum HelperState: Equatable {
     case uninstalled
+    case installing
     case installed
     case requiresApproval
     case failed(HelperError)
@@ -57,6 +87,8 @@ enum HelperState: Equatable {
         switch self {
         case .uninstalled:
             "Uninstalled"
+        case .installing:
+            "Installing"
         case .installed:
             "Installed"
         case .requiresApproval:
