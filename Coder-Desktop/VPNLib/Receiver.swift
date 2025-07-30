@@ -69,7 +69,7 @@ actor Receiver<RecvMsg: Message> {
             },
             onCancel: {
                 self.logger.debug("async stream canceled")
-                self.dispatch.close()
+                self.dispatch.close(flags: [.stop])
             }
         )
     }

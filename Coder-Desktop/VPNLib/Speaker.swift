@@ -86,6 +86,8 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
         }
     }
 
+    deinit { logger.debug("speaker deinit") }
+
     /// Does the VPN Protocol handshake and validates the result
     public func handshake() async throws(HandshakeError) {
         let hndsh = Handshaker(writeFD: writeFD, dispatch: dispatch, queue: queue, role: role,
@@ -227,7 +229,7 @@ actor Handshaker {
             return try validateHeader(theirsString)
         } catch {
             writeFD.closeFile()
-            dispatch.close()
+            dispatch.close(flags: [.stop])
             throw error
         }
     }
