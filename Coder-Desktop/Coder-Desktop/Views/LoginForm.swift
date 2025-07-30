@@ -222,7 +222,7 @@ enum LoginError: Error {
         case .outdatedCoderVersion:
             """
             The Coder deployment must be version \(Validator.minimumCoderVersion)
-            or higher to use Coder Desktop.
+            or higher to use this version of Coder Desktop.
             """
         case let .failedAuth(err):
             "Could not authenticate with Coder deployment:\n\(err.localizedDescription)"

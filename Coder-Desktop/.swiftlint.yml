@@ -10,3 +10,5 @@ type_name:
 identifier_name:
   allowed_symbols: "_"
   min_length: 1
+line_length:
+  ignores_urls: true

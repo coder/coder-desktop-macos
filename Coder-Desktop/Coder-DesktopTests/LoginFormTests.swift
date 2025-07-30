@@ -134,7 +134,7 @@ struct LoginTests {
             username: "admin"
         )
         let buildInfo = BuildInfoResponse(
-            version: "v2.20.0"
+            version: "v2.24.2"
         )
 
         try Mock(

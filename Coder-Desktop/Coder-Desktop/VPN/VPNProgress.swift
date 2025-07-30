@@ -54,8 +54,6 @@ struct VPNProgressView: View {
             return 0.4 * downloadPercent
         case .validating:
             return 0.43
-        case .removingQuarantine:
-            return 0.46
         case .startingTunnel:
             return 0.50
         }
