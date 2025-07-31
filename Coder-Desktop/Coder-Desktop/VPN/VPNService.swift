@@ -54,7 +54,7 @@ enum VPNServiceError: Error, Equatable {
 @MainActor
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
-    lazy var xpc: AppXPCListener = .init(vpn: self)
+    lazy var xpc: HelperXPCClient = .init(vpn: self)
 
     @Published var tunnelState: VPNServiceState = .disabled {
         didSet {

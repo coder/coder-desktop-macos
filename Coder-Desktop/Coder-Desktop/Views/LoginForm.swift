@@ -90,7 +90,7 @@ struct LoginForm: View {
             return
         }
         // x.compare(y) is .orderedDescending if x > y
-        guard SignatureValidator.minimumCoderVersion.compare(semver, options: .numeric) != .orderedDescending else {
+        guard Validator.minimumCoderVersion.compare(semver, options: .numeric) != .orderedDescending else {
             loginError = .outdatedCoderVersion
             return
         }
@@ -221,7 +221,7 @@ enum LoginError: Error {
             "Invalid URL"
         case .outdatedCoderVersion:
             """
-            The Coder deployment must be version \(SignatureValidator.minimumCoderVersion)
+            The Coder deployment must be version \(Validator.minimumCoderVersion)
             or higher to use Coder Desktop.
             """
         case let .failedAuth(err):

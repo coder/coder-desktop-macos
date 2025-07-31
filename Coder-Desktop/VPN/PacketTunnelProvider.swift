@@ -46,7 +46,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     override func startTunnel(
         options _: [String: NSObject]?
     ) async throws {
-        globalHelperXPCSpeaker.ptp = self
+        globalHelperXPCClient.ptp = self
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
@@ -64,7 +64,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             logger.error("startTunnel called with nil tunnelFileDescriptor")
             throw makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor")
         }
-        try await globalHelperXPCSpeaker.startDaemon(
+        try await globalHelperXPCClient.startDaemon(
             accessURL: .init(string: baseAccessURL)!,
             token: token,
             tun: FileHandle(fileDescriptor: tunFd),
@@ -76,9 +76,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         with _: NEProviderStopReason
     ) async {
         logger.debug("stopping tunnel")
-        try? await globalHelperXPCSpeaker.stopDaemon()
+        try? await globalHelperXPCClient.stopDaemon()
         logger.info("tunnel stopped")
-        globalHelperXPCSpeaker.ptp = nil
+        globalHelperXPCClient.ptp = nil
     }
 
     override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {

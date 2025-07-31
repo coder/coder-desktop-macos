@@ -56,7 +56,7 @@ actor Manager {
             throw .serverInfo("invalid version: \(buildInfo.version)")
         }
         do {
-            try SignatureValidator.validate(path: dest, expectedVersion: semver)
+            try Validator.validate(path: dest, expectedVersion: semver)
         } catch {
             throw .validation(error)
         }
@@ -100,14 +100,14 @@ actor Manager {
         } catch {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelHandle.close()
-            try await NEXPCListenerDelegate.cancelProvider(error:
+            try await NEXPCServerDelegate.cancelProvider(error:
                 makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
             )
             return
         }
         logger.info("tunnel read loop exited")
         try await tunnelHandle.close()
-        try await NEXPCListenerDelegate.cancelProvider(error: nil)
+        try await NEXPCServerDelegate.cancelProvider(error: nil)
     }
 
     func handleMessage(_ msg: Vpn_TunnelMessage) {
@@ -117,7 +117,7 @@ actor Manager {
         }
         switch msgType {
         case .peerUpdate:
-            Task { try? await appXPCListenerDelegate.onPeerUpdate(update: msg.peerUpdate) }
+            Task { try? await appXPCServerDelegate.onPeerUpdate(update: msg.peerUpdate) }
         case let .log(logMsg):
             writeVpnLog(logMsg)
         case .networkSettings, .start, .stop:
@@ -133,7 +133,7 @@ actor Manager {
         switch msgType {
         case let .networkSettings(ns):
             do {
-                try await NEXPCListenerDelegate.applyTunnelNetworkSettings(diff: ns)
+                try await NEXPCServerDelegate.applyTunnelNetworkSettings(diff: ns)
                 try? await rpc.sendReply(.with { resp in
                     resp.networkSettings = .with { settings in
                         settings.success = true
@@ -227,7 +227,7 @@ actor Manager {
 }
 
 func pushProgress(stage: ProgressStage, downloadProgress: DownloadProgress? = nil) {
-    Task { try? await appXPCListenerDelegate.onProgress(stage: stage, downloadProgress: downloadProgress) }
+    Task { try? await appXPCServerDelegate.onProgress(stage: stage, downloadProgress: downloadProgress) }
 }
 
 struct ManagerConfig {

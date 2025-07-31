@@ -3,9 +3,10 @@ import NetworkExtension
 import os
 import VPNLib
 
-@objc final class AppXPCListener: NSObject, AppXPCInterface, @unchecked Sendable {
+// This is the client for the app to communicate with the privileged helper.
+@objc final class HelperXPCClient: NSObject, @unchecked Sendable {
     private var svc: CoderVPNService
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "AppXPCListener")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperXPCClient")
     private var connection: NSXPCConnection?
 
     init(vpn: CoderVPNService) {
@@ -41,25 +42,7 @@ import VPNLib
         return connection
     }
 
-    func onPeerUpdate(_ diff: Data, reply: @escaping () -> Void) {
-        let reply = CompletionWrapper(reply)
-        Task { @MainActor in
-            svc.onExtensionPeerUpdate(diff)
-            reply()
-        }
-    }
-
-    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?, reply: @escaping () -> Void) {
-        let reply = CompletionWrapper(reply)
-        Task { @MainActor in
-            svc.onProgress(stage: stage, downloadProgress: downloadProgress)
-            reply()
-        }
-    }
-}
-
-// These methods are called to request updatess from the Helper.
-extension AppXPCListener {
+    // Establishes a connection to the Helper, so it can send messages back.
     func ping() async throws {
         let conn = connect()
         return try await withCheckedThrowingContinuation { continuation in
@@ -95,6 +78,25 @@ extension AppXPCListener {
                 }
                 continuation.resume()
             }
+        }
+    }
+}
+
+// These methods are called by the Helper over XPC
+extension HelperXPCClient: AppXPCInterface {
+    func onPeerUpdate(_ diff: Data, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        Task { @MainActor in
+            svc.onExtensionPeerUpdate(diff)
+            reply()
+        }
+    }
+
+    func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        Task { @MainActor in
+            svc.onProgress(stage: stage, downloadProgress: downloadProgress)
+            reply()
         }
     }
 }

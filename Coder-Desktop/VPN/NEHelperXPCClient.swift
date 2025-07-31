@@ -2,7 +2,7 @@ import Foundation
 import os
 import VPNLib
 
-final class HelperXPCSpeaker: NEXPCInterface, @unchecked Sendable {
+final class HelperXPCClient: @unchecked Sendable {
     var ptp: PacketTunnelProvider?
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperXPCSpeaker")
     private var connection: NSXPCConnection?
@@ -34,29 +34,6 @@ final class HelperXPCSpeaker: NEXPCInterface, @unchecked Sendable {
         return connection
     }
 
-    func applyTunnelNetworkSettings(diff: Data, reply: @escaping () -> Void) {
-        let reply = CompletionWrapper(reply)
-        guard let diff = try? Vpn_NetworkSettingsRequest(serializedBytes: diff) else {
-            reply()
-            return
-        }
-        Task {
-            try? await ptp?.applyTunnelNetworkSettings(diff)
-            reply()
-        }
-    }
-
-    func cancelProvider(error: Error?, reply: @escaping () -> Void) {
-        let reply = CompletionWrapper(reply)
-        Task {
-            ptp?.cancelTunnelWithError(error)
-            reply()
-        }
-    }
-}
-
-// These methods are called to start and stop the daemon run by the Helper.
-extension HelperXPCSpeaker {
     func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?) async throws {
         let conn = connect()
         return try await withCheckedThrowingContinuation { continuation in
@@ -100,6 +77,29 @@ extension HelperXPCSpeaker {
                     continuation.resume()
                 }
             }
+        }
+    }
+}
+
+// These methods are called over XPC by the helper.
+extension HelperXPCClient: NEXPCInterface {
+    func applyTunnelNetworkSettings(diff: Data, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        guard let diff = try? Vpn_NetworkSettingsRequest(serializedBytes: diff) else {
+            reply()
+            return
+        }
+        Task {
+            try? await ptp?.applyTunnelNetworkSettings(diff)
+            reply()
+        }
+    }
+
+    func cancelProvider(error: Error?, reply: @escaping () -> Void) {
+        let reply = CompletionWrapper(reply)
+        Task {
+            ptp?.cancelTunnelWithError(error)
+            reply()
         }
     }
 }

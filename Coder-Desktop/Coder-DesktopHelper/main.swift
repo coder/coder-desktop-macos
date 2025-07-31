@@ -5,14 +5,14 @@ import VPNLib
 
 var globalManager: Manager?
 
-let NEXPCListenerDelegate = HelperNEXPCListener()
-let NEXPCListener = NSXPCListener(machServiceName: helperNEMachServiceName)
-NEXPCListener.delegate = NEXPCListenerDelegate
-NEXPCListener.resume()
+let NEXPCServerDelegate = HelperNEXPCServer()
+let NEXPCServer = NSXPCListener(machServiceName: helperNEMachServiceName)
+NEXPCServer.delegate = NEXPCServerDelegate
+NEXPCServer.resume()
 
-let appXPCListenerDelegate = HelperAppXPCListener()
-let appXPCListener = NSXPCListener(machServiceName: helperAppMachServiceName)
-appXPCListener.delegate = appXPCListenerDelegate
-appXPCListener.resume()
+let appXPCServerDelegate = HelperAppXPCServer()
+let appXPCServer = NSXPCListener(machServiceName: helperAppMachServiceName)
+appXPCServer.delegate = appXPCServerDelegate
+appXPCServer.resume()
 
 RunLoop.main.run()

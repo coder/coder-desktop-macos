@@ -294,7 +294,6 @@ targets:
         PRODUCT_MODULE_NAME: "$(PRODUCT_NAME:c99extidentifier)"
         PRODUCT_NAME: "$(PRODUCT_BUNDLE_IDENTIFIER)"
         SWIFT_EMIT_LOC_STRINGS: YES
-        SWIFT_OBJC_BRIDGING_HEADER: "Coder-DesktopHelper/com_coder_Coder_Desktop_VPN-Bridging-Header.h"
         # `CODE_SIGN_*` are overriden during a release build
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
