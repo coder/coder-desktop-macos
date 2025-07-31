@@ -9,6 +9,6 @@ autoreleasepool {
     NEProvider.startSystemExtensionMode()
 }
 
-let globalHelperXPCSpeaker = HelperXPCSpeaker()
+let globalHelperXPCClient = HelperXPCClient()
 
 dispatchMain()

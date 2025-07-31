@@ -5,8 +5,8 @@ import VPNLib
 
 // This listener handles XPC connections from the Coder Desktop System Network
 // Extension (`com.coder.Coder-Desktop.VPN`).
-class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface, @unchecked Sendable {
-    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperNEXPCListener")
+class HelperNEXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
+    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperNEXPCServer")
     private var conns: [NSXPCConnection] = []
 
     // Hold a reference to the tun file handle
@@ -37,6 +37,43 @@ class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface
         return true
     }
 
+    func cancelProvider(error: Error?) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conns.last?.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperNEXPC \(err.localizedDescription, privacy: .public)")
+                continuation.resume(throwing: err)
+            }) as? NEXPCInterface else {
+                self.logger.error("failed to get proxy for HelperNEXPCInterface")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
+            }
+            proxy.cancelProvider(error: error) {
+                self.logger.info("provider cancelled")
+                continuation.resume()
+            }
+        } as Void
+    }
+
+    func applyTunnelNetworkSettings(diff: Vpn_NetworkSettingsRequest) async throws {
+        let bytes = try diff.serializedData()
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = conns.last?.remoteObjectProxyWithErrorHandler({ err in
+                self.logger.error("failed to connect to HelperNEXPC \(err.localizedDescription, privacy: .public)")
+                continuation.resume(throwing: err)
+            }) as? NEXPCInterface else {
+                self.logger.error("failed to get proxy for HelperNEXPCInterface")
+                continuation.resume(throwing: XPCError.wrongProxyType)
+                return
+            }
+            proxy.applyTunnelNetworkSettings(diff: bytes) {
+                self.logger.info("applied tunnel network setting")
+                continuation.resume()
+            }
+        }
+    }
+}
+
+extension HelperNEXPCServer: HelperNEXPCInterface {
     func startDaemon(
         accessURL: URL,
         token: String,
@@ -88,49 +125,10 @@ class HelperNEXPCListener: NSObject, NSXPCListenerDelegate, HelperNEXPCInterface
     }
 }
 
-// These methods are called to send updates to the Coder Desktop System Network
-// Extension.
-extension HelperNEXPCListener {
-    func cancelProvider(error: Error?) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            guard let proxy = conns.last?.remoteObjectProxyWithErrorHandler({ err in
-                self.logger.error("failed to connect to HelperNEXPC \(err.localizedDescription, privacy: .public)")
-                continuation.resume(throwing: err)
-            }) as? NEXPCInterface else {
-                self.logger.error("failed to get proxy for HelperNEXPCInterface")
-                continuation.resume(throwing: XPCError.wrongProxyType)
-                return
-            }
-            proxy.cancelProvider(error: error) {
-                self.logger.info("provider cancelled")
-                continuation.resume()
-            }
-        } as Void
-    }
-
-    func applyTunnelNetworkSettings(diff: Vpn_NetworkSettingsRequest) async throws {
-        let bytes = try diff.serializedData()
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let proxy = conns.last?.remoteObjectProxyWithErrorHandler({ err in
-                self.logger.error("failed to connect to HelperNEXPC \(err.localizedDescription, privacy: .public)")
-                continuation.resume(throwing: err)
-            }) as? NEXPCInterface else {
-                self.logger.error("failed to get proxy for HelperNEXPCInterface")
-                continuation.resume(throwing: XPCError.wrongProxyType)
-                return
-            }
-            proxy.applyTunnelNetworkSettings(diff: bytes) {
-                self.logger.info("applied tunnel network setting")
-                continuation.resume()
-            }
-        }
-    }
-}
-
 // This listener handles XPC connections from the Coder Desktop App
 // (`com.coder.Coder-Desktop`).
-class HelperAppXPCListener: NSObject, NSXPCListenerDelegate, HelperAppXPCInterface, @unchecked Sendable {
-    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperAppXPCListener")
+class HelperAppXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
+    private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperAppXPCServer")
     private var conns: [NSXPCConnection] = []
 
     override init() {
@@ -152,22 +150,6 @@ class HelperAppXPCListener: NSObject, NSXPCListenerDelegate, HelperAppXPCInterfa
         return true
     }
 
-    func getPeerState(with reply: @escaping (Data?) -> Void) {
-        logger.info("getPeerState called")
-        let reply = CallbackWrapper(reply)
-        Task { @MainActor in
-            let data = try? await globalManager?.getPeerState().serializedData()
-            reply(data)
-        }
-    }
-
-    func ping(reply: @escaping () -> Void) {
-        reply()
-    }
-}
-
-// These methods are called to send updates to the Coder Desktop App.
-extension HelperAppXPCListener {
     func onPeerUpdate(update: Vpn_PeerUpdate) async throws {
         let bytes = try update.serializedData()
         return try await withCheckedThrowingContinuation { continuation in
@@ -201,5 +183,20 @@ extension HelperAppXPCListener {
                 continuation.resume()
             }
         } as Void
+    }
+}
+
+extension HelperAppXPCServer: HelperAppXPCInterface {
+    func getPeerState(with reply: @escaping (Data?) -> Void) {
+        logger.info("getPeerState called")
+        let reply = CallbackWrapper(reply)
+        Task { @MainActor in
+            let data = try? await globalManager?.getPeerState().serializedData()
+            reply(data)
+        }
+    }
+
+    func ping(reply: @escaping () -> Void) {
+        reply()
     }
 }
