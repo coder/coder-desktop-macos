@@ -74,7 +74,8 @@ actor Manager {
         }
         pushProgress(stage: .validating)
         do {
-            try Validator.validate(path: dest)
+            try Validator.validateSignature(binaryPath: dest)
+            try await Validator.validateVersion(binaryPath: dest, serverVersion: buildInfo.version)
         } catch {
             throw .validation(error)
         }
