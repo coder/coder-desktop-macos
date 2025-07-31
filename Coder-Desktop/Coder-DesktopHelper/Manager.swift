@@ -76,7 +76,8 @@ actor Manager {
         }
         pushProgress(stage: .validating)
         do {
-            try Validator.validate(path: dest)
+            try Validator.validateSignature(binaryPath: dest)
+            try await Validator.validateVersion(binaryPath: dest, serverVersion: buildInfo.version)
         } catch {
             // Cleanup unvalid binary
             try? FileManager.default.removeItem(at: dest)

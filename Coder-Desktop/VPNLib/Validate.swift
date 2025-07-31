@@ -1,4 +1,5 @@
 import Foundation
+import Subprocess
 
 public enum ValidationError: Error {
     case fileNotFound
@@ -7,7 +8,9 @@ public enum ValidationError: Error {
     case unableToRetrieveSignature
     case invalidIdentifier(identifier: String?)
     case invalidTeamIdentifier(identifier: String?)
-    case invalidVersion(version: String?)
+    case unableToReadVersion(any Error)
+    case binaryVersionMismatch(binaryVersion: String, serverVersion: String)
+    case internalError(OSStatus)
 
     public var description: String {
         switch self {
@@ -21,10 +24,14 @@ public enum ValidationError: Error {
             "Unable to retrieve signing information."
         case let .invalidIdentifier(identifier):
             "Invalid identifier: \(identifier ?? "unknown")."
-        case let .invalidVersion(version):
-            "Invalid runtime version: \(version ?? "unknown")."
+        case let .binaryVersionMismatch(binaryVersion, serverVersion):
+            "Binary version does not match server. Binary: \(binaryVersion), Server: \(serverVersion)."
         case let .invalidTeamIdentifier(identifier):
             "Invalid team identifier: \(identifier ?? "unknown")."
+        case let .unableToReadVersion(error):
+            "Unable to execute the binary to read version: \(error.localizedDescription)"
+        case let .internalError(status):
+            "Internal error with OSStatus code: \(status)."
         }
     }
 
@@ -37,22 +44,32 @@ public class Validator {
     public static let minimumCoderVersion = "2.24.2"
 
     private static let expectedIdentifier = "com.coder.cli"
+    // The Coder team identifier
     private static let expectedTeamIdentifier = "4399GN35BJ"
+
+    // Apple-issued certificate chain
+    public static let anchorRequirement = "anchor apple generic"
 
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
 
-    public static func validate(path: URL) throws(ValidationError) {
-        guard FileManager.default.fileExists(atPath: path.path) else {
+    public static func validateSignature(binaryPath: URL) throws(ValidationError) {
+        guard FileManager.default.fileExists(atPath: binaryPath.path) else {
             throw .fileNotFound
         }
 
         var staticCode: SecStaticCode?
-        let status = SecStaticCodeCreateWithPath(path as CFURL, SecCSFlags(), &staticCode)
+        let status = SecStaticCodeCreateWithPath(binaryPath as CFURL, SecCSFlags(), &staticCode)
         guard status == errSecSuccess, let code = staticCode else {
             throw .unableToCreateStaticCode
         }
 
-        let validateStatus = SecStaticCodeCheckValidity(code, SecCSFlags(), nil)
+        var requirement: SecRequirement?
+        let reqStatus = SecRequirementCreateWithString(anchorRequirement as CFString, SecCSFlags(), &requirement)
+        guard reqStatus == errSecSuccess, let requirement else {
+            throw .internalError(OSStatus(reqStatus))
+        }
+
+        let validateStatus = SecStaticCodeCheckValidity(code, SecCSFlags(), requirement)
         guard validateStatus == errSecSuccess else {
             throw .invalidSignature
         }
@@ -78,6 +95,32 @@ public class Validator {
         }
     }
 
-    public static let xpcPeerRequirement = "anchor apple generic" + // Apple-issued certificate chain
+    // This function executes the binary to read its version, and so it assumes
+    // the signature has already been validated.
+    public static func validateVersion(binaryPath: URL, serverVersion: String) async throws(ValidationError) {
+        guard FileManager.default.fileExists(atPath: binaryPath.path) else {
+            throw .fileNotFound
+        }
+
+        let version: String
+        do {
+            try chmodX(at: binaryPath)
+            let versionOutput = try await Subprocess.data(for: [binaryPath.path, "version", "--output=json"])
+            let parsed: VersionOutput = try JSONDecoder().decode(VersionOutput.self, from: versionOutput)
+            version = parsed.version
+        } catch {
+            throw .unableToReadVersion(error)
+        }
+
+        guard version == serverVersion else {
+            throw .binaryVersionMismatch(binaryVersion: version, serverVersion: serverVersion)
+        }
+    }
+
+    struct VersionOutput: Codable {
+        let version: String
+    }
+
+    public static let xpcPeerRequirement = anchorRequirement +
         " and certificate leaf[subject.OU] = \"" + expectedTeamIdentifier + "\"" // Signed by the Coder team
 }
