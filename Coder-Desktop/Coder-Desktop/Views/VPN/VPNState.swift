@@ -1,4 +1,3 @@
-import ServiceManagement
 import SwiftUI
 
 struct VPNState<VPN: VPNService>: View {
@@ -11,7 +10,7 @@ struct VPNState<VPN: VPNService>: View {
         Group {
             switch (vpn.state, state.hasSession) {
             case (.failed(.systemExtensionError(.needsUserApproval)), _):
-                ApprovalRequiredView<VPN>(
+                ApprovalRequiredView(
                     message: "Awaiting System Extension approval",
                     action: openSystemExtensionSettings
                 )
@@ -57,24 +56,7 @@ struct VPNState<VPN: VPNService>: View {
     }
 }
 
-struct HelperProgressView: View {
-    var body: some View {
-        HStack {
-            Spacer()
-            VStack {
-                CircularProgressView(value: nil)
-                Text("Installing Helper...")
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-            .foregroundStyle(.secondary)
-            Spacer()
-        }
-    }
-}
-
-struct ApprovalRequiredView<VPN: VPNService>: View {
-    @EnvironmentObject var vpn: VPN
+struct ApprovalRequiredView: View {
     let message: String
     let action: () -> Void
 

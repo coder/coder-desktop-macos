@@ -92,8 +92,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             image: "MenuBarIcon",
             onAppear: {
                 // If the VPN is enabled, it's likely the token isn't expired
+                guard self.vpn.state != .connected, self.state.hasSession else { return }
                 Task { @MainActor in
-                    guard self.vpn.state != .connected, self.state.hasSession else { return }
                     await self.state.handleTokenExpiry()
                 }
             }, content: {

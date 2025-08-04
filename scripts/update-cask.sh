@@ -93,8 +93,8 @@ cask "coder-desktop" do
 
   uninstall quit:       [
               "com.coder.Coder-Desktop",
-              "com.coder.Coder-Desktop.VPN",
               "com.coder.Coder-Desktop.Helper",
+              "com.coder.Coder-Desktop.VPN",
             ],
             login_item: "Coder Desktop"
 

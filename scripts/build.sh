@@ -206,6 +206,3 @@ echo "$signature" >"$PKG_PATH.sig"
 
 # Add dsym to build artifacts
 (cd "$ARCHIVE_PATH/dSYMs" && zip -9 -r --symlinks "$DSYM_ZIPPED_PATH" ./*)
-
-# Add zipped app to build artifacts
-zip -9 -r --symlinks "$APP_ZIPPED_PATH" "$BUILT_APP_PATH"

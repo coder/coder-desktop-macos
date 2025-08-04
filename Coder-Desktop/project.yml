@@ -216,6 +216,29 @@ targets:
     buildToolPlugins:
       - plugin: SwiftLintBuildToolPlugin
         package: SwiftLintPlugins
+    postBuildScripts:
+      # This is a dependency of the app, not the helper, as it copies the
+      # helper plist from the app bundle to the system store.
+      - name: "Upsert Helper for Local Development"
+        # Only run this script (and prompt for admin) when the helper or any of
+        # it's frameworks have changed.
+        inputFiles:
+          - "$(BUILT_PRODUCTS_DIR)/com.coder.Coder-Desktop.Helper"
+          - "$(BUILT_PRODUCTS_DIR)/CoderSDK.framework/Versions/A/CoderSDK"
+          - "$(BUILT_PRODUCTS_DIR)/VPNLib.framework/Versions/A/VPNLib"
+        outputFiles:
+          - "$(DERIVED_FILE_DIR)/upsert-helper.stamp"
+        script: |
+          if [ -n "${CI}" ]; then
+            # Skip in CI
+            exit 0
+          fi
+          /usr/bin/osascript <<'APPLESCRIPT'
+          do shell script "/bin/bash -c " & quoted form of ((system attribute "SRCROOT") & "/../scripts/upsert-dev-helper.sh") with administrator privileges
+          APPLESCRIPT
+          /usr/bin/touch "${DERIVED_FILE_DIR}/upsert-helper.stamp"
+        basedOnDependencyAnalysis: true
+        runOnlyWhenInstalling: false
 
   Coder-DesktopTests:
     type: bundle.unit-test
