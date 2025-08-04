@@ -34,9 +34,7 @@ jobs:
       - name: Switch XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
         with:
-          # (ThomasK33): depot.dev does not yet support Xcode 16.1 or 16.2 GA, thus we're stuck with 16.0.0 for now.
-          # I've already reached out, so hopefully this comment will soon be obsolete.
-          xcode-version: "16.0.0"
+          xcode-version: "16.4.0"
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
@@ -57,9 +55,7 @@ jobs:
       - name: Switch XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
         with:
-          # (ThomasK33): depot.dev does not yet support Xcode 16.1 or 16.2 GA, thus we're stuck with 16.0.0 for now.
-          # I've already reached out, so hopefully this comment will soon be obsolete.
-          xcode-version: "16.0.0"
+          xcode-version: "16.4.0"
 
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
