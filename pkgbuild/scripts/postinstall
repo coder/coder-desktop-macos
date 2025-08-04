@@ -2,6 +2,25 @@
 
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
 
+LAUNCH_DAEMON_PLIST_SRC="/Applications/Coder Desktop.app/Contents/Library/LaunchDaemons"
+LAUNCH_DAEMON_PLIST_DEST="/Library/LaunchDaemons"
+LAUNCH_DAEMON_NAME="com.coder.Coder-Desktop.Helper"
+LAUNCH_DAEMON_PLIST_NAME="$LAUNCH_DAEMON_NAME.plist"
+LAUNCH_DAEMON_BINARY_PATH="/Applications/Coder Desktop.app/Contents/MacOS/com.coder.Coder-Desktop.Helper"
+
+# Install daemon
+# Copy plist into system dir
+sudo cp "$LAUNCH_DAEMON_PLIST_SRC"/"$LAUNCH_DAEMON_PLIST_NAME" "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME"
+# Set necessary permissions
+sudo chmod -R 755 "$LAUNCH_DAEMON_BINARY_PATH"
+sudo chmod 644 "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME"
+sudo chown root:wheel "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME"
+
+# Load daemon
+sudo launchctl enable "system/$LAUNCH_DAEMON_NAME" || true # Might already be enabled
+sudo launchctl bootstrap system "$LAUNCH_DAEMON_PLIST_DEST/$LAUNCH_DAEMON_PLIST_NAME"
+sudo launchctl kickstart -k "system/$LAUNCH_DAEMON_NAME"
+
 # Before this script, or the user, opens the app, make sure
 # Gatekeeper has ingested the notarization ticket.
 spctl -avvv "/Applications/Coder Desktop.app"

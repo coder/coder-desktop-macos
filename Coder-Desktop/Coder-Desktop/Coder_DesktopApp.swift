@@ -96,12 +96,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     guard self.vpn.state != .connected, self.state.hasSession else { return }
                     await self.state.handleTokenExpiry()
                 }
-                // If the Helper is pending approval, we should check if it's
-                // been approved when the tray is opened.
-                Task { @MainActor in
-                    guard self.vpn.state == .failed(.helperError(.requiresApproval)) else { return }
-                    self.vpn.refreshHelperState()
-                }
             }, content: {
                 VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)
                     .environmentObject(self.vpn)
@@ -122,7 +116,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if await !vpn.loadNetworkExtensionConfig() {
                 state.reconfigure()
             }
-            await vpn.setupHelper()
         }
     }
 

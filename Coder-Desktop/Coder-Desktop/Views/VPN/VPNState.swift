@@ -34,13 +34,6 @@ struct VPNState<VPN: VPNService>: View {
                     // open the menu bar an extra time
                     state.reconfigure()
                 }
-            case (.failed(.helperError(.requiresApproval)), _):
-                ApprovalRequiredView<VPN>(
-                    message: "Awaiting Background Item approval",
-                    action: SMAppService.openSystemSettingsLoginItems
-                )
-            case (.failed(.helperError(.installing)), _):
-                HelperProgressView()
             case (.disabled, _):
                 Text("Enable Coder Connect to see workspaces")
                     .font(.body)

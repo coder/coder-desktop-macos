@@ -36,7 +36,6 @@ enum VPNServiceError: Error, Equatable {
     case internalError(String)
     case systemExtensionError(SystemExtensionState)
     case networkExtensionError(NetworkExtensionState)
-    case helperError(HelperState)
 
     public var description: String {
         switch self {
@@ -46,8 +45,6 @@ enum VPNServiceError: Error, Equatable {
             "SystemExtensionError: \(state.description)"
         case let .networkExtensionError(state):
             "NetworkExtensionError: \(state.description)"
-        case let .helperError(state):
-            "HelperError: \(state.description)"
         }
     }
 
@@ -70,13 +67,6 @@ final class CoderVPNService: NSObject, VPNService {
     @Published var sysExtnState: SystemExtensionState = .uninstalled
     @Published var neState: NetworkExtensionState = .unconfigured
     var state: VPNServiceState {
-        // The ordering here is important. The button to open the settings page
-        // where the helper is approved is a no-op if the user has a settings
-        // window on the page where the system extension is approved.
-        // So, we want to ensure the helper settings button is clicked first.
-        guard helperState == .installed else {
-            return .failed(.helperError(helperState))
-        }
         guard sysExtnState == .installed else {
             return .failed(.systemExtensionError(sysExtnState))
         }
@@ -89,8 +79,6 @@ final class CoderVPNService: NSObject, VPNService {
         }
         return tunnelState
     }
-
-    @Published var helperState: HelperState = .uninstalled
 
     @Published var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
 
@@ -116,14 +104,6 @@ final class CoderVPNService: NSObject, VPNService {
         case .disabled, .failed:
             break
         default:
-            return
-        }
-
-        // We have to manually fetch the helper state,
-        // and we don't want to start the VPN
-        // if the helper is not ready.
-        refreshHelperState()
-        if helperState != .installed {
             return
         }
 

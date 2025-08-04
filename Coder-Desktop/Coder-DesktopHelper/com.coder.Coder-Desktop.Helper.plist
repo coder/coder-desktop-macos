@@ -4,8 +4,8 @@
 <dict>
 	<key>Label</key>
 	<string>com.coder.Coder-Desktop.Helper</string>
-	<key>BundleProgram</key>
-	<string>Contents/MacOS/com.coder.Coder-Desktop.Helper</string>
+	<key>Program</key>
+	<string>/Applications/Coder Desktop.app/Contents/MacOS/com.coder.Coder-Desktop.Helper</string>
 	<key>MachServices</key>
 	<dict>
 		<!-- $(TeamIdentifierPrefix) isn't populated here, so this value is hardcoded -->
