@@ -3,13 +3,24 @@ import SwiftUI
 struct CircularProgressView: View {
     let value: Float?
 
-    var strokeWidth: CGFloat = 4
-    var diameter: CGFloat = 22
+    var strokeWidth: CGFloat
+    var diameter: CGFloat
     var primaryColor: Color = .secondary
     var backgroundColor: Color = .secondary.opacity(0.3)
 
-    var autoCompleteThreshold: Float?
-    var autoCompleteDuration: TimeInterval?
+    private var autoComplete: (threshold: Float, duration: TimeInterval)?
+    private var autoStart: (until: Float, duration: TimeInterval)?
+
+    @State private var currentProgress: Float = 0
+
+    init(value: Float? = nil,
+         strokeWidth: CGFloat = 4,
+         diameter: CGFloat = 22)
+    {
+        self.value = value
+        self.strokeWidth = strokeWidth
+        self.diameter = diameter
+    }
 
     var body: some View {
         ZStack {
@@ -19,13 +30,23 @@ struct CircularProgressView: View {
                         .stroke(backgroundColor, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
 
                     Circle()
-                        .trim(from: 0, to: CGFloat(displayValue(for: value)))
+                        .trim(from: 0, to: CGFloat(displayValue(for: currentProgress)))
                         .stroke(primaryColor, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .animation(autoCompleteAnimation(for: value), value: value)
                 }
                 .frame(width: diameter, height: diameter)
-
+                .onAppear {
+                    if let autoStart, value == 0 {
+                        withAnimation(.easeOut(duration: autoStart.duration)) {
+                            currentProgress = autoStart.until
+                        }
+                    }
+                }
+                .onChange(of: value) {
+                    withAnimation(currentAnimation(for: value)) {
+                        currentProgress = value
+                    }
+                }
             } else {
                 IndeterminateSpinnerView(
                     diameter: diameter,
@@ -40,7 +61,7 @@ struct CircularProgressView: View {
     }
 
     private func displayValue(for value: Float) -> Float {
-        if let threshold = autoCompleteThreshold,
+        if let threshold = autoComplete?.threshold,
            value >= threshold, value < 1.0
         {
             return 1.0
@@ -48,23 +69,31 @@ struct CircularProgressView: View {
         return value
     }
 
-    private func autoCompleteAnimation(for value: Float) -> Animation? {
-        guard let threshold = autoCompleteThreshold,
-              let duration = autoCompleteDuration,
-              value >= threshold, value < 1.0
+    private func currentAnimation(for value: Float) -> Animation {
+        guard let autoComplete,
+              value >= autoComplete.threshold, value < 1.0
         else {
+            // Use the auto-start animation if it's running, otherwise default.
+            if let autoStart {
+                return .easeOut(duration: autoStart.duration)
+            }
             return .default
         }
 
-        return .easeOut(duration: duration)
+        return .easeOut(duration: autoComplete.duration)
     }
 }
 
 extension CircularProgressView {
     func autoComplete(threshold: Float, duration: TimeInterval) -> CircularProgressView {
         var view = self
-        view.autoCompleteThreshold = threshold
-        view.autoCompleteDuration = duration
+        view.autoComplete = (threshold: threshold, duration: duration)
+        return view
+    }
+
+    func autoStart(until value: Float, duration: TimeInterval) -> CircularProgressView {
+        var view = self
+        view.autoStart = (until: value, duration: duration)
         return view
     }
 }
