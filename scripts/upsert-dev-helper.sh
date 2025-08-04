@@ -4,7 +4,7 @@
 # /Applications/Coder/Coder Desktop.app, which is where the local build is
 # installed.
 
-set -euox pipefail
+set -euxo pipefail
 
 LAUNCH_DAEMON_PLIST_SRC="/Applications/Coder/Coder Desktop.app/Contents/Library/LaunchDaemons"
 LAUNCH_DAEMON_PLIST_DEST="/Library/LaunchDaemons"
@@ -19,7 +19,7 @@ sudo launchctl bootout "system/$LAUNCH_DAEMON_NAME" 2>/dev/null || true
 # Copy plist into system dir, with the path corrected to the local build
 sed 's|/Applications/Coder Desktop\.app|/Applications/Coder/Coder Desktop.app|g' "$LAUNCH_DAEMON_PLIST_SRC"/"$LAUNCH_DAEMON_PLIST_NAME" | sudo tee "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME" >/dev/null
 # Set necessary permissions
-sudo chmod -R 755 "$LAUNCH_DAEMON_BINARY_PATH"
+sudo chmod 755 "$LAUNCH_DAEMON_BINARY_PATH"
 sudo chmod 644 "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME"
 sudo chown root:wheel "$LAUNCH_DAEMON_PLIST_DEST"/"$LAUNCH_DAEMON_PLIST_NAME"
 
