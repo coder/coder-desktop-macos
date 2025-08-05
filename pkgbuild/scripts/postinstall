@@ -32,7 +32,10 @@ spctl -avvv "/Applications/Coder Desktop.app/Contents/Library/SystemExtensions/c
 # Restart Coder Desktop if it was running before
 if [ -f "$RUNNING_MARKER_FILE" ]; then
   echo "Starting Coder Desktop..."
-  open -a "Coder Desktop"
+  # When deploying the app via MDM, this script runs as root. The app cannot
+  # function properly when launched as root.
+  currentUser=$(/usr/bin/stat -f "%Su" /dev/console)
+  /bin/launchctl asuser "$( /usr/bin/id -u "$currentUser")" /usr/bin/open "/Applications/Coder Desktop.app"
   rm "$RUNNING_MARKER_FILE"
   echo "Coder Desktop started."
 fi
