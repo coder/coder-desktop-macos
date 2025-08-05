@@ -40,8 +40,7 @@ public enum ValidationError: Error {
 
 public class Validator {
     // This version of the app has a strict version requirement.
-    // TODO(ethanndickson): Set to 2.25.0
-    public static let minimumCoderVersion = "2.24.2"
+    public static let minimumCoderVersion = "2.24.3"
 
     private static let expectedIdentifier = "com.coder.cli"
     // The Coder team identifier

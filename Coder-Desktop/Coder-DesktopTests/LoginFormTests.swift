@@ -4,6 +4,7 @@ import Mocker
 import SwiftUI
 import Testing
 import ViewInspector
+@testable import VPNLib
 
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
@@ -134,7 +135,7 @@ struct LoginTests {
             username: "admin"
         )
         let buildInfo = BuildInfoResponse(
-            version: "v2.24.2"
+            version: "v\(Validator.minimumCoderVersion)"
         )
 
         try Mock(

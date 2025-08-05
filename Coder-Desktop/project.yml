@@ -256,6 +256,8 @@ targets:
       - target: "Coder Desktop"
       - target: CoderSDK
         embed: false # Do not embed the framework.
+      - target: VPNLib
+        embed: false # Do not embed the framework.
       - package: ViewInspector
       - package: Mocker
 
