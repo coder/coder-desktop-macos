@@ -29,6 +29,7 @@ final class HelperXPCClient: @unchecked Sendable {
         connection.interruptionHandler = { [weak self] in
             self?.connection = nil
         }
+        connection.setCodeSigningRequirement(Validator.xpcPeerRequirement)
         connection.resume()
         self.connection = connection
         return connection
