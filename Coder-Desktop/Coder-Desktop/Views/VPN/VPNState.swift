@@ -28,10 +28,6 @@ struct VPNState<VPN: VPNService>: View {
                     } label: {
                         Text("Reconfigure VPN")
                     }
-                }.onAppear {
-                    // Show the prompt onAppear, so the user doesn't have to
-                    // open the menu bar an extra time
-                    state.reconfigure()
                 }
             case (.disabled, _):
                 Text("Enable Coder Connect to see workspaces")
