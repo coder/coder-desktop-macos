@@ -194,8 +194,8 @@ func validateURL(_ url: String) throws(LoginError) -> URL {
     guard let url = URL(string: url) else {
         throw .invalidURL
     }
-    guard url.scheme == "https" else {
-        throw .httpsRequired
+    guard url.scheme == "https" || url.scheme == "http" else {
+        throw .invalidScheme
     }
     guard url.host != nil else {
         throw .noHost
@@ -204,7 +204,7 @@ func validateURL(_ url: String) throws(LoginError) -> URL {
 }
 
 enum LoginError: Error {
-    case httpsRequired
+    case invalidScheme
     case noHost
     case invalidURL
     case outdatedCoderVersion
@@ -213,12 +213,12 @@ enum LoginError: Error {
 
     var description: String {
         switch self {
-        case .httpsRequired:
-            "URL must use HTTPS"
+        case .invalidScheme:
+            "Coder URL must use HTTPS or HTTP"
         case .noHost:
-            "URL must have a host"
+            "Coder URL must have a host"
         case .invalidURL:
-            "Invalid URL"
+            "Invalid Coder URL"
         case .outdatedCoderVersion:
             """
             The Coder deployment must be version \(Validator.minimumCoderVersion)
