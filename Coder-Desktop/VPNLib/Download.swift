@@ -102,7 +102,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
             return
         }
         guard httpResponse.statusCode != 304 else {
-            // We already have the latest dylib downloaded in dest
+            // We already have the latest binary downloaded in dest
             continuation.resume()
             return
         }

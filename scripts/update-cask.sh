@@ -14,23 +14,23 @@ ASSIGNEE=""
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-  --version)
-    VERSION="$2"
-    shift 2
-    ;;
-  --assignee)
-    ASSIGNEE="$2"
-    shift 2
-    ;;
-  -h | --help)
-    usage
-    exit 0
-    ;;
-  *)
-    echo "Unknown parameter passed: $1"
-    usage
-    exit 1
-    ;;
+    --version)
+      VERSION="$2"
+      shift 2
+      ;;
+    --assignee)
+      ASSIGNEE="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown parameter passed: $1"
+      usage
+      exit 1
+      ;;
   esac
 done
 
@@ -98,7 +98,11 @@ cask "coder-desktop" do
             ],
             login_item: "Coder Desktop"
 
-  zap delete: "/var/root/Library/Containers/com.Coder-Desktop.VPN/Data/Documents/coder-vpn.dylib",
+  zap delete: [
+        "/var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-arm64",
+        "/var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin_amd64",
+        "/var/root/Library/Containers/com.Coder-Desktop.VPN/Data/Documents/coder-vpn.dylib",
+      ],
       trash:  [
         "~/Library/Caches/com.coder.Coder-Desktop",
         "~/Library/HTTPStorages/com.coder.Coder-Desktop",

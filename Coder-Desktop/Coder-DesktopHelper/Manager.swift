@@ -7,26 +7,56 @@ actor Manager {
     let cfg: ManagerConfig
     let telemetryEnricher: TelemetryEnricher
 
-    let tunnelHandle: TunnelHandle
+    let tunnelDaemon: TunnelDaemon
     let speaker: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>
     var readLoop: Task<Void, any Error>!
 
-    // /var/root/Downloads
-    private let dest = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)
-        .first!.appending(path: "coder-vpn.dylib")
+    #if arch(arm64)
+        private static let binaryName = "coder-darwin-arm64"
+    #else
+        private static let binaryName = "coder-darwin-amd64"
+    #endif
+
+    // /var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-{arm64,amd64}
+    private let dest = try? FileManager.default
+        .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.coder.Coder-Desktop", isDirectory: true)
+        .appendingPathComponent(binaryName)
+
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
     // swiftlint:disable:next function_body_length
     init(cfg: ManagerConfig) async throws(ManagerError) {
         self.cfg = cfg
         telemetryEnricher = TelemetryEnricher()
-        #if arch(arm64)
-            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-arm64.dylib")
-        #elseif arch(x86_64)
-            let dylibPath = cfg.serverUrl.appending(path: "bin/coder-vpn-darwin-amd64.dylib")
-        #else
-            fatalError("unknown architecture")
-        #endif
+        guard let dest else {
+            // This should never happen
+            throw .fileError("Failed to create path for binary destination" +
+                "(/var/root/Library/Application Support/com.coder.Coder-Desktop)")
+        }
+        do {
+            try FileManager.default.ensureDirectories(for: dest)
+        } catch {
+            throw .fileError(
+                "Failed to create directories for binary destination (\(dest)): \(error.localizedDescription)"
+            )
+        }
+        let client = Client(url: cfg.serverUrl)
+        let buildInfo: BuildInfoResponse
+        do {
+            buildInfo = try await client.buildInfo()
+        } catch {
+            throw .serverInfo(error.description)
+        }
+        guard let serverSemver = buildInfo.semver else {
+            throw .serverInfo("invalid version: \(buildInfo.version)")
+        }
+        guard Validator.minimumCoderVersion
+            .compare(serverSemver, options: .numeric) != .orderedDescending
+        else {
+            throw .belowMinimumCoderVersion(actualVersion: serverSemver)
+        }
+        let binaryPath = cfg.serverUrl.appending(path: "bin").appending(path: Manager.binaryName)
         do {
             let sessionConfig = URLSessionConfiguration.default
             // The tunnel might be asked to start before the network interfaces have woken up from sleep
@@ -35,7 +65,7 @@ actor Manager {
             sessionConfig.timeoutIntervalForRequest = 60
             sessionConfig.timeoutIntervalForResource = 300
             try await download(
-                src: dylibPath,
+                src: binaryPath,
                 dest: dest,
                 urlSession: URLSession(configuration: sessionConfig)
             ) { progress in
@@ -45,47 +75,45 @@ actor Manager {
             throw .download(error)
         }
         pushProgress(stage: .validating)
-        let client = Client(url: cfg.serverUrl)
-        let buildInfo: BuildInfoResponse
         do {
-            buildInfo = try await client.buildInfo()
+            try Validator.validate(path: dest)
         } catch {
-            throw .serverInfo(error.description)
-        }
-        guard let semver = buildInfo.semver else {
-            throw .serverInfo("invalid version: \(buildInfo.version)")
-        }
-        do {
-            try Validator.validate(path: dest, expectedVersion: semver)
-        } catch {
+            // Cleanup unvalid binary
+            try? FileManager.default.removeItem(at: dest)
             throw .validation(error)
         }
 
+        // Without this, the TUN fd isn't recognised as a socket in the
+        // spawned process, and the tunnel fails to start.
         do {
-            try tunnelHandle = TunnelHandle(dylibPath: dest)
+            try unsetCloseOnExec(fd: cfg.tunFd)
+        } catch {
+            throw .cloexec(error)
+        }
+
+        do {
+            try tunnelDaemon = await TunnelDaemon(binaryPath: dest) { err in
+                Task { try? await NEXPCServerDelegate.cancelProvider(error:
+                    makeNSError(suffix: "TunnelDaemon", desc: "Tunnel daemon: \(err.description)")
+                ) }
+            }
         } catch {
             throw .tunnelSetup(error)
         }
         speaker = await Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>(
-            writeFD: tunnelHandle.writeHandle,
-            readFD: tunnelHandle.readHandle
+            writeFD: tunnelDaemon.writeHandle,
+            readFD: tunnelDaemon.readHandle
         )
         do {
             try await speaker.handshake()
         } catch {
             throw .handshake(error)
         }
-        do {
-            try await tunnelHandle.openTunnelTask?.value
-        } catch let error as TunnelHandleError {
-            logger.error("failed to wait for dylib to open tunnel: \(error, privacy: .public) ")
-            throw .tunnelSetup(error)
-        } catch {
-            fatalError("openTunnelTask must only throw TunnelHandleError")
-        }
 
         readLoop = Task { try await run() }
     }
+
+    deinit { logger.debug("manager deinit") }
 
     func run() async throws {
         do {
@@ -99,14 +127,14 @@ actor Manager {
             }
         } catch {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
-            try await tunnelHandle.close()
+            try await tunnelDaemon.close()
             try await NEXPCServerDelegate.cancelProvider(error:
                 makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
             )
             return
         }
         logger.info("tunnel read loop exited")
-        try await tunnelHandle.close()
+        try await tunnelDaemon.close()
         try await NEXPCServerDelegate.cancelProvider(error: nil)
     }
 
@@ -204,6 +232,12 @@ actor Manager {
         if !stopResp.success {
             throw .errorResponse(msg: stopResp.errorMessage)
         }
+        do {
+            try await tunnelDaemon.close()
+        } catch {
+            throw .tunnelFail(error)
+        }
+        readLoop.cancel()
     }
 
     // Retrieves the current state of all peers,
@@ -239,28 +273,32 @@ struct ManagerConfig {
 
 enum ManagerError: Error {
     case download(DownloadError)
-    case tunnelSetup(TunnelHandleError)
+    case fileError(String)
+    case tunnelSetup(TunnelDaemonError)
     case handshake(HandshakeError)
     case validation(ValidationError)
     case incorrectResponse(Vpn_TunnelMessage)
+    case cloexec(POSIXError)
     case failedRPC(any Error)
     case serverInfo(String)
     case errorResponse(msg: String)
-    case noTunnelFileDescriptor
-    case noApp
-    case permissionDenied
     case tunnelFail(any Error)
+    case belowMinimumCoderVersion(actualVersion: String)
 
     var description: String {
         switch self {
         case let .download(err):
             "Download error: \(err.localizedDescription)"
+        case let .fileError(msg):
+            msg
         case let .tunnelSetup(err):
             "Tunnel setup error: \(err.localizedDescription)"
         case let .handshake(err):
             "Handshake error: \(err.localizedDescription)"
         case let .validation(err):
             "Validation error: \(err.localizedDescription)"
+        case let .cloexec(err):
+            "Failed to mark TUN fd as non-cloexec: \(err.localizedDescription)"
         case .incorrectResponse:
             "Received unexpected response over tunnel"
         case let .failedRPC(err):
@@ -269,14 +307,13 @@ enum ManagerError: Error {
             msg
         case let .errorResponse(msg):
             msg
-        case .noTunnelFileDescriptor:
-            "Could not find a tunnel file descriptor"
-        case .noApp:
-            "The VPN must be started with the app open during first-time setup."
-        case .permissionDenied:
-            "Permission was not granted to execute the CoderVPN dylib"
         case let .tunnelFail(err):
-            "Failed to communicate with dylib over tunnel: \(err.localizedDescription)"
+            "Failed to communicate with daemon over tunnel: \(err.localizedDescription)"
+        case let .belowMinimumCoderVersion(actualVersion):
+            """
+            The Coder deployment must be version \(Validator.minimumCoderVersion)
+            or higher to use Coder Desktop. Current version: \(actualVersion)
+            """
         }
     }
 
@@ -297,9 +334,16 @@ func writeVpnLog(_ log: Vpn_Log) {
         case .UNRECOGNIZED: .info
         }
     let logger = Logger(
-        subsystem: "\(Bundle.main.bundleIdentifier!).dylib",
+        subsystem: "\(Bundle.main.bundleIdentifier!).daemon",
         category: log.loggerNames.joined(separator: ".")
     )
     let fields = log.fields.map { "\($0.name): \($0.value)" }.joined(separator: ", ")
     logger.log(level: level, "\(log.message, privacy: .public)\(fields.isEmpty ? "" : ": \(fields)", privacy: .public)")
+}
+
+extension FileManager {
+    func ensureDirectories(for url: URL) throws {
+        let dir = url.hasDirectoryPath ? url : url.deletingLastPathComponent()
+        try createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
+    }
 }

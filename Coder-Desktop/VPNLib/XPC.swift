@@ -42,7 +42,6 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
     case initial
     case downloading
     case validating
-    case removingQuarantine
     case startingTunnel
 
     public var description: String? {
@@ -50,11 +49,9 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
         case .initial:
             nil
         case .downloading:
-            "Downloading library..."
+            "Downloading binary..."
         case .validating:
-            "Validating library..."
-        case .removingQuarantine:
-            "Removing quarantine..."
+            "Validating binary..."
         case .startingTunnel:
             nil
         }
