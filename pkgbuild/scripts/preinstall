@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 RUNNING_MARKER_FILE="/tmp/coder_desktop_running"
+LAUNCH_DAEMON_NAME="com.coder.Coder-Desktop.Helper"
+
+# Stop an existing launch daemon, if it exists
+sudo launchctl bootout "system/$LAUNCH_DAEMON_NAME" 2>/dev/null || true
 
 rm $RUNNING_MARKER_FILE || true
 

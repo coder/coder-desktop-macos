@@ -26,7 +26,6 @@ struct DesktopApp: App {
             SettingsView<CoderVPNService>()
                 .environmentObject(appDelegate.vpn)
                 .environmentObject(appDelegate.state)
-                .environmentObject(appDelegate.helper)
                 .environmentObject(appDelegate.autoUpdater)
         }
         .windowResizability(.contentSize)
@@ -48,13 +47,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
     let notifDelegate: NotifDelegate
-    let helper: HelperService
     let autoUpdater: UpdaterService
 
     override init() {
         notifDelegate = NotifDelegate()
         vpn = CoderVPNService()
-        helper = HelperService()
         autoUpdater = UpdaterService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
         vpn.onStart = {
