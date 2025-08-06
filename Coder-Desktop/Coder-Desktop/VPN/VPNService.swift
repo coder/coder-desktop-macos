@@ -54,7 +54,7 @@ enum VPNServiceError: Error, Equatable {
 @MainActor
 final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
-    lazy var xpc: VPNXPCInterface = .init(vpn: self)
+    lazy var xpc: HelperXPCClient = .init(vpn: self)
 
     @Published var tunnelState: VPNServiceState = .disabled {
         didSet {
@@ -138,10 +138,10 @@ final class CoderVPNService: NSObject, VPNService {
         }
     }
 
-    func onExtensionPeerUpdate(_ data: Data) {
+    func onExtensionPeerUpdate(_ diff: Data) {
         logger.info("network extension peer update")
         do {
-            let msg = try Vpn_PeerUpdate(serializedBytes: data)
+            let msg = try Vpn_PeerUpdate(serializedBytes: diff)
             debugPrint(msg)
             applyPeerUpdate(with: msg)
         } catch {
@@ -199,16 +199,18 @@ extension CoderVPNService {
             break
         // Non-connecting -> Connecting: Establish XPC
         case (_, .connecting):
-            xpc.connect()
-            xpc.ping()
+            // Detached to run ASAP
+            // TODO: Switch to `Task.immediate` once stable
+            Task.detached { try? await self.xpc.ping() }
             tunnelState = .connecting
         // Non-connected -> Connected:
         // - Retrieve Peers
         // - Run `onStart` closure
         case (_, .connected):
             onStart?()
-            xpc.connect()
-            xpc.getPeerState()
+            // Detached to run ASAP
+            // TODO: Switch to `Task.immediate` once stable
+            Task.detached { try? await self.xpc.getPeerState() }
             tunnelState = .connected
         // Any -> Reasserting
         case (_, .reasserting):

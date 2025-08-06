@@ -32,7 +32,7 @@ public enum ValidationError: Error {
             "Info.plist is not embedded within the dylib."
         case .belowMinimumCoderVersion:
             """
-            The Coder deployment must be version \(SignatureValidator.minimumCoderVersion)
+            The Coder deployment must be version \(Validator.minimumCoderVersion)
             or higher to use Coder Desktop.
             """
         }
@@ -41,7 +41,7 @@ public enum ValidationError: Error {
     public var localizedDescription: String { description }
 }
 
-public class SignatureValidator {
+public class Validator {
     // Whilst older dylibs exist, this app assumes v2.20 or later.
     public static let minimumCoderVersion = "2.20.0"
 
