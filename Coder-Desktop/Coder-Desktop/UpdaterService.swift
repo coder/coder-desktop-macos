@@ -5,11 +5,7 @@ final class UpdaterService: NSObject, ObservableObject {
     // The auto-updater can be entirely disabled by setting the
     // `disableUpdater` UserDefaults key to `true`. This is designed for use in
     // MDM configurations, where the value can be set to `true` permanently.
-    @Published var disabled: Bool = UserDefaults.standard.bool(forKey: Keys.disableUpdater) {
-        didSet {
-            UserDefaults.standard.set(disabled, forKey: Keys.disableUpdater)
-        }
-    }
+    let disabled: Bool = UserDefaults.standard.bool(forKey: Keys.disableUpdater)
 
     @Published var canCheckForUpdates = true
 

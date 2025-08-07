@@ -69,9 +69,9 @@ struct FilePicker: View {
 
 @MainActor
 class FilePickerModel: ObservableObject {
-    @Published var rootEntries: [FilePickerEntryModel] = []
-    @Published var rootIsLoading: Bool = false
-    @Published var error: SDKError?
+    @Published private(set) var rootEntries: [FilePickerEntryModel] = []
+    @Published private(set) var rootIsLoading: Bool = false
+    @Published private(set) var error: SDKError?
 
     // It's important that `AgentClient` is a reference type (class)
     // as we were having performance issues with a struct (unless it was a binding).
@@ -153,9 +153,9 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
 
     let client: AgentClient
 
-    @Published var entries: [FilePickerEntryModel]?
-    @Published var isLoading = false
-    @Published var error: SDKError?
+    @Published private(set) var entries: [FilePickerEntryModel]?
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: SDKError?
     @Published private var innerIsExpanded = false
     var isExpanded: Bool {
         get { innerIsExpanded }

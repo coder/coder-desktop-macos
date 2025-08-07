@@ -34,6 +34,11 @@ struct GeneralTab: View {
                         Button("Check for updates") { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
                     }
                 }
+            } else {
+                Section {
+                    Text("The app updater has been disabled by a device management policy.")
+                        .foregroundColor(.secondary)
+                }
             }
         }.formStyle(.grouped)
     }
