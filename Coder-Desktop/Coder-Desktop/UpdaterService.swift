@@ -2,42 +2,59 @@ import Sparkle
 import SwiftUI
 
 final class UpdaterService: NSObject, ObservableObject {
-    private lazy var inner: SPUStandardUpdaterController = .init(
-        startingUpdater: true,
-        updaterDelegate: self,
-        userDriverDelegate: self
-    )
-    private var updater: SPUUpdater!
+    // The auto-updater can be entirely disabled by setting the
+    // `disableUpdater` UserDefaults key to `true`. This is designed for use in
+    // MDM configurations, where the value can be set to `true` permanently.
+    let disabled: Bool = UserDefaults.standard.bool(forKey: Keys.disableUpdater)
+
     @Published var canCheckForUpdates = true
 
     @Published var autoCheckForUpdates: Bool! {
         didSet {
             if let autoCheckForUpdates, autoCheckForUpdates != oldValue {
-                updater.automaticallyChecksForUpdates = autoCheckForUpdates
+                inner?.updater.automaticallyChecksForUpdates = autoCheckForUpdates
             }
         }
     }
 
     @Published var updateChannel: UpdateChannel {
         didSet {
-            UserDefaults.standard.set(updateChannel.rawValue, forKey: Self.updateChannelKey)
+            UserDefaults.standard.set(updateChannel.rawValue, forKey: Keys.updateChannel)
         }
     }
 
-    static let updateChannelKey = "updateChannel"
+    private var inner: (controller: SPUStandardUpdaterController, updater: SPUUpdater)?
 
     override init() {
-        updateChannel = UserDefaults.standard.string(forKey: Self.updateChannelKey)
+        updateChannel = UserDefaults.standard.string(forKey: Keys.updateChannel)
             .flatMap { UpdateChannel(rawValue: $0) } ?? .stable
         super.init()
-        updater = inner.updater
+
+        guard !disabled else {
+            return
+        }
+
+        let inner = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: self,
+            userDriverDelegate: self
+        )
+
+        let updater = inner.updater
+        self.inner = (inner, updater)
+
         autoCheckForUpdates = updater.automaticallyChecksForUpdates
         updater.publisher(for: \.canCheckForUpdates).assign(to: &$canCheckForUpdates)
     }
 
     func checkForUpdates() {
-        guard canCheckForUpdates else { return }
-        updater.checkForUpdates()
+        guard let inner, canCheckForUpdates else { return }
+        inner.updater.checkForUpdates()
+    }
+
+    enum Keys {
+        static let disableUpdater = "disableUpdater"
+        static let updateChannel = "updateChannel"
     }
 }
 

@@ -19,18 +19,25 @@ struct GeneralTab: View {
                     Text("Start Coder Connect on launch")
                 }
             }
-            Section {
-                Toggle(isOn: $updater.autoCheckForUpdates) {
-                    Text("Automatically check for updates")
-                }
-                Picker("Update channel", selection: $updater.updateChannel) {
-                    ForEach(UpdateChannel.allCases) { channel in
-                        Text(channel.name).tag(channel)
+            if !updater.disabled {
+                Section {
+                    Toggle(isOn: $updater.autoCheckForUpdates) {
+                        Text("Automatically check for updates")
+                    }
+                    Picker("Update channel", selection: $updater.updateChannel) {
+                        ForEach(UpdateChannel.allCases) { channel in
+                            Text(channel.name).tag(channel)
+                        }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("Check for updates") { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
                     }
                 }
-                HStack {
-                    Spacer()
-                    Button("Check for updates") { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
+            } else {
+                Section {
+                    Text("The app updater has been disabled by a device management policy.")
+                        .foregroundColor(.secondary)
                 }
             }
         }.formStyle(.grouped)

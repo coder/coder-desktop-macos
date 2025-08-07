@@ -56,7 +56,7 @@ final class CoderVPNService: NSObject, VPNService {
     var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn")
     lazy var xpc: HelperXPCClient = .init(vpn: self)
 
-    @Published var tunnelState: VPNServiceState = .disabled {
+    @Published private(set) var tunnelState: VPNServiceState = .disabled {
         didSet {
             if tunnelState == .connecting {
                 progress = .init(stage: .initial, downloadProgress: nil)
@@ -80,9 +80,9 @@ final class CoderVPNService: NSObject, VPNService {
         return tunnelState
     }
 
-    @Published var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
+    @Published private(set) var progress: VPNProgress = .init(stage: .initial, downloadProgress: nil)
 
-    @Published var menuState: VPNMenuState = .init()
+    @Published private(set) var menuState: VPNMenuState = .init()
 
     // Whether the VPN should start as soon as possible
     var startWhenReady: Bool = false
