@@ -100,7 +100,7 @@ cask "coder-desktop" do
 
   zap delete: [
         "/var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-arm64",
-        "/var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin_amd64",
+        "/var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-amd64",
         "/var/root/Library/Containers/com.Coder-Desktop.VPN/Data/Documents/coder-vpn.dylib",
       ],
       trash:  [
