@@ -20,6 +20,7 @@ struct DesktopApp: App {
         Window("Sign In", id: Windows.login.rawValue) {
             LoginForm()
                 .environmentObject(appDelegate.state)
+                .showDockIconWhenOpen()
         }.handlesExternalEvents(matching: Set()) // Don't handle deep links
             .windowResizability(.contentSize)
         SwiftUI.Settings {
@@ -27,6 +28,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.vpn)
                 .environmentObject(appDelegate.state)
                 .environmentObject(appDelegate.autoUpdater)
+                .showDockIconWhenOpen()
         }
         .windowResizability(.contentSize)
         Window("Coder File Sync", id: Windows.fileSync.rawValue) {
@@ -34,6 +36,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.state)
                 .environmentObject(appDelegate.fileSyncDaemon)
                 .environmentObject(appDelegate.vpn)
+                .showDockIconWhenOpen()
         }.handlesExternalEvents(matching: Set()) // Don't handle deep links
     }
 }

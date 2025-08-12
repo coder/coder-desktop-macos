@@ -44,3 +44,26 @@ public extension View {
         }
     }
 }
+
+@MainActor
+private struct ActivationPolicyModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            // This lets us show and hide the app from the dock and cmd+tab
+            // when a window is open.
+            .onAppear {
+                NSApp.setActivationPolicy(.regular)
+            }
+            .onDisappear {
+                if NSApp.windows.filter { $0.level != .statusBar && $0.isVisible }.count <= 1 {
+                    NSApp.setActivationPolicy(.accessory)
+                }
+            }
+    }
+}
+
+public extension View {
+    func showDockIconWhenOpen() -> some View {
+        modifier(ActivationPolicyModifier())
+    }
+}
