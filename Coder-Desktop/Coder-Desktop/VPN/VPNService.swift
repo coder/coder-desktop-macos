@@ -185,10 +185,12 @@ extension CoderVPNService {
         // Any -> Disconnected: Update UI w/ error if present
         case (_, .disconnected):
             connection.fetchLastDisconnectError { err in
-                self.tunnelState = if let err {
-                    .failed(.internalError(err.localizedDescription))
-                } else {
-                    .disabled
+                Task { @MainActor in
+                    self.tunnelState = if let err {
+                        .failed(.internalError(err.localizedDescription))
+                    } else {
+                        .disabled
+                    }
                 }
             }
         // Connecting -> Connecting: no-op
