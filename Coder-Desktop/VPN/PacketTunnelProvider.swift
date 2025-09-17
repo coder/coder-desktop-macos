@@ -44,33 +44,55 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func startTunnel(
-        options _: [String: NSObject]?
-    ) async throws {
-        globalHelperXPCClient.ptp = self
-        guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
-              let baseAccessURL = proto.serverAddress
-        else {
-            logger.error("startTunnel called with nil protocolConfiguration")
-            throw makeNSError(suffix: "PTP", desc: "Missing Configuration")
-        }
-        // HACK: We can't write to the system keychain, and the NE can't read the user keychain.
-        guard let token = proto.providerConfiguration?["token"] as? String else {
-            logger.error("startTunnel called with nil token")
-            throw makeNSError(suffix: "PTP", desc: "Missing Token")
-        }
-        let headers = proto.providerConfiguration?["literalHeaders"] as? Data
-        logger.debug("retrieved token & access URL")
-        guard let tunFd = tunnelFileDescriptor else {
-            logger.error("startTunnel called with nil tunnelFileDescriptor")
-            throw makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor")
-        }
-        try await globalHelperXPCClient.startDaemon(
-            accessURL: .init(string: baseAccessURL)!,
-            token: token,
-            tun: FileHandle(fileDescriptor: tunFd),
-            headers: headers
-        )
-    }
+           options: [String : NSObject]?,
+           completionHandler: @Sendable @escaping (Error?) -> Void
+       ) {
+           // Make a Sendable copy of the completion handler to avoid crossing concurrency domains with a non-Sendable closure
+           let complete: @Sendable (Error?) -> Void = { error in
+               // Always bounce completion back to the main actor as NetworkExtension expects callbacks on the provider's queue/main.
+               Task { @MainActor in completionHandler(error) }
+           }
+           globalHelperXPCClient.ptp = self
+
+           // Resolve everything you need BEFORE hopping to async, so the Task
+           // doesn’t need to capture `self` or `options`.
+           guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
+                 let baseAccessURL = proto.serverAddress
+           else {
+               logger.error("startTunnel called with nil protocolConfiguration")
+               complete(makeNSError(suffix: "PTP", desc: "Missing Configuration"))
+               return
+           }
+
+           guard let token = proto.providerConfiguration?["token"] as? String else {
+               logger.error("startTunnel called with nil token")
+               complete(makeNSError(suffix: "PTP", desc: "Missing Token"))
+               return
+           }
+
+           let headers = proto.providerConfiguration?["literalHeaders"] as? Data
+
+           guard let tunFd = tunnelFileDescriptor else {
+               logger.error("startTunnel called with nil tunnelFileDescriptor")
+               complete(makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor"))
+               return
+           }
+
+           // Bridge to async work
+           Task.detached {
+               do {
+                   try await globalHelperXPCClient.startDaemon(
+                       accessURL: URL(string: baseAccessURL)!,
+                       token: token,
+                       tun: FileHandle(fileDescriptor: tunFd),
+                       headers: headers
+                   )
+                   complete(nil)
+               } catch {
+                   complete(error)
+               }
+           }
+       }
 
     override func stopTunnel(
         with _: NEProviderStopReason
@@ -111,3 +133,4 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         try await setTunnelNetworkSettings(currentSettings)
     }
 }
+
