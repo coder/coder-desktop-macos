@@ -10,6 +10,8 @@ on your local network, with no port-forwarding required.
   directories.
 - Convenient one-click access to Coder workspace app IDEs, tools and VNC/RDP clients.
 
+<img width="445" height="781" alt="image" src="https://github.com/user-attachments/assets/4b9fdc7d-aaf8-4049-892c-4552cb5675bc" />
+
 Learn more about Coder Desktop in the
 [official documentation](https://coder.com/docs/user-guides/desktop).
 
