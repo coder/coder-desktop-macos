@@ -10,6 +10,8 @@ class AppState: ObservableObject {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "AppState")
     let appId = Bundle.main.bundleIdentifier!
 
+    let dangerousDisableCoderSignatureValidation: Bool
+
     // Stored in UserDefaults
     @Published private(set) var hasSession: Bool {
         didSet {
@@ -87,6 +89,7 @@ class AppState: ObservableObject {
         if useLiteralHeaders, let headers = try? JSONEncoder().encode(literalHeaders) {
             proto.providerConfiguration?["literalHeaders"] = headers
         }
+        proto.providerConfiguration?["dangerousDisableCoderSignatureValidation"] = dangerousDisableCoderSignatureValidation
         proto.serverAddress = baseAccessURL!.absoluteString
         return proto
     }
@@ -106,6 +109,9 @@ class AppState: ObservableObject {
     {
         self.persistent = persistent
         self.onChange = onChange
+        dangerousDisableCoderSignatureValidation = persistent
+            ? UserDefaults.standard.bool(forKey: Keys.dangerousDisableCoderSignatureValidation)
+            : false
         keychain = Keychain(service: Bundle.main.bundleIdentifier!)
         _hasSession = Published(initialValue: persistent ? UserDefaults.standard.bool(forKey: Keys.hasSession) : false)
         _baseAccessURL = Published(
@@ -219,6 +225,7 @@ class AppState: ObservableObject {
         static let stopVPNOnQuit = "StopVPNOnQuit"
         static let startVPNOnLaunch = "StartVPNOnLaunch"
 
+        static let dangerousDisableCoderSignatureValidation = "DangerousDisableCoderSignatureValidation"
         static let skipHiddenIconAlert = "SkipHiddenIconAlert"
     }
 }

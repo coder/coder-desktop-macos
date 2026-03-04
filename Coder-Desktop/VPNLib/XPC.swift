@@ -26,7 +26,7 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
 @preconcurrency
 @objc public protocol HelperNEXPCInterface {
     // headers is a JSON `[HTTPHeader]`
-    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?, reply: @escaping (Error?) -> Void)
+    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?, dangerousDisableSignatureValidation: Bool, reply: @escaping (Error?) -> Void)
     func stopDaemon(reply: @escaping (Error?) -> Void)
 }
 

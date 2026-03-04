@@ -35,7 +35,7 @@ final class HelperXPCClient: @unchecked Sendable {
         return connection
     }
 
-    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?) async throws {
+    func startDaemon(accessURL: URL, token: String, tun: FileHandle, headers: Data?, dangerousDisableSignatureValidation: Bool) async throws {
         let conn = connect()
         return try await withCheckedThrowingContinuation { continuation in
             guard let proxy = conn.remoteObjectProxyWithErrorHandler({ err in
@@ -46,7 +46,7 @@ final class HelperXPCClient: @unchecked Sendable {
                 continuation.resume(throwing: XPCError.wrongProxyType)
                 return
             }
-            proxy.startDaemon(accessURL: accessURL, token: token, tun: tun, headers: headers) { err in
+            proxy.startDaemon(accessURL: accessURL, token: token, tun: tun, headers: headers, dangerousDisableSignatureValidation: dangerousDisableSignatureValidation) { err in
                 if let error = err {
                     self.logger.error("Failed to start daemon: \(error.localizedDescription, privacy: .public)")
                     continuation.resume(throwing: error)

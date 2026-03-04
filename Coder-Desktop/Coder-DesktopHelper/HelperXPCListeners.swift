@@ -80,6 +80,7 @@ extension HelperNEXPCServer: HelperNEXPCInterface {
         token: String,
         tun: FileHandle,
         headers: Data?,
+        dangerousDisableSignatureValidation: Bool,
         reply: @escaping (Error?) -> Void
     ) {
         logger.info("startDaemon called")
@@ -92,7 +93,8 @@ extension HelperNEXPCServer: HelperNEXPCInterface {
                         apiToken: token,
                         serverUrl: accessURL,
                         tunFd: tun.fileDescriptor,
-                        literalHeaders: headers.flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? []
+                        literalHeaders: headers.flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? [],
+                        dangerousDisableSignatureValidation: dangerousDisableSignatureValidation
                     )
                 )
                 try await manager.startVPN()
