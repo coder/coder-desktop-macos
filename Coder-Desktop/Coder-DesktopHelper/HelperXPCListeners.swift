@@ -75,6 +75,7 @@ class HelperNEXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
 }
 
 extension HelperNEXPCServer: HelperNEXPCInterface {
+    // swiftlint:disable:next function_parameter_count
     func startDaemon(
         accessURL: URL,
         token: String,
@@ -93,7 +94,12 @@ extension HelperNEXPCServer: HelperNEXPCInterface {
                         apiToken: token,
                         serverUrl: accessURL,
                         tunFd: tun.fileDescriptor,
-                        literalHeaders: headers.flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? [],
+                        literalHeaders: headers.flatMap {
+                            try? JSONDecoder().decode(
+                                [HTTPHeader].self,
+                                from: $0
+                            )
+                        } ?? [],
                         dangerousDisableSignatureValidation: dangerousDisableSignatureValidation
                     )
                 )

@@ -43,7 +43,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         return nil
     }
 
-    override func startTunnel(
+    nonisolated(nonsending) override func startTunnel(
         options _: [String: NSObject]?
     ) async throws {
         globalHelperXPCClient.ptp = self
@@ -59,7 +59,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             throw makeNSError(suffix: "PTP", desc: "Missing Token")
         }
         let headers = proto.providerConfiguration?["literalHeaders"] as? Data
-        let dangerousDisableSigValidation = proto.providerConfiguration?["dangerousDisableCoderSignatureValidation"] as? Bool ?? false
+        let disableSigVal = proto.providerConfiguration?["dangerousDisableCoderSignatureValidation"] as? Bool ?? false
         logger.debug("retrieved token & access URL")
         guard let tunFd = tunnelFileDescriptor else {
             logger.error("startTunnel called with nil tunnelFileDescriptor")
@@ -70,7 +70,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             token: token,
             tun: FileHandle(fileDescriptor: tunFd),
             headers: headers,
-            dangerousDisableSignatureValidation: dangerousDisableSigValidation
+            dangerousDisableSignatureValidation: disableSigVal
         )
     }
 

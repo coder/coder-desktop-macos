@@ -25,7 +25,7 @@ actor Manager {
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     init(cfg: ManagerConfig) async throws(ManagerError) {
         self.cfg = cfg
         telemetryEnricher = TelemetryEnricher()
