@@ -89,6 +89,7 @@ class AppState: ObservableObject {
         if useLiteralHeaders, let headers = try? JSONEncoder().encode(literalHeaders) {
             proto.providerConfiguration?["literalHeaders"] = headers
         }
+        // swiftlint:disable:next line_length
         proto.providerConfiguration?["dangerousDisableCoderSignatureValidation"] = dangerousDisableCoderSignatureValidation
         proto.serverAddress = baseAccessURL!.absoluteString
         return proto
