@@ -55,7 +55,7 @@ private struct ActivationPolicyModifier: ViewModifier {
                 NSApp.setActivationPolicy(.regular)
             }
             .onDisappear {
-                if NSApp.windows.filter { $0.level != .statusBar && $0.isVisible }.count <= 1 {
+                if NSApp.windows.filter({ $0.level != .statusBar && $0.isVisible }).count <= 1 {
                     NSApp.setActivationPolicy(.accessory)
                 }
             }

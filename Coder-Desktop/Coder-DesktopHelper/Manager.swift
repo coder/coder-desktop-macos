@@ -25,7 +25,7 @@ actor Manager {
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "manager")
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     init(cfg: ManagerConfig) async throws(ManagerError) {
         self.cfg = cfg
         telemetryEnricher = TelemetryEnricher()
@@ -74,12 +74,17 @@ actor Manager {
         } catch {
             throw .download(error)
         }
-        pushProgress(stage: .validating)
+
         do {
-            try Validator.validateSignature(binaryPath: dest)
+            if cfg.dangerousDisableSignatureValidation {
+                logger.warning("Skipping code signature validation of downloaded binary (disabled by configuration)")
+            } else {
+                pushProgress(stage: .validating)
+                try Validator.validateSignature(binaryPath: dest)
+            }
             try await Validator.validateVersion(binaryPath: dest, serverVersion: buildInfo.version)
         } catch {
-            // Cleanup unvalid binary
+            // Cleanup invalid binary
             try? FileManager.default.removeItem(at: dest)
             throw .validation(error)
         }
@@ -270,6 +275,7 @@ struct ManagerConfig {
     let serverUrl: URL
     let tunFd: Int32
     let literalHeaders: [HTTPHeader]
+    let dangerousDisableSignatureValidation: Bool
 }
 
 enum ManagerError: Error {
