@@ -9,6 +9,20 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
     @Environment(\.openWindow) private var openWindow
 
     let inspection = Inspection<Self>()
+    var statusText: String {
+        switch vpn.state {
+        case .connected:
+            return "Connected"
+        case .connecting:
+            return "Connecting"
+        case .disabled:
+            return "Disconnected"
+        case .disconnecting:
+            return "Disconnecting"
+        default:
+            return "Unknown"
+        }
+    }
 
     var body: some View {
         // Main stack
@@ -38,6 +52,7 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .font(.body.bold())
                             .foregroundColor(.primary)
+                        Text(statusText)
                     }.toggleStyle(.switch)
                         .disabled(vpnDisabled)
                 }
