@@ -147,7 +147,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        if !state.skipHiddenIconAlert, let menuBar, !menuBar.menuBarExtra.isVisible {
+        if !state.skipHiddenIconAlert,
+           let menuBar,
+           !menuBar.menuBarExtra.isVisible
+        {
             displayIconHiddenAlert()
         }
         return true
@@ -173,15 +176,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.alertStyle = .informational
         alert.messageText = "Coder Desktop is hidden!"
-        alert.informativeText = """
-        Coder Desktop is running, but there's no space in the menu bar for it's icon.
-        You can rearrange icons by holding command.
-        """
+        if #available(macOS 26, *) {
+            alert.informativeText = """
+            Coder Desktop is already running, but its menu bar item may be hidden or disabled.
+            """
+            alert.addButton(withTitle: "Open Menu Bar Settings")
+        } else {
+            alert.informativeText = """
+            Coder Desktop is already running, but there's no space in the menu bar for its icon.
+            """
+        }
+
+        let suppressCheckbox = NSButton(checkboxWithTitle: "Don't show again", target: nil, action: nil)
+        suppressCheckbox.state = state.skipHiddenIconAlert ? .on : .off
+        alert.accessoryView = suppressCheckbox
+
         alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Don't show again")
-        let resp = alert.runModal()
-        if resp == .alertSecondButtonReturn {
-            state.skipHiddenIconAlert = true
+        let response = alert.runModal()
+        state.skipHiddenIconAlert = suppressCheckbox.state == .on
+        if #available(macOS 26, *), response == .alertFirstButtonReturn {
+            // We'll need to ensure this continues to work in future macOS versions
+            if !NSWorkspace.shared.open(
+                URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension?MenuBar")!
+            ) {
+                NSWorkspace.shared.open(
+                    URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension")!
+                )
+            }
         }
     }
 }
