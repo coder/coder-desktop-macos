@@ -95,6 +95,10 @@ struct MenuItemView: View {
         return formattedName
     }
 
+    private var fullItemName: String {
+        item.primaryHost(hostnameSuffix: state.hostnameSuffix)
+    }
+
     private var isExpanded: Bool {
         expandedItem == item.id
     }
@@ -134,6 +138,7 @@ struct MenuItemView: View {
                         .onHover { hovering in
                             nameIsSelected = hovering
                         }
+                        .help(fullItemName)
                 }.buttonStyle(.plain).padding(.trailing, 3)
                 MenuItemIcons(item: item, wsURL: wsURL)
             }
