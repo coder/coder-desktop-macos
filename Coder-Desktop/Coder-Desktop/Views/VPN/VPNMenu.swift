@@ -83,8 +83,10 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                 }
                 AuthButton<VPN>()
                 Button {
+                    NSApp.setActivationPolicy(.regular)
                     openSettings()
                     appActivate()
+                    NSApp.arrangeInFront(nil)
                 } label: {
                     ButtonRowView { Text("Settings") }
                 }.buttonStyle(.plain)

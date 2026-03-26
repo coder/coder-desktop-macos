@@ -198,5 +198,5 @@ extension AppDelegate {
 
 @MainActor
 func appActivate() {
-    NSApp.activate()
+    NSApp.activate(ignoringOtherApps: true)
 }
