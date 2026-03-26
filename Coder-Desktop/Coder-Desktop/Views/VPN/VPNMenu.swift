@@ -86,8 +86,14 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     openSettings()
                     appActivate()
                 } label: {
-                    ButtonRowView { Text("Settings") }
-                }.buttonStyle(.plain)
+                    ButtonRowView {
+                        HStack {
+                            Text("Settings")
+                            Spacer()
+                            Text("⌘,").foregroundStyle(.secondary)
+                        }
+                    }
+                }.buttonStyle(.plain).keyboardShortcut(",", modifiers: [.command])
                 Button {
                     About.open()
                 } label: {
@@ -100,9 +106,13 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     NSApp.terminate(nil)
                 } label: {
                     ButtonRowView {
-                        Text("Quit")
+                        HStack {
+                            Text("Quit")
+                            Spacer()
+                            Text("⌘Q").foregroundStyle(.secondary)
+                        }
                     }
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).keyboardShortcut("q", modifiers: [.command])
             }.padding([.horizontal, .bottom], Theme.Size.trayMargin)
         }.padding(.bottom, Theme.Size.trayMargin)
             .environmentObject(vpn)
