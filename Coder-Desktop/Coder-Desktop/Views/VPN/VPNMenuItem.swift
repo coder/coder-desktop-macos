@@ -83,20 +83,18 @@ struct MenuItemView: View {
 
     var hasApps: Bool { !apps.isEmpty }
 
-    private var itemName: AttributedString {
-        let name = item.primaryHost(hostnameSuffix: state.hostnameSuffix)
+    private var plainItemName: String {
+        item.primaryHost(hostnameSuffix: state.hostnameSuffix)
+    }
 
-        var formattedName = AttributedString(name)
+    private var itemName: AttributedString {
+        var formattedName = AttributedString(plainItemName)
         formattedName.foregroundColor = .primary
 
         if let range = formattedName.range(of: ".\(state.hostnameSuffix)", options: .backwards) {
             formattedName[range].foregroundColor = .secondary
         }
         return formattedName
-    }
-
-    private var fullItemName: String {
-        item.primaryHost(hostnameSuffix: state.hostnameSuffix)
     }
 
     private var isExpanded: Bool {
@@ -138,7 +136,7 @@ struct MenuItemView: View {
                         .onHover { hovering in
                             nameIsSelected = hovering
                         }
-                        .help(fullItemName)
+                        .help(plainItemName)
                 }.buttonStyle(.plain).padding(.trailing, 3)
                 MenuItemIcons(item: item, wsURL: wsURL)
             }
@@ -228,9 +226,12 @@ struct MenuItemIcons: View {
     @State private var webIsSelected: Bool = false
 
     func copyToClipboard() {
-        let primaryHost = item.primaryHost(hostnameSuffix: state.hostnameSuffix)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(primaryHost, forType: .string)
+        NSPasteboard.general.setString(plainItemName, forType: .string)
+    }
+
+    private var plainItemName: String {
+        item.primaryHost(hostnameSuffix: state.hostnameSuffix)
     }
 
     var body: some View {
