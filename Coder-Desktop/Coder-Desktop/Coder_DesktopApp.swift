@@ -178,7 +178,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "Coder Desktop is hidden!"
         if #available(macOS 26, *) {
             alert.informativeText = """
-            Coder Desktop is already running, but its menu bar item may be hidden or disabled.
+            Coder Desktop is already running, but its menu bar item may be disabled, or hidden due to a lack of space. 
+            You can rearrange icons by holding command.
             """
             alert.addButton(withTitle: "Open Menu Bar Settings")
         } else {
