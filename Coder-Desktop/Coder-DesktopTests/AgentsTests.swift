@@ -67,28 +67,27 @@ struct AgentsTests {
     }
 
     @Test
-    func showAllToggle() async throws {
+    func showAllButton() async throws {
         vpn.state = .connected
         vpn.menuState = .init(agents: createMockAgents(count: 7))
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
-                var toggle = try view.find(ViewType.Toggle.self)
+                var button = try view.find(ViewType.Button.self)
                 var forEach = try view.find(ViewType.ForEach.self)
                 #expect(forEach.count == Theme.defaultVisibleAgents)
-                #expect(try toggle.labelView().text().string() == "Show all")
-                #expect(try !toggle.isOn())
+                #expect(try button.labelView().find(text: "Show all").string() == "Show all")
 
-                try toggle.tap()
-                toggle = try view.find(ViewType.Toggle.self)
+                try button.tap()
+                button = try view.find(ViewType.Button.self)
                 forEach = try view.find(ViewType.ForEach.self)
                 #expect(forEach.count == Theme.defaultVisibleAgents + 2)
-                #expect(try toggle.labelView().text().string() == "Show less")
+                #expect(try button.labelView().find(text: "Show less").string() == "Show less")
 
-                try toggle.tap()
-                toggle = try view.find(ViewType.Toggle.self)
+                try button.tap()
+                button = try view.find(ViewType.Button.self)
                 forEach = try view.find(ViewType.ForEach.self)
-                #expect(try toggle.labelView().text().string() == "Show all")
+                #expect(try button.labelView().find(text: "Show all").string() == "Show all")
                 #expect(forEach.count == Theme.defaultVisibleAgents)
             }
         }
@@ -100,7 +99,7 @@ struct AgentsTests {
         vpn.menuState = .init(agents: createMockAgents(count: 3))
 
         #expect(throws: (any Error).self) {
-            _ = try view.inspect().find(ViewType.Toggle.self)
+            _ = try view.inspect().find(ViewType.Button.self)
         }
     }
 
