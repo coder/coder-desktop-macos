@@ -12,6 +12,11 @@ protocol VPNService: ObservableObject {
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
     var startWhenReady: Bool { get set }
+
+    /// Backfill parent_id for an agent. Sourced from the HTTP API since the VPN
+    /// proto doesn't carry it. Called by the UI layer after fetching workspace
+    /// details so child agents can be nested under their parent.
+    func setAgentParentID(agentID: UUID, parentID: UUID?)
 }
 
 enum VPNServiceState: Equatable {
@@ -37,7 +42,7 @@ enum VPNServiceError: Error, Equatable {
     case systemExtensionError(SystemExtensionState)
     case networkExtensionError(NetworkExtensionState)
 
-    public var description: String {
+    var description: String {
         switch self {
         case let .internalError(description):
             "Internal Error: \(description)"
@@ -48,7 +53,9 @@ enum VPNServiceError: Error, Equatable {
         }
     }
 
-    public var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 @MainActor
@@ -88,9 +95,9 @@ final class CoderVPNService: NSObject, VPNService {
     var startWhenReady: Bool = false
     var onStart: (() -> Void)?
 
-    // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
-    // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
-    // only stores a weak reference to the delegate.
+    /// systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
+    /// garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
+    /// only stores a weak reference to the delegate.
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     var serverAddress: String?
@@ -177,10 +184,14 @@ final class CoderVPNService: NSObject, VPNService {
         update.upsertedWorkspaces.forEach { menuState.upsertWorkspace($0) }
         update.upsertedAgents.forEach { menuState.upsertAgent($0) }
     }
+
+    func setAgentParentID(agentID: UUID, parentID: UUID?) {
+        menuState.setAgentParentID(agentID: agentID, parentID: parentID)
+    }
 }
 
 extension CoderVPNService {
-    public func vpnDidUpdate(_ connection: NETunnelProviderSession) {
+    func vpnDidUpdate(_ connection: NETunnelProviderSession) {
         switch (tunnelState, connection.status) {
         // Any -> Disconnected: Update UI w/ error if present
         case (_, .disconnected):
