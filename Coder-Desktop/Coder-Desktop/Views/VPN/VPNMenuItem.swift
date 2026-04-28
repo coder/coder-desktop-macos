@@ -2,7 +2,7 @@ import CoderSDK
 import os
 import SwiftUI
 
-/// Each row in the workspaces list is an agent or an offline workspace
+// Each row in the workspaces list is an agent or an offline workspace
 enum VPNMenuItem: Equatable, Comparable, Identifiable {
     case agent(Agent)
     case offlineWorkspace(Workspace)
@@ -81,9 +81,7 @@ struct MenuItemView: View {
 
     @State private var loadingApps: Bool = true
 
-    var hasApps: Bool {
-        !apps.isEmpty
-    }
+    var hasApps: Bool { !apps.isEmpty }
 
     private var plainItemName: String {
         item.primaryHost(hostnameSuffix: state.hostnameSuffix)

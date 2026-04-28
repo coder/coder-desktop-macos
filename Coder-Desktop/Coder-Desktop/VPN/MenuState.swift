@@ -11,8 +11,7 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let wsName: String
     let wsID: UUID
     // parentID is enriched from the HTTP API after the VPN proto delivers the
-    // agent. It identifies the owning agent for child agents (e.g. devcontainer
-    // sub-agents). nil means top-level.
+    // agent. nil means top-level.
     var parentID: UUID?
     let lastPing: LastPing?
     let lastHandshake: Date?
@@ -40,9 +39,9 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
         self.primaryHost = primaryHost
     }
 
-    /// Agents are sorted by status, and then by name. Within a workspace group,
-    /// top-level agents (parentID == nil) are surfaced before children by the
-    /// grouping logic — this comparator only orders peers.
+    // Agents are sorted by status, then by workspace name, then by agent name
+    // (the last tie-break matters for groups with multiple agents in the same
+    // workspace).
     static func < (lhs: Agent, rhs: Agent) -> Bool {
         if lhs.status != rhs.status {
             return lhs.status < rhs.status
@@ -124,7 +123,7 @@ enum AgentStatus: Int, Equatable, Comparable {
     case no_recent_handshake = 3
     case off = 4
 
-    var description: String {
+    public var description: String {
         switch self {
         case .okay: "Connected"
         case .connecting: "Connecting..."
@@ -134,7 +133,7 @@ enum AgentStatus: Int, Equatable, Comparable {
         }
     }
 
-    var color: Color {
+    public var color: Color {
         switch self {
         case .okay: .green
         case .high_latency: .yellow
@@ -162,15 +161,15 @@ struct Workspace: Identifiable, Equatable, Comparable {
 struct VPNMenuState {
     var agents: [UUID: Agent] = [:]
     var workspaces: [UUID: Workspace] = [:]
-    /// Upserted agents that don't belong to any known workspace, have no FQDNs,
-    /// or have any invalid UUIDs.
+    // Upserted agents that don't belong to any known workspace, have no FQDNs,
+    // or have any invalid UUIDs.
     var invalidAgents: [Vpn_Agent] = []
 
-    func findAgent(workspaceID: UUID, name: String) -> Agent? {
+    public func findAgent(workspaceID: UUID, name: String) -> Agent? {
         agents.first(where: { $0.value.wsID == workspaceID && $0.value.name == name })?.value
     }
 
-    func findWorkspace(name: String) -> Workspace? {
+    public func findWorkspace(name: String) -> Workspace? {
         workspaces
             .first(where: { $0.value.name == name })?.value
     }
@@ -189,8 +188,8 @@ struct VPNMenuState {
         let nonEmptyHosts = agent.fqdn.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 }
 
         // The proto doesn't carry parent_id, so preserve any value we already
-        // enriched for this agent from the HTTP API. Captured here because the
-        // same-name dedupe below removes the existing entry.
+        // enriched from the HTTP API. Captured before the same-name dedupe
+        // below clears the existing entry.
         let existingParentID = agents[id]?.parentID
 
         // An existing agent with the same name, belonging to the same workspace
@@ -271,9 +270,9 @@ struct VPNMenuState {
         workspaces[wsID] = nil
     }
 
-    /// Groups all known agents under their workspace, nesting child agents
-    /// (those with a parentID) under their parent. Empty workspaces still appear
-    /// as offline groups.
+    // Groups all known agents under their workspace, nesting child agents
+    // (those with a parentID) under their parent. Empty workspaces still appear
+    // as offline groups.
     var grouped: [WorkspaceGroup] {
         let agentsByWorkspace = Dictionary(grouping: agents.values, by: \.wsID)
 
@@ -302,9 +301,7 @@ struct VPNMenuState {
             .sorted()
     }
 
-    var onlineAgents: [Agent] {
-        agents.map(\.value)
-    }
+    var onlineAgents: [Agent] { agents.map(\.value) }
 
     mutating func clear() {
         agents.removeAll()
@@ -336,9 +333,7 @@ extension Vpn_Agent {
         Date.now.addingTimeInterval(-300) // 5 minutes ago
     }
 
-    var healthyPingMax: TimeInterval {
-        0.15
-    } // 150ms
+    var healthyPingMax: TimeInterval { 0.15 } // 150ms
 
     var status: AgentStatus {
         // Initially the handshake is missing
