@@ -42,12 +42,20 @@ public struct WorkspaceResource: Codable, Identifiable, Sendable {
 
 public struct WorkspaceAgent: Codable, Identifiable, Sendable {
     public let id: UUID
+    public let parent_id: UUID? // `omitempty`
     public let expanded_directory: String? // `omitempty`
     public let apps: [WorkspaceApp]
     public let display_apps: [DisplayApp]
 
-    public init(id: UUID, expanded_directory: String?, apps: [WorkspaceApp], display_apps: [DisplayApp]) {
+    public init(
+        id: UUID,
+        parent_id: UUID? = nil,
+        expanded_directory: String?,
+        apps: [WorkspaceApp],
+        display_apps: [DisplayApp]
+    ) {
         self.id = id
+        self.parent_id = parent_id
         self.expanded_directory = expanded_directory
         self.apps = apps
         self.display_apps = display_apps

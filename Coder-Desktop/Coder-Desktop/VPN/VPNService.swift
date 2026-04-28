@@ -12,6 +12,11 @@ protocol VPNService: ObservableObject {
     func stop() async
     func configureTunnelProviderProtocol(proto: NETunnelProviderProtocol?)
     var startWhenReady: Bool { get set }
+
+    // Backfill parent_id for an agent. Sourced from the HTTP API since the VPN
+    // proto doesn't carry it. Called by the UI layer after fetching workspace
+    // details so child agents can be nested under their parent.
+    func setAgentParentID(agentID: UUID, parentID: UUID?)
 }
 
 enum VPNServiceState: Equatable {
@@ -176,6 +181,10 @@ final class CoderVPNService: NSObject, VPNService {
         // Upsert workspaces before agents to populate agent workspace names
         update.upsertedWorkspaces.forEach { menuState.upsertWorkspace($0) }
         update.upsertedAgents.forEach { menuState.upsertAgent($0) }
+    }
+
+    func setAgentParentID(agentID: UUID, parentID: UUID?) {
+        menuState.setAgentParentID(agentID: agentID, parentID: parentID)
     }
 }
 

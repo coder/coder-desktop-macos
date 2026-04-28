@@ -3,12 +3,11 @@ import Testing
 @testable import VPNLib
 
 @MainActor
-@Suite
 struct VPNMenuStateTests {
     var state = VPNMenuState()
 
     @Test
-    mutating func testUpsertAgent_addsAgent() async throws {
+    mutating func upsertAgent_addsAgent() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -39,7 +38,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteAgent_removesAgent() async throws {
+    mutating func deleteAgent_removesAgent() {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -59,7 +58,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteWorkspace_removesWorkspaceAndAgents() async throws {
+    mutating func deleteWorkspace_removesWorkspaceAndAgents() {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -80,7 +79,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_poorConnection() async throws {
+    mutating func upsertAgent_poorConnection() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -103,7 +102,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_connecting() async throws {
+    mutating func upsertAgent_connecting() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -123,7 +122,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_unhealthyAgent() async throws {
+    mutating func upsertAgent_unhealthyAgent() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -143,7 +142,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_replacesOldAgent() async throws {
+    mutating func upsertAgent_replacesOldAgent() throws {
         let workspaceID = UUID()
         let oldAgentID = UUID()
         let newAgentID = UUID()
@@ -181,17 +180,19 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertWorkspace_addsOfflineWorkspace() async throws {
+    mutating func upsertWorkspace_addsOfflineWorkspace() throws {
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
 
         let storedWorkspace = try #require(state.workspaces[workspaceID])
         #expect(storedWorkspace.name == "foo")
 
-        var output = state.sorted
-        #expect(output.count == 1)
-        #expect(output[0].id == workspaceID)
-        #expect(output[0].wsName == "foo")
+        var groups = state.grouped
+        #expect(groups.count == 1)
+        #expect(groups[0].id == workspaceID)
+        #expect(groups[0].workspace.name == "foo")
+        #expect(groups[0].agents.isEmpty)
+        #expect(groups[0].status == .off)
 
         let agentID = UUID()
         let agent = Vpn_Agent.with {
@@ -207,19 +208,21 @@ struct VPNMenuStateTests {
         }
         state.upsertAgent(agent)
 
-        output = state.sorted
-        #expect(output.count == 1)
-        #expect(output[0].id == agentID)
-        #expect(output[0].wsName == "foo")
-        #expect(output[0].status == .okay)
-        let storedAgentFromSort = try #require(state.agents[agentID])
-        #expect(storedAgentFromSort.statusString.contains("You're connected through a DERP relay."))
-        #expect(storedAgentFromSort.statusString.contains("Total latency: 50.00 ms"))
-        #expect(storedAgentFromSort.statusString.contains("Last handshake: 3 minutes ago"))
+        groups = state.grouped
+        #expect(groups.count == 1)
+        #expect(groups[0].id == workspaceID)
+        #expect(groups[0].workspace.name == "foo")
+        #expect(groups[0].agents.count == 1)
+        #expect(groups[0].agents[0].id == agentID)
+        #expect(groups[0].status == .okay)
+        let stored = try #require(state.agents[agentID])
+        #expect(stored.statusString.contains("You're connected through a DERP relay."))
+        #expect(stored.statusString.contains("Total latency: 50.00 ms"))
+        #expect(stored.statusString.contains("Last handshake: 3 minutes ago"))
     }
 
     @Test
-    mutating func testUpsertAgent_invalidAgent_noUUID() async throws {
+    mutating func upsertAgent_invalidAgent_noUUID() {
         let agent = Vpn_Agent.with {
             $0.name = "invalidAgent"
             $0.fqdn = ["invalid.coder"]
@@ -232,7 +235,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_outOfOrder() async throws {
+    mutating func upsertAgent_outOfOrder() {
         let agentID = UUID()
         let workspaceID = UUID()
 
@@ -251,7 +254,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteInvalidAgent_removesInvalid() async throws {
+    mutating func deleteInvalidAgent_removesInvalid() {
         let agentID = UUID()
         let workspaceID = UUID()
 

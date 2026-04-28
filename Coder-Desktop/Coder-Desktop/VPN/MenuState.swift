@@ -10,6 +10,9 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let hosts: [String]
     let wsName: String
     let wsID: UUID
+    // parentID is enriched from the HTTP API after the VPN proto delivers the
+    // agent. nil means top-level.
+    var parentID: UUID?
     let lastPing: LastPing?
     let lastHandshake: Date?
 
@@ -19,6 +22,7 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
          hosts: [String],
          wsName: String,
          wsID: UUID,
+         parentID: UUID? = nil,
          lastPing: LastPing? = nil,
          lastHandshake: Date? = nil,
          primaryHost: String)
@@ -29,17 +33,23 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
         self.hosts = hosts
         self.wsName = wsName
         self.wsID = wsID
+        self.parentID = parentID
         self.lastPing = lastPing
         self.lastHandshake = lastHandshake
         self.primaryHost = primaryHost
     }
 
-    // Agents are sorted by status, and then by name
+    // Agents are sorted by status, then by workspace name, then by agent name
+    // (the last tie-break matters for groups with multiple agents in the same
+    // workspace).
     static func < (lhs: Agent, rhs: Agent) -> Bool {
         if lhs.status != rhs.status {
             return lhs.status < rhs.status
         }
-        return lhs.wsName.localizedCompare(rhs.wsName) == .orderedAscending
+        if lhs.wsName != rhs.wsName {
+            return lhs.wsName.localizedCompare(rhs.wsName) == .orderedAscending
+        }
+        return lhs.name.localizedCompare(rhs.name) == .orderedAscending
     }
 
     var statusString: String {
@@ -177,6 +187,11 @@ struct VPNMenuState {
         // Remove trailing dot if present
         let nonEmptyHosts = agent.fqdn.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 }
 
+        // The proto doesn't carry parent_id, so preserve any value we already
+        // enriched from the HTTP API. Captured before the same-name dedupe
+        // below clears the existing entry.
+        let existingParentID = agents[id]?.parentID
+
         // An existing agent with the same name, belonging to the same workspace
         // is from a previous workspace build, and should be removed.
         agents.filter { $0.value.name == agent.name && $0.value.wsID == wsID }
@@ -203,11 +218,18 @@ struct VPNMenuState {
             hosts: nonEmptyHosts,
             wsName: workspace.name,
             wsID: wsID,
+            parentID: existingParentID,
             lastPing: lastPing,
             lastHandshake: agent.lastHandshake.maybeDate,
             // Hosts arrive sorted by length, the shortest looks best in the UI.
             primaryHost: nonEmptyHosts.first!
         )
+    }
+
+    mutating func setAgentParentID(agentID: UUID, parentID: UUID?) {
+        guard var agent = agents[agentID], agent.parentID != parentID else { return }
+        agent.parentID = parentID
+        agents[agentID] = agent
     }
 
     mutating func deleteAgent(withId id: Data) {
@@ -248,13 +270,35 @@ struct VPNMenuState {
         workspaces[wsID] = nil
     }
 
-    var sorted: [VPNMenuItem] {
-        var items = agents.values.map { VPNMenuItem.agent($0) }
-        // Workspaces with no agents are shown as offline
-        items += workspaces.filter { _, value in
-            value.agents.isEmpty
-        }.map { VPNMenuItem.offlineWorkspace(Workspace(id: $0.key, name: $0.value.name, agents: $0.value.agents)) }
-        return items.sorted()
+    // Groups all known agents under their workspace, nesting child agents
+    // (those with a parentID) under their parent. Empty workspaces still appear
+    // as offline groups.
+    var grouped: [WorkspaceGroup] {
+        let agentsByWorkspace = Dictionary(grouping: agents.values, by: \.wsID)
+
+        // Start from the known workspaces, then synthesize one for any wsID
+        // that shows up in agents without a workspace upsert (test fixtures
+        // and out-of-order proto delivery do this).
+        var workspacesByID = workspaces
+        for (wsID, wsAgents) in agentsByWorkspace where workspacesByID[wsID] == nil {
+            guard let firstAgent = wsAgents.first else { continue }
+            workspacesByID[wsID] = Workspace(
+                id: wsID,
+                name: firstAgent.wsName,
+                agents: Set(wsAgents.map(\.id))
+            )
+        }
+
+        return workspacesByID
+            .map { wsID, workspace in
+                // Normalize the workspace id to the dictionary key — matches
+                // the existing var sorted behavior, and tests rely on it.
+                WorkspaceGroup(
+                    workspace: Workspace(id: wsID, name: workspace.name, agents: workspace.agents),
+                    agents: agentsByWorkspace[wsID] ?? []
+                )
+            }
+            .sorted()
     }
 
     var onlineAgents: [Agent] { agents.map(\.value) }
