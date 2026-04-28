@@ -4,30 +4,31 @@ struct Agents<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var state: AppState
     @State private var viewAll = false
-    @State private var expandedItem: VPNMenuItem.ID?
+    @State private var expandedItem: UUID?
     @State private var hasToggledExpansion: Bool = false
-    private let defaultVisibleRows = 5
+    @State private var enrichedWorkspaces: Set<UUID> = []
 
     let inspection = Inspection<Self>()
 
     var body: some View {
         Group {
-            // Agents List
             if vpn.state == .connected {
-                let items = vpn.menuState.sorted
-                let visibleItems = viewAll ? items[...] : items.prefix(defaultVisibleRows)
+                let groups = vpn.menuState.grouped
+                let visibleGroups = viewAll
+                    ? Array(groups)
+                    : Array(groups.prefix(Theme.defaultVisibleAgents))
                 ScrollView(showsIndicators: false) {
-                    ForEach(visibleItems, id: \.id) { agent in
-                        MenuItemView(
-                            item: agent,
+                    ForEach(visibleGroups, id: \.id) { group in
+                        WorkspaceGroupView(
+                            group: group,
                             baseAccessURL: state.baseAccessURL!,
                             expandedItem: $expandedItem,
                             userInteracted: $hasToggledExpansion
                         )
                         .padding(.horizontal, Theme.Size.trayMargin)
-                    }.onChange(of: visibleItems) {
-                        // If no workspaces are online, we should expand the first one to come online
-                        if visibleItems.filter({ $0.status != .off }).isEmpty {
+                    }.onChange(of: visibleGroups) {
+                        // If no workspaces are online, expand the first one to come online.
+                        if visibleGroups.allSatisfy({ $0.status == .off }) {
                             hasToggledExpansion = false
                             return
                         }
@@ -35,22 +36,24 @@ struct Agents<VPN: VPNService>: View {
                             return
                         }
                         withAnimation(.snappy(duration: Theme.Animation.collapsibleDuration)) {
-                            expandedItem = visibleItems.first?.id
+                            expandedItem = visibleGroups.first?.defaultExpandID
                         }
                         hasToggledExpansion = true
                     }
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: 400)
-                if items.count == 0 {
+                .task(id: Set(groups.map(\.id))) {
+                    await enrichParents(groups: groups)
+                }
+                if groups.isEmpty {
                     Text("No workspaces!")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, Theme.Size.trayInset)
                         .padding(.top, 2)
                 }
-                // Only show the toggle if there are more items to show
-                if items.count > defaultVisibleRows {
+                if groups.count > Theme.defaultVisibleAgents {
                     Toggle(isOn: $viewAll) {
                         Text(viewAll ? "Show less" : "Show all")
                             .font(.headline)
@@ -61,5 +64,37 @@ struct Agents<VPN: VPNService>: View {
                 }
             }
         }.onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
+    }
+
+    /// Backfill agent.parent_id from the HTTP API. The VPN proto doesn't carry
+    /// it, so without this children would never nest under their parent in the
+    /// tray. Best-effort: failures are silent and retried whenever the set of
+    /// workspace IDs changes.
+    private func enrichParents(groups: [WorkspaceGroup]) async {
+        guard let client = state.client else { return }
+        for group in groups where !enrichedWorkspaces.contains(group.id) {
+            do {
+                let workspace = try await client.workspace(group.id)
+                let agents = workspace.latest_build.resources.compactMap(\.agents).flatMap(\.self)
+                for agent in agents {
+                    vpn.setAgentParentID(agentID: agent.id, parentID: agent.parent_id)
+                }
+                enrichedWorkspaces.insert(group.id)
+            } catch {
+                continue
+            }
+        }
+    }
+}
+
+private extension WorkspaceGroup {
+    /// For the auto-expand-first behavior: single-agent groups expand the
+    /// agent's app section (existing UX); multi-agent groups expand the
+    /// workspace itself to reveal nested agents.
+    var defaultExpandID: UUID {
+        if agents.count == 1, let only = agents.first {
+            return only.id
+        }
+        return id
     }
 }

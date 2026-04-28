@@ -81,5 +81,9 @@ final class PreviewVPN: Coder_Desktop.VPNService {
         state = .connecting
     }
 
+    func setAgentParentID(agentID: UUID, parentID: UUID?) {
+        menuState.setAgentParentID(agentID: agentID, parentID: parentID)
+    }
+
     var startWhenReady: Bool = false
 }

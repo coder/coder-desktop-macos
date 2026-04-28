@@ -25,6 +25,11 @@ class MockVPNService: VPNService, ObservableObject {
     }
 
     func configureTunnelProviderProtocol(proto _: NETunnelProviderProtocol?) {}
+
+    func setAgentParentID(agentID: UUID, parentID: UUID?) {
+        menuState.setAgentParentID(agentID: agentID, parentID: parentID)
+    }
+
     var startWhenReady: Bool = false
 }
 
