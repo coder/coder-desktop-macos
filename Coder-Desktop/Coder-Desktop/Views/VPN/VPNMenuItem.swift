@@ -74,6 +74,10 @@ struct MenuItemView: View {
     let baseAccessURL: URL
     @Binding var expandedItem: VPNMenuItem.ID?
     @Binding var userInteracted: Bool
+    // Optional display label override. When set (used for nested child rows),
+    // we show this instead of the full FQDN to keep the menu readable. The
+    // copy-to-clipboard action and the hover tooltip still use the full FQDN.
+    var displayLabel: String?
 
     @State private var nameIsSelected: Bool = false
 
@@ -88,6 +92,11 @@ struct MenuItemView: View {
     }
 
     private var itemName: AttributedString {
+        if let displayLabel {
+            var label = AttributedString(displayLabel)
+            label.foregroundColor = .primary
+            return label
+        }
         var formattedName = AttributedString(plainItemName)
         formattedName.foregroundColor = .primary
 

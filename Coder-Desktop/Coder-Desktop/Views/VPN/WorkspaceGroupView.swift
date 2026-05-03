@@ -17,13 +17,17 @@ struct WorkspaceGroupView: View {
 
     var body: some View {
         if group.agents.count <= 1 {
+            // Single-agent or offline: the row represents the workspace, so
+            // display the workspace name. Copy-to-clipboard and the tooltip
+            // still use the full FQDN.
             let item: VPNMenuItem = group.agents.first.map { .agent($0) }
                 ?? .offlineWorkspace(group.workspace)
             MenuItemView(
                 item: item,
                 baseAccessURL: baseAccessURL,
                 expandedItem: $expandedItem,
-                userInteracted: $userInteracted
+                userInteracted: $userInteracted,
+                displayLabel: group.workspace.name
             )
         } else {
             VStack(spacing: 0) {
@@ -50,11 +54,15 @@ struct WorkspaceGroupView: View {
     }
 
     private func nestedRow(agent: Agent, indent: Int) -> some View {
+        // Show only the agent's own name in nested rows — the workspace is
+        // already in the header. Copy-to-clipboard and the hover tooltip
+        // still use the full FQDN so the user has a usable shell hostname.
         MenuItemView(
             item: .agent(agent),
             baseAccessURL: baseAccessURL,
             expandedItem: $nestedExpandedAgent,
-            userInteracted: $userInteracted
+            userInteracted: $userInteracted,
+            displayLabel: agent.name
         )
         .padding(.leading, CGFloat(indent) * Theme.Size.trayPadding)
     }
@@ -76,11 +84,10 @@ struct WorkspaceHeaderRow: View {
     }
 
     private var styledName: AttributedString {
-        var name = AttributedString(plainName)
+        // Display only the workspace name; the row already represents the
+        // workspace in the menu hierarchy. Copy/tooltip retain the full FQDN.
+        var name = AttributedString(group.workspace.name)
         name.foregroundColor = .primary
-        if let range = name.range(of: ".\(state.hostnameSuffix)", options: .backwards) {
-            name[range].foregroundColor = .secondary
-        }
         return name
     }
 

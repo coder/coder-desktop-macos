@@ -18,14 +18,16 @@ struct Agents<VPN: VPNService>: View {
                     ? Array(groups)
                     : Array(groups.prefix(Theme.defaultVisibleAgents))
                 ScrollView(showsIndicators: false) {
-                    ForEach(visibleGroups, id: \.id) { group in
-                        WorkspaceGroupView(
-                            group: group,
-                            baseAccessURL: state.baseAccessURL!,
-                            expandedItem: $expandedItem,
-                            userInteracted: $hasToggledExpansion
-                        )
-                        .padding(.horizontal, Theme.Size.trayMargin)
+                    VStack(spacing: 0) {
+                        ForEach(visibleGroups, id: \.id) { group in
+                            WorkspaceGroupView(
+                                group: group,
+                                baseAccessURL: state.baseAccessURL!,
+                                expandedItem: $expandedItem,
+                                userInteracted: $hasToggledExpansion
+                            )
+                            .padding(.horizontal, Theme.Size.trayMargin)
+                        }
                     }.onChange(of: visibleGroups) {
                         // If no workspaces are online, expand the first one to come online.
                         if visibleGroups.allSatisfy({ $0.status == .off }) {
