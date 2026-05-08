@@ -78,6 +78,10 @@ struct MenuItemView: View {
     // we show this instead of the full FQDN to keep the menu readable. The
     // copy-to-clipboard action and the hover tooltip still use the full FQDN.
     var displayLabel: String?
+    // Hide the trailing open-in-browser button on rows where it would be
+    // redundant (nested agent rows under a workspace header that already has
+    // the same link).
+    var showOpenInBrowser: Bool = true
 
     @State private var nameIsSelected: Bool = false
 
@@ -147,7 +151,7 @@ struct MenuItemView: View {
                         }
                         .help(plainItemName)
                 }.buttonStyle(.plain).padding(.trailing, 3)
-                MenuItemIcons(item: item, wsURL: wsURL)
+                MenuItemIcons(item: item, wsURL: wsURL, showOpenInBrowser: showOpenInBrowser)
             }
             if isExpanded {
                 Group {
@@ -230,6 +234,7 @@ struct MenuItemIcons: View {
 
     let item: VPNMenuItem
     let wsURL: URL
+    var showOpenInBrowser: Bool = true
 
     @State private var copyIsSelected: Bool = false
     @State private var webIsSelected: Bool = false
@@ -251,12 +256,15 @@ struct MenuItemIcons: View {
         MenuItemIconButton(systemName: "doc.on.doc", action: copyToClipboard)
             .font(.system(size: 9))
             .symbolVariant(.fill)
+            .padding(.trailing, showOpenInBrowser ? 0 : Theme.Size.trayMargin)
             .help("Copy hostname")
-        MenuItemIconButton(systemName: "globe", action: { openURL(wsURL) })
-            .contentShape(Rectangle())
-            .font(.system(size: 12))
-            .padding(.trailing, Theme.Size.trayMargin)
-            .help("Open in browser")
+        if showOpenInBrowser {
+            MenuItemIconButton(systemName: "globe", action: { openURL(wsURL) })
+                .contentShape(Rectangle())
+                .font(.system(size: 12))
+                .padding(.trailing, Theme.Size.trayMargin)
+                .help("Open in browser")
+        }
     }
 }
 

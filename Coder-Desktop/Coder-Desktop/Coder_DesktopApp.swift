@@ -100,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     await self.state.handleTokenExpiry()
                 }
             }, content: {
-                VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 256)
+                VPNMenu<CoderVPNService, MutagenDaemon>().frame(width: 320)
                     .environmentObject(self.vpn)
                     .environmentObject(self.state)
                     .environmentObject(self.fileSyncDaemon)
