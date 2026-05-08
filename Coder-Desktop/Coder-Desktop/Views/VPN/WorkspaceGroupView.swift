@@ -2,18 +2,17 @@ import CoderSDK
 import os
 import SwiftUI
 
-/// WorkspaceGroupView renders one workspace's row in the tray.
+/// WorkspaceGroupView renders one workspace's row in the tray using native
+/// macOS containers (`DisclosureGroup` for the workspace and `GroupBox` for
+/// each sub-agent) so the visual treatment matches the rest of the system.
 ///
-/// Single-agent and offline workspaces render as a flat row (status dot,
-/// copy, browser inline) since the workspace and the agent are effectively
-/// the same thing — drilling in adds no information.
-///
-/// Multi-agent workspaces render as a collapsible header that, when
-/// expanded, lists every top-level agent with its apps inline. Sub-agents
-/// (devcontainer agents) are wrapped in a dashed "Container" box right
-/// under their parent so the hierarchy is visible without indentation
-/// gymnastics — the same shape the dashboard uses. Parent apps are hidden
-/// when any child has apps of its own (also matches the dashboard).
+/// Single-agent and offline workspaces stay flat — drilling in adds nothing.
+/// Multi-agent workspaces use `DisclosureGroup`: the system chevron handles
+/// expansion, and the disclosure content lists each top-level agent inline
+/// with apps. Each sub-agent (devcontainer) is wrapped in its own `GroupBox`
+/// labelled "Container" with a cube glyph, mirroring the dashboard's compact
+/// devcontainer treatment. Parent apps are hidden by default when any child
+/// has apps; a per-row toggle reveals them on demand.
 struct WorkspaceGroupView: View {
     @EnvironmentObject var state: AppState
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VPNMenu")
@@ -22,10 +21,9 @@ struct WorkspaceGroupView: View {
     let baseAccessURL: URL
     @Binding var expandedItem: UUID?
     @Binding var userInteracted: Bool
-    /// Callback fired for each agent we resolve from the HTTP API, so the
-    /// VPN service can update the agent's parentID. Routed through a closure
-    /// because WorkspaceGroupView is non-generic and can't carry the VPN
-    /// service as an environment object directly.
+    /// Callback fired for each agent we resolve from the HTTP API, so the VPN
+    /// service can update the agent's parentID. WorkspaceGroupView is non-
+    /// generic and can't carry the VPN service as an environment object.
     var setAgentParentID: (UUID, UUID?) -> Void = { _, _ in }
 
     @State private var appsByAgent: [UUID: [WorkspaceApp]] = [:]
@@ -36,7 +34,17 @@ struct WorkspaceGroupView: View {
     /// default "hide parent apps when a child has apps" behavior).
     @State private var revealedParents: Set<UUID> = []
 
-    private var isExpanded: Bool { expandedItem == group.id }
+    private var isExpanded: Binding<Bool> {
+        Binding(
+            get: { expandedItem == group.id },
+            set: { expand in
+                userInteracted = true
+                withAnimation(.snappy(duration: Theme.Animation.collapsibleDuration)) {
+                    expandedItem = expand ? group.id : nil
+                }
+            }
+        )
+    }
 
     var body: some View {
         if group.agents.count <= 1 {
@@ -51,17 +59,16 @@ struct WorkspaceGroupView: View {
                 displayLabel: group.workspace.name
             )
         } else {
-            VStack(spacing: 0) {
-                WorkspaceHeaderRow(
-                    group: group,
-                    baseAccessURL: baseAccessURL,
-                    isExpanded: isExpanded,
-                    onToggle: toggleGroupExpansion
+            DisclosureGroup(isExpanded: isExpanded) {
+                expandedContent
+            } label: {
+                WorkspaceDisclosureLabel(
+                    name: group.workspace.name,
+                    plainName: "\(group.workspace.name).\(state.hostnameSuffix)",
+                    wsURL: baseAccessURL.appending(path: "@me").appending(path: group.workspace.name)
                 )
-                if isExpanded {
-                    expandedContent
-                }
             }
+            .padding(.horizontal, Theme.Size.trayPadding)
         }
     }
 
@@ -79,31 +86,25 @@ struct WorkspaceGroupView: View {
                         ports: portsByAgent[parent.id] ?? [],
                         appsToggle: appsToggle(for: parent)
                     )
-                    // Wrap each sub-agent in its own dashed box so multiple
-                    // devcontainers under the same parent stay visually
-                    // distinct. The cube glyph lives inline on the agent row
-                    // (via leadingIcon) instead of a separate header line.
+                    // Each sub-agent gets its own GroupBox so multiple
+                    // devcontainers under the same parent stay distinct.
                     ForEach(group.children(of: parent.id)) { child in
-                        SubAgentContainer {
+                        GroupBox {
                             AgentDetailRow(
                                 agent: child,
                                 apps: appsByAgent[child.id] ?? [],
-                                ports: portsByAgent[child.id] ?? [],
-                                leadingIcon: "cube",
-                                leadingIconHelp: "Container"
+                                ports: portsByAgent[child.id] ?? []
                             )
+                        } label: {
+                            Label("Container", systemImage: "cube")
+                                .font(.caption)
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
         }.task(id: group.id) { await loadApps() }
-    }
-
-    private func toggleGroupExpansion() {
-        userInteracted = true
-        withAnimation(.snappy(duration: Theme.Animation.collapsibleDuration)) {
-            expandedItem = expandedItem == group.id ? nil : group.id
-        }
     }
 
     /// Hide a parent agent's apps when any of its direct children have apps —
@@ -186,7 +187,6 @@ struct WorkspaceGroupView: View {
 
     /// Fetch listening ports per agent in parallel. The endpoint is per-agent
     /// (no batch), and only Linux agents return ports — others return [].
-    /// Stored in @State so the row can decide to render a ports button.
     private func loadPorts(client: Client) async {
         await withTaskGroup(of: (UUID, [WorkspaceAgentListeningPort]).self) { gp in
             for agent in group.agents {
@@ -208,87 +208,34 @@ struct WorkspaceGroupView: View {
     }
 }
 
-/// Subtle dashed-border box that wraps a sub-agent's row + apps. The cube
-/// glyph that signals "container" is rendered inline at the start of the
-/// agent row (via AgentDetailRow.leadingIcon) so we don't need a dedicated
-/// header line — saves vertical space, matches the dashboard's compact
-/// devcontainer treatment.
-struct SubAgentContainer<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius)
-                    .strokeBorder(
-                        Color.secondary.opacity(0.35),
-                        style: StrokeStyle(lineWidth: 1, dash: [3])
-                    )
-            )
-            .padding(.horizontal, Theme.Size.trayPadding)
-            .padding(.vertical, 2)
-    }
-}
-
-struct WorkspaceHeaderRow: View {
-    @EnvironmentObject var state: AppState
+/// Label slot for the DisclosureGroup: workspace name + trailing globe button.
+/// The Button absorbs taps so opening the workspace page doesn't also toggle
+/// the disclosure.
+private struct WorkspaceDisclosureLabel: View {
     @Environment(\.openURL) private var openURL
 
-    let group: WorkspaceGroup
-    let baseAccessURL: URL
-    let isExpanded: Bool
-    let onToggle: () -> Void
-
-    @State private var nameIsSelected: Bool = false
-
-    private var plainName: String {
-        "\(group.workspace.name).\(state.hostnameSuffix)"
-    }
-
-    private var styledName: AttributedString {
-        // Display only the workspace name; the row already represents the
-        // workspace in the menu hierarchy. Copy/tooltip retain the full FQDN.
-        var name = AttributedString(group.workspace.name)
-        name.foregroundColor = .primary
-        return name
-    }
-
-    private var wsURL: URL {
-        // TODO: CoderVPN currently only supports owned workspaces.
-        baseAccessURL.appending(path: "@me").appending(path: group.workspace.name)
-    }
+    let name: String
+    let plainName: String
+    let wsURL: URL
 
     var body: some View {
-        HStack(spacing: 3) {
-            Button(action: onToggle) {
-                HStack(spacing: Theme.Size.trayPadding) {
-                    AnimatedChevron(isExpanded: isExpanded, color: .secondary)
-                    Text(styledName).lineLimit(1).truncationMode(.tail)
-                    Spacer()
-                }
-                .padding(.horizontal, Theme.Size.trayPadding)
-                .frame(minHeight: 22)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(nameIsSelected ? .white : .primary)
-                .background(nameIsSelected ? Color.accentColor.opacity(0.8) : .clear)
-                .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
-                .onHover { hovering in nameIsSelected = hovering }
+        HStack {
+            Text(name)
+                .lineLimit(1)
+                .truncationMode(.tail)
                 .help(plainName)
-            }.buttonStyle(.plain).padding(.trailing, 3)
-            StatusDot(color: group.status.color)
-                .padding(.trailing, 3)
-                .padding(.top, 1)
-                .help(group.status.description)
-            MenuItemIconButton(systemName: "globe", action: { openURL(wsURL) })
-                .contentShape(Rectangle())
-                .font(.system(size: 12))
-                .padding(.trailing, Theme.Size.trayMargin)
-                .help("Open in browser")
+            Spacer()
+            Button {
+                openURL(wsURL)
+            } label: {
+                Image(systemName: "globe")
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 12))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .help("Open in browser")
         }
+        .contentShape(Rectangle())
     }
 }

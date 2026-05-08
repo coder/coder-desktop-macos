@@ -18,7 +18,10 @@ struct Agents<VPN: VPNService>: View {
                     : Array(groups.prefix(Theme.defaultVisibleAgents))
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        ForEach(visibleGroups, id: \.id) { group in
+                        ForEach(Array(visibleGroups.enumerated()), id: \.element.id) { index, group in
+                            if index > 0 {
+                                Divider().padding(.horizontal, Theme.Size.trayMargin)
+                            }
                             WorkspaceGroupView(
                                 group: group,
                                 baseAccessURL: state.baseAccessURL!,
