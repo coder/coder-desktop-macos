@@ -87,19 +87,19 @@ struct WorkspaceGroupView: View {
                         appsToggle: appsToggle(for: parent)
                     )
                     // Each sub-agent gets its own GroupBox so multiple
-                    // devcontainers under the same parent stay distinct.
+                    // devcontainers under the same parent stay distinct. The
+                    // cube glyph rides on the same row as the agent (no
+                    // dedicated header line) — same compactness as the prior
+                    // dashed-box treatment, just in stock SwiftUI.
                     ForEach(group.children(of: parent.id)) { child in
                         GroupBox {
                             AgentDetailRow(
                                 agent: child,
                                 apps: appsByAgent[child.id] ?? [],
-                                ports: portsByAgent[child.id] ?? []
+                                ports: portsByAgent[child.id] ?? [],
+                                leadingIcon: "cube",
+                                leadingIconHelp: "Container"
                             )
-                        } label: {
-                            Label("Container", systemImage: "cube")
-                                .font(.caption)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.secondary)
                         }
                     }
                 }

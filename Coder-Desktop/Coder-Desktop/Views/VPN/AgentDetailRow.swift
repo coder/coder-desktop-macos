@@ -5,10 +5,11 @@ import SwiftUI
 /// agent name + latency, optional ports menu / parent-apps toggle / copy
 /// button, and the agent's apps inline below.
 ///
-/// Sub-agent rows don't carry any extra glyph here — the surrounding
-/// `GroupBox` (wired up in WorkspaceGroupView) handles the "Container"
-/// labelling. `appsToggle`, when set, exposes the show/hide control for
-/// parent apps (mirrors the dashboard's "Show parent apps" affordance).
+/// `leadingIcon` is rendered ahead of the status dot and is used to mark
+/// sub-agent rows with a cube glyph so they're recognizable as containers
+/// without a dedicated header. `appsToggle`, when set, exposes the show/hide
+/// control for parent apps (mirrors the dashboard's "Show parent apps"
+/// affordance).
 struct AgentDetailRow: View {
     @EnvironmentObject var state: AppState
     @Environment(\.openURL) private var openURL
@@ -17,6 +18,8 @@ struct AgentDetailRow: View {
     let apps: [WorkspaceApp]
     var ports: [WorkspaceAgentListeningPort] = []
     var appsToggle: AppsToggle?
+    var leadingIcon: String?
+    var leadingIconHelp: String?
 
     @State private var nameIsSelected: Bool = false
     /// Bumped on each copy so SwiftUI can drive the bounce symbol effect.
@@ -31,6 +34,13 @@ struct AgentDetailRow: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 3) {
                 HStack(spacing: Theme.Size.trayPadding) {
+                    if let leadingIcon {
+                        Image(systemName: leadingIcon)
+                            .symbolRenderingMode(.hierarchical)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .help(leadingIconHelp ?? "")
+                    }
                     StatusDot(color: agent.status.color)
                         .help(agent.statusString)
                     Text(agent.name).lineLimit(1).truncationMode(.tail)
