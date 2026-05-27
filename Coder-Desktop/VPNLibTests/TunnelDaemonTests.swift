@@ -52,7 +52,6 @@ struct TunnelDaemonTests {
         let daemon = try await TunnelDaemon(binaryPath: executableURL) { error in
             continuation.yield(error)
         }
-        _ = daemon // ensure daemon stays alive
 
         guard let capturedError = await errors.first(where: { _ in true }) else {
             Issue.record("onFail was never called")
