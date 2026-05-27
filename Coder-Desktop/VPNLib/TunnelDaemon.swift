@@ -15,14 +15,17 @@ public actor TunnelDaemon {
     }
 
     private var monitorTask: Task<Void, Never>?
-    private var onFail: (TunnelDaemonError) -> Void
+    private var onFail: @Sendable (TunnelDaemonError) -> Void
 
     public var writeHandle: FileHandle { tunnelReadPipe.fileHandleForWriting }
     public var readHandle: FileHandle { tunnelWritePipe.fileHandleForReading }
 
     var pid: pid_t?
 
-    public init(binaryPath: URL, onFail: @escaping (TunnelDaemonError) -> Void) async throws(TunnelDaemonError) {
+    public init(
+        binaryPath: URL,
+        onFail: @Sendable @escaping (TunnelDaemonError) -> Void
+    ) async throws(TunnelDaemonError) {
         self.onFail = onFail
         tunnelReadPipe = Pipe()
         tunnelWritePipe = Pipe()

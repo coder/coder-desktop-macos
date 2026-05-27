@@ -22,18 +22,21 @@ struct TunnelDaemonTests {
         let executableURL = try createTempExecutable(content: longRunningScript)
         defer { try? FileManager.default.removeItem(at: executableURL) }
 
-        var failureCalled = false
-        let daemon = try await TunnelDaemon(binaryPath: executableURL) { _ in
-            failureCalled = true
+        let (errors, continuation) = AsyncStream.makeStream(of: TunnelDaemonError.self)
+        let daemon = try await TunnelDaemon(binaryPath: executableURL) { error in
+            continuation.yield(error)
         }
 
         await #expect(daemon.state.isRunning)
-        #expect(!failureCalled)
         await #expect(daemon.readHandle.fileDescriptor >= 0)
         await #expect(daemon.writeHandle.fileDescriptor >= 0)
 
         try await daemon.close()
         await #expect(daemon.state.isStopped)
+
+        continuation.finish()
+        let failure = await errors.first(where: { _ in true })
+        #expect(failure == nil, "onFail should not have been called")
     }
 
     @Test func daemonHandlesFailure() async throws {
@@ -45,14 +48,15 @@ struct TunnelDaemonTests {
         let executableURL = try createTempExecutable(content: immediateExitScript)
         defer { try? FileManager.default.removeItem(at: executableURL) }
 
-        var capturedError: TunnelDaemonError?
+        let (errors, continuation) = AsyncStream.makeStream(of: TunnelDaemonError.self)
         let daemon = try await TunnelDaemon(binaryPath: executableURL) { error in
-            capturedError = error
+            continuation.yield(error)
         }
 
-        #expect(await eventually(timeout: .milliseconds(500), interval: .milliseconds(10)) { @MainActor in
-            capturedError != nil
-        })
+        guard let capturedError = await errors.first(where: { _ in true }) else {
+            Issue.record("onFail was never called")
+            return
+        }
 
         if case let .terminated(termination) = capturedError {
             if case let .exited(status) = termination {
@@ -61,7 +65,7 @@ struct TunnelDaemonTests {
                 Issue.record("Expected exited termination, got \(termination)")
             }
         } else {
-            Issue.record("Expected terminated error, got \(String(describing: capturedError))")
+            Issue.record("Expected terminated error, got \(capturedError)")
         }
 
         await #expect(daemon.state.isFailed)
@@ -77,9 +81,9 @@ struct TunnelDaemonTests {
         let executableURL = try createTempExecutable(content: script)
         defer { try? FileManager.default.removeItem(at: executableURL) }
 
-        var capturedError: TunnelDaemonError?
+        let (errors, continuation) = AsyncStream.makeStream(of: TunnelDaemonError.self)
         let daemon = try await TunnelDaemon(binaryPath: executableURL) { error in
-            capturedError = error
+            continuation.yield(error)
         }
 
         await #expect(daemon.state.isRunning)
@@ -91,9 +95,10 @@ struct TunnelDaemonTests {
 
         kill(pid, SIGKILL)
 
-        #expect(await eventually(timeout: .milliseconds(500), interval: .milliseconds(10)) { @MainActor in
-            capturedError != nil
-        })
+        guard let capturedError = await errors.first(where: { _ in true }) else {
+            Issue.record("onFail was never called")
+            return
+        }
 
         if case let .terminated(termination) = capturedError {
             if case let .unhandledException(status) = termination {
@@ -102,7 +107,7 @@ struct TunnelDaemonTests {
                 Issue.record("Expected unhandledException termination, got \(termination)")
             }
         } else {
-            Issue.record("Expected terminated error, got \(String(describing: capturedError))")
+            Issue.record("Expected terminated error, got \(capturedError)")
         }
     }
 

@@ -8,6 +8,9 @@ options:
   fileTypes:
     proto:
       buildPhase: none
+    "icon":
+      file: true
+
 
 settings:
   base:
