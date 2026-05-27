@@ -129,6 +129,7 @@ struct LoginForm: View {
 
     private var sessionTokenPage: some View {
         VStack(alignment: .leading, spacing: 0) {
+           Spacer()
             Form {
                 Section {
                     TextField(

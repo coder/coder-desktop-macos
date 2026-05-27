@@ -43,7 +43,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         return nil
     }
 
-    override func startTunnel(
+    nonisolated(nonsending) override func startTunnel(
         options _: [String: NSObject]?
     ) async throws {
         globalHelperXPCClient.ptp = self
