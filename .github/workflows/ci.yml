@@ -22,7 +22,7 @@ concurrency:
 jobs:
   test:
     name: test
-    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-latest'}}
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -43,7 +43,7 @@ jobs:
 
   format:
     name: fmt
-    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-latest'}}
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -64,7 +64,7 @@ jobs:
 
   lint:
     name: lint
-    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-latest'}}
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

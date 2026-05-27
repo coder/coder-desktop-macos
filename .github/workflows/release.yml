@@ -25,7 +25,7 @@ concurrency:
 jobs:
   build:
     name: Build Coder Desktop
-    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-latest'}}
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' }}
     permissions:
       # To upload assets to the release
@@ -107,7 +107,7 @@ jobs:
 
   update-cask:
     name: Update homebrew-coder cask
-    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-latest'}}
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
     needs: build
     steps:
