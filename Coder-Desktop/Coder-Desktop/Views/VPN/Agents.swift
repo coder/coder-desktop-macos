@@ -20,7 +20,9 @@ struct Agents<VPN: VPNService>: View {
                     VStack(spacing: 0) {
                         ForEach(Array(visibleGroups.enumerated()), id: \.element.id) { index, group in
                             if index > 0 {
-                                Divider().padding(.horizontal, Theme.Size.trayMargin)
+                                Divider()
+                                    .padding(.horizontal, Theme.Size.trayMargin)
+                                    .padding(.vertical, 4)
                             }
                             WorkspaceGroupView(
                                 group: group,
@@ -38,11 +40,12 @@ struct Agents<VPN: VPNService>: View {
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: 400)
                 if groups.isEmpty {
-                    Text("No workspaces!")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, Theme.Size.trayInset)
-                        .padding(.top, 2)
+                    ContentUnavailableView(
+                        "No workspaces",
+                        systemImage: "person.crop.circle.badge.questionmark",
+                        description: Text("Workspaces appear here when Coder Connect is on.")
+                    )
+                    .padding(.vertical, 4)
                 }
                 if groups.count > Theme.defaultVisibleAgents {
                     Toggle(isOn: $viewAll) {

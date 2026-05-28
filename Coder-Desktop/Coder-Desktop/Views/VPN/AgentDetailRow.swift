@@ -59,6 +59,7 @@ struct AgentDetailRow: View {
                 .clipShape(.rect(cornerRadius: Theme.Size.rectCornerRadius))
                 .onHover { hovering in nameIsSelected = hovering }
                 .padding(.trailing, 3)
+                .draggable(agent.primaryHost)
                 if !ports.isEmpty {
                     portsMenu
                 }
@@ -66,12 +67,14 @@ struct AgentDetailRow: View {
                     Button(action: appsToggle.action) {
                         Image(systemName: appsToggle.isShown ? "square.grid.2x2.fill" : "square.grid.2x2")
                             .symbolRenderingMode(.hierarchical)
+                            .contentTransition(.symbolEffect(.replace))
                             .font(.system(size: 11))
                             .padding(3)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help(appsToggle.isShown ? "Hide parent apps" : "Show parent apps")
+                    .controlSize(.small)
+                    .help(appsToggle.isShown ? "Hide apps" : "Show apps")
                 }
                 Button {
                     copyToClipboard()
@@ -84,6 +87,7 @@ struct AgentDetailRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .controlSize(.small)
                 .padding(.trailing, Theme.Size.trayMargin)
                 .help("Copy hostname")
             }
@@ -103,19 +107,17 @@ struct AgentDetailRow: View {
                 }
             }
         } label: {
-            HStack(spacing: 1) {
-                Image(systemName: "dot.radiowaves.right")
-                    .symbolRenderingMode(.hierarchical)
-                    .font(.system(size: 9))
-                    .imageScale(.small)
-                Text("\(ports.count)")
-                    .font(.system(size: 10))
-            }
-            .foregroundStyle(.secondary)
-            .padding(3)
+            Label("Listening ports", systemImage: "dot.radiowaves.right")
+                .labelStyle(.iconOnly)
+                .symbolRenderingMode(.hierarchical)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .padding(3)
         }
+        .badge(ports.count)
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .controlSize(.small)
         .fixedSize()
         .help("Listening ports")
     }

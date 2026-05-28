@@ -30,9 +30,9 @@ struct WorkspaceGroupView: View {
     @State private var portsByAgent: [UUID: [WorkspaceAgentListeningPort]] = [:]
     @State private var loadingApps: Bool = false
     @State private var hasLoadedApps: Bool = false
-    /// Parents whose apps the user explicitly chose to reveal (overrides the
-    /// default "hide parent apps when a child has apps" behavior).
-    @State private var revealedParents: Set<UUID> = []
+    /// Per-agent override for the apps section. When present, takes precedence
+    /// over the default (parents collapsed, children expanded).
+    @State private var appsOverride: [UUID: Bool] = [:]
 
     private var isExpanded: Binding<Bool> {
         Binding(
@@ -47,29 +47,24 @@ struct WorkspaceGroupView: View {
     }
 
     var body: some View {
-        if group.agents.count <= 1 {
-            // Flat row for single-agent or offline workspaces.
-            let item: VPNMenuItem = group.agents.first.map { .agent($0) }
-                ?? .offlineWorkspace(group.workspace)
-            MenuItemView(
-                item: item,
-                baseAccessURL: baseAccessURL,
-                expandedItem: $expandedItem,
-                userInteracted: $userInteracted,
-                displayLabel: group.workspace.name
+        // Always render through DisclosureGroup so the chevron, indent, and
+        // hover treatment match across single-agent, multi-agent, and offline
+        // workspaces. The label and expanded content vary per case.
+        DisclosureGroup(isExpanded: isExpanded) {
+            expandedContent
+        } label: {
+            WorkspaceDisclosureLabel(
+                name: group.workspace.name,
+                plainName: "\(group.workspace.name).\(state.hostnameSuffix)",
+                wsURL: baseAccessURL.appending(path: "@me").appending(path: group.workspace.name),
+                singleAgent: group.agents.count == 1 ? group.agents.first : nil,
+                aggregateStatus: group.status,
+                aggregateStatusString: group.agents.count == 1
+                    ? (group.agents.first?.statusString ?? group.status.description)
+                    : group.status.description
             )
-        } else {
-            DisclosureGroup(isExpanded: isExpanded) {
-                expandedContent
-            } label: {
-                WorkspaceDisclosureLabel(
-                    name: group.workspace.name,
-                    plainName: "\(group.workspace.name).\(state.hostnameSuffix)",
-                    wsURL: baseAccessURL.appending(path: "@me").appending(path: group.workspace.name)
-                )
-            }
-            .padding(.horizontal, Theme.Size.trayPadding)
         }
+        .padding(.horizontal, Theme.Size.trayPadding)
     }
 
     @ViewBuilder
@@ -78,13 +73,30 @@ struct WorkspaceGroupView: View {
             if loadingApps, !hasLoadedApps {
                 CircularProgressView(value: nil, strokeWidth: 3, diameter: 15)
                     .padding(.top, 5)
+            } else if group.agents.isEmpty {
+                Text("Workspace is offline.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, Theme.Size.trayInset)
+                    .padding(.top, 4)
+            } else if group.agents.count == 1, let only = group.agents.first {
+                let apps = appsByAgent[only.id] ?? []
+                if apps.isEmpty {
+                    Text("No apps available.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, Theme.Size.trayInset)
+                        .padding(.top, 4)
+                } else {
+                    MenuItemCollapsibleView(apps: apps)
+                }
             } else {
                 ForEach(group.topLevelAgents) { parent in
                     AgentDetailRow(
                         agent: parent,
-                        apps: appsToShow(for: parent),
+                        apps: appsToShow(for: parent, isChild: false),
                         ports: portsByAgent[parent.id] ?? [],
-                        appsToggle: appsToggle(for: parent)
+                        appsToggle: appsToggle(for: parent, isChild: false)
                     )
                     // Each sub-agent gets its own GroupBox so multiple
                     // devcontainers under the same parent stay distinct. The
@@ -95,8 +107,9 @@ struct WorkspaceGroupView: View {
                         GroupBox {
                             AgentDetailRow(
                                 agent: child,
-                                apps: appsByAgent[child.id] ?? [],
+                                apps: appsToShow(for: child, isChild: true),
                                 ports: portsByAgent[child.id] ?? [],
+                                appsToggle: appsToggle(for: child, isChild: true),
                                 leadingIcon: "cube",
                                 leadingIconHelp: "Container"
                             )
@@ -107,33 +120,26 @@ struct WorkspaceGroupView: View {
         }.task(id: group.id) { await loadApps() }
     }
 
-    /// Hide a parent agent's apps when any of its direct children have apps —
-    /// the child apps are the relevant ones in that case (matches the web UI).
-    /// The user can override per-parent via the row's apps toggle.
-    private func appsToShow(for agent: Agent) -> [WorkspaceApp] {
-        let myApps = appsByAgent[agent.id] ?? []
-        guard hasHiddenParentApps(for: agent) else { return myApps }
-        return revealedParents.contains(agent.id) ? myApps : []
+    /// Default visibility per role: parent agents start collapsed (apps
+    /// hidden), sub-agents start expanded (apps visible). The `appsOverride`
+    /// map flips the default once the user clicks the row's toggle.
+    private func appsAreShown(for agentID: UUID, isChild: Bool) -> Bool {
+        appsOverride[agentID] ?? isChild
     }
 
-    /// True when this agent has its own apps but they're being hidden because
-    /// a child has apps. Used to gate the show/hide toggle in the row.
-    private func hasHiddenParentApps(for agent: Agent) -> Bool {
-        let myApps = appsByAgent[agent.id] ?? []
-        guard !myApps.isEmpty else { return false }
-        let children = group.children(of: agent.id)
-        return children.contains { !(appsByAgent[$0.id] ?? []).isEmpty }
+    private func appsToShow(for agent: Agent, isChild: Bool) -> [WorkspaceApp] {
+        let apps = appsByAgent[agent.id] ?? []
+        return appsAreShown(for: agent.id, isChild: isChild) ? apps : []
     }
 
-    private func appsToggle(for agent: Agent) -> AgentDetailRow.AppsToggle? {
-        guard hasHiddenParentApps(for: agent) else { return nil }
-        let isShown = revealedParents.contains(agent.id)
+    /// Toggle is offered on every agent that has apps — both parent and child.
+    /// If the agent has no apps there's nothing to show, so we return nil.
+    private func appsToggle(for agent: Agent, isChild: Bool) -> AgentDetailRow.AppsToggle? {
+        let apps = appsByAgent[agent.id] ?? []
+        guard !apps.isEmpty else { return nil }
+        let isShown = appsAreShown(for: agent.id, isChild: isChild)
         return AgentDetailRow.AppsToggle(isShown: isShown) {
-            if isShown {
-                revealedParents.remove(agent.id)
-            } else {
-                revealedParents.insert(agent.id)
-            }
+            appsOverride[agent.id] = !isShown
         }
     }
 
@@ -208,15 +214,26 @@ struct WorkspaceGroupView: View {
     }
 }
 
-/// Label slot for the DisclosureGroup: workspace name + trailing globe button.
-/// The Button absorbs taps so opening the workspace page doesn't also toggle
-/// the disclosure.
+/// Label slot for the DisclosureGroup. Layout is identical for every case so
+/// the system chevron lines up; only the trailing controls shift:
+///   - single-agent: name + latency + (status, copy, globe) — agent's status
+///   - multi-agent : name + (status, globe) — workspace's aggregate status
+///   - offline    : name + (status[off], globe)
+///
+/// The status dot lives on the trailing side for every row so an unconnected
+/// multi-agent workspace doesn't look indistinguishable from a connected one.
+/// Buttons inside use `.borderless` so taps don't toggle the disclosure.
 private struct WorkspaceDisclosureLabel: View {
     @Environment(\.openURL) private var openURL
 
     let name: String
     let plainName: String
     let wsURL: URL
+    let singleAgent: Agent?
+    let aggregateStatus: AgentStatus
+    let aggregateStatusString: String
+
+    @State private var copyTick: Int = 0
 
     var body: some View {
         HStack {
@@ -224,7 +241,31 @@ private struct WorkspaceDisclosureLabel: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .help(plainName)
+            if let latency = singleAgent?.lastPing?.latency {
+                Text(formatLatency(latency))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
+            // Trailing icons in [copy?] [status dot] [globe] order so the
+            // status dot stays the 2nd-from-right icon in every workspace row
+            // (multi-agent rows have no copy, but the dot still aligns).
+            if singleAgent != nil {
+                Button(action: copyToClipboard) {
+                    Image(systemName: "doc.on.doc.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.bounce, value: copyTick)
+                        .font(.system(size: 9))
+                        .padding(3)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("Copy hostname")
+            }
+            StatusDot(color: aggregateStatus.color)
+                .help(aggregateStatusString)
+                .padding(.trailing, 3)
             Button {
                 openURL(wsURL)
             } label: {
@@ -237,5 +278,16 @@ private struct WorkspaceDisclosureLabel: View {
             .help("Open in browser")
         }
         .contentShape(Rectangle())
+    }
+
+    private func copyToClipboard() {
+        guard let host = singleAgent?.primaryHost else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(host, forType: .string)
+        copyTick &+= 1
+    }
+
+    private func formatLatency(_ seconds: TimeInterval) -> String {
+        "\(Int((seconds * 1000).rounded()))ms"
     }
 }
