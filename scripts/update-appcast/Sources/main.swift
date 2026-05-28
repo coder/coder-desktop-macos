@@ -99,7 +99,7 @@ struct UpdateAppcast: AsyncParsableCommand {
         }
 
         if let description, !description.isEmpty {
-            let description = description.replacingOccurrences(of: #"\r\n"#, with: "\n")
+            let description = description.replacingOccurrences(of: "\r\n", with: "\n")
             let descriptionDoc: Document
             do {
                 descriptionDoc = try Parsley.parse(description)
