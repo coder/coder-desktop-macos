@@ -22,12 +22,14 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
                 .help("Stop this session")
             }
             Button { showShare.toggle() } label: {
-                Image(systemName: session.shared == true ? "person.2.fill" : "person.crop.circle.badge.plus")
+                // Same share glyph whether shared or not; tinted when shared.
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundStyle(session.shared == true ? Color.accentColor : .secondary)
             }
             .buttonStyle(.borderless)
-            .help("Share chat")
+            .help(session.shared == true ? "Shared — manage access" : "Share chat")
             .popover(isPresented: $showShare, arrowEdge: .bottom) {
-                ChatSharePopover<Agents>(chatID: session.id)
+                ChatSharePopover<Agents>(session: session)
             }
             Menu {
                 Toggle("Show tool activity", isOn: $showToolActivity)

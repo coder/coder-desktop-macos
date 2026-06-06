@@ -46,6 +46,22 @@ extension CoderAgentsService {
         try? await client?.updateChatACL(id, groupRoles: [groupID.uuidString: ""])
     }
 
+    func shareWithUser(_ id: UUID, userID: UUID) async {
+        try? await client?.updateChatACL(id, userRoles: [userID.uuidString: chatRoleRead])
+    }
+
+    func shareWithGroup(_ id: UUID, groupID: UUID) async {
+        try? await client?.updateChatACL(id, groupRoles: [groupID.uuidString: chatRoleRead])
+    }
+
+    /// Org members + groups to pick from in the share search.
+    func shareCandidates(orgID: UUID) async -> (members: [OrgMember], groups: [OrgGroup]) {
+        guard let client else { return ([], []) }
+        let members = (try? await client.organizationMembers(orgID)) ?? []
+        let groups = (try? await client.organizationGroups(orgID)) ?? []
+        return (members, groups)
+    }
+
     func loadPreferences() async throws -> UserPreferences {
         try await requireClient().userPreferences()
     }
