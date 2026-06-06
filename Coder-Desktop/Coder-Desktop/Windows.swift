@@ -1,13 +1,14 @@
 import SwiftUI
 
-// Window IDs
+/// Window IDs
 enum Windows: String {
     case login
     case fileSync
+    case agents
 }
 
 extension OpenWindowAction {
-    // Type-safe wrapper for opening windows that also focuses the new window
+    /// Type-safe wrapper for opening windows that also focuses the new window
     func callAsFunction(id: Windows) {
         appActivate()
         callAsFunction(id: id.rawValue)

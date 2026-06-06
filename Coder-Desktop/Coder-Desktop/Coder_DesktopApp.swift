@@ -38,6 +38,12 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.vpn)
                 .showDockIconWhenOpen()
         }.handlesExternalEvents(matching: Set()) // Don't handle deep links
+        Window("Agents", id: Windows.agents.rawValue) {
+            AgentsWindow<CoderAgentsService>()
+                .environmentObject(appDelegate.state)
+                .environmentObject(appDelegate.agents)
+                .showDockIconWhenOpen()
+        }.handlesExternalEvents(matching: Set()) // Don't handle deep links
     }
 }
 
@@ -51,6 +57,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let urlHandler: URLHandler
     let notifDelegate: NotifDelegate
     let autoUpdater: UpdaterService
+    let agents: CoderAgentsService
 
     override init() {
         notifDelegate = NotifDelegate()
@@ -65,6 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             vpn.startWhenReady = true
         }
         self.state = state
+        agents = CoderAgentsService(state: state)
         vpn.installSystemExtension()
         #if arch(arm64)
             let mutagenBinary = "mutagen-darwin-arm64"
@@ -126,8 +134,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 
-    // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
-    // or return `.terminateNow`
+    /// This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
+    /// or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         Task {
             async let vpnTask: Void = {

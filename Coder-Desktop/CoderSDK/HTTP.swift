@@ -15,11 +15,12 @@ public struct HTTPHeader: Sendable, Codable {
     }
 }
 
-enum HTTPMethod: String, Equatable, Hashable, Sendable {
+enum HTTPMethod: String, Equatable, Hashable {
     case get = "GET"
     case post = "POST"
     case delete = "DELETE"
     case put = "PUT"
+    case patch = "PATCH"
     case head = "HEAD"
 }
 

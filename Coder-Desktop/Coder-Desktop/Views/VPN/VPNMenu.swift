@@ -7,6 +7,7 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
     @EnvironmentObject var state: AppState
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
+    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled: Bool = false
 
     let inspection = Inspection<Self>()
 
@@ -58,6 +59,18 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                     Link(destination: state.baseAccessURL!.appending(path: "templates")) {
                         ButtonRowView {
                             Text("Create workspace")
+                        }
+                    }.buttonStyle(.plain)
+                    TrayDivider()
+                }
+                // Agents talks to the control plane over HTTPS, so it's available whenever
+                // signed in — independent of Coder Connect. Ships behind a flag, off by default.
+                if agentsEnabled, state.hasSession {
+                    Button {
+                        openWindow(id: .agents)
+                    } label: {
+                        ButtonRowView {
+                            Text("Agents")
                         }
                     }.buttonStyle(.plain)
                     TrayDivider()

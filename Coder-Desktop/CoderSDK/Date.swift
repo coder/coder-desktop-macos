@@ -4,22 +4,30 @@ import Foundation
 // Directly from https://stackoverflow.com/questions/46458487/
 
 extension ParseStrategy where Self == Date.ISO8601FormatStyle {
-    static var iso8601withFractionalSeconds: Self { .init(includingFractionalSeconds: true) }
+    static var iso8601withFractionalSeconds: Self {
+        .init(includingFractionalSeconds: true)
+    }
 }
 
 extension JSONDecoder.DateDecodingStrategy {
     static let iso8601withOptionalFractionalSeconds = custom {
         let string = try $0.singleValueContainer().decode(String.self)
-        do {
-            return try .init(string, strategy: .iso8601withFractionalSeconds)
-        } catch {
-            return try .init(string, strategy: .iso8601)
+        if let withFractional = try? Date(string, strategy: .iso8601withFractionalSeconds) {
+            return withFractional
         }
+        if let plain = try? Date(string, strategy: .iso8601) {
+            return plain
+        }
+        // Be tolerant: a single unparseable timestamp must not throw and wedge an entire
+        // response (or a live chat stream frame). Fall back to a sentinel instead.
+        return .distantPast
     }
 }
 
 extension FormatStyle where Self == Date.ISO8601FormatStyle {
-    static var iso8601withFractionalSeconds: Self { .init(includingFractionalSeconds: true) }
+    static var iso8601withFractionalSeconds: Self {
+        .init(includingFractionalSeconds: true)
+    }
 }
 
 extension JSONEncoder.DateEncodingStrategy {

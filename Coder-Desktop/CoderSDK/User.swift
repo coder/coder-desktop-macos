@@ -13,12 +13,15 @@ public extension Client {
 public struct User: Encodable, Decodable, Equatable, Sendable {
     public let id: UUID
     public let username: String
+    public let organization_ids: [UUID]? // `omitempty`; present on `/users/me`
 
     public init(
         id: UUID,
-        username: String
+        username: String,
+        organization_ids: [UUID]? = nil
     ) {
         self.id = id
         self.username = username
+        self.organization_ids = organization_ids
     }
 }

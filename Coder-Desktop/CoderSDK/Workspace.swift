@@ -6,16 +6,56 @@ public extension Client {
         }
         return try decode(Workspace.self, from: res.data)
     }
+
+    /// Lists workspaces matching the given filter (Coder filter syntax, e.g. `owner:me`).
+    /// Used to populate the workspace picker when launching an agent session, without
+    /// depending on the Coder Connect tunnel being up.
+    func workspaces(query: String = "owner:me") async throws(SDKError) -> [Workspace] {
+        var path = "/api/v2/workspaces"
+        if !query.isEmpty {
+            let escaped = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            path += "?q=\(escaped)"
+        }
+        let res = try await request(path, method: .get)
+        guard res.resp.statusCode == 200 else {
+            throw responseAsError(res)
+        }
+        return try decode(WorkspacesResponse.self, from: res.data).workspaces
+    }
+
+    /// Permanently deletes a workspace by queuing a `delete` build. Returns when the build
+    /// has been accepted (the teardown then runs server-side).
+    func deleteWorkspace(_ id: UUID) async throws(SDKError) {
+        let res = try await request(
+            "/api/v2/workspaces/\(id.uuidString)/builds",
+            method: .post,
+            body: CreateWorkspaceBuildRequest(transition: "delete")
+        )
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 201 else {
+            throw responseAsError(res)
+        }
+    }
+}
+
+struct CreateWorkspaceBuildRequest: Encodable {
+    let transition: String
+}
+
+public struct WorkspacesResponse: Codable, Sendable {
+    public let workspaces: [Workspace]
+    public let count: Int
 }
 
 public struct Workspace: Codable, Identifiable, Sendable {
     public let id: UUID
     public let name: String
+    public let organization_id: UUID?
     public let latest_build: WorkspaceBuild
 
-    public init(id: UUID, name: String, latest_build: WorkspaceBuild) {
+    public init(id: UUID, name: String, organization_id: UUID? = nil, latest_build: WorkspaceBuild) {
         self.id = id
         self.name = name
+        self.organization_id = organization_id
         self.latest_build = latest_build
     }
 }
