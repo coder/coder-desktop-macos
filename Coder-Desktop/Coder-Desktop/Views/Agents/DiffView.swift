@@ -90,14 +90,24 @@ struct DiffView: View {
     }
 
     /// Formats the selected rows (grouped by file, as a fenced diff) plus the note into a
-    /// markdown context block for the composer.
+    /// markdown context block for the composer. Includes line numbers — a per-file line range
+    /// in the header and a number on each line — so the agent can locate the code.
     static func buildContext(files: [DiffFile], selected: Set<Int>, note: String) -> String {
         var blocks: [String] = []
         for file in files {
             let rows = file.rows.filter { selected.contains($0.id) }
             guard !rows.isEmpty else { continue }
-            let body = rows.map(\.diffLine).joined(separator: "\n")
-            blocks.append("`\(file.path.isEmpty ? "diff" : file.path)`:\n```diff\n\(body)\n```")
+            let path = file.path.isEmpty ? "diff" : file.path
+            let numbers = rows.compactMap { $0.newNumber ?? $0.oldNumber }
+            var header = "`\(path)`"
+            if let lo = numbers.min(), let hi = numbers.max() {
+                header += lo == hi ? " (line \(lo))" : " (lines \(lo)–\(hi))"
+            }
+            let body = rows.map { row in
+                let number = (row.newNumber ?? row.oldNumber).map(String.init) ?? ""
+                return "\(number)\t\(row.diffLine)"
+            }.joined(separator: "\n")
+            blocks.append("\(header):\n```diff\n\(body)\n```")
         }
         var result = blocks.joined(separator: "\n\n")
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
