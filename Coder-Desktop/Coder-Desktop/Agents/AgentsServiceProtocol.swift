@@ -71,6 +71,10 @@ protocol AgentsService: ObservableObject {
     func answerQuestion(_ id: UUID, text: String) async -> Bool
     /// The proposed plan's markdown, fetched by its file id.
     func planText(fileID: UUID) async -> String?
+
+    /// Personal skills for the composer's "/" trigger menu, loaded lazily.
+    var userSkills: [UserSkill] { get }
+    func loadUserSkills() async
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
