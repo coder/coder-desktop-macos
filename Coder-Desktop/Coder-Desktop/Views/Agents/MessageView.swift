@@ -16,7 +16,7 @@ struct MessageView: View, Equatable {
     }
 
     private var hasContent: Bool {
-        contentParts.contains { $0.type == .reasoning || $0.text?.isEmpty == false }
+        contentParts.contains { $0.type == .reasoning || $0.type == .file || $0.text?.isEmpty == false }
     }
 
     /// Merges consecutive parts of the same streamable type (reasoning, text).
@@ -107,6 +107,13 @@ struct MessagePartView: View {
             .disclosureGroupStyle(QuietDisclosureStyle())
         case .text:
             SmoothMarkdownText(text: part.text ?? "", isStreaming: streaming)
+        case .file:
+            Label(part.file_name ?? part.title ?? "Attachment", systemImage: "paperclip")
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.secondary.opacity(0.15))
+                .clipShape(Capsule())
         default:
             if let text = part.text, !text.isEmpty {
                 MarkdownText(text: text)

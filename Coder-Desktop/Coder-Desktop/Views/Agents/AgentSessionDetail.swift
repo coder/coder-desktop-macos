@@ -240,7 +240,7 @@ extension AgentSessionDetail {
                     workspaceID: $attachedWorkspaceID,
                     selectedMCP: $selectedMCP,
                     planMode: $planMode,
-                    onAttachFile: { name, text in attachments.append(PastedAttachment(text: text, name: name)) }
+                    attachments: $attachments
                 )
                 ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: true)
                 if let workspaceID = session.workspace_id {
@@ -329,6 +329,7 @@ extension AgentSessionDetail {
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty || !attachments.isEmpty, !sending else { return }
         let prompt = attachments.folded(into: typed)
+        let fileIDs = attachments.fileIDs
         let restore = { draft = typed }
         sending = true
         draft = ""
@@ -347,7 +348,7 @@ extension AgentSessionDetail {
         }
         Task {
             let ok = await agents.sendMessage(
-                session.id, prompt: prompt, modelConfigID: selectedModelConfigID, planMode: planMode
+                session.id, prompt: prompt, modelConfigID: selectedModelConfigID, planMode: planMode, fileIDs: fileIDs
             )
             sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text

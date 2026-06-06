@@ -6,20 +6,30 @@ import SwiftUI
 /// message on send.
 struct PastedAttachment: Identifiable {
     let id = UUID()
-    let text: String
+    var text: String = ""
     var name: String?
+    /// Set once an attached file finishes uploading; such attachments are sent as `file`
+    /// parts (referenced by id) rather than folded into the message text.
+    var fileID: UUID?
+    var uploading = false
 
+    var isFile: Bool { fileID != nil || uploading }
     var lineCount: Int { text.split(separator: "\n", omittingEmptySubsequences: false).count }
     var label: String { name ?? "Pasted text · \(lineCount) lines" }
-    var preview: String { String(text.prefix(240)) }
+    var preview: String { isFile ? (name ?? "File") : String(text.prefix(240)) }
 }
 
 extension [PastedAttachment] {
-    /// Folds the attachments into a message body as fenced blocks, appended after `typed`.
+    /// Folds the pasted-text attachments into a message body as fenced blocks, appended after
+    /// `typed`. File attachments are excluded — they're sent as `file` parts via `fileIDs`.
     func folded(into typed: String) -> String {
-        let attached = map { "```\n\($0.text)\n```" }.joined(separator: "\n\n")
+        let attached = filter { !$0.isFile && !$0.text.isEmpty }
+            .map { "```\n\($0.text)\n```" }.joined(separator: "\n\n")
         return [typed, attached].filter { !$0.isEmpty }.joined(separator: "\n\n")
     }
+
+    /// The uploaded file ids to send as `file` parts.
+    var fileIDs: [UUID] { compactMap(\.fileID) }
 }
 
 /// The composer's attachment chips (pasted text or attached files), each removable. Shared
@@ -32,7 +42,12 @@ struct AttachmentChipsView: View {
             HStack(spacing: 6) {
                 ForEach(attachments) { attachment in
                     HStack(spacing: 6) {
-                        Image(systemName: "doc.text").font(.caption2).foregroundStyle(.secondary)
+                        if attachment.uploading {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Image(systemName: attachment.isFile ? "paperclip" : "doc.text")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                         Text(attachment.label).font(.caption2)
                         Button { attachments.removeAll { $0.id == attachment.id } } label: {
                             Image(systemName: "xmark.circle.fill").font(.caption2)

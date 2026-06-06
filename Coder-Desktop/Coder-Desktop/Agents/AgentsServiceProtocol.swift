@@ -31,9 +31,10 @@ protocol AgentsService: ObservableObject {
     func loadWorkspaceAppIcons(_ urls: [URL])
 
     /// Launches a new session; returns the created chat on success.
-    func createSession(
-        prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID], planMode: Bool
-    ) async -> Chat?
+    func createSession(_ request: NewSessionRequest) async -> Chat?
+
+    /// Uploads a picked file's bytes; returns its id to reference as a `file` attachment.
+    func uploadFile(_ url: URL) async -> UUID?
 
     /// Live output for a session.
     func messages(for id: UUID) -> [ChatMessage]
@@ -64,7 +65,7 @@ protocol AgentsService: ObservableObject {
     func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
 
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool) async -> Bool
+    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, fileIDs: [UUID]) async -> Bool
     /// Proceeds from a proposed plan (sends "Implement the plan." and clears plan mode).
     func implementPlan(_ id: UUID) async -> Bool
     /// Answers an `ask_user_question` during planning (plain send, plan mode unchanged).
@@ -121,4 +122,14 @@ protocol AgentsService: ObservableObject {
     func createSkill(content: String) async throws
     func updateSkill(name: String, content: String) async throws
     func deleteSkill(name: String) async throws
+}
+
+/// Parameters for launching a new chat session (bundled to keep the call concise).
+struct NewSessionRequest {
+    let prompt: String
+    var workspaceID: UUID?
+    var modelConfigID: UUID?
+    var mcpServerIDs: [UUID] = []
+    var planMode = false
+    var fileIDs: [UUID] = []
 }

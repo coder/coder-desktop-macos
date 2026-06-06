@@ -55,10 +55,10 @@ final class PreviewAgents: AgentsService {
         nil
     }
 
-    func createSession(
-        prompt: String, workspaceID _: UUID?, modelConfigID _: UUID?, mcpServerIDs _: [UUID], planMode _: Bool
-    ) async -> Chat? {
-        let chat = Chat(id: UUID(), title: String(prompt.prefix(40)), status: .pending,
+    func uploadFile(_: URL) async -> UUID? { UUID() }
+
+    func createSession(_ request: NewSessionRequest) async -> Chat? {
+        let chat = Chat(id: UUID(), title: String(request.prompt.prefix(40)), status: .pending,
                         created_at: Date(), updated_at: Date())
         sessions.insert(chat, at: 0)
         return chat
@@ -101,7 +101,9 @@ final class PreviewAgents: AgentsService {
     func unshareUser(_: UUID, userID _: UUID) async {}
     func unshareGroup(_: UUID, groupID _: UUID) async {}
 
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool) async -> Bool {
+    func sendMessage(
+        _ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool, fileIDs _: [UUID]
+    ) async -> Bool {
         var msgs = messagesBySession[id] ?? []
         let nextID = (msgs.map(\.id).max() ?? 0) + 1
         msgs.append(ChatMessage(id: nextID, role: .user, content: [.init(type: .text, text: prompt)]))

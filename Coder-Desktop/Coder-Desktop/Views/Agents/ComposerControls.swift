@@ -63,8 +63,8 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
     @Binding var workspaceID: UUID?
     @Binding var selectedMCP: Set<UUID>
     @Binding var planMode: Bool
-    /// Called for each picked file with its name and decoded text contents.
-    var onAttachFile: (String, String) -> Void
+    /// Picked files are uploaded and appended here as attachment chips.
+    @Binding var attachments: [PastedAttachment]
     @State private var showMenu = false
 
     var body: some View {
@@ -181,8 +181,9 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         NSWorkspace.shared.open(url)
     }
 
-    /// Opens a system file picker; reads each chosen file as text and hands it back as an
-    /// attachment chip (folded into the message on send).
+    /// Opens a system file picker, then uploads each chosen file's raw bytes (any type) and
+    /// shows it as an attachment chip; on send it's referenced as a `file` part so the agent
+    /// receives it — mirroring the web's attach flow.
     private func pickFile() {
         showMenu = false
         let panel = NSOpenPanel()
@@ -191,9 +192,18 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         panel.canChooseFiles = true
         guard panel.runModal() == .OK else { return }
         for url in panel.urls {
-            let name = url.lastPathComponent
-            let text = (try? String(contentsOf: url, encoding: .utf8)) ?? "[Attached file: \(name)]"
-            onAttachFile(name, text)
+            let pending = PastedAttachment(name: url.lastPathComponent, uploading: true)
+            attachments.append(pending)
+            Task {
+                let fileID = await agents.uploadFile(url)
+                guard let idx = attachments.firstIndex(where: { $0.id == pending.id }) else { return }
+                if let fileID {
+                    attachments[idx].fileID = fileID
+                    attachments[idx].uploading = false
+                } else {
+                    attachments.remove(at: idx) // upload failed
+                }
+            }
         }
     }
 }
