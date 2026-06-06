@@ -95,7 +95,9 @@ public enum SDKError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 let decoder: JSONDecoder = {
@@ -117,7 +119,24 @@ func doRequest(
     headers: [HTTPHeader] = [],
     body: Data? = nil
 ) async throws(SDKError) -> HTTPResponse {
-    let url = baseURL.appendingPathComponent(path)
+    // `appendingPathComponent` percent-encodes the whole string, which would corrupt a
+    // `?query` suffix. Split the query off and attach it as the URL's query instead.
+    let url: URL
+    if let qIndex = path.firstIndex(of: "?") {
+        let rawPath = String(path[..<qIndex])
+        let rawQuery = String(path[path.index(after: qIndex)...])
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(rawPath),
+            resolvingAgainstBaseURL: false
+        )
+        components?.percentEncodedQuery = rawQuery
+        guard let built = components?.url else {
+            throw .unexpectedResponse("Invalid request URL: \(path)")
+        }
+        url = built
+    } else {
+        url = baseURL.appendingPathComponent(path)
+    }
     var req = URLRequest(url: url)
     req.httpMethod = method.rawValue
     for header in headers {
@@ -188,7 +207,7 @@ func responseAsError(_ resp: HTTPResponse) -> SDKError {
     }
 }
 
-// Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
+/// Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
 func decode<T: Decodable>(_: T.Type, from data: Data) throws(SDKError) -> T {
     do {
         return try decoder.decode(T.self, from: data)

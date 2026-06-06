@@ -1,7 +1,7 @@
 import Combine
 import SwiftUI
 
-// This is required for inspecting stateful views
+/// This is required for inspecting stateful views
 final class Inspection<V> {
     let notice = PassthroughSubject<UInt, Never>()
     var callbacks = [UInt: (V) -> Void]()
@@ -55,7 +55,7 @@ private struct ActivationPolicyModifier: ViewModifier {
                 NSApp.setActivationPolicy(.regular)
             }
             .onDisappear {
-                if NSApp.windows.filter({ $0.level != .statusBar && $0.isVisible }).count <= 1 {
+                if NSApp.windows.count(where: { $0.level != .statusBar && $0.isVisible }) <= 1 {
                     NSApp.setActivationPolicy(.accessory)
                 }
             }
@@ -66,4 +66,10 @@ public extension View {
     func showDockIconWhenOpen() -> some View {
         modifier(ActivationPolicyModifier())
     }
+}
+
+@MainActor
+func copyToPasteboard(_ string: String) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(string, forType: .string)
 }

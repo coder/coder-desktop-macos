@@ -136,6 +136,12 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.7.0
+  SwiftTerm:
+    url: https://github.com/migueldeicaza/SwiftTerm
+    from: 1.2.0
+  MarkdownUI:
+    url: https://github.com/gonzalezreal/swift-markdown-ui
+    from: 2.4.1
 
 
 targets:
@@ -210,6 +216,9 @@ targets:
       - package: SDWebImageSwiftUI
       - package: SDWebImageSVGCoder
       - package: Sparkle
+      - package: SwiftTerm
+      - package: MarkdownUI
+        product: MarkdownUI
     scheme:
       testPlans:
         - path: Coder-Desktop.xctestplan
