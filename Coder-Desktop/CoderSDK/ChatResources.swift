@@ -115,16 +115,23 @@ public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     public let enabled: Bool
     public let availability: MCPAvailability?
     public let icon_url: String? // relative (e.g. /icon/github.svg) or absolute
+    public let description: String?
+    public let auth_type: String? // none | oauth2 | api_key | custom_headers | user_oidc
+    public let auth_connected: Bool? // whether the user has connected (OAuth2)
 
     public init(
         id: UUID, display_name: String, enabled: Bool,
-        availability: MCPAvailability? = nil, icon_url: String? = nil
+        availability: MCPAvailability? = nil, icon_url: String? = nil,
+        description: String? = nil, auth_type: String? = nil, auth_connected: Bool? = nil
     ) {
         self.id = id
         self.display_name = display_name
         self.enabled = enabled
         self.availability = availability
         self.icon_url = icon_url
+        self.description = description
+        self.auth_type = auth_type
+        self.auth_connected = auth_connected
     }
 
     /// Whether this server is selected by default in a new chat.
@@ -135,6 +142,18 @@ public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     /// Whether the user can toggle it (force_on servers are always on).
     public var locked: Bool {
         availability == .forceOn
+    }
+
+    /// An OAuth2 server the user hasn't connected yet — needs an Authenticate step before
+    /// it can be turned on (mirrors the web picker).
+    public var needsAuth: Bool {
+        auth_type == "oauth2" && auth_connected != true
+    }
+
+    /// Whether this server exposes any auth at all (for the status label).
+    public var hasAuth: Bool {
+        let type = auth_type ?? "none"
+        return type != "none" && !type.isEmpty
     }
 }
 

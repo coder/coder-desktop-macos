@@ -147,6 +147,8 @@ public struct ChatStreamEvent: Codable, Sendable {
     public let message_part: ChatStreamMessagePart?
     public let status: ChatStreamStatus?
     public let error: ChatError?
+    /// Present on `queue_update` events: the current set of queued messages.
+    public let queued_messages: [ChatQueuedMessage]?
 }
 
 public enum ChatStreamEventType: String, Codable, Sendable {

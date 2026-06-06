@@ -10,4 +10,8 @@ enum Defaults {
     static let requireModifierToSend = "agentsRequireModifierToSend"
     static let completionChime = "agentsCompletionChime"
     static let showToolActivity = "agentsShowToolActivity"
+    /// The model config the user last picked, used to seed new chats.
+    static let preferredModel = "agentsPreferredModel"
+    /// Persisted width of the session's right side panel.
+    static let sidePanelWidth = "agentsSidePanelWidth"
 }

@@ -1,0 +1,76 @@
+import CoderSDK
+import SwiftUI
+
+struct TranscriptItem: Identifiable {
+    enum Kind {
+        case bubble(role: ChatMessageRole, parts: [ChatMessagePart], messageID: Int64?)
+        case tools([ToolStep])
+        case summary(ChatMessagePart)
+    }
+
+    let id: String
+    let kind: Kind
+
+    /// The user's own messages render as a right-aligned accent bubble (handled by
+    /// `MessageView`); everything else is agent-side and gets the shared agent card.
+    var isUserBubble: Bool {
+        if case let .bubble(role, _, _) = kind { return role == .user }
+        return false
+    }
+}
+
+enum TranscriptBuilder {
+    /// Builds the ordered transcript from message history (+ in-flight streaming parts).
+    /// Tool-call and tool-result parts are paired by `tool_call_id` *across* messages (the
+    /// API puts the call in an assistant message and the result in a separate `tool`
+    /// message), and consecutive tool activity is grouped into one collapsible block.
+    static func build(
+        messages: [ChatMessage],
+        streaming: [ChatMessagePart],
+        showTools: Bool
+    ) -> [TranscriptItem] {
+        var items: [TranscriptItem] = []
+        var toolBuffer: [ChatMessagePart] = []
+        var groupSeq = 0
+
+        func flushTools() {
+            defer { toolBuffer = [] }
+            guard showTools, !toolBuffer.isEmpty else { return }
+            let steps = ToolStep.steps(from: toolBuffer)
+            guard !steps.isEmpty else { return }
+            // Stable id (first step's tool_call_id) so the item survives older-message
+            // pagination and can be used as a scroll anchor.
+            let stableID = steps.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
+            items.append(TranscriptItem(id: stableID, kind: .tools(steps)))
+            groupSeq += 1
+        }
+
+        func process(role: ChatMessageRole, parts: [ChatMessagePart], id: String, messageID: Int64?) {
+            // Compaction summaries are conversation milestones, not tool noise: surface them
+            // standalone (never grouped, never hidden by the tool-activity toggle).
+            let summaries = parts.filter { $0.toolKind == .summarize && $0.summaryText?.isEmpty == false }
+            let tools = parts.filter {
+                ($0.type == .toolCall || $0.type == .toolResult) && $0.toolKind != .summarize
+            }
+            let content = parts.filter { $0.type != .toolCall && $0.type != .toolResult }
+            let hasContent = content.contains { $0.type == .reasoning || $0.text?.isEmpty == false }
+            if hasContent {
+                // Content closes the preceding tool run, keeping chronological order.
+                flushTools()
+                items.append(TranscriptItem(id: id, kind: .bubble(role: role, parts: content, messageID: messageID)))
+            }
+            for summary in summaries {
+                flushTools()
+                items.append(TranscriptItem(id: "summary-\(summary.tool_call_id ?? id)", kind: .summary(summary)))
+            }
+            toolBuffer += tools
+        }
+
+        for message in messages {
+            process(role: message.role, parts: message.content, id: "msg-\(message.id)", messageID: message.id)
+        }
+        process(role: .assistant, parts: streaming, id: "streaming", messageID: nil)
+        flushTools()
+        return items
+    }
+}

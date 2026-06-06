@@ -98,6 +98,37 @@ public extension Client {
         }
     }
 
+    /// Edits a user message, which rewinds the chat to that point: the server soft-deletes
+    /// the message and everything after it, clears the queue, and restarts the turn.
+    func editChatMessage(
+        _ chatID: UUID,
+        messageID: Int64,
+        content: [ChatInputPart],
+        modelConfigID: UUID? = nil
+    ) async throws(SDKError) {
+        let res = try await request(
+            "/api/experimental/chats/\(chatID.uuidString)/messages/\(messageID)",
+            method: .patch,
+            body: EditChatMessageRequest(content: content, model_config_id: modelConfigID)
+        )
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
+    }
+
+    /// Removes a queued message ("Remove from queue").
+    func deleteChatQueuedMessage(_ chatID: UUID, queuedID: Int64) async throws(SDKError) {
+        let res = try await request("/api/experimental/chats/\(chatID.uuidString)/queue/\(queuedID)", method: .delete)
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
+    }
+
+    /// Promotes a queued message to run immediately, interrupting the current turn ("Send now").
+    func promoteChatQueuedMessage(_ chatID: UUID, queuedID: Int64) async throws(SDKError) {
+        let res = try await request(
+            "/api/experimental/chats/\(chatID.uuidString)/queue/\(queuedID)/promote",
+            method: .post
+        )
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
+    }
+
     /// Lists the MCP servers available to attach to a new chat (Coder, GitHub, Linear, …).
     /// The server connects to these; the client only passes the selected ids on create.
     func mcpServers() async throws(SDKError) -> [MCPServer] {
@@ -179,6 +210,7 @@ public struct CreateChatRequest: Encodable, Sendable {
     public let model_config_id: UUID? // optional model selection
     public let mcp_server_ids: [UUID]? // optional MCP integrations to attach
     public let client_type: ChatClientType
+    public let plan_mode: ChatPlanMode? // "plan" to start the chat in plan mode
 
     public init(
         organization_id: UUID,
@@ -186,7 +218,8 @@ public struct CreateChatRequest: Encodable, Sendable {
         workspace_id: UUID? = nil,
         model_config_id: UUID? = nil,
         mcp_server_ids: [UUID]? = nil,
-        client_type: ChatClientType = .api
+        client_type: ChatClientType = .api,
+        plan_mode: ChatPlanMode? = nil
     ) {
         self.organization_id = organization_id
         self.content = content
@@ -194,19 +227,37 @@ public struct CreateChatRequest: Encodable, Sendable {
         self.model_config_id = model_config_id
         self.mcp_server_ids = mcp_server_ids
         self.client_type = client_type
+        self.plan_mode = plan_mode
     }
+}
+
+public struct EditChatMessageRequest: Encodable, Sendable {
+    public let content: [ChatInputPart]
+    public let model_config_id: UUID?
 }
 
 public struct CreateChatMessageRequest: Encodable, Sendable {
     public let content: [ChatInputPart]
     public let busy_behavior: ChatBusyBehavior?
     public let model_config_id: UUID? // optional per-message model switch
+    public let plan_mode: ChatPlanMode? // "plan" to run this turn in plan mode
 
-    public init(content: [ChatInputPart], busy_behavior: ChatBusyBehavior? = nil, model_config_id: UUID? = nil) {
+    public init(
+        content: [ChatInputPart],
+        busy_behavior: ChatBusyBehavior? = nil,
+        model_config_id: UUID? = nil,
+        plan_mode: ChatPlanMode? = nil
+    ) {
         self.content = content
         self.busy_behavior = busy_behavior
         self.model_config_id = model_config_id
+        self.plan_mode = plan_mode
     }
+}
+
+/// The chat's plan-mode state. "plan" runs the turn in read-only planning mode.
+public enum ChatPlanMode: String, Codable, Sendable {
+    case plan
 }
 
 /// Optional fields: the synthesized encoder omits nils, so each call sends only the
@@ -262,6 +313,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     public var pin_order: Int?
     public let created_at: Date
     public let updated_at: Date
+    /// The model this chat last used; seeds the composer so reopening keeps your choice.
+    public var last_model_config_id: UUID?
     /// Cached branch/PR diff summary (counts + link), surfaced even when the full diff
     /// text can't be fetched.
     public var diff_status: ChatDiffStatus?
@@ -278,6 +331,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         pin_order: Int? = nil,
         created_at: Date,
         updated_at: Date,
+        last_model_config_id: UUID? = nil,
         diff_status: ChatDiffStatus? = nil
     ) {
         self.id = id
@@ -291,6 +345,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.pin_order = pin_order
         self.created_at = created_at
         self.updated_at = updated_at
+        self.last_model_config_id = last_model_config_id
         self.diff_status = diff_status
     }
 

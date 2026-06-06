@@ -62,6 +62,11 @@ public struct ChatMessageUsage: Codable, Sendable, Equatable {
         guard let total = total_tokens, let limit = context_limit, limit > 0 else { return nil }
         return min(1, Double(total) / Double(limit))
     }
+
+    /// Whole-percent context used (0...100), if known.
+    public var contextPercent: Int? {
+        contextFraction.map { Int(($0 * 100).rounded()) }
+    }
 }
 
 public enum ChatMessageRole: String, Codable, Sendable, Equatable {
@@ -147,5 +152,30 @@ public enum ChatMessagePartType: String, Codable, Sendable, Equatable {
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         self = ChatMessagePartType(rawValue: raw) ?? .unknown
+    }
+}
+
+/// A message waiting to be processed while the agent is busy. Rendered above the composer;
+/// can be promoted ("Send now"), removed, or edited.
+public struct ChatQueuedMessage: Codable, Sendable, Equatable, Identifiable {
+    public let id: Int64
+    public let chat_id: UUID?
+    public let model_config_id: UUID?
+    public let content: [ChatMessagePart]
+    public let created_at: Date?
+
+    public init(
+        id: Int64, chat_id: UUID? = nil, model_config_id: UUID? = nil,
+        content: [ChatMessagePart], created_at: Date? = nil
+    ) {
+        self.id = id
+        self.chat_id = chat_id
+        self.model_config_id = model_config_id
+        self.content = content
+        self.created_at = created_at
+    }
+
+    public var displayText: String {
+        content.compactMap(\.displayText).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
