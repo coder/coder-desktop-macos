@@ -82,6 +82,9 @@ protocol AgentsService: ObservableObject {
     func shareChat(_ id: UUID, username: String) async -> String?
     func unshareUser(_ id: UUID, userID: UUID) async
     func unshareGroup(_ id: UUID, groupID: UUID) async
+    func shareWithUser(_ id: UUID, userID: UUID) async
+    func shareWithGroup(_ id: UUID, groupID: UUID) async
+    func shareCandidates(orgID: UUID) async -> (members: [OrgMember], groups: [OrgGroup])
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async

@@ -256,11 +256,14 @@ struct SessionRow: View {
 
     @State private var hovering = false
 
+    private var isPR: Bool { session.diff_status?.isPullRequest == true }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: session.status.systemImage)
+            // A PR chat shows the branch icon; otherwise the status icon.
+            Image(systemName: isPR ? "arrow.triangle.branch" : session.status.systemImage)
                 .font(.caption)
-                .foregroundStyle(session.status.color)
+                .foregroundStyle(isPR ? .secondary : session.status.color)
                 .accessibilityLabel(session.status.accessibilityLabel)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
@@ -284,22 +287,35 @@ struct SessionRow: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                HStack(spacing: 4) {
-                    if let workspaceName {
-                        Text(workspaceName)
-                        Text("·")
-                    }
-                    // Subtle, like the web subtitle — the colour lives in the status dot.
-                    Text(session.status.label)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                subtitle
+            }
+            if session.shared == true {
+                Image(systemName: "person.2.fill")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .help("Shared")
             }
         }
         .padding(.vertical, 2)
         .onHover { hovering = $0 }
         .contextMenu { rowMenu }
+    }
+
+    /// Diff summary (+adds −dels) when a PR/branch is attached, then workspace/status text.
+    private var subtitle: some View {
+        HStack(spacing: 4) {
+            if let diff = session.diff_status {
+                if let adds = diff.additions, adds > 0 { Text("+\(adds)").foregroundStyle(.green) }
+                if let dels = diff.deletions, dels > 0 { Text("−\(dels)").foregroundStyle(.red) }
+            }
+            if let workspaceName {
+                Text(workspaceName)
+                Text("·")
+            }
+            Text(session.status.label)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
 
     @ViewBuilder

@@ -20,6 +20,51 @@ public extension Client {
         )
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
     }
+
+    /// Org members (for the share autocomplete). Uses the paginated endpoint with limit=0.
+    func organizationMembers(_ org: UUID) async throws(SDKError) -> [OrgMember] {
+        let res = try await request("/api/v2/organizations/\(org.uuidString)/paginated-members?limit=0", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(PaginatedMembers.self, from: res.data).members
+    }
+
+    /// Org groups (for the share autocomplete).
+    func organizationGroups(_ org: UUID) async throws(SDKError) -> [OrgGroup] {
+        let res = try await request("/api/v2/organizations/\(org.uuidString)/groups", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode([OrgGroup].self, from: res.data)
+    }
+}
+
+struct PaginatedMembers: Decodable { let members: [OrgMember] }
+
+public struct OrgMember: Decodable, Sendable, Identifiable, Equatable {
+    public let user_id: UUID
+    public let username: String
+    public let name: String?
+    public let avatar_url: String?
+    public var id: UUID { user_id }
+
+    public init(user_id: UUID, username: String, name: String?, avatar_url: String?) {
+        self.user_id = user_id
+        self.username = username
+        self.name = name
+        self.avatar_url = avatar_url
+    }
+}
+
+public struct OrgGroup: Decodable, Sendable, Identifiable, Equatable {
+    public let id: UUID
+    public let name: String?
+    public let display_name: String?
+    public let avatar_url: String?
+
+    public init(id: UUID, name: String?, display_name: String?, avatar_url: String?) {
+        self.id = id
+        self.name = name
+        self.display_name = display_name
+        self.avatar_url = avatar_url
+    }
 }
 
 public struct ChatACL: Codable, Sendable, Equatable {
