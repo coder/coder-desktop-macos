@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// A structured unified-diff renderer: splits the diff into per-file sections (collapsible,
@@ -6,11 +7,13 @@ import SwiftUI
 /// only parses its structure — it doesn't compute diffs.
 struct DiffView: View {
     let text: String
-    /// When set, rows become selectable and a bar lets the user send the selection (plus a
-    /// note) into the chat composer as context — a self-review loop.
+    /// When set, rows become selectable and the user can comment on a selection (inline) and
+    /// send it (plus a note) into the chat composer as context — a self-review loop. Click to
+    /// select a line; Shift-click to extend the selection to a range.
     var onAddToChat: ((String) -> Void)?
 
     @State private var selected: Set<Int> = []
+    @State private var anchor: Int? // last-clicked row, for shift-range and the inline comment
     @State private var note: String = ""
 
     private var files: [DiffFile] {
@@ -22,43 +25,68 @@ struct DiffView: View {
             ScrollView(.vertical) {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(files) { file in
-                        DiffFileView(file: file, selectable: onAddToChat != nil, selected: $selected)
+                        DiffFileView(
+                            file: file,
+                            selectable: onAddToChat != nil,
+                            selected: $selected,
+                            commentAnchor: selected.isEmpty ? nil : anchor,
+                            note: $note,
+                            onTap: { row in handleTap(row, in: file.rows) },
+                            onSend: addToChat,
+                            onClear: clear
+                        )
                     }
                 }
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if onAddToChat != nil, !selected.isEmpty {
-                selectionBar
+                bottomBar
             }
         }
     }
 
-    private var selectionBar: some View {
+    private var bottomBar: some View {
         VStack(spacing: 0) {
             Divider()
             HStack(spacing: 8) {
-                Text("\(selected.count) line\(selected.count == 1 ? "" : "s")")
+                Text("\(selected.count) line\(selected.count == 1 ? "" : "s") selected")
                     .font(.caption).foregroundStyle(.secondary)
-                TextField("Add a note for the agent…", text: $note)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(addToChat)
-                Button("Clear") { selected = []; note = "" }
-                    .buttonStyle(.borderless)
-                Button("Add to chat", action: addToChat)
-                    .buttonStyle(.borderedProminent)
+                Spacer()
+                Button("Clear", action: clear).buttonStyle(.borderless)
+                Button("Send to chat", action: addToChat).buttonStyle(.borderedProminent)
             }
             .padding(8)
         }
         .background(.background)
     }
 
+    /// Click selects a single line and sets the anchor; Shift-click selects the range from the
+    /// anchor to the clicked line (within the same file).
+    private func handleTap(_ row: DiffRow, in rows: [DiffRow]) {
+        let selectable = rows.filter { $0.kind != .hunk && $0.kind != .meta }
+        if NSEvent.modifierFlags.contains(.shift), let anchor,
+           let a = selectable.firstIndex(where: { $0.id == anchor }),
+           let b = selectable.firstIndex(where: { $0.id == row.id }) {
+            for r in selectable[min(a, b) ... max(a, b)] { selected.insert(r.id) }
+            self.anchor = row.id
+        } else {
+            if selected.contains(row.id) { selected.remove(row.id) } else { selected.insert(row.id) }
+            anchor = selected.contains(row.id) ? row.id : nil
+        }
+    }
+
+    private func clear() {
+        selected = []
+        anchor = nil
+        note = ""
+    }
+
     private func addToChat() {
         let snippet = Self.buildContext(files: files, selected: selected, note: note)
         guard !snippet.isEmpty else { return }
         onAddToChat?(snippet)
-        selected = []
-        note = ""
+        clear()
     }
 
     /// Formats the selected rows (grouped by file, as a fenced diff) plus the note into a
@@ -82,6 +110,11 @@ private struct DiffFileView: View {
     let file: DiffFile
     var selectable = false
     @Binding var selected: Set<Int>
+    var commentAnchor: Int?
+    @Binding var note: String
+    var onTap: (DiffRow) -> Void = { _ in }
+    var onSend: () -> Void = {}
+    var onClear: () -> Void = {}
     @State private var expanded = true
 
     var body: some View {
@@ -114,9 +147,9 @@ private struct DiffFileView: View {
                                 row: row,
                                 selectable: selectable,
                                 isSelected: selected.contains(row.id)
-                            ) {
-                                if selected.contains(row.id) { selected.remove(row.id) } else { selected.insert(row.id) }
-                            }
+                            ) { onTap(row) }
+                            // The comment box sits inline, right under the selection.
+                            if row.id == commentAnchor { inlineComment }
                         }
                     }
                 }
@@ -127,6 +160,21 @@ private struct DiffFileView: View {
             RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius)
                 .stroke(Color.secondary.opacity(0.2))
         )
+    }
+
+    private var inlineComment: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "text.bubble").font(.caption2).foregroundStyle(.secondary)
+            TextField("Add a note for the agent…", text: $note)
+                .textFieldStyle(.roundedBorder)
+                .font(.caption)
+                .onSubmit(onSend)
+            Button { onSend() } label: { Image(systemName: "arrow.up.circle.fill") }
+                .buttonStyle(.borderless)
+                .help("Send to chat")
+        }
+        .padding(8)
+        .background(Color.accentColor.opacity(0.06))
     }
 }
 
@@ -148,8 +196,12 @@ private struct DiffRowView: View {
                 .buttonStyle(.plain)
                 .frame(width: 18)
             }
-            gutter(row.oldNumber)
-            gutter(row.newNumber)
+            HStack(spacing: 0) {
+                gutter(row.oldNumber)
+                gutter(row.newNumber)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { if selectable { onToggle() } } // click the gutter to (de)select
             Text(row.marker)
                 .frame(width: 12)
                 .foregroundStyle(row.markerColor)
