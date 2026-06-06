@@ -82,20 +82,19 @@ struct ChatSharePopover<Agents: AgentsService>: View {
             } else if isEmpty {
                 Text("Not shared with anyone yet.").font(.caption).foregroundStyle(.secondary)
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(acl?.users ?? []) { user in
-                            sharedRow(
-                                user.name?.isEmpty == false ? user.name! : user.username,
-                                "@\(user.username)", icon: "person.crop.circle"
-                            ) { Task { await agents.unshareUser(session.id, userID: user.id); await load() } }
-                        }
-                        ForEach(acl?.groups ?? []) { group in
-                            sharedRow(groupTitle(group), "Group", icon: "person.3", onRemove: nil)
-                        }
+                // A plain VStack (not a ScrollView, which has no intrinsic height in a popover
+                // and would collapse/clip the rows). The list is short in practice.
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(acl?.users ?? []) { user in
+                        sharedRow(
+                            user.name?.isEmpty == false ? user.name! : user.username,
+                            "@\(user.username)", icon: "person.crop.circle"
+                        ) { Task { await agents.unshareUser(session.id, userID: user.id); await load() } }
+                    }
+                    ForEach(acl?.groups ?? []) { group in
+                        sharedRow(groupTitle(group), "Group", icon: "person.3", onRemove: nil)
                     }
                 }
-                .frame(maxHeight: 200)
             }
         }
         .padding(14)
