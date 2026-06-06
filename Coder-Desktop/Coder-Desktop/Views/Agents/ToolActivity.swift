@@ -71,9 +71,21 @@ struct ToolStep: Identifiable {
         result?.summaryText ?? source?.summaryText
     }
 
+    /// The unified diff for an `edit_files` step (rendered inline when expanded).
+    var editDiff: String? {
+        result?.editDiff ?? source?.editDiff
+    }
+
+    /// Total additions/deletions across the edit's diff, for the row's "+A −D" badge.
+    var diffStats: (additions: Int, deletions: Int)? {
+        guard let editDiff else { return nil }
+        let files = DiffFile.parse(editDiff)
+        return (files.reduce(0) { $0 + $1.additions }, files.reduce(0) { $0 + $1.deletions })
+    }
+
     var hasDetail: Bool {
         command?.isEmpty == false || output?.isEmpty == false
-            || readPath?.isEmpty == false || summary?.isEmpty == false
+            || readPath?.isEmpty == false || summary?.isEmpty == false || editDiff?.isEmpty == false
     }
 }
 
@@ -149,6 +161,10 @@ private struct ToolStepView: View {
         HStack(spacing: 6) {
             Image(systemName: step.icon).font(.caption2).foregroundStyle(.secondary).frame(width: 14)
             Text(step.label).lineLimit(1)
+            if let stats = step.diffStats {
+                if stats.additions > 0 { Text("+\(stats.additions)").foregroundStyle(.green) }
+                if stats.deletions > 0 { Text("−\(stats.deletions)").foregroundStyle(.red) }
+            }
             if let duration = step.duration {
                 Text("· \(duration)").foregroundStyle(.tertiary)
             }
@@ -162,6 +178,9 @@ private struct ToolStepView: View {
         if step.isSummary, let summary = step.summary, !summary.isEmpty {
             // The compaction summary is markdown.
             MarkdownText(text: summary).frame(maxWidth: .infinity, alignment: .leading)
+        } else if let editDiff = step.editDiff, !editDiff.isEmpty {
+            // An edit renders as an inline (read-only) diff.
+            DiffView(text: editDiff).frame(maxWidth: .infinity, alignment: .leading)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 if let path = step.readPath {
@@ -331,5 +350,12 @@ extension ChatMessagePart {
     /// The compaction summary markdown from a `chat_summarized` tool result.
     var summaryText: String? {
         result?["summary"]?.stringValue
+    }
+
+    /// The unified diff(s) produced by an `edit_files` tool, from `result.files[].diff`.
+    var editDiff: String? {
+        guard let files = result?["files"]?.arrayValue else { return nil }
+        let diffs = files.compactMap { $0["diff"]?.stringValue }.filter { !$0.isEmpty }
+        return diffs.isEmpty ? nil : diffs.joined(separator: "\n")
     }
 }

@@ -22,8 +22,8 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
                 .help("Stop this session")
             }
             Button { showShare.toggle() } label: {
-                // Same share glyph whether shared or not; tinted when shared.
-                Image(systemName: "square.and.arrow.up")
+                // The connected-nodes "share" glyph (web parity); tinted when shared.
+                Image(systemName: "point.3.connected.trianglepath.dotted")
                     .foregroundStyle(session.shared == true ? Color.accentColor : .secondary)
             }
             .buttonStyle(.borderless)
