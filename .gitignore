@@ -305,3 +305,4 @@ release/
 
 # Embedded mutagen resources
 Coder-Desktop/Resources/mutagen-*
+*.profraw

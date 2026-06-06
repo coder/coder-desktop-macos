@@ -142,6 +142,9 @@ packages:
   MarkdownUI:
     url: https://github.com/gonzalezreal/swift-markdown-ui
     from: 2.4.1
+  Highlightr:
+    url: https://github.com/raspu/Highlightr
+    from: 2.2.0
 
 
 targets:
@@ -167,6 +170,7 @@ targets:
         com.apple.developer.system-extension.install: true
         com.apple.security.application-groups:
           - $(TeamIdentifierPrefix)com.coder.Coder-Desktop
+        com.apple.security.device.audio-input: true
         aps-environment: development
     settings:
       base:
@@ -181,6 +185,8 @@ targets:
         ENABLE_PREVIEWS: YES
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Coder Desktop uses the microphone for voice input in chats."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Coder Desktop transcribes your speech to text for chat input."
         SWIFT_EMIT_LOC_STRINGS: YES
         PRODUCT_BUNDLE_IDENTIFIER: "com.coder.Coder-Desktop"
         # Empty outside of release builds
@@ -219,6 +225,7 @@ targets:
       - package: SwiftTerm
       - package: MarkdownUI
         product: MarkdownUI
+      - package: Highlightr
     scheme:
       testPlans:
         - path: Coder-Desktop.xctestplan

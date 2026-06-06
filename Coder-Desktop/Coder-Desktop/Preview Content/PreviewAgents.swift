@@ -42,6 +42,9 @@ final class PreviewAgents: AgentsService {
         nil
     }
 
+    func workspaceAppIcon(_: URL?) -> NSImage? { nil }
+    func loadWorkspaceAppIcons(_: [URL]) {}
+
     func diff(for _: UUID) -> ChatDiffContents? {
         nil
     }
@@ -52,7 +55,7 @@ final class PreviewAgents: AgentsService {
     }
 
     func createSession(
-        prompt: String, workspaceID _: UUID?, modelConfigID _: UUID?, mcpServerIDs _: [UUID]
+        prompt: String, workspaceID _: UUID?, modelConfigID _: UUID?, mcpServerIDs _: [UUID], planMode _: Bool
     ) async -> Chat? {
         let chat = Chat(id: UUID(), title: String(prompt.prefix(40)), status: .pending,
                         created_at: Date(), updated_at: Date())
@@ -75,8 +78,15 @@ final class PreviewAgents: AgentsService {
     }
 
     func loadOlderMessages(_: UUID) async {}
+    func editMessage(_: Int64, in _: UUID, content _: String, modelConfigID _: UUID?) async -> Bool { true }
+    func queuedMessages(for _: UUID) -> [ChatQueuedMessage] { [] }
+    func promoteQueued(_: Int64, in _: UUID) async {}
+    func removeQueued(_: Int64, in _: UUID) async {}
+    func listeningPorts(agentID _: UUID) async -> [WorkspaceAgentListeningPort] {
+        [WorkspaceAgentListeningPort(process_name: "postgres", network: "tcp", port: 5432)]
+    }
 
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID _: UUID?) async -> Bool {
+    func sendMessage(_ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool) async -> Bool {
         var msgs = messagesBySession[id] ?? []
         let nextID = (msgs.map(\.id).max() ?? 0) + 1
         msgs.append(ChatMessage(id: nextID, role: .user, content: [.init(type: .text, text: prompt)]))

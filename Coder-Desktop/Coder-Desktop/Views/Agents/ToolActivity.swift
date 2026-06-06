@@ -1,66 +1,5 @@
 import CoderSDK
 import SwiftUI
-
-/// One rendered unit of the transcript: a message bubble (text/reasoning), or a grouped run
-/// of tool activity collapsed into "Used N tools".
-struct TranscriptItem: Identifiable {
-    enum Kind {
-        case bubble(role: ChatMessageRole, parts: [ChatMessagePart])
-        case tools([ToolStep])
-    }
-
-    let id: String
-    let kind: Kind
-}
-
-enum TranscriptBuilder {
-    /// Builds the ordered transcript from message history (+ in-flight streaming parts).
-    /// Tool-call and tool-result parts are paired by `tool_call_id` *across* messages (the
-    /// API puts the call in an assistant message and the result in a separate `tool`
-    /// message), and consecutive tool activity is grouped into one collapsible block.
-    static func build(
-        messages: [ChatMessage],
-        streaming: [ChatMessagePart],
-        showTools: Bool
-    ) -> [TranscriptItem] {
-        var items: [TranscriptItem] = []
-        var toolBuffer: [ChatMessagePart] = []
-        var groupSeq = 0
-
-        func flushTools() {
-            defer { toolBuffer = [] }
-            guard showTools, !toolBuffer.isEmpty else { return }
-            let steps = ToolStep.steps(from: toolBuffer)
-            guard !steps.isEmpty else { return }
-            // Stable id (first step's tool_call_id) so the item survives older-message
-            // pagination and can be used as a scroll anchor.
-            let stableID = steps.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
-            items.append(TranscriptItem(id: stableID, kind: .tools(steps)))
-            groupSeq += 1
-        }
-
-        func process(role: ChatMessageRole, parts: [ChatMessagePart], id: String) {
-            let tools = parts.filter { $0.type == .toolCall || $0.type == .toolResult }
-            let content = parts.filter { $0.type != .toolCall && $0.type != .toolResult }
-            let hasContent = content.contains { $0.type == .reasoning || $0.text?.isEmpty == false }
-            if hasContent {
-                // Content closes the preceding tool run, keeping chronological order.
-                flushTools()
-                items.append(TranscriptItem(id: id, kind: .bubble(role: role, parts: content)))
-            }
-            toolBuffer += tools
-        }
-
-        for message in messages {
-            process(role: message.role, parts: message.content, id: "msg-\(message.id)")
-        }
-        process(role: .assistant, parts: streaming, id: "streaming")
-        flushTools()
-        return items
-    }
-}
-
-/// A tool-call paired with its matching tool-result (either may arrive first).
 struct ToolStep: Identifiable {
     let id: String
     var call: ChatMessagePart?
@@ -102,6 +41,7 @@ struct ToolStep: Identifiable {
         case .readFile: return "Read \(source.fileBasename ?? "file")"
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
         case .search: return "Searched"
+        case .summarize: return result == nil ? "Summarizing…" : "Summarized"
         case .other: return source.toolLabel ?? "Tool"
         }
     }
@@ -124,8 +64,16 @@ struct ToolStep: Identifiable {
         source?.toolKind == .readFile ? source?.filePath : nil
     }
 
+    var isSummary: Bool { source?.toolKind == .summarize }
+
+    /// The compaction summary (markdown), shown when a `chat_summarized` step expands.
+    var summary: String? {
+        result?.summaryText ?? source?.summaryText
+    }
+
     var hasDetail: Bool {
-        command?.isEmpty == false || output?.isEmpty == false || readPath?.isEmpty == false
+        command?.isEmpty == false || output?.isEmpty == false
+            || readPath?.isEmpty == false || summary?.isEmpty == false
     }
 }
 
@@ -154,6 +102,28 @@ struct ToolGroupView: View {
                 .disclosureGroupStyle(QuietDisclosureStyle())
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A standalone compaction-summary milestone: "Summarized", expanding to the summary
+/// markdown. Always shown (unlike tool rows, it isn't hidden by the tool-activity toggle).
+struct SummaryBlockView: View {
+    let part: ChatMessagePart
+    @State private var expanded = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $expanded) {
+            MarkdownText(text: part.summaryText ?? "")
+                .padding(.top, 4)
+                .padding(.leading, 4)
+        } label: {
+            Label("Summarized", systemImage: "arrow.down.right.and.arrow.up.left")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .disclosureGroupStyle(QuietDisclosureStyle())
+        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -187,19 +157,25 @@ private struct ToolStepView: View {
         .foregroundStyle(.secondary)
     }
 
+    @ViewBuilder
     private var detail: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let path = step.readPath {
-                Text(path).font(.caption2.monospaced()).foregroundStyle(.tertiary)
+        if step.isSummary, let summary = step.summary, !summary.isEmpty {
+            // The compaction summary is markdown.
+            MarkdownText(text: summary).frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                if let path = step.readPath {
+                    Text(path).font(.caption2.monospaced()).foregroundStyle(.tertiary)
+                }
+                if let command = step.command, !command.isEmpty {
+                    CodeBlock(text: "$ \(command)")
+                }
+                if let output = step.output, !output.isEmpty {
+                    ToolOutputView(text: output)
+                }
             }
-            if let command = step.command, !command.isEmpty {
-                CodeBlock(text: "$ \(command)")
-            }
-            if let output = step.output, !output.isEmpty {
-                ToolOutputView(text: output)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -257,7 +233,7 @@ struct ToolOutputView: View {
 }
 
 /// A compact disclosure style with a leading chevron (no trailing indicator).
-private struct QuietDisclosureStyle: DisclosureGroupStyle {
+struct QuietDisclosureStyle: DisclosureGroupStyle {
     func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Button {
@@ -282,7 +258,7 @@ private struct QuietDisclosureStyle: DisclosureGroupStyle {
 }
 
 extension ChatMessagePart {
-    enum ToolKind { case execute, readFile, editFile, search, other }
+    enum ToolKind { case execute, readFile, editFile, search, summarize, other }
 
     var toolKind: ToolKind {
         let name = (tool_name ?? "").lowercased()
@@ -291,7 +267,12 @@ extension ChatMessagePart {
             return .execute
         case "read_file", "read", "view", "cat", "open":
             return .readFile
+        case "chat_summarized":
+            return .summarize
         default:
+            if name.contains("summariz") || name.contains("compact") {
+                return .summarize
+            }
             if name.contains("edit") || name.contains("replace") || name.contains("write")
                 || name.contains("create_file") || name.contains("patch")
             {
@@ -308,8 +289,9 @@ extension ChatMessagePart {
         switch toolKind {
         case .execute: "terminal"
         case .readFile: "doc.text"
-        case .editFile: "pencil"
+        case .editFile: "square.and.pencil"
         case .search: "magnifyingglass"
+        case .summarize: "arrow.down.right.and.arrow.up.left"
         case .other: "wrench.and.screwdriver"
         }
     }
@@ -344,5 +326,10 @@ extension ChatMessagePart {
 
     var durationMs: Int? {
         result?["wall_duration_ms"]?.intValue
+    }
+
+    /// The compaction summary markdown from a `chat_summarized` tool result.
+    var summaryText: String? {
+        result?["summary"]?.stringValue
     }
 }

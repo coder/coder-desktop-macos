@@ -6,9 +6,11 @@ import SwiftUI
 /// sites stay decoupled from the library.
 struct MarkdownText: View {
     let text: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Markdown(text)
+            .markdownCodeSyntaxHighlighter(colorScheme == .dark ? .darkCode : .lightCode)
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

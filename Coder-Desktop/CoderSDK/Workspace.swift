@@ -23,6 +23,13 @@ public extension Client {
         return try decode(WorkspacesResponse.self, from: res.data).workspaces
     }
 
+    /// Lists the ports a workspace agent is currently listening on (for the workspace pill).
+    func agentListeningPorts(_ agentID: UUID) async throws(SDKError) -> [WorkspaceAgentListeningPort] {
+        let res = try await request("/api/v2/workspaceagents/\(agentID.uuidString)/listening-ports", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(WorkspaceAgentListeningPortsResponse.self, from: res.data).ports
+    }
+
     /// Permanently deletes a workspace by queuing a `delete` build. Returns when the build
     /// has been accepted (the teardown then runs server-side).
     func deleteWorkspace(_ id: UUID) async throws(SDKError) {
@@ -39,6 +46,23 @@ public extension Client {
 
 struct CreateWorkspaceBuildRequest: Encodable {
     let transition: String
+}
+
+public struct WorkspaceAgentListeningPortsResponse: Codable, Sendable {
+    public let ports: [WorkspaceAgentListeningPort]
+}
+
+public struct WorkspaceAgentListeningPort: Codable, Sendable, Equatable, Identifiable {
+    public let process_name: String
+    public let network: String
+    public let port: Int
+    public var id: Int { port }
+
+    public init(process_name: String, network: String, port: Int) {
+        self.process_name = process_name
+        self.network = network
+        self.port = port
+    }
 }
 
 public struct WorkspacesResponse: Codable, Sendable {
@@ -63,10 +87,12 @@ public struct Workspace: Codable, Identifiable, Sendable {
 public struct WorkspaceBuild: Codable, Identifiable, Sendable {
     public let id: UUID
     public let resources: [WorkspaceResource]
+    public let status: String? // running | stopped | …
 
-    public init(id: UUID, resources: [WorkspaceResource]) {
+    public init(id: UUID, resources: [WorkspaceResource], status: String? = nil) {
         self.id = id
         self.resources = resources
+        self.status = status
     }
 }
 

@@ -1,0 +1,56 @@
+import CoderSDK
+import SwiftUI
+
+// Composer seeding, context-usage derivation (for the gauge popover), and the side-panel
+// resize handle — split out to keep AgentSessionDetail under the file-length limit.
+extension AgentSessionDetail {
+    /// Seed the composer's model/workspace/connectors from the session and defaults, once.
+    func seedComposer() {
+        guard !didSeedComposer else { return }
+        if selectedModelConfigID == nil {
+            // Prefer the chat's last-used model, then the user's last manual pick, then the
+            // server default — but only if the id is actually an available model.
+            let available = Set(agents.modelConfigs.map(\.id))
+            let candidates = [session.last_model_config_id, UUID(uuidString: preferredModelID)]
+            selectedModelConfigID = candidates.compactMap { $0 }.first { available.contains($0) }
+                ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
+        }
+        attachedWorkspaceID = session.workspace_id
+        guard !agents.modelConfigs.isEmpty || !agents.workspaces.isEmpty else { return }
+        didSeedComposer = true
+    }
+
+    /// Latest reported context-window usage for this session, if any.
+    var latestUsage: ChatMessageUsage? {
+        agents.messages(for: session.id).last { $0.usage?.contextFraction != nil }?.usage
+    }
+
+    private var sessionParts: [ChatMessagePart] {
+        agents.messages(for: session.id).flatMap(\.content)
+    }
+
+    /// Distinct context-file names loaded into the conversation (for the usage popover).
+    var contextFileNames: [String] {
+        Self.distinct(sessionParts.filter { $0.type == .contextFile }
+            .compactMap { $0.file_name ?? $0.title ?? $0.text })
+    }
+
+    /// Distinct skill names active in the conversation (for the usage popover).
+    var skillNames: [String] {
+        Self.distinct(sessionParts.filter { $0.type == .skill }
+            .compactMap { $0.title ?? $0.text ?? $0.file_name })
+    }
+
+    private static func distinct(_ items: [String]) -> [String] {
+        var seen = Set<String>()
+        return items.filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    /// Loads the compaction threshold for the active model (shown in the context popover).
+    func loadCompactionThreshold() async {
+        guard let modelID = (selectedModelConfigID ?? session.last_model_config_id)?.uuidString else { return }
+        guard let thresholds = try? await agents.loadCompactionThresholds() else { return }
+        compactionPercent = thresholds.first { $0.model_config_id == modelID }?.threshold_percent
+    }
+
+}

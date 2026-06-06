@@ -26,8 +26,14 @@ protocol AgentsService: ObservableObject {
     /// Fetched connector icon for an MCP server, if loaded.
     func mcpIcon(_ id: UUID) -> NSImage?
 
+    /// Cached workspace-app icon by its (resolved) icon URL, and a loader for a set of URLs.
+    func workspaceAppIcon(_ url: URL?) -> NSImage?
+    func loadWorkspaceAppIcons(_ urls: [URL])
+
     /// Launches a new session; returns the created chat on success.
-    func createSession(prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID]) async -> Chat?
+    func createSession(
+        prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID], planMode: Bool
+    ) async -> Chat?
 
     /// Live output for a session.
     func messages(for id: UUID) -> [ChatMessage]
@@ -39,6 +45,16 @@ protocol AgentsService: ObservableObject {
     func hasOlder(_ id: UUID) -> Bool
     /// Pages in the next batch of older messages (scroll-back history).
     func loadOlderMessages(_ id: UUID) async
+    /// Edits a user message, rewinding the chat to that point; returns true on success.
+    func editMessage(_ messageID: Int64, in chatID: UUID, content: String, modelConfigID: UUID?) async -> Bool
+
+    // Messages queued while the agent is busy.
+    func queuedMessages(for id: UUID) -> [ChatQueuedMessage]
+    func promoteQueued(_ queuedID: Int64, in chatID: UUID) async
+    func removeQueued(_ queuedID: Int64, in chatID: UUID) async
+
+    /// Ports a workspace agent is listening on (for the workspace pill).
+    func listeningPorts(agentID: UUID) async -> [WorkspaceAgentListeningPort]
 
     // Read-only diff (Git side panel).
     func diff(for id: UUID) -> ChatDiffContents?
@@ -48,7 +64,7 @@ protocol AgentsService: ObservableObject {
     func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
 
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?) async -> Bool
+    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool) async -> Bool
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async

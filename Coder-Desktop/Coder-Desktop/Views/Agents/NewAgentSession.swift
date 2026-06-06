@@ -12,6 +12,8 @@ struct NewAgentSession<Agents: AgentsService>: View {
     @State private var workspaceID: UUID?
     @State private var modelConfigID: UUID?
     @State private var selectedMCP: Set<UUID> = []
+    @State private var planMode = false
+    @State private var attachments: [PastedAttachment] = []
     @State private var didSeedMCP = false
     @State private var didSeedModel = false
     @State private var launching = false
@@ -29,23 +31,35 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     .font(.body)
                     .lineLimit(3 ... 10)
 
+                if !attachments.isEmpty {
+                    AttachmentChipsView(attachments: $attachments)
+                }
                 HStack(spacing: 8) {
-                    ComposerAttachMenu<Agents>(workspaceID: $workspaceID, selectedMCP: $selectedMCP)
+                    ComposerPlusMenu<Agents>(
+                        workspaceID: $workspaceID,
+                        selectedMCP: $selectedMCP,
+                        planMode: $planMode,
+                        onAttachFile: { name, text in attachments.append(PastedAttachment(text: text, name: name)) }
+                    )
+                    ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: false)
+                    Spacer()
                     if !agents.modelConfigs.isEmpty {
                         ModelPicker<Agents>(selectedID: $modelConfigID)
                     }
-                    Spacer()
+                    VoiceInputButton(draft: $prompt)
                     Button {
                         launch()
                     } label: {
                         if launching {
                             ProgressView().controlSize(.small)
                         } else {
-                            Label("Launch", systemImage: "paperplane.fill")
+                            Image(systemName: "arrow.up.circle.fill").font(.title2)
                         }
                     }
+                    .buttonStyle(.borderless)
                     .keyboardShortcut(.return, modifiers: [.command])
                     .disabled(launching || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .help("Start chat (⌘↵)")
                 }
             }
             .padding(Theme.Size.trayInset)
@@ -89,15 +103,18 @@ struct NewAgentSession<Agents: AgentsService>: View {
     }
 
     private func launch() {
-        let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        let typed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else { return }
+        let text = attachments.folded(into: typed)
         launching = true
         Task {
             defer { launching = false }
             if let chat = await agents.createSession(
-                prompt: text, workspaceID: workspaceID, modelConfigID: modelConfigID, mcpServerIDs: Array(selectedMCP)
+                prompt: text, workspaceID: workspaceID, modelConfigID: modelConfigID,
+                mcpServerIDs: Array(selectedMCP), planMode: planMode
             ) {
                 prompt = ""
+                attachments = []
                 onLaunched(chat)
             }
         }

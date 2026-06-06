@@ -1,3 +1,4 @@
+import AppKit
 import CoderSDK
 import SwiftUI
 
@@ -13,17 +14,25 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     @State private var sending = false
     @State private var loadingOlder = false
     @State private var didInitialScroll = false
+    @State private var editingMessageID: Int64?
+    @State var attachments: [PastedAttachment] = []
     @State private var showPanel = false
     @State private var panelTab: SidePanelTab = .git
-    @State private var selectedModelConfigID: UUID?
-    @State private var attachedWorkspaceID: UUID?
+    // Not private: read/written by the AgentSessionDetail+Context extension (separate file).
+    @State var selectedModelConfigID: UUID?
+    @State var attachedWorkspaceID: UUID?
     @State private var selectedMCP: Set<UUID> = []
-    @State private var didSeedComposer = false
+    @State var didSeedComposer = false
+    @State private var showContextInfo = false
+    @State private var planMode = false
+    @State var compactionPercent: Int?
+    @AppStorage(Defaults.sidePanelWidth) var sidePanelWidth = 380.0
     // Tool calls/results are collapsed to quiet rows; this hides them entirely.
     @AppStorage(Defaults.showToolActivity) private var showToolActivity = true
     @AppStorage(Defaults.chatFullWidth) private var chatFullWidth = false
     @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
     @AppStorage(Defaults.completionChime) private var completionChime = false
+    @AppStorage(Defaults.preferredModel) var preferredModelID = ""
 
     var body: some View {
         HStack(spacing: 0) {
@@ -38,12 +47,15 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 }
                 transcript
                 Divider()
+                QueuedMessagesList<Agents>(session: session) { text in
+                    draft = draft.isEmpty ? text : draft + "\n" + text
+                }
                 composer
             }
             if showPanel {
-                Divider()
+                PanelResizeHandle(width: $sidePanelWidth, range: 280 ... 760)
                 SessionSidePanel<Agents>(session: session, tab: $panelTab, onAddToChat: addContextToDraft)
-                    .frame(width: 380)
+                    .frame(width: sidePanelWidth)
             }
         }
         .task(id: session.id) {
@@ -52,8 +64,14 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             if agents.workspaces.isEmpty { await agents.loadWorkspaces() }
             if agents.mcpServers.isEmpty { await agents.loadMCPServers() }
             seedComposer()
+            await loadCompactionThreshold()
         }
         .onChange(of: agents.modelConfigs.map(\.id)) { seedComposer() }
+        .onChange(of: selectedModelConfigID) { _, new in
+            // Remember the user's choice so new chats start with it instead of resetting.
+            if let new { preferredModelID = new.uuidString }
+            Task { await loadCompactionThreshold() }
+        }
         .onDisappear {
             agents.stopStreaming(session.id)
         }
@@ -132,14 +150,27 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         topLoader(proxy: proxy, anchorID: items.first?.id)
                     }
                     ForEach(items) { item in
-                        switch item.kind {
-                        case let .bubble(role, parts):
-                            MessageView(role: role, parts: parts, contentMaxWidth: maxWidth)
-                                .equatable()
-                                .id(item.id)
-                        case let .tools(steps):
-                            ToolGroupView(steps: steps).id(item.id)
+                        Group {
+                            switch item.kind {
+                            case let .bubble(role, parts, messageID):
+                                MessageView(role: role, parts: parts, contentMaxWidth: maxWidth)
+                                    .equatable()
+                                    .id(item.id)
+                                    .contextMenu {
+                                        Button("Copy") { copyToPasteboard(MessageView.plainText(parts)) }
+                                        if role == .user, let messageID {
+                                            Button("Edit") { startEditing(messageID, MessageView.plainText(parts)) }
+                                        }
+                                    }
+                            case let .tools(steps):
+                                ToolGroupView(steps: steps).id(item.id)
+                            case let .summary(part):
+                                SummaryBlockView(part: part).id(item.id)
+                            }
                         }
+                        // Every agent-side block gets the same subtle card; the user's own
+                        // message keeps its accent bubble (rendered inside MessageView).
+                        .modifier(AgentCard(active: !item.isUserBubble))
                     }
                     Color.clear.frame(height: 1).id(bottomAnchor)
                 }
@@ -189,34 +220,77 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         }
     }
 
+}
+
+extension AgentSessionDetail {
     /// Composer matches the Coder web layout: controls sit inside the box, model picker
     /// and context-usage gauge at bottom-left, send at bottom-right.
     private var composer: some View {
         VStack(spacing: 8) {
-            TextField("Type a message...", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1 ... 8)
-                .onSubmit { if !requireModifierToSend { send() } }
+            if editingMessageID != nil {
+                editWarning
+            }
+            if !attachments.isEmpty {
+                AttachmentChipsView(attachments: $attachments)
+            }
+            PasteAwareEditor(
+                text: $draft,
+                placeholder: "Type a message...",
+                submitOnReturn: !requireModifierToSend,
+                onSubmit: send,
+                onLargePaste: { attachments.append(PastedAttachment(text: $0)) }
+            )
+            .frame(minHeight: 24, maxHeight: 140)
             HStack(spacing: 8) {
-                ComposerAttachMenu<Agents>(workspaceID: $attachedWorkspaceID, selectedMCP: $selectedMCP)
+                ComposerPlusMenu<Agents>(
+                    workspaceID: $attachedWorkspaceID,
+                    selectedMCP: $selectedMCP,
+                    planMode: $planMode,
+                    onAttachFile: { name, text in attachments.append(PastedAttachment(text: text, name: name)) }
+                )
+                ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: true)
+                if let workspaceID = session.workspace_id {
+                    WorkspacePill<Agents>(workspaceID: workspaceID)
+                }
+                Spacer()
+                // Model picker + context usage live on the right (a deliberate deviation from
+                // the web, by preference).
+                if let usage = latestUsage, let fraction = usage.contextFraction {
+                    ContextUsageGauge(fraction: fraction)
+                        .onHover { if $0 { showContextInfo = true } }
+                        .popover(isPresented: $showContextInfo, arrowEdge: .top) {
+                            ContextUsagePopover(
+                                percent: usage.contextPercent ?? 0,
+                                usedTokens: usage.total_tokens,
+                                contextLimit: usage.context_limit,
+                                compactsAtPercent: compactionPercent,
+                                contextFiles: contextFileNames,
+                                skills: skillNames
+                            )
+                        }
+                }
                 if !agents.modelConfigs.isEmpty {
                     ModelPicker<Agents>(selectedID: $selectedModelConfigID)
                 }
-                if let fraction = contextFraction {
-                    ContextUsageGauge(fraction: fraction)
-                }
-                Spacer()
-                Button(action: send) {
-                    if sending {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.up.circle.fill").font(.title2)
+                VoiceInputButton(draft: $draft)
+                if editingMessageID != nil {
+                    Button("Save Edit", action: send)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .keyboardShortcut(.return, modifiers: [.command])
+                } else {
+                    Button(action: send) {
+                        if sending {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.up.circle.fill").font(.title2)
+                        }
                     }
+                    .buttonStyle(.borderless)
+                    .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .keyboardShortcut(.return, modifiers: [.command])
+                    .help("Send (⌘↵)")
                 }
-                .buttonStyle(.borderless)
-                .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.return, modifiers: [.command])
-                .help("Send (⌘↵)")
             }
         }
         .padding(10)
@@ -225,21 +299,30 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .padding(Theme.Size.trayInset)
     }
 
-    /// Seed the composer's model/workspace/connectors from the session and defaults, once.
-    private func seedComposer() {
-        guard !didSeedComposer else { return }
-        if selectedModelConfigID == nil {
-            selectedModelConfigID = (agents.modelConfigs.first { $0.is_default == true }
-                ?? agents.modelConfigs.first)?.id
+    private var editWarning: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            Text("Editing will delete all subsequent messages and restart the conversation here.")
+                .font(.caption).foregroundStyle(.secondary)
+            Spacer()
+            Button { cancelEditing() } label: { Image(systemName: "xmark") }
+                .buttonStyle(.borderless)
+                .help("Cancel edit")
         }
-        attachedWorkspaceID = session.workspace_id
-        guard !agents.modelConfigs.isEmpty || !agents.workspaces.isEmpty else { return }
-        didSeedComposer = true
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius))
     }
 
-    /// Latest reported context-window usage for this session, if any.
-    private var contextFraction: Double? {
-        agents.messages(for: session.id).compactMap { $0.usage?.contextFraction }.last
+    private func startEditing(_ messageID: Int64, _ text: String) {
+        editingMessageID = messageID
+        draft = text
+    }
+
+    private func cancelEditing() {
+        editingMessageID = nil
+        draft = ""
     }
 
     /// Appends selected diff context (from the Git panel) into the composer for self-review.
@@ -249,133 +332,49 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     }
 
     private func send() {
-        let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty, !sending else { return }
+        let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty || !attachments.isEmpty, !sending else { return }
+        let prompt = attachments.folded(into: typed)
+        let restore = { draft = typed }
         sending = true
         draft = ""
-        Task {
-            let ok = await agents.sendMessage(session.id, prompt: prompt, modelConfigID: selectedModelConfigID)
-            sending = false
-            if !ok { draft = prompt } // restore on failure so the user doesn't lose their text
-        }
-    }
-}
-
-/// One message, rendered as its ordered typed parts. `Equatable` so unchanged rows skip
-/// re-rendering (and re-parsing markdown) while a later message streams.
-///
-/// Tool calls/results are visual noise on their own, so a tool-only message (the common
-/// case: an `execute`/`edit_files` step) drops the role header and bubble and renders as
-/// quiet collapsed rows; `showToolActivity == false` hides them entirely.
-struct MessageView: View, Equatable {
-    let role: ChatMessageRole
-    let parts: [ChatMessagePart]
-    var contentMaxWidth: CGFloat = .infinity
-
-    /// Adjacent reasoning/text deltas from the live stream are merged so "Thinking" and
-    /// answer text render as one block each, not many pieces. Tool parts are rendered as
-    /// grouped activity at the transcript level, not here.
-    private var contentParts: [ChatMessagePart] {
-        Self.coalesce(parts).filter { $0.type != .toolCall && $0.type != .toolResult }
-    }
-
-    private var hasContent: Bool {
-        contentParts.contains { $0.type == .reasoning || $0.text?.isEmpty == false }
-    }
-
-    /// Merges consecutive parts of the same streamable type (reasoning, text).
-    static func coalesce(_ parts: [ChatMessagePart]) -> [ChatMessagePart] {
-        var result: [ChatMessagePart] = []
-        for part in parts {
-            if let last = result.last, last.type == part.type,
-               part.type == .reasoning || part.type == .text
-            {
-                result[result.count - 1] = ChatMessagePart(
-                    type: part.type, text: (last.text ?? "") + (part.text ?? "")
+        attachments = []
+        if let editingMessageID {
+            let messageID = editingMessageID
+            self.editingMessageID = nil
+            Task {
+                let ok = await agents.editMessage(
+                    messageID, in: session.id, content: prompt, modelConfigID: selectedModelConfigID
                 )
-            } else {
-                result.append(part)
+                sending = false
+                if !ok { restore(); self.editingMessageID = messageID } // restore edit on failure
             }
+            return
         }
-        return result
-    }
-
-    var body: some View {
-        if hasContent {
-            // Chat alignment: the user's messages sit right in an accent bubble, the
-            // agent's run full-width on the left (no role labels), like a chat client.
-            HStack(spacing: 0) {
-                if role == .user { Spacer(minLength: 40) }
-                VStack(alignment: role == .user ? .trailing : .leading, spacing: 6) {
-                    ForEach(Array(contentParts.enumerated()), id: \.offset) { _, part in
-                        MessagePartView(part: part)
-                    }
-                }
-                .padding(role == .user ? 10 : 0)
-                .background(role == .user ? Color.accentColor.opacity(0.12) : .clear)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
-                .frame(maxWidth: role == .user ? 460 : contentMaxWidth, alignment: role == .user ? .trailing : .leading)
-                .contextMenu { Button("Copy") { copyToPasteboard(plainText) } }
-                if role != .user { Spacer(minLength: 0) }
-            }
+        Task {
+            let ok = await agents.sendMessage(
+                session.id, prompt: prompt, modelConfigID: selectedModelConfigID, planMode: planMode
+            )
+            sending = false
+            if !ok { restore() } // restore on failure so the user doesn't lose their text
         }
-    }
-
-    private var plainText: String {
-        contentParts.compactMap(\.displayText).joined(separator: "\n\n")
     }
 }
 
-/// Renders a single message part by its type. Tool calls/results are shown as activity
-/// rows — the client only displays them, it never resolves or executes a tool.
-struct MessagePartView: View {
-    let part: ChatMessagePart
-    @AppStorage(Defaults.thinkingDisplay) private var thinkingDisplay = ThinkingDisplay.auto.rawValue
-    @State private var thinkingExpanded = false
+/// The shared agent-side card: a subtle full-width background so the agent's text, thinking,
+/// tools, and summaries all read as one consistent surface (the user's bubble opts out).
+private struct AgentCard: ViewModifier {
+    let active: Bool
 
-    var body: some View {
-        switch part.type {
-        case .reasoning:
-            DisclosureGroup(isExpanded: $thinkingExpanded) {
-                MarkdownText(text: (part.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } label: {
-                Label("Thinking", systemImage: "brain")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .onAppear { thinkingExpanded = ThinkingDisplay(rawValue: thinkingDisplay)?.startsExpanded ?? false }
-        case .toolCall, .toolResult:
-            toolRow
-        case .text:
-            MarkdownText(text: part.text ?? "")
-        default:
-            if let text = part.text, !text.isEmpty {
-                MarkdownText(text: text)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var toolRow: some View {
-        let label = part.toolLabel ?? "Tool"
-        if let detail = part.text, !detail.isEmpty {
-            DisclosureGroup {
-                CodeBlock(text: detail)
-            } label: {
-                toolLabelView(label)
-            }
+    func body(content: Content) -> some View {
+        if active {
+            content
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.secondary.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
         } else {
-            toolLabelView(label)
+            content
         }
-    }
-
-    private func toolLabelView(_ label: String) -> some View {
-        Label(label, systemImage: "wrench.and.screwdriver")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
     }
 }

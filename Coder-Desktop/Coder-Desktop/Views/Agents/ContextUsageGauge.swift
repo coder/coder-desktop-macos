@@ -26,7 +26,66 @@ struct ContextUsageGauge: View {
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: 14, height: 14)
-        .accessibilityLabel("Context \(Int(clamped * 100)) percent used")
-        .help("Context \(Int(clamped * 100))% used")
+        // Rich details live in the hover popover the composer attaches; keep the gauge itself
+        // free of a competing tooltip.
+        .contentShape(Rectangle())
+        .accessibilityLabel("Context \(Int((clamped * 100).rounded())) percent used")
+    }
+}
+
+/// The hover popover for the context gauge, mirroring the web: a usage header, the compaction
+/// threshold, and the context files / skills currently loaded into the conversation.
+struct ContextUsagePopover: View {
+    let percent: Int
+    let usedTokens: Int?
+    let contextLimit: Int?
+    let compactsAtPercent: Int?
+    let contextFiles: [String]
+    let skills: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(header).font(.callout.weight(.semibold))
+                if let compactsAtPercent {
+                    Text("Compacts at \(compactsAtPercent)%").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if !contextFiles.isEmpty {
+                section("Context files", items: contextFiles, icon: "doc")
+            }
+            if !skills.isEmpty {
+                section("Skills", items: skills, icon: "bolt")
+            }
+        }
+        .padding(14)
+        .frame(width: 320, alignment: .leading)
+    }
+
+    private var header: String {
+        if let usedTokens, let contextLimit, contextLimit > 0 {
+            return "\(percent)% – \(Self.compact(usedTokens)) / \(Self.compact(contextLimit)) context used"
+        }
+        return "\(percent)% context used"
+    }
+
+    @ViewBuilder
+    private func section(_ title: String, items: [String], icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption.weight(.semibold))
+            ForEach(items, id: \.self) { item in
+                Label(item, systemImage: icon)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    /// Compact token count like the web: 19.7K, 200K (not 19,700).
+    static func compact(_ n: Int) -> String {
+        guard n >= 1000 else { return "\(n)" }
+        let k = Double(n) / 1000
+        return k >= 100 ? "\(Int(k.rounded()))K" : String(format: "%.1fK", k)
     }
 }

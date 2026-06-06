@@ -7,6 +7,7 @@ final class CoderAgentsService: AgentsService {
     private let state: AppState
     private let telemetry: Telemetry
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "agents")
+    let messageStore = ChatMessageStore()
 
     @Published private(set) var sessions: [Chat] = []
     @Published private(set) var loadError: String?
@@ -15,12 +16,15 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
     @Published private(set) var userPrompt: String = ""
     @Published var mcpIconsByServer: [UUID: NSImage] = [:]
+    @Published var workspaceAppIcons: [String: NSImage] = [:] // keyed by icon URL string
     @Published private(set) var hasLoadedOnce = false
 
     @Published var messagesBySession: [UUID: [ChatMessage]] = [:]
     /// Whether older messages exist before the earliest loaded one (for scroll-back paging).
     @Published var hasOlderBySession: [UUID: Bool] = [:]
     @Published var streamingPartsBySession: [UUID: [ChatMessagePart]] = [:]
+    /// Messages queued while the agent is busy (shown above the composer).
+    @Published var queuedMessagesBySession: [UUID: [ChatQueuedMessage]] = [:]
     @Published var diffBySession: [UUID: ChatDiffContents] = [:]
     /// Optimistically-echoed user messages, shown until the server reflects them.
     @Published var pendingSendsBySession: [UUID: [ChatMessage]] = [:]
@@ -94,11 +98,9 @@ final class CoderAgentsService: AgentsService {
         }
     }
 
-    func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest? {
-        client?.agentPTYRequest(agentID: agentID, reconnect: UUID(), cols: cols, rows: rows)
-    }
-
-    func createSession(prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID]) async -> Chat? {
+    func createSession(
+        prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID], planMode: Bool
+    ) async -> Chat? {
         guard let client else { return nil }
         guard let orgID = await organizationID() else {
             loadError = "Could not determine your Coder organization."
@@ -106,11 +108,9 @@ final class CoderAgentsService: AgentsService {
         }
         do {
             let chat = try await client.createChat(.init(
-                organization_id: orgID,
-                content: [.text(prompt)],
-                workspace_id: workspaceID,
-                model_config_id: modelConfigID,
-                mcp_server_ids: mcpServerIDs.isEmpty ? nil : mcpServerIDs
+                organization_id: orgID, content: [.text(prompt)],
+                workspace_id: workspaceID, model_config_id: modelConfigID,
+                mcp_server_ids: mcpServerIDs.isEmpty ? nil : mcpServerIDs, plan_mode: planMode ? .plan : nil
             ))
             telemetry.send(.agentLaunched)
             sessions.insert(chat, at: 0)
@@ -120,14 +120,6 @@ final class CoderAgentsService: AgentsService {
             logger.error("failed to create session: \(error.localizedDescription, privacy: .public)")
             return nil
         }
-    }
-
-    func messages(for id: UUID) -> [ChatMessage] {
-        (messagesBySession[id] ?? []) + (pendingSendsBySession[id] ?? [])
-    }
-
-    func streamingParts(for id: UUID) -> [ChatMessagePart] {
-        streamingPartsBySession[id] ?? []
     }
 
     func startStreaming(_ id: UUID) {
@@ -145,7 +137,7 @@ final class CoderAgentsService: AgentsService {
         streamingPartsBySession[id] = []
     }
 
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?) async -> Bool {
+    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool) async -> Bool {
         guard let client else { return false }
         // Optimistically echo the user's message so it appears instantly.
         let optimistic = ChatMessage(
@@ -156,7 +148,10 @@ final class CoderAgentsService: AgentsService {
         pendingSendsBySession[id, default: []].append(optimistic)
         do {
             try await client.sendChatMessage(
-                id, .init(content: [.text(prompt)], busy_behavior: .queue, model_config_id: modelConfigID)
+                id, .init(
+                    content: [.text(prompt)], busy_behavior: .queue,
+                    model_config_id: modelConfigID, plan_mode: planMode ? .plan : nil
+                )
             )
             telemetry.send(.agentMessageSent)
             return true
@@ -272,15 +267,18 @@ private extension CoderAgentsService {
     /// close) or the session reaches a terminal state.
     func runStream(_ id: UUID, generation: Int) async {
         guard let client else { return }
-        // Seed history (sorted by id, matching every other path and the render order).
+        seedFromCache(id) // render the JSONL cache instantly, then reconcile below
         // The server returns the most recent page; older messages page in on scroll-back.
         if let resp = try? await client.chatMessages(id) {
-            messagesBySession[id] = resp.messages.sorted { $0.id < $1.id }
-            hasOlderBySession[id] = resp.has_more ?? false
+            mergeMessages(resp.messages, into: id)
+            hasOlderBySession[id] = resp.has_more ?? hasOlderBySession[id] ?? false
         }
         var reconnect = ReconnectState()
         while !Task.isCancelled, streamGeneration[id] == generation {
             let afterID = messagesBySession[id]?.map(\.id).max()
+            // Each (re)subscribe replays from the last committed message, so drop any
+            // half-streamed parts first to avoid duplicating them on reconnect.
+            streamingPartsBySession[id] = []
             var sawEvent = false
             do {
                 for try await event in client.chatEvents(id: id, afterID: afterID) {
@@ -330,13 +328,7 @@ private extension CoderAgentsService {
     func apply(_ event: ChatStreamEvent, to id: UUID) {
         switch event.type {
         case .message:
-            if let message = event.message {
-                mergeMessages([message], into: id)
-                // A completed assistant message supersedes the in-flight buffer.
-                if message.role == .assistant {
-                    streamingPartsBySession[id] = []
-                }
-            }
+            applyMessageEvent(event.message, to: id)
         case .messagePart:
             if let part = event.message_part?.part {
                 streamingPartsBySession[id, default: []].append(part)
@@ -349,8 +341,19 @@ private extension CoderAgentsService {
             if let message = event.error?.message {
                 loadError = message
             }
-        case .queueUpdate, .retry, .actionRequired, .unknown:
+        case .queueUpdate:
+            queuedMessagesBySession[id] = event.queued_messages ?? []
+        case .retry, .actionRequired, .unknown:
             break
+        }
+    }
+
+    private func applyMessageEvent(_ message: ChatMessage?, to id: UUID) {
+        guard let message else { return }
+        mergeMessages([message], into: id)
+        // A completed assistant message supersedes the in-flight buffer.
+        if message.role == .assistant {
+            streamingPartsBySession[id] = []
         }
     }
 
@@ -370,6 +373,7 @@ private extension CoderAgentsService {
         }
         current.sort { $0.id < $1.id }
         messagesBySession[id] = current
+        messageStore.save(current, for: id)
         if incoming.contains(where: { $0.role == .user }) { // drop optimistic echoes
             pendingSendsBySession[id] = nil
         }

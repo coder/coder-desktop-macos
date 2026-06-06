@@ -7,6 +7,26 @@ extension CoderAgentsService {
         mcpIconsByServer[id]
     }
 
+    /// Cached 16×16 icon for a workspace app, by its (resolved) icon URL.
+    func workspaceAppIcon(_ url: URL?) -> NSImage? {
+        guard let url else { return nil }
+        return workspaceAppIcons[url.absoluteString]
+    }
+
+    /// Fetches workspace-app icons (svg/png) and caches them at menu size, like MCP icons.
+    func loadWorkspaceAppIcons(_ urls: [URL]) {
+        for url in urls where workspaceAppIcons[url.absoluteString] == nil {
+            let key = url.absoluteString
+            SDWebImageManager.shared.loadImage(
+                with: url, options: [], progress: nil
+            ) { [weak self] image, _, _, _, _, _ in
+                guard let image else { return }
+                let resized = Self.menuIcon(from: image)
+                Task { @MainActor in self?.workspaceAppIcons[key] = resized }
+            }
+        }
+    }
+
     /// Flattens an arbitrarily-sized (possibly SVG) image into a fixed 16×16 menu icon.
     nonisolated static func menuIcon(from image: NSImage, side: CGFloat = 16) -> NSImage {
         let target = NSImage(size: NSSize(width: side, height: side))
