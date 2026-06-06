@@ -281,15 +281,22 @@ struct UpdateChatRequest: Encodable {
 public struct ChatInputPart: Codable, Sendable {
     public let type: ChatInputPartType
     public let text: String?
+    public let file_id: UUID? // for `file` parts: an uploaded file's id
 
-    public init(type: ChatInputPartType = .text, text: String?) {
+    public init(type: ChatInputPartType = .text, text: String? = nil, file_id: UUID? = nil) {
         self.type = type
         self.text = text
+        self.file_id = file_id
     }
 
     /// Convenience for the common case: a plain text prompt.
     public static func text(_ value: String) -> ChatInputPart {
         .init(type: .text, text: value)
+    }
+
+    /// An uploaded file attachment, referenced by id.
+    public static func file(_ id: UUID) -> ChatInputPart {
+        .init(type: .file, file_id: id)
     }
 }
 

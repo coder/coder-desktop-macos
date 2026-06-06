@@ -39,7 +39,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                         workspaceID: $workspaceID,
                         selectedMCP: $selectedMCP,
                         planMode: $planMode,
-                        onAttachFile: { name, text in attachments.append(PastedAttachment(text: text, name: name)) }
+                        attachments: $attachments
                     )
                     ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: false)
                     Spacer()
@@ -106,13 +106,15 @@ struct NewAgentSession<Agents: AgentsService>: View {
         let typed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty else { return }
         let text = attachments.folded(into: typed)
+        let fileIDs = attachments.fileIDs
         launching = true
         Task {
             defer { launching = false }
-            if let chat = await agents.createSession(
+            let request = NewSessionRequest(
                 prompt: text, workspaceID: workspaceID, modelConfigID: modelConfigID,
-                mcpServerIDs: Array(selectedMCP), planMode: planMode
-            ) {
+                mcpServerIDs: Array(selectedMCP), planMode: planMode, fileIDs: fileIDs
+            )
+            if let chat = await agents.createSession(request) {
                 prompt = ""
                 attachments = []
                 onLaunched(chat)

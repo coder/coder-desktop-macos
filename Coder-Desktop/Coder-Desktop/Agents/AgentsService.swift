@@ -99,9 +99,7 @@ final class CoderAgentsService: AgentsService {
         }
     }
 
-    func createSession(
-        prompt: String, workspaceID: UUID?, modelConfigID: UUID?, mcpServerIDs: [UUID], planMode: Bool
-    ) async -> Chat? {
+    func createSession(_ request: NewSessionRequest) async -> Chat? {
         guard let client else { return nil }
         guard let orgID = await organizationID() else {
             loadError = "Could not determine your Coder organization."
@@ -109,9 +107,10 @@ final class CoderAgentsService: AgentsService {
         }
         do {
             let chat = try await client.createChat(.init(
-                organization_id: orgID, content: [.text(prompt)],
-                workspace_id: workspaceID, model_config_id: modelConfigID,
-                mcp_server_ids: mcpServerIDs.isEmpty ? nil : mcpServerIDs, plan_mode: planMode ? .plan : nil
+                organization_id: orgID, content: contentParts(request.prompt, fileIDs: request.fileIDs),
+                workspace_id: request.workspaceID, model_config_id: request.modelConfigID,
+                mcp_server_ids: request.mcpServerIDs.isEmpty ? nil : request.mcpServerIDs,
+                plan_mode: request.planMode ? .plan : nil
             ))
             telemetry.send(.agentLaunched)
             sessions.insert(chat, at: 0)
@@ -359,6 +358,11 @@ private extension CoderAgentsService {
         sessions[idx].status = status
     }
 
+}
+
+// Not in the private extension above: `organizationID()` is called from AgentsServiceSend's
+// file upload too. (`private` is file-scoped, so it still reaches the private cachedOrgID.)
+extension CoderAgentsService {
     func organizationID() async -> UUID? {
         if let cachedOrgID { return cachedOrgID }
         guard let client else { return nil }
