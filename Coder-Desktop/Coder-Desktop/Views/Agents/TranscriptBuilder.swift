@@ -37,31 +37,7 @@ enum TranscriptBuilder {
 
         func flushTools() {
             defer { toolBuffer = [] }
-            guard !toolBuffer.isEmpty else { return }
-            let steps = ToolStep.steps(from: toolBuffer)
-            var group: [ToolStep] = []
-            // Regular tool runs are gated by the toggle; plan/question milestones always show.
-            func flushGroup() {
-                defer { group = [] }
-                guard showTools, !group.isEmpty else { return }
-                // Stable id (first step's tool_call_id) survives pagination / anchors scroll.
-                let stableID = group.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
-                items.append(TranscriptItem(id: stableID, kind: .tools(group)))
-                groupSeq += 1
-            }
-            for step in steps {
-                switch step.call?.tool_name ?? step.result?.tool_name {
-                case "propose_plan":
-                    flushGroup()
-                    items.append(TranscriptItem(id: "plan-\(step.id)", kind: .plan(step)))
-                case "ask_user_question":
-                    flushGroup()
-                    items.append(TranscriptItem(id: "question-\(step.id)", kind: .question(step)))
-                default:
-                    group.append(step)
-                }
-            }
-            flushGroup()
+            appendTools(toolBuffer, showTools: showTools, groupSeq: &groupSeq, into: &items)
         }
 
         func process(role: ChatMessageRole, parts: [ChatMessagePart], id: String, messageID: Int64?) {
@@ -91,5 +67,36 @@ enum TranscriptBuilder {
         process(role: .assistant, parts: streaming, id: "streaming", messageID: nil)
         flushTools()
         return items
+    }
+
+    /// Pairs a buffered tool run and appends items: regular tool groups (gated by `showTools`)
+    /// plus standalone plan/question milestones (always shown), in chronological order.
+    private static func appendTools(
+        _ buffer: [ChatMessagePart], showTools: Bool, groupSeq: inout Int, into items: inout [TranscriptItem]
+    ) {
+        guard !buffer.isEmpty else { return }
+        let steps = ToolStep.steps(from: buffer)
+        var group: [ToolStep] = []
+        func flushGroup() {
+            defer { group = [] }
+            guard showTools, !group.isEmpty else { return }
+            // Stable id (first step's tool_call_id) survives pagination / anchors scroll.
+            let stableID = group.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
+            items.append(TranscriptItem(id: stableID, kind: .tools(group)))
+            groupSeq += 1
+        }
+        for step in steps {
+            switch step.call?.tool_name ?? step.result?.tool_name {
+            case "propose_plan":
+                flushGroup()
+                items.append(TranscriptItem(id: "plan-\(step.id)", kind: .plan(step)))
+            case "ask_user_question":
+                flushGroup()
+                items.append(TranscriptItem(id: "question-\(step.id)", kind: .question(step)))
+            default:
+                group.append(step)
+            }
+        }
+        flushGroup()
     }
 }

@@ -258,7 +258,9 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            StatusDot(color: session.status.color)
+            Image(systemName: session.status.systemImage)
+                .font(.caption)
+                .foregroundStyle(session.status.color)
                 .accessibilityLabel(session.status.accessibilityLabel)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {

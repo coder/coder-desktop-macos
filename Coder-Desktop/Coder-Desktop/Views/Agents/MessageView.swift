@@ -8,6 +8,8 @@ struct MessageView: View, Equatable {
     let role: ChatMessageRole
     let parts: [ChatMessagePart]
     var contentMaxWidth: CGFloat = .infinity
+    /// True only for the in-flight assistant turn, enabling the smooth text reveal.
+    var streaming = false
 
     private var contentParts: [ChatMessagePart] {
         Self.coalesce(parts).filter { $0.type != .toolCall && $0.type != .toolResult }
@@ -55,7 +57,7 @@ struct MessageView: View, Equatable {
                 // lines up with the tool and summary rows (like the web).
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(contentParts.enumerated()), id: \.offset) { _, part in
-                        MessagePartView(part: part)
+                        MessagePartView(part: part, streaming: streaming)
                     }
                 }
                 .frame(maxWidth: contentMaxWidth, alignment: .leading)
@@ -76,6 +78,7 @@ struct MessageView: View, Equatable {
 /// transcript-level tool grouping, not here.
 struct MessagePartView: View {
     let part: ChatMessagePart
+    var streaming = false
     @AppStorage(Defaults.thinkingDisplay) private var thinkingDisplay = ThinkingDisplay.auto.rawValue
     // nil until the user toggles, so the setting's default applies without an .onAppear that
     // would re-collapse a manually-expanded block when the view's identity changes.
@@ -103,7 +106,7 @@ struct MessagePartView: View {
             }
             .disclosureGroupStyle(QuietDisclosureStyle())
         case .text:
-            MarkdownText(text: part.text ?? "")
+            SmoothMarkdownText(text: part.text ?? "", isStreaming: streaming)
         default:
             if let text = part.text, !text.isEmpty {
                 MarkdownText(text: text)

@@ -155,7 +155,10 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         Group {
                             switch item.kind {
                             case let .bubble(role, parts, messageID):
-                                MessageView(role: role, parts: parts, contentMaxWidth: maxWidth)
+                                MessageView(
+                                    role: role, parts: parts, contentMaxWidth: maxWidth,
+                                    streaming: item.id == "streaming" && session.status.isActive
+                                )
                                     .equatable()
                                     .id(item.id)
                                     .contextMenu {

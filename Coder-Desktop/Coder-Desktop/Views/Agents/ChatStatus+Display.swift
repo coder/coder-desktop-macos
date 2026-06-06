@@ -31,6 +31,19 @@ extension ChatStatus {
         }
     }
 
+    /// SF Symbol for the per-chat status (sidebar), mirroring the web's status icons.
+    var systemImage: String {
+        switch self {
+        case .running, .pending: "circle.dotted"
+        case .waiting: "hand.raised"
+        case .requiresAction: "exclamationmark.circle"
+        case .completed: "checkmark.circle"
+        case .paused: "pause.circle"
+        case .error: "xmark.octagon"
+        case .unknown: "questionmark.circle"
+        }
+    }
+
     /// Whether the agent is actively producing output.
     var isActive: Bool {
         switch self {
