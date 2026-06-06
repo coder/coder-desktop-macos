@@ -99,29 +99,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            if session.status.isInterruptible {
-                Button {
-                    Task { await agents.interrupt(session.id) }
-                } label: {
-                    Label("Stop", systemImage: "stop.fill")
-                }
-                .help("Stop this session")
-            }
-            Menu {
-                Toggle("Show tool activity", isOn: $showToolActivity)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .help("View options")
-            Button {
-                showPanel.toggle()
-            } label: {
-                Image(systemName: showPanel ? "sidebar.right" : "sidebar.squares.right")
-            }
-            .buttonStyle(.borderless)
-            .help("Toggle Git / Terminal / Desktop panel")
+            SessionHeaderActions<Agents>(
+                session: session, showPanel: $showPanel, showToolActivity: $showToolActivity
+            )
         }
         .padding(Theme.Size.trayInset)
     }

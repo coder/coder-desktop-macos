@@ -75,6 +75,12 @@ protocol AgentsService: ObservableObject {
     /// Personal skills for the composer's "/" trigger menu, loaded lazily.
     var userSkills: [UserSkill] { get }
     func loadUserSkills() async
+
+    // Chat sharing (ACL).
+    func chatACL(_ id: UUID) async -> ChatACL?
+    func shareChat(_ id: UUID, username: String) async -> String?
+    func unshareUser(_ id: UUID, userID: UUID) async
+    func unshareGroup(_ id: UUID, groupID: UUID) async
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async

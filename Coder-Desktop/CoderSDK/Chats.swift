@@ -328,6 +328,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     /// Cached branch/PR diff summary (counts + link), surfaced even when the full diff
     /// text can't be fetched.
     public var diff_status: ChatDiffStatus?
+    /// Whether the chat has been shared with other users/groups (any explicit ACL entry).
+    public var shared: Bool?
 
     public init(
         id: UUID,
@@ -342,7 +344,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         created_at: Date,
         updated_at: Date,
         last_model_config_id: UUID? = nil,
-        diff_status: ChatDiffStatus? = nil
+        diff_status: ChatDiffStatus? = nil,
+        shared: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -357,6 +360,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.updated_at = updated_at
         self.last_model_config_id = last_model_config_id
         self.diff_status = diff_status
+        self.shared = shared
     }
 
     /// Whether the chat is pinned (pin_order > 0).
