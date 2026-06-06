@@ -9,6 +9,7 @@ final class PreviewAgents: AgentsService {
     @Published var workspaces: [CoderSDK.Workspace] = []
     @Published var mcpServers: [MCPServer] = []
     @Published var modelConfigs: [ChatModelConfig] = []
+    @Published var userSkills: [UserSkill] = []
     @Published var hasLoadedOnce = true
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
@@ -89,6 +90,7 @@ final class PreviewAgents: AgentsService {
     func implementPlan(_: UUID) async -> Bool { true }
     func answerQuestion(_: UUID, text _: String) async -> Bool { true }
     func planText(fileID _: UUID) async -> String? { "# Plan\n\n1. Do the thing\n2. Verify" }
+    func loadUserSkills() async {}
 
     func sendMessage(_ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool) async -> Bool {
         var msgs = messagesBySession[id] ?? []

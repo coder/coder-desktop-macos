@@ -250,7 +250,9 @@ extension AgentSessionDetail {
                 placeholder: "Type a message...",
                 submitOnReturn: !requireModifierToSend,
                 onSubmit: send,
-                onLargePaste: { attachments.append(PastedAttachment(text: $0)) }
+                onLargePaste: { attachments.append(PastedAttachment(text: $0)) },
+                skills: agents.userSkills,
+                onSkillTrigger: { Task { await agents.loadUserSkills() } }
             )
             .frame(minHeight: 24, maxHeight: 140)
             HStack(spacing: 8) {

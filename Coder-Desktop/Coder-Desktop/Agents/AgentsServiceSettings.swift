@@ -11,6 +11,12 @@ extension CoderAgentsService {
         return client
     }
 
+    /// Loads the user's personal skills once (for the composer's "/" trigger menu).
+    func loadUserSkills() async {
+        guard let client, userSkills.isEmpty else { return }
+        userSkills = (try? await client.userSkills()) ?? []
+    }
+
     func loadPreferences() async throws -> UserPreferences {
         try await requireClient().userPreferences()
     }

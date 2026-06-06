@@ -1,4 +1,5 @@
 import AppKit
+import CoderSDK
 import SwiftUI
 
 /// A large block of pasted text, shown as a chip in the composer and folded into the
@@ -59,6 +60,9 @@ struct PasteAwareEditor: NSViewRepresentable {
     var onSubmit: () -> Void = {}
     var onLargePaste: (String) -> Void = { _ in }
     var largePasteThreshold = 2000
+    /// Personal skills for the "/" trigger menu, and a hook to lazy-load them on first use.
+    var skills: [UserSkill] = []
+    var onSkillTrigger: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -97,20 +101,40 @@ struct PasteAwareEditor: NSViewRepresentable {
             textView.string = text
         }
         textView.placeholderString = placeholder
+        // Refresh the open skills menu when lazily-loaded skills arrive.
+        context.coordinator.refreshSkillMenuIfShown()
     }
 
+    @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: PasteAwareEditor
         weak var textView: PasteTextView?
 
-        init(_ parent: PasteAwareEditor) { self.parent = parent }
+        // "/" skills trigger menu state.
+        let skillModel = SkillMenuModel()
+        private var skillPopover: NSPopover?
+        private var skillTokenRange: NSRange?
+        private var dismissedRange: NSRange? // suppress re-opening the same token after Esc
+
+        init(_ parent: PasteAwareEditor) {
+            self.parent = parent
+            super.init()
+            skillModel.onSelect = { [weak self] in self?.insertSkill($0) }
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
+            updateSkillTrigger()
+        }
+
+        func textViewDidChangeSelection(_: Notification) {
+            updateSkillTrigger()
         }
 
         func textView(_: NSTextView, doCommandBy selector: Selector) -> Bool {
+            // While the skills menu is open, arrows/enter/tab/esc drive it.
+            if skillPopover?.isShown == true, handleSkillMenuKey(selector) { return true }
             // Return sends (when enabled); Shift/Option+Return falls through to a newline.
             if selector == #selector(NSResponder.insertNewline(_:)), parent.submitOnReturn {
                 let flags = NSApp.currentEvent?.modifierFlags ?? []
@@ -120,6 +144,90 @@ struct PasteAwareEditor: NSViewRepresentable {
                 }
             }
             return false
+        }
+
+        // MARK: Skills "/" menu
+
+        func refreshSkillMenuIfShown() {
+            if skillPopover?.isShown == true { updateSkillTrigger() }
+        }
+
+        private func updateSkillTrigger() {
+            guard let tv = textView else { return }
+            let caret = tv.selectedRange().location
+            guard let (range, query) = parseSkillTrigger(in: tv.string, caret: caret) else {
+                dismissedRange = nil
+                hideSkillMenu()
+                return
+            }
+            if range == dismissedRange { return } // user dismissed this exact token
+            dismissedRange = nil
+            parent.onSkillTrigger() // lazy-load
+            let filtered = filterSkills(parent.skills, query: query)
+            skillTokenRange = range
+            skillModel.skills = filtered
+            if skillModel.highlighted >= filtered.count { skillModel.highlighted = 0 }
+            if let rect = caretRect(at: range.location) { showSkillMenu(rect: rect, in: tv) }
+        }
+
+        private func handleSkillMenuKey(_ selector: Selector) -> Bool {
+            let count = skillModel.skills.count
+            switch selector {
+            case #selector(NSResponder.moveDown(_:)):
+                if count > 0 { skillModel.highlighted = (skillModel.highlighted + 1) % count }
+                return true
+            case #selector(NSResponder.moveUp(_:)):
+                if count > 0 { skillModel.highlighted = (skillModel.highlighted - 1 + count) % count }
+                return true
+            case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
+                if skillModel.skills.indices.contains(skillModel.highlighted) {
+                    insertSkill(skillModel.skills[skillModel.highlighted])
+                }
+                return true
+            case #selector(NSResponder.cancelOperation(_:)):
+                dismissedRange = skillTokenRange
+                hideSkillMenu()
+                return true
+            default:
+                return false
+            }
+        }
+
+        private func insertSkill(_ skill: UserSkill) {
+            guard let tv = textView, let range = skillTokenRange else { return }
+            let replacement = "/\(skill.name) "
+            if tv.shouldChangeText(in: range, replacementString: replacement) {
+                tv.textStorage?.replaceCharacters(in: range, with: replacement)
+                tv.didChangeText()
+                let caret = range.location + (replacement as NSString).length
+                tv.setSelectedRange(NSRange(location: caret, length: 0))
+            }
+            parent.text = tv.string
+            hideSkillMenu()
+        }
+
+        private func caretRect(at loc: Int) -> NSRect? {
+            guard let tv = textView, let window = tv.window else { return nil }
+            let screen = tv.firstRect(forCharacterRange: NSRange(location: loc, length: 0), actualRange: nil)
+            return tv.convert(window.convertFromScreen(screen), from: nil)
+        }
+
+        private func showSkillMenu(rect: NSRect, in tv: NSTextView) {
+            if skillPopover == nil {
+                let popover = NSPopover()
+                popover.behavior = .applicationDefined // we control dismissal (typing won't close it)
+                popover.contentViewController = NSHostingController(rootView: SkillsMenuView(model: skillModel))
+                skillPopover = popover
+            }
+            guard skillPopover?.isShown != true else { return }
+            skillPopover?.show(relativeTo: rect, of: tv, preferredEdge: .maxY)
+            // Keep typing in the editor rather than the popover.
+            tv.window?.makeFirstResponder(tv)
+        }
+
+        private func hideSkillMenu() {
+            skillPopover?.performClose(nil)
+            skillTokenRange = nil
         }
     }
 }

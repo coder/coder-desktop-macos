@@ -14,6 +14,7 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
+    @Published var userSkills: [UserSkill] = [] // loaded lazily by the skills "/" trigger
     @Published private(set) var userPrompt: String = ""
     @Published var mcpIconsByServer: [UUID: NSImage] = [:]
     @Published var workspaceAppIcons: [String: NSImage] = [:] // keyed by icon URL string
