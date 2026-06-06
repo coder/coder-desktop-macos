@@ -6,6 +6,8 @@ struct TranscriptItem: Identifiable {
         case bubble(role: ChatMessageRole, parts: [ChatMessagePart], messageID: Int64?)
         case tools([ToolStep])
         case summary(ChatMessagePart)
+        case plan(ToolStep)
+        case question(ToolStep)
     }
 
     let id: String
@@ -35,14 +37,31 @@ enum TranscriptBuilder {
 
         func flushTools() {
             defer { toolBuffer = [] }
-            guard showTools, !toolBuffer.isEmpty else { return }
+            guard !toolBuffer.isEmpty else { return }
             let steps = ToolStep.steps(from: toolBuffer)
-            guard !steps.isEmpty else { return }
-            // Stable id (first step's tool_call_id) so the item survives older-message
-            // pagination and can be used as a scroll anchor.
-            let stableID = steps.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
-            items.append(TranscriptItem(id: stableID, kind: .tools(steps)))
-            groupSeq += 1
+            var group: [ToolStep] = []
+            // Regular tool runs are gated by the toggle; plan/question milestones always show.
+            func flushGroup() {
+                defer { group = [] }
+                guard showTools, !group.isEmpty else { return }
+                // Stable id (first step's tool_call_id) survives pagination / anchors scroll.
+                let stableID = group.first.map { "tools-\($0.id)" } ?? "tools-\(groupSeq)"
+                items.append(TranscriptItem(id: stableID, kind: .tools(group)))
+                groupSeq += 1
+            }
+            for step in steps {
+                switch step.call?.tool_name ?? step.result?.tool_name {
+                case "propose_plan":
+                    flushGroup()
+                    items.append(TranscriptItem(id: "plan-\(step.id)", kind: .plan(step)))
+                case "ask_user_question":
+                    flushGroup()
+                    items.append(TranscriptItem(id: "question-\(step.id)", kind: .question(step)))
+                default:
+                    group.append(step)
+                }
+            }
+            flushGroup()
         }
 
         func process(role: ChatMessageRole, parts: [ChatMessagePart], id: String, messageID: Int64?) {

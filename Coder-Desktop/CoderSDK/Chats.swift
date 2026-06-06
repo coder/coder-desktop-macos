@@ -77,6 +77,14 @@ public extension Client {
         return try decode(CreateChatMessageResponse.self, from: res.data)
     }
 
+    /// Fetches an uploaded chat file's contents as text (e.g. a proposed plan's markdown,
+    /// referenced by `file_id` in a `propose_plan` tool result). Returns raw text, not JSON.
+    func chatFileText(_ fileID: UUID) async throws(SDKError) -> String {
+        let res = try await request("/api/experimental/chats/files/\(fileID.uuidString)", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return String(data: res.data, encoding: .utf8) ?? ""
+    }
+
     /// Stops / interrupts an in-progress run.
     func interruptChat(_ id: UUID) async throws(SDKError) {
         let res = try await request("/api/experimental/chats/\(id.uuidString)/interrupt", method: .post)
@@ -255,9 +263,11 @@ public struct CreateChatMessageRequest: Encodable, Sendable {
     }
 }
 
-/// The chat's plan-mode state. "plan" runs the turn in read-only planning mode.
+/// The chat's plan-mode state. "plan" runs the turn in read-only planning mode; "" clears
+/// persistent plan mode (used by the Implement action). nil means "no change" (field omitted).
 public enum ChatPlanMode: String, Codable, Sendable {
     case plan
+    case clear = ""
 }
 
 /// Optional fields: the synthesized encoder omits nils, so each call sends only the

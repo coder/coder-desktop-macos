@@ -5,12 +5,12 @@ import SwiftUI
 @MainActor
 final class CoderAgentsService: AgentsService {
     private let state: AppState
-    private let telemetry: Telemetry
+    let telemetry: Telemetry
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "agents")
     let messageStore = ChatMessageStore()
 
     @Published private(set) var sessions: [Chat] = []
-    @Published private(set) var loadError: String?
+    @Published var loadError: String?
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
@@ -34,7 +34,7 @@ final class CoderAgentsService: AgentsService {
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
     private var didEmitViewOpened = false
-    private var nextOptimisticID: Int64 = -1
+    var nextOptimisticID: Int64 = -1
 
     init(state: AppState, telemetry: Telemetry = LoggerTelemetry()) {
         self.state = state
@@ -135,32 +135,6 @@ final class CoderAgentsService: AgentsService {
         streamTasks[id]?.cancel()
         streamTasks[id] = nil
         streamingPartsBySession[id] = []
-    }
-
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool) async -> Bool {
-        guard let client else { return false }
-        // Optimistically echo the user's message so it appears instantly.
-        let optimistic = ChatMessage(
-            id: nextOptimisticID, chat_id: id, role: .user,
-            content: [.init(type: .text, text: prompt)], created_at: nil
-        )
-        nextOptimisticID -= 1
-        pendingSendsBySession[id, default: []].append(optimistic)
-        do {
-            try await client.sendChatMessage(
-                id, .init(
-                    content: [.text(prompt)], busy_behavior: .queue,
-                    model_config_id: modelConfigID, plan_mode: planMode ? .plan : nil
-                )
-            )
-            telemetry.send(.agentMessageSent)
-            return true
-        } catch {
-            pendingSendsBySession[id]?.removeAll { $0.id == optimistic.id }
-            loadError = error.localizedDescription
-            logger.error("failed to send message: \(error.localizedDescription, privacy: .public)")
-            return false
-        }
     }
 
     func interrupt(_ id: UUID) async {

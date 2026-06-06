@@ -86,6 +86,10 @@ final class PreviewAgents: AgentsService {
         [WorkspaceAgentListeningPort(process_name: "postgres", network: "tcp", port: 5432)]
     }
 
+    func implementPlan(_: UUID) async -> Bool { true }
+    func answerQuestion(_: UUID, text _: String) async -> Bool { true }
+    func planText(fileID _: UUID) async -> String? { "# Plan\n\n1. Do the thing\n2. Verify" }
+
     func sendMessage(_ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool) async -> Bool {
         var msgs = messagesBySession[id] ?? []
         let nextID = (msgs.map(\.id).max() ?? 0) + 1

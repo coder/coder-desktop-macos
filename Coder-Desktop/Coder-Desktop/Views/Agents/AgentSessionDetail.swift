@@ -143,6 +143,8 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         // Bubbles + grouped tool runs (tool-call/result paired across messages).
         let items = TranscriptBuilder.build(messages: messages, streaming: streaming, showTools: showToolActivity)
         let maxWidth: CGFloat = chatFullWidth ? .infinity : 720
+        // The latest unanswered question is interactive only once the turn has finished.
+        let interactiveQuestionID = Self.interactiveQuestionID(in: items, chatCompleted: session.status == .completed)
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
@@ -166,6 +168,13 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                                 ToolGroupView(steps: steps).id(item.id)
                             case let .summary(part):
                                 SummaryBlockView(part: part).id(item.id)
+                            case let .plan(step):
+                                PlanView<Agents>(chatID: session.id, step: step).id(item.id)
+                            case let .question(step):
+                                AskQuestionView<Agents>(
+                                    chatID: session.id, step: step,
+                                    interactive: item.id == interactiveQuestionID
+                                ).id(item.id)
                             }
                         }
                         // Every agent-side block gets the same subtle card; the user's own
