@@ -155,6 +155,52 @@ public enum ChatMessagePartType: String, Codable, Sendable, Equatable {
     }
 }
 
+/// One clarifying question the agent asks during planning (`ask_user_question` tool). The UI
+/// adds its own "Other" freeform option, so options labeled "other" are filtered out.
+public struct AskUserQuestion: Sendable, Equatable {
+    public let header: String
+    public let question: String
+    public let options: [Option]
+
+    public struct Option: Sendable, Equatable {
+        public let label: String
+        public let description: String
+    }
+}
+
+// Plan (`propose_plan`) and question (`ask_user_question`) tool accessors. Both are ordinary
+// tool-call/result parts discriminated by `tool_name` (not a dedicated part type).
+public extension ChatMessagePart {
+    var isProposePlan: Bool { tool_name == "propose_plan" }
+    var isAskUserQuestion: Bool { tool_name == "ask_user_question" }
+
+    /// The uploaded markdown file id for a `propose_plan` result (fetch via `chatFileText`).
+    var planFileID: UUID? {
+        guard let raw = result?["file_id"]?.stringValue else { return nil }
+        return UUID(uuidString: raw)
+    }
+
+    var planPath: String? {
+        args?["path"]?.stringValue ?? result?["path"]?.stringValue
+    }
+
+    /// The questions for an `ask_user_question` part, from the call args (with "other"
+    /// options filtered, since the UI supplies its own freeform "Other").
+    var askUserQuestions: [AskUserQuestion]? {
+        guard let raw = args?["questions"]?.arrayValue, !raw.isEmpty else { return nil }
+        let parsed = raw.compactMap { item -> AskUserQuestion? in
+            guard let header = item["header"]?.stringValue ?? item["question"]?.stringValue,
+                  let question = item["question"]?.stringValue else { return nil }
+            let options = (item["options"]?.arrayValue ?? []).compactMap { opt -> AskUserQuestion.Option? in
+                guard let label = opt["label"]?.stringValue, label.lowercased() != "other" else { return nil }
+                return AskUserQuestion.Option(label: label, description: opt["description"]?.stringValue ?? "")
+            }
+            return AskUserQuestion(header: header, question: question, options: options)
+        }
+        return parsed.isEmpty ? nil : parsed
+    }
+}
+
 /// A message waiting to be processed while the agent is busy. Rendered above the composer;
 /// can be promoted ("Send now"), removed, or edited.
 public struct ChatQueuedMessage: Codable, Sendable, Equatable, Identifiable {

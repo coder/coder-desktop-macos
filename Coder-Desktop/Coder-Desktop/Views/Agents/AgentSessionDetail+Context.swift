@@ -46,6 +46,17 @@ extension AgentSessionDetail {
         return items.filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
+    /// The id of the latest question that's still interactive: only when the turn has
+    /// finished and no user message has been sent after it (mirrors the web gate).
+    static func interactiveQuestionID(in items: [TranscriptItem], chatCompleted: Bool) -> String? {
+        guard chatCompleted else { return nil }
+        guard let idx = items.lastIndex(where: {
+            if case .question = $0.kind { return true } else { return false }
+        }) else { return nil }
+        let userAnsweredAfter = items[items.index(after: idx)...].contains { $0.isUserBubble }
+        return userAnsweredAfter ? nil : items[idx].id
+    }
+
     /// Loads the compaction threshold for the active model (shown in the context popover).
     func loadCompactionThreshold() async {
         guard let modelID = (selectedModelConfigID ?? session.last_model_config_id)?.uuidString else { return }

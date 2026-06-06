@@ -65,6 +65,12 @@ protocol AgentsService: ObservableObject {
 
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
     func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool) async -> Bool
+    /// Proceeds from a proposed plan (sends "Implement the plan." and clears plan mode).
+    func implementPlan(_ id: UUID) async -> Bool
+    /// Answers an `ask_user_question` during planning (plain send, plan mode unchanged).
+    func answerQuestion(_ id: UUID, text: String) async -> Bool
+    /// The proposed plan's markdown, fetched by its file id.
+    func planText(fileID: UUID) async -> String?
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
