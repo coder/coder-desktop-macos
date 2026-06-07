@@ -49,6 +49,8 @@ struct AnalyticsView<Agents: AgentsService>: View {
                 statCard("Total cost", Money.dollars(cost?.total_cost_micros ?? 0))
                 statCard("Input tokens", (cost?.total_input_tokens ?? 0).formatted())
                 statCard("Output tokens", (cost?.total_output_tokens ?? 0).formatted())
+                statCard("Cache read", (cost?.total_cache_read_tokens ?? 0).formatted())
+                statCard("Cache write", (cost?.total_cache_creation_tokens ?? 0).formatted())
                 statCard("Messages", (cost?.priced_message_count ?? 0).formatted())
             }
         }

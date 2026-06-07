@@ -25,7 +25,7 @@ struct ContextUsageGauge: View {
                 .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 .rotationEffect(.degrees(-90))
         }
-        .frame(width: 14, height: 14)
+        .frame(width: 18, height: 18)
         // Rich details live in the hover popover the composer attaches; keep the gauge itself
         // free of a competing tooltip.
         .contentShape(Rectangle())

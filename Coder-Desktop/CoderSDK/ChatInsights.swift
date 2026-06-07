@@ -51,6 +51,8 @@ public struct ChatCostSummary: Decodable, Sendable {
     public let priced_message_count: Int?
     public let total_input_tokens: Int?
     public let total_output_tokens: Int?
+    public let total_cache_read_tokens: Int?
+    public let total_cache_creation_tokens: Int?
     public let usage_limit: ChatUsageLimitStatus?
 }
 
