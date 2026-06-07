@@ -105,6 +105,7 @@ struct AnalyticsView<Agents: AgentsService>: View {
             if let url = pr.pr_url.flatMap(URL.init) {
                 Button { NSWorkspace.shared.open(url) } label: { Image(systemName: "arrow.up.right.square") }
                     .buttonStyle(.borderless)
+                    .accessibilityLabel("Open pull request")
             }
         }
         .padding(.vertical, 4)

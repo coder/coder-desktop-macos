@@ -40,6 +40,7 @@ struct QueuedMessagesList<Agents: AgentsService>: View {
                 Image(systemName: "xmark")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Remove from queue")
             .help("Remove from queue")
         }
         .padding(.horizontal, 8)
