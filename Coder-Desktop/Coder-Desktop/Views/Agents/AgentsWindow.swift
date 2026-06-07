@@ -289,18 +289,14 @@ struct SessionRow: View {
                 }
                 subtitle
             }
-            if session.shared == true {
-                Image(systemName: "person.2.fill")
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .help("Shared")
-            }
         }
         .padding(.vertical, 2)
         .onHover { hovering = $0 }
         .contextMenu { rowMenu }
     }
 
-    /// Diff summary (+adds −dels) when a PR/branch is attached, then workspace/status text.
+    /// Diff summary (+adds −dels) when a PR/branch is attached, then workspace/status text,
+    /// with the shared marker at the trailing edge.
     private var subtitle: some View {
         HStack(spacing: 4) {
             if let diff = session.diff_status {
@@ -312,6 +308,10 @@ struct SessionRow: View {
                 Text("·")
             }
             Text(session.status.label)
+            if session.shared == true {
+                Spacer(minLength: 4)
+                Image(systemName: "person.2.fill").help("Shared")
+            }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
