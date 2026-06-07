@@ -90,6 +90,12 @@ protocol AgentsService: ObservableObject {
     func shareCandidates(orgID: UUID) async -> (members: [OrgMember], groups: [OrgGroup])
     /// Updates the local `shared` flag for a chat after an ACL change.
     func setSharedFlag(_ id: UUID, shared: Bool)
+
+    // Personal usage analytics.
+    func costSummary(start: String?, end: String?) async -> ChatCostSummary?
+    func prInsights(start: String?, end: String?) async -> PRInsightsResponse?
+    func usageLimit() async -> ChatUsageLimitStatus?
+    func workspaceQuota() async -> WorkspaceQuota?
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async

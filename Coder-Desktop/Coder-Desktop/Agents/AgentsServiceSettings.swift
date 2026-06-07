@@ -62,6 +62,27 @@ extension CoderAgentsService {
         return (members, groups)
     }
 
+    // MARK: Usage / insights (personal)
+
+    func costSummary(start: String?, end: String?) async -> ChatCostSummary? {
+        try? await client?.chatCostSummary(start: start, end: end)
+    }
+
+    func prInsights(start: String?, end: String?) async -> PRInsightsResponse? {
+        try? await client?.chatPRInsights(start: start, end: end)
+    }
+
+    func usageLimit() async -> ChatUsageLimitStatus? {
+        try? await client?.chatUsageLimit()
+    }
+
+    /// Workspace quota for the current user (nil when not configured / not premium).
+    func workspaceQuota() async -> WorkspaceQuota? {
+        guard let client, let orgID = await organizationID(),
+              let username = (try? await client.user("me"))?.username else { return nil }
+        return try? await client.workspaceQuota(organizationID: orgID, username: username)
+    }
+
     func loadPreferences() async throws -> UserPreferences {
         try await requireClient().userPreferences()
     }
