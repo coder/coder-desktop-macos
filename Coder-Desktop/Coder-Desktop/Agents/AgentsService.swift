@@ -364,6 +364,12 @@ private extension CoderAgentsService {
 // Not in the private extension above: `organizationID()` is called from AgentsServiceSend's
 // file upload too. (`private` is file-scoped, so it still reaches the private cachedOrgID.)
 extension CoderAgentsService {
+    /// Updates a session's `shared` flag locally (after an ACL change) so the share icon
+    /// reflects the new state immediately.
+    func setSharedFlag(_ id: UUID, shared: Bool) {
+        if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].shared = shared }
+    }
+
     func organizationID() async -> UUID? {
         if let cachedOrgID { return cachedOrgID }
         guard let client else { return nil }

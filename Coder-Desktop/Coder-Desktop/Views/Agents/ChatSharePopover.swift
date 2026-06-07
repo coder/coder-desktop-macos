@@ -136,6 +136,8 @@ struct ChatSharePopover<Agents: AgentsService>: View {
     private func load() async {
         loading = true
         acl = await agents.chatACL(session.id)
+        // Keep the chat's shared flag (and the share icon) in sync with the ACL.
+        agents.setSharedFlag(session.id, shared: !isEmpty)
         if members.isEmpty, groups.isEmpty, let orgID = session.organization_id {
             (members, groups) = await agents.shareCandidates(orgID: orgID)
         }

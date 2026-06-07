@@ -102,6 +102,7 @@ final class PreviewAgents: AgentsService {
     func unshareGroup(_: UUID, groupID _: UUID) async {}
     func shareWithUser(_: UUID, userID _: UUID) async {}
     func shareWithGroup(_: UUID, groupID _: UUID) async {}
+    func setSharedFlag(_: UUID, shared _: Bool) {}
     func shareCandidates(orgID _: UUID) async -> (members: [OrgMember], groups: [OrgGroup]) {
         ([OrgMember(user_id: UUID(), username: "teammate", name: "Team Mate", avatar_url: nil)], [])
     }
