@@ -37,7 +37,9 @@ struct CodeBlock: View {
             }
             .buttonStyle(.borderless)
             .padding(4)
+            .frame(minWidth: 24, minHeight: 24)
             .help("Copy")
+            .accessibilityLabel("Copy code")
         }
     }
 }

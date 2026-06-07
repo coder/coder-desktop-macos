@@ -285,9 +285,11 @@ extension AgentSessionDetail {
                         }
                     }
                     .buttonStyle(.borderless)
-                    .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(sending || (draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && attachments.isEmpty && pendingReferences.isEmpty))
                     .keyboardShortcut(.return, modifiers: [.command])
                     .help("Send (⌘↵)")
+                    .accessibilityLabel("Send message")
                 }
             }
         }
@@ -306,6 +308,7 @@ extension AgentSessionDetail {
             Button { cancelEditing() } label: { Image(systemName: "xmark") }
                 .buttonStyle(.borderless)
                 .help("Cancel edit")
+                .accessibilityLabel("Cancel edit")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)

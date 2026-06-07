@@ -125,6 +125,7 @@ struct ChatSharePopover<Agents: AgentsService>: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Remove")
+                .accessibilityLabel("Remove \(title)")
             }
         }
     }

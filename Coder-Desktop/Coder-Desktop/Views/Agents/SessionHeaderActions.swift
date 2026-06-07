@@ -28,6 +28,7 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
             }
             .buttonStyle(.borderless)
             .help(session.shared == true ? "Shared — manage access" : "Share chat")
+            .accessibilityLabel(session.shared == true ? "Manage sharing" : "Share chat")
             .popover(isPresented: $showShare, arrowEdge: .bottom) {
                 ChatSharePopover<Agents>(session: session)
             }
@@ -48,11 +49,13 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .help("Chat options")
+            .accessibilityLabel("Chat options")
             Button { showPanel.toggle() } label: {
                 Image(systemName: showPanel ? "sidebar.right" : "sidebar.squares.right")
             }
             .buttonStyle(.borderless)
             .help("Toggle Git / Terminal / Desktop panel")
+            .accessibilityLabel("Toggle side panel")
         }
         .confirmationDialog(
             "Archive chat and delete workspace?", isPresented: $showDeleteConfirm, titleVisibility: .visible

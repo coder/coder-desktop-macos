@@ -59,7 +59,7 @@ struct UsageIndicator<Agents: AgentsService>: View {
                 .trim(from: 0, to: max(0.001, fraction))
                 .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Image(systemName: symbol).font(.system(size: 9, weight: .semibold)).foregroundStyle(color)
+            Image(systemName: symbol).font(.caption2.weight(.semibold)).foregroundStyle(color)
         }
         .frame(width: 22, height: 22)
     }

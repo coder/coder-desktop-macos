@@ -115,6 +115,7 @@ struct DiffPanel<Agents: AgentsService>: View {
             }
             .buttonStyle(.borderless)
             .help("Refresh diff")
+            .accessibilityLabel("Refresh diff")
         }
         .padding(8)
     }

@@ -166,7 +166,7 @@ private struct ToolStepView: View {
                 if stats.deletions > 0 { Text("−\(stats.deletions)").foregroundStyle(.red) }
             }
             if let duration = step.duration {
-                Text("· \(duration)").foregroundStyle(.tertiary)
+                Text("· \(duration)").foregroundStyle(.secondary)
             }
         }
         .font(.caption)
@@ -184,7 +184,7 @@ private struct ToolStepView: View {
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 if let path = step.readPath {
-                    Text(path).font(.caption2.monospaced()).foregroundStyle(.tertiary)
+                    Text(path).font(.caption2.monospaced()).foregroundStyle(.secondary)
                 }
                 if let command = step.command, !command.isEmpty {
                     CodeBlock(text: "$ \(command)")
@@ -225,7 +225,8 @@ struct ToolOutputView: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius))
             .overlay(alignment: .topTrailing) {
                 Button { copyToPasteboard(text) } label: { Image(systemName: "doc.on.doc").font(.caption2) }
-                    .buttonStyle(.borderless).padding(4).help("Copy")
+                    .buttonStyle(.borderless).padding(4).help("Copy").accessibilityLabel("Copy output")
+                    .frame(minWidth: 24, minHeight: 24)
             }
         } else {
             CodeBlock(text: text)

@@ -53,6 +53,7 @@ struct AttachmentChipsView: View {
                             Image(systemName: "xmark.circle.fill").font(.caption2)
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Remove attachment")
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

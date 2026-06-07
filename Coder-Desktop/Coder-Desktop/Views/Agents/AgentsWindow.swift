@@ -96,6 +96,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Agents settings")
+                .accessibilityLabel("Agents settings")
             }
             .padding(.horizontal, Theme.Size.trayInset)
             .padding(.vertical, Theme.Size.trayPadding)
@@ -285,10 +286,11 @@ struct SessionRow: View {
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)
                         .fixedSize()
+                        .accessibilityLabel("Chat actions")
                     } else {
                         Text(Self.relativeShort(session.updated_at))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 subtitle

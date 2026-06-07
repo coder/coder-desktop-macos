@@ -2,55 +2,40 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
-/// A model picker that always shows the selected model's name and opens a bounded,
-/// scrollable list. A plain SwiftUI `Menu` bridges to an `NSMenu` that can't be
-/// height-limited, so for long model lists we use a popover containing a `ScrollView`.
+/// A model picker showing the selected model's name. A native `Menu` (which is fully
+/// keyboard-navigable and auto-scrolls for long lists) lists the models with a checkmark on
+/// the current one.
 struct ModelPicker<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     @Binding var selectedID: UUID?
-    @State private var showList = false
 
     private var label: String {
         agents.modelConfigs.first { $0.id == selectedID }?.label ?? "Model"
     }
 
     var body: some View {
-        Button { showList.toggle() } label: {
+        Menu {
+            ForEach(agents.modelConfigs) { config in
+                Button { selectedID = config.id } label: {
+                    if config.id == selectedID {
+                        Label(config.label, systemImage: "checkmark")
+                    } else {
+                        Text(config.label)
+                    }
+                }
+            }
+        } label: {
             HStack(spacing: 4) {
                 Text(label).lineLimit(1).foregroundStyle(.primary)
                 Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
             }
             .font(.callout)
         }
-        .buttonStyle(.borderless)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
         .help("Model")
-        .popover(isPresented: $showList, arrowEdge: .bottom) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(agents.modelConfigs) { config in
-                        Button {
-                            selectedID = config.id
-                            showList = false
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text(config.label).lineLimit(1)
-                                Spacer(minLength: 12)
-                                if config.id == selectedID {
-                                    Image(systemName: "checkmark").font(.caption.bold())
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            .frame(width: 300)
-            .frame(maxHeight: 320)
-        }
+        .accessibilityLabel("Model: \(label)")
     }
 }
 
@@ -157,6 +142,7 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                     .toggleStyle(.switch)
                     .controlSize(.mini)
                     .disabled(server.locked)
+                    .accessibilityLabel(server.display_name)
             }
         }
     }
@@ -329,6 +315,7 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
                 Image(systemName: "xmark").font(.caption2)
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Remove \(pill.label)")
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 8)
