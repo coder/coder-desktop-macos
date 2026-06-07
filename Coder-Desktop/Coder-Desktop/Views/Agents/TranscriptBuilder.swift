@@ -93,6 +93,11 @@ enum TranscriptBuilder {
             case "ask_user_question":
                 flushGroup()
                 items.append(TranscriptItem(id: "question-\(step.id)", kind: .question(step)))
+            case "create_workspace", "start_workspace":
+                // Workspace progress is important — surface it standalone (always shown),
+                // never buried in a collapsed "Used N tools" group.
+                flushGroup()
+                items.append(TranscriptItem(id: "ws-\(step.id)", kind: .tools([step])))
             default:
                 group.append(step)
             }

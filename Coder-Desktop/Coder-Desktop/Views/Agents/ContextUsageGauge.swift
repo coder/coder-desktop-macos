@@ -19,13 +19,14 @@ struct ContextUsageGauge: View {
 
     var body: some View {
         ZStack {
-            Circle().stroke(Color.secondary.opacity(0.25), lineWidth: 2)
+            Circle().stroke(Color.secondary.opacity(0.25), lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: max(0.001, clamped))
-                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
         }
-        .frame(width: 18, height: 18)
+        // Matches the sidebar usage rings' weight (22pt / 2.5 stroke).
+        .frame(width: 22, height: 22)
         // Rich details live in the hover popover the composer attaches; keep the gauge itself
         // free of a competing tooltip.
         .contentShape(Rectangle())
