@@ -1,23 +1,36 @@
 import AppKit
 import SwiftUI
 
+/// Collects each diff row's vertical extent (in the shared "diff" coordinate space) so a
+/// drag over the gutter can map to a range of rows.
+private struct DiffRowFrameKey: PreferenceKey {
+    static let defaultValue: [Int: CGRect] = [:]
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 /// A structured unified-diff renderer: splits the diff into per-file sections (collapsible,
 /// with +/− counts), shows old/new line-number gutters, styled hunk headers, and per-line
 /// add/delete/context coloring. The server hands us a ready unified-diff string, so this
 /// only parses its structure — it doesn't compute diffs.
 struct DiffView: View {
     let text: String
-    /// When set, rows become selectable and the user can comment on a selection (inline) and
-    /// send it (plus a note) into the chat composer as context — a self-review loop. Click to
-    /// select a line; Shift-click to extend the selection to a range.
+    /// When set, the line-number gutter becomes selectable: click a line, or drag across the
+    /// gutter to select a range, then comment inline and send it into the chat composer.
     var onAddToChat: ((String) -> Void)?
 
     @State private var selected: Set<Int> = []
-    @State private var anchor: Int? // last-clicked row, for shift-range and the inline comment
+    @State private var rowFrames: [Int: CGRect] = [:]
     @State private var note: String = ""
 
     private var files: [DiffFile] {
         DiffFile.parse(text)
+    }
+
+    /// The bottom-most selected row, where the inline comment box is anchored.
+    private var commentAnchor: Int? {
+        files.flatMap(\.rows).last { selected.contains($0.id) }?.id
     }
 
     var body: some View {
@@ -29,9 +42,9 @@ struct DiffView: View {
                             file: file,
                             selectable: onAddToChat != nil,
                             selected: $selected,
-                            commentAnchor: selected.isEmpty ? nil : anchor,
+                            commentAnchor: commentAnchor,
                             note: $note,
-                            onTap: { row in handleTap(row, in: file.rows) },
+                            onDragSelect: dragSelect,
                             onSend: addToChat,
                             onClear: clear
                         )
@@ -39,6 +52,8 @@ struct DiffView: View {
                 }
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .coordinateSpace(name: "diff")
+                .onPreferenceChange(DiffRowFrameKey.self) { rowFrames = $0 }
             }
             if onAddToChat != nil, !selected.isEmpty {
                 bottomBar
@@ -61,24 +76,17 @@ struct DiffView: View {
         .background(.background)
     }
 
-    /// Click selects a single line and sets the anchor; Shift-click selects the range from the
-    /// anchor to the clicked line (within the same file).
-    private func handleTap(_ row: DiffRow, in rows: [DiffRow]) {
-        let selectable = rows.filter { $0.kind != .hunk && $0.kind != .meta }
-        if NSEvent.modifierFlags.contains(.shift), let anchor,
-           let a = selectable.firstIndex(where: { $0.id == anchor }),
-           let b = selectable.firstIndex(where: { $0.id == row.id }) {
-            for r in selectable[min(a, b) ... max(a, b)] { selected.insert(r.id) }
-            self.anchor = row.id
-        } else {
-            if selected.contains(row.id) { selected.remove(row.id) } else { selected.insert(row.id) }
-            anchor = selected.contains(row.id) ? row.id : nil
-        }
+    /// Selects every selectable row whose gutter falls within the drag's vertical band
+    /// (`y1`…`y2` in the "diff" space). A plain click is a zero-length band → one line.
+    private func dragSelect(_ y1: CGFloat, _ y2: CGFloat) {
+        let lo = min(y1, y2), hi = max(y1, y2)
+        let hit = Set(rowFrames.filter { $0.value.minY <= hi && $0.value.maxY >= lo }.keys)
+        let selectable = files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id)
+        selected = Set(selectable.filter { hit.contains($0) })
     }
 
     private func clear() {
         selected = []
-        anchor = nil
         note = ""
     }
 
@@ -122,7 +130,7 @@ private struct DiffFileView: View {
     @Binding var selected: Set<Int>
     var commentAnchor: Int?
     @Binding var note: String
-    var onTap: (DiffRow) -> Void = { _ in }
+    var onDragSelect: (CGFloat, CGFloat) -> Void = { _, _ in }
     var onSend: () -> Void = {}
     var onClear: () -> Void = {}
     @State private var expanded = true
@@ -156,8 +164,9 @@ private struct DiffFileView: View {
                             DiffRowView(
                                 row: row,
                                 selectable: selectable,
-                                isSelected: selected.contains(row.id)
-                            ) { onTap(row) }
+                                isSelected: selected.contains(row.id),
+                                onDragSelect: onDragSelect
+                            )
                             // The comment box sits inline, right under the selection.
                             if row.id == commentAnchor { inlineComment }
                         }
@@ -192,26 +201,12 @@ private struct DiffRowView: View {
     let row: DiffRow
     var selectable = false
     var isSelected = false
-    var onToggle: () -> Void = {}
+    var onDragSelect: (CGFloat, CGFloat) -> Void = { _, _ in }
     @State private var hovering = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            if selectable {
-                Button(action: onToggle) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.caption2)
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(hovering ? 0.6 : 0))
-                }
-                .buttonStyle(.plain)
-                .frame(width: 18)
-            }
-            HStack(spacing: 0) {
-                gutter(row.oldNumber)
-                gutter(row.newNumber)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { if selectable { onToggle() } } // click the gutter to (de)select
+            gutterColumn
             Text(row.marker)
                 .frame(width: 12)
                 .foregroundStyle(row.markerColor)
@@ -227,162 +222,34 @@ private struct DiffRowView: View {
         .onHover { hovering = $0 }
     }
 
+    /// The line-number gutter: click/drag here to select line range(s). Reports its frame so
+    /// the drag can map to rows.
+    @ViewBuilder
+    private var gutterColumn: some View {
+        let column = HStack(spacing: 0) {
+            gutter(row.oldNumber)
+            gutter(row.newNumber)
+        }
+        .background(selectable && hovering ? Color.secondary.opacity(0.15) : .clear)
+        .contentShape(Rectangle())
+        .background(GeometryReader { geo in
+            Color.clear.preference(key: DiffRowFrameKey.self, value: [row.id: geo.frame(in: .named("diff"))])
+        })
+        if selectable {
+            column.gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .named("diff"))
+                    .onChanged { onDragSelect($0.startLocation.y, $0.location.y) }
+            )
+        } else {
+            column
+        }
+    }
+
     private func gutter(_ number: Int?) -> some View {
         Text(number.map(String.init) ?? "")
             .font(.system(.caption2, design: .monospaced))
             .foregroundStyle(.tertiary)
             .frame(width: 34, alignment: .trailing)
             .padding(.trailing, 4)
-    }
-}
-
-struct DiffFile: Identifiable {
-    let id: Int
-    let path: String
-    var rows: [DiffRow]
-    var additions: Int
-    var deletions: Int
-
-    /// Parses a unified diff into per-file sections with line-numbered rows.
-    static func parse(_ text: String) -> [DiffFile] {
-        var parser = DiffParser()
-        for raw in text.components(separatedBy: "\n") {
-            parser.consume(raw)
-        }
-        return parser.finish()
-    }
-}
-
-/// Accumulates unified-diff lines into per-file sections, tracking old/new line numbers.
-private struct DiffParser {
-    private var files: [DiffFile] = []
-    private var current: DiffFile?
-    private var fileSeq = 0
-    private var rowSeq = 0
-    private var oldLine = 0
-    private var newLine = 0
-
-    mutating func consume(_ raw: String) {
-        if raw.hasPrefix("diff --git") {
-            start(gitPath(raw))
-        } else if raw.hasPrefix("+++ ") {
-            if current == nil || current?.path.isEmpty == true { start(strippedPath(raw)) }
-        } else if isHeaderNoise(raw) {
-            return
-        } else if raw.hasPrefix("@@") {
-            (oldLine, newLine) = hunkStarts(raw)
-            append(.hunk, old: nil, new: nil, text: raw)
-        } else if raw.hasPrefix("+") {
-            append(.addition, old: nil, new: newLine, text: String(raw.dropFirst()))
-            newLine += 1
-            current?.additions += 1
-        } else if raw.hasPrefix("-") {
-            append(.deletion, old: oldLine, new: nil, text: String(raw.dropFirst()))
-            oldLine += 1
-            current?.deletions += 1
-        } else if raw.hasPrefix("\\") {
-            append(.meta, old: nil, new: nil, text: raw) // "\ No newline at end of file"
-        } else if current != nil {
-            let line = raw.hasPrefix(" ") ? String(raw.dropFirst()) : raw
-            append(.context, old: oldLine, new: newLine, text: line)
-            oldLine += 1
-            newLine += 1
-        }
-    }
-
-    mutating func finish() -> [DiffFile] {
-        commit()
-        return files
-    }
-
-    private mutating func commit() {
-        if let file = current { files.append(file) }
-        current = nil
-    }
-
-    private mutating func start(_ path: String) {
-        commit()
-        current = DiffFile(id: fileSeq, path: path, rows: [], additions: 0, deletions: 0)
-        fileSeq += 1
-    }
-
-    private mutating func append(_ kind: DiffRow.Kind, old: Int?, new: Int?, text: String) {
-        if current == nil { start("") }
-        current?.rows.append(DiffRow(id: rowSeq, kind: kind, oldNumber: old, newNumber: new, text: text))
-        rowSeq += 1
-    }
-
-    private func isHeaderNoise(_ raw: String) -> Bool {
-        ["--- ", "index ", "new file", "deleted file", "rename ", "similarity ", "old mode", "new mode"]
-            .contains { raw.hasPrefix($0) }
-    }
-
-    private func gitPath(_ line: String) -> String {
-        // "diff --git a/path b/path" -> the b/ path.
-        if let range = line.range(of: " b/") { return String(line[range.upperBound...]) }
-        return line.replacingOccurrences(of: "diff --git ", with: "")
-    }
-
-    private func strippedPath(_ line: String) -> String {
-        // "+++ b/path" -> "path"
-        var path = String(line.dropFirst(4))
-        if path.hasPrefix("a/") || path.hasPrefix("b/") { path = String(path.dropFirst(2)) }
-        return path
-    }
-
-    private func hunkStarts(_ line: String) -> (Int, Int) {
-        // "@@ -oldStart,oldCount +newStart,newCount @@ …"
-        var old = 0
-        var new = 0
-        for part in line.split(separator: " ") {
-            if part.hasPrefix("-") { old = Int(part.dropFirst().split(separator: ",").first ?? "") ?? 0 }
-            if part.hasPrefix("+") { new = Int(part.dropFirst().split(separator: ",").first ?? "") ?? 0 }
-        }
-        return (old, new)
-    }
-}
-
-struct DiffRow: Identifiable {
-    enum Kind { case context, addition, deletion, hunk, meta }
-
-    let id: Int
-    let kind: Kind
-    let oldNumber: Int?
-    let newNumber: Int?
-    let text: String
-
-    var marker: String {
-        switch kind {
-        case .addition: "+"
-        case .deletion: "−"
-        default: " "
-        }
-    }
-
-    var markerColor: Color {
-        switch kind {
-        case .addition: .green
-        case .deletion: .red
-        default: .secondary
-        }
-    }
-
-    var background: Color {
-        switch kind {
-        case .addition: .green.opacity(0.12)
-        case .deletion: .red.opacity(0.12)
-        case .hunk: .accentColor.opacity(0.08)
-        default: .clear
-        }
-    }
-
-    /// The line as it appears in a unified diff, for re-embedding selected rows as context.
-    var diffLine: String {
-        switch kind {
-        case .addition: "+\(text)"
-        case .deletion: "-\(text)"
-        case .hunk: text
-        default: " \(text)"
-        }
     }
 }
