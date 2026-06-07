@@ -88,6 +88,8 @@ protocol AgentsService: ObservableObject {
     func shareWithUser(_ id: UUID, userID: UUID) async
     func shareWithGroup(_ id: UUID, groupID: UUID) async
     func shareCandidates(orgID: UUID) async -> (members: [OrgMember], groups: [OrgGroup])
+    /// Updates the local `shared` flag for a chat after an ACL change.
+    func setSharedFlag(_ id: UUID, shared: Bool)
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async

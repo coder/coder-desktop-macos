@@ -276,7 +276,7 @@ struct SessionRow: View {
                     // Kebab on hover, relative time otherwise (matches the web row).
                     if hovering {
                         Menu { rowMenu } label: {
-                            Image(systemName: "ellipsis")
+                            Image(systemName: "ellipsis").foregroundStyle(.secondary)
                         }
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)
