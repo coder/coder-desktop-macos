@@ -71,6 +71,14 @@ extension ChatMessagePart {
         return (path as NSString).lastPathComponent
     }
 
+    /// The query/pattern for a search tool (grep/glob/find/codebase_search), from args.
+    var searchQuery: String? {
+        for key in ["query", "pattern", "regex", "q", "search", "glob", "find", "path"] {
+            if let value = args?[key]?.stringValue, !value.isEmpty { return value }
+        }
+        return nil
+    }
+
     /// Tool output, preferring the structured `result.output`, else the part's text.
     var resultOutput: String? {
         if let output = result?["output"]?.stringValue, !output.isEmpty { return output }

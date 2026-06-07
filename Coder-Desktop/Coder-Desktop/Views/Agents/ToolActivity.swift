@@ -41,7 +41,10 @@ struct ToolStep: Identifiable {
         case .execute: return "Ran \(call?.commandPrograms ?? source.commandPrograms ?? "command")"
         case .readFile: return "Read \(source.fileBasename ?? "file")"
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
-        case .search: return "Searched"
+        case .search:
+            if let query = source.searchQuery { return "Searched \"\(query)\"" }
+            if let title = source.title, !title.isEmpty { return title }
+            return "Searched"
         case .summarize: return result == nil ? "Summarizing…" : "Summarized"
         case .workspace: return workspaceLabel
         case .other: return source.toolLabel ?? "Tool"
