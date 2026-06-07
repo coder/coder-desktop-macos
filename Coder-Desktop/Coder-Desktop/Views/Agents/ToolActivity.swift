@@ -1,3 +1,4 @@
+import AppKit
 import CoderSDK
 import SwiftUI
 struct ToolStep: Identifiable {
@@ -42,8 +43,22 @@ struct ToolStep: Identifiable {
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
         case .search: return "Searched"
         case .summarize: return result == nil ? "Summarizing…" : "Summarized"
+        case .workspace: return workspaceLabel
         case .other: return source.toolLabel ?? "Tool"
         }
+    }
+
+    var isWorkspace: Bool { source?.toolKind == .workspace }
+    var isRunning: Bool { result == nil }
+    var workspaceName: String? { (result ?? call)?.workspaceToolName }
+    var workspaceOwner: String? { (result ?? call)?.workspaceToolOwner }
+
+    /// "Creating/Starting workspace…" while running, "Created/Started <name>" when done.
+    private var workspaceLabel: String {
+        let creating = (source?.tool_name ?? "") == "create_workspace"
+        if isRunning { return creating ? "Creating workspace…" : "Starting workspace…" }
+        let verb = creating ? "Created" : "Started"
+        return workspaceName.map { "\(verb) \($0)" } ?? "\(verb) workspace"
     }
 
     var duration: String? {
@@ -142,6 +157,7 @@ struct SummaryBlockView: View {
 
 private struct ToolStepView: View {
     let step: ToolStep
+    @EnvironmentObject var state: AppState
     @State private var expanded = false
 
     var body: some View {
@@ -159,7 +175,12 @@ private struct ToolStepView: View {
 
     private var rowLabel: some View {
         HStack(spacing: 6) {
-            Image(systemName: step.icon).font(.caption2).foregroundStyle(.secondary).frame(width: 14)
+            // A running workspace build spins; everything else shows its tool icon.
+            if step.isWorkspace, step.isRunning {
+                ProgressView().controlSize(.small).frame(width: 14)
+            } else {
+                Image(systemName: step.icon).font(.caption2).foregroundStyle(.secondary).frame(width: 14)
+            }
             Text(step.label).lineLimit(1)
             if let stats = step.diffStats {
                 if stats.additions > 0 { Text("+\(stats.additions)").foregroundStyle(.green) }
@@ -168,9 +189,20 @@ private struct ToolStepView: View {
             if let duration = step.duration {
                 Text("· \(duration)").foregroundStyle(.secondary)
             }
+            if step.isWorkspace, !step.isRunning, let url = workspaceURL {
+                Button("View workspace") { NSWorkspace.shared.open(url) }
+                    .buttonStyle(.link).font(.caption)
+            }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+    }
+
+    /// Dashboard URL for a completed workspace tool, if owner + name are known.
+    private var workspaceURL: URL? {
+        guard let base = state.baseAccessURL, let owner = step.workspaceOwner, let name = step.workspaceName
+        else { return nil }
+        return base.appending(path: "@\(owner)/\(name)")
     }
 
     @ViewBuilder
@@ -274,89 +306,5 @@ struct QuietDisclosureStyle: DisclosureGroupStyle {
                 configuration.content.padding(.leading, 16)
             }
         }
-    }
-}
-
-extension ChatMessagePart {
-    enum ToolKind { case execute, readFile, editFile, search, summarize, other }
-
-    var toolKind: ToolKind {
-        let name = (tool_name ?? "").lowercased()
-        switch name {
-        case "execute", "bash", "shell", "run", "run_command":
-            return .execute
-        case "read_file", "read", "view", "cat", "open":
-            return .readFile
-        case "chat_summarized":
-            return .summarize
-        default:
-            if name.contains("summariz") || name.contains("compact") {
-                return .summarize
-            }
-            if name.contains("edit") || name.contains("replace") || name.contains("write")
-                || name.contains("create_file") || name.contains("patch")
-            {
-                return .editFile
-            }
-            if name.contains("search") || name.contains("grep") || name.contains("glob") || name.contains("find") {
-                return .search
-            }
-            return .other
-        }
-    }
-
-    var toolIcon: String {
-        switch toolKind {
-        case .execute: "terminal"
-        case .readFile: "doc.text"
-        case .editFile: "square.and.pencil"
-        case .search: "magnifyingglass"
-        case .summarize: "arrow.down.right.and.arrow.up.left"
-        case .other: "wrench.and.screwdriver"
-        }
-    }
-
-    /// Program names from `parsed_commands`, e.g. "cd, git".
-    var commandPrograms: String? {
-        guard let parsed = parsed_commands else { return nil }
-        let names = parsed.compactMap(\.first).filter { !$0.isEmpty }
-        return names.isEmpty ? nil : names.joined(separator: ", ")
-    }
-
-    var fullCommand: String? {
-        args?["command"]?.stringValue
-    }
-
-    var filePath: String? {
-        if let name = file_name, !name.isEmpty { return name }
-        return args?["path"]?.stringValue
-    }
-
-    var fileBasename: String? {
-        guard let path = filePath else { return nil }
-        return (path as NSString).lastPathComponent
-    }
-
-    /// Tool output, preferring the structured `result.output`, else the part's text.
-    var resultOutput: String? {
-        if let output = result?["output"]?.stringValue, !output.isEmpty { return output }
-        if let text, !text.isEmpty { return text }
-        return nil
-    }
-
-    var durationMs: Int? {
-        result?["wall_duration_ms"]?.intValue
-    }
-
-    /// The compaction summary markdown from a `chat_summarized` tool result.
-    var summaryText: String? {
-        result?["summary"]?.stringValue
-    }
-
-    /// The unified diff(s) produced by an `edit_files` tool, from `result.files[].diff`.
-    var editDiff: String? {
-        guard let files = result?["files"]?.arrayValue else { return nil }
-        let diffs = files.compactMap { $0["diff"]?.stringValue }.filter { !$0.isEmpty }
-        return diffs.isEmpty ? nil : diffs.joined(separator: "\n")
     }
 }
