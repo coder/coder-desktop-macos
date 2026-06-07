@@ -100,10 +100,11 @@ struct VoiceInputButton: View {
             }
         } label: {
             Image(systemName: voice.isRecording ? "mic.fill" : "mic")
-                .font(.body)
+                .font(.title3)
                 .foregroundStyle(voice.isRecording ? Color.red : .secondary)
         }
         .buttonStyle(.borderless)
         .help(voice.isRecording ? "Stop voice input" : "Voice input")
+        .accessibilityLabel(voice.isRecording ? "Stop voice input" : "Start voice input")
     }
 }

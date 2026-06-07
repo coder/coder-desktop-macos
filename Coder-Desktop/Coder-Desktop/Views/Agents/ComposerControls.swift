@@ -16,11 +16,11 @@ struct ModelPicker<Agents: AgentsService>: View {
 
     var body: some View {
         Button { showList.toggle() } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Text(label).lineLimit(1).foregroundStyle(.primary)
-                Image(systemName: "chevron.up.chevron.down").font(.caption2).foregroundStyle(.secondary)
+                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
             }
-            .font(.caption)
+            .font(.callout)
         }
         .buttonStyle(.borderless)
         .help("Model")
@@ -69,10 +69,11 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
 
     var body: some View {
         Button { showMenu.toggle() } label: {
-            Image(systemName: "plus").font(.caption)
+            Image(systemName: "plus").font(.title3)
         }
         .buttonStyle(.borderless)
         .help("Attach & connectors")
+        .accessibilityLabel("Attach files, workspace, and connectors")
         .popover(isPresented: $showMenu, arrowEdge: .bottom) { menuContent }
         .task(id: showMenu) { if showMenu { await agents.loadMCPServers() } }
     }

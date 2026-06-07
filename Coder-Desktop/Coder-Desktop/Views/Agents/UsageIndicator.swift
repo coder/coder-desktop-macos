@@ -26,18 +26,24 @@ struct UsageIndicator<Agents: AgentsService>: View {
 
     var body: some View {
         Button { show.toggle() } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 8) {
                 if let spendFraction {
-                    ring(spendFraction, color: severity(spendFraction))
-                } else if quotaFraction == nil {
-                    Image(systemName: "chart.bar").font(.caption)
+                    ring(spendFraction, color: severity(spendFraction), symbol: "dollarsign")
+                        .accessibilityLabel(spendHelp)
                 }
-                if let quotaFraction { ring(quotaFraction, color: .blue) }
+                if let quotaFraction {
+                    ring(quotaFraction, color: .blue, symbol: "cpu")
+                        .accessibilityLabel(quotaHelp)
+                }
+                if spendFraction == nil, quotaFraction == nil {
+                    Image(systemName: "chart.bar").font(.body)
+                }
             }
             .foregroundStyle(.secondary)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
-        .help("Usage")
+        .help(combinedHelp)
         .popover(isPresented: $show, arrowEdge: .top) { popover }
         .task {
             limit = await agents.usageLimit()
@@ -45,15 +51,32 @@ struct UsageIndicator<Agents: AgentsService>: View {
         }
     }
 
-    private func ring(_ fraction: Double, color: Color) -> some View {
+    /// A 20pt progress ring with a descriptive glyph at its center.
+    private func ring(_ fraction: Double, color: Color, symbol: String) -> some View {
         ZStack {
-            Circle().stroke(Color.secondary.opacity(0.25), lineWidth: 2)
+            Circle().stroke(Color.secondary.opacity(0.25), lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: max(0.001, fraction))
-                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+            Image(systemName: symbol).font(.system(size: 9, weight: .semibold)).foregroundStyle(color)
         }
-        .frame(width: 14, height: 14)
+        .frame(width: 22, height: 22)
+    }
+
+    private var spendHelp: String {
+        guard let spend = limit?.current_spend, let max = limit?.spend_limit_micros else { return "AI usage" }
+        return "AI spend: \(Money.dollars(spend)) of \(Money.dollars(max))"
+    }
+
+    private var quotaHelp: String {
+        guard let used = quota?.credits_consumed, let budget = quota?.budget else { return "Workspace quota" }
+        return "Workspace quota: \(used) of \(budget) credits"
+    }
+
+    private var combinedHelp: String {
+        let parts = [spendFraction != nil ? spendHelp : nil, quotaFraction != nil ? quotaHelp : nil].compactMap { $0 }
+        return parts.isEmpty ? "View usage" : parts.joined(separator: " · ")
     }
 
     private func severity(_ fraction: Double) -> Color {
