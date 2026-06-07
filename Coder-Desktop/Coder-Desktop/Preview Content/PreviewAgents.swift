@@ -107,7 +107,7 @@ final class PreviewAgents: AgentsService {
     }
 
     func sendMessage(
-        _ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool, fileIDs _: [UUID]
+        _ id: UUID, prompt: String, modelConfigID _: UUID?, planMode _: Bool, extraParts _: [ChatInputPart]
     ) async -> Bool {
         var msgs = messagesBySession[id] ?? []
         let nextID = (msgs.map(\.id).max() ?? 0) + 1

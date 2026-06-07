@@ -16,7 +16,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
     let session: Chat
     @Binding var tab: SidePanelTab
     /// Sends selected diff lines (+ a note) into the chat composer as context.
-    var onAddToChat: ((String) -> Void)?
+    var onAddToChat: (([ChatInputPart], String) -> Void)?
 
     /// The workspace's Coder Connect hostname (e.g. `my-workspace.coder`) for SSH, if the
     /// session is backed by a known workspace.
@@ -84,7 +84,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
 struct DiffPanel<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     let session: Chat
-    var onAddToChat: ((String) -> Void)?
+    var onAddToChat: (([ChatInputPart], String) -> Void)?
 
     var body: some View {
         let diff = agents.diff(for: session.id)

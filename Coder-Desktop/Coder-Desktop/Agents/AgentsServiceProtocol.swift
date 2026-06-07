@@ -65,7 +65,10 @@ protocol AgentsService: ObservableObject {
     func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
 
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, fileIDs: [UUID]) async -> Bool
+    /// `extraParts` are non-text content (file attachments, diff file-references).
+    func sendMessage(
+        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, extraParts: [ChatInputPart]
+    ) async -> Bool
     /// Proceeds from a proposed plan (sends "Implement the plan." and clears plan mode).
     func implementPlan(_ id: UUID) async -> Bool
     /// Answers an `ask_user_question` during planning (plain send, plan mode unchanged).

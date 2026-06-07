@@ -107,7 +107,8 @@ final class CoderAgentsService: AgentsService {
         }
         do {
             let chat = try await client.createChat(.init(
-                organization_id: orgID, content: contentParts(request.prompt, fileIDs: request.fileIDs),
+                organization_id: orgID,
+                content: contentParts(request.prompt, extra: request.fileIDs.map { .file($0) }),
                 workspace_id: request.workspaceID, model_config_id: request.modelConfigID,
                 mcp_server_ids: request.mcpServerIDs.isEmpty ? nil : request.mcpServerIDs,
                 plan_mode: request.planMode ? .plan : nil

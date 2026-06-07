@@ -4,6 +4,34 @@ import SwiftUI
 // Composer seeding, context-usage derivation (for the gauge popover), and the side-panel
 // resize handle — split out to keep AgentSessionDetail under the file-length limit.
 extension AgentSessionDetail {
+    /// Chips for the diff file-references queued to send (file name + line range), removable.
+    var referenceChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(Array(pendingReferences.enumerated()), id: \.offset) { index, ref in
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.alignleft").font(.caption2).foregroundStyle(.secondary)
+                        Text(Self.referenceLabel(ref)).font(.caption2)
+                        Button { pendingReferences.remove(at: index) } label: {
+                            Image(systemName: "xmark.circle.fill").font(.caption2)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.secondary.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius))
+                }
+            }
+        }
+    }
+
+    private static func referenceLabel(_ ref: ChatInputPart) -> String {
+        let name = ((ref.file_name ?? "diff") as NSString).lastPathComponent
+        guard let start = ref.start_line, let end = ref.end_line else { return name }
+        return start == end ? "\(name):\(start)" : "\(name):\(start)-\(end)"
+    }
+
     /// Seed the composer's model/workspace/connectors from the session and defaults, once.
     func seedComposer() {
         guard !didSeedComposer else { return }

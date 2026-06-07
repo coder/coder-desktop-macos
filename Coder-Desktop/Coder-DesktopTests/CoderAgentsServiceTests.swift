@@ -92,7 +92,7 @@ struct CoderAgentsServiceTests {
 
         let telemetry = RecordingTelemetry()
         let service = CoderAgentsService(state: makeState(), telemetry: telemetry)
-        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, fileIDs: [])
+        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, extraParts: [])
 
         #expect(ok)
         #expect(telemetry.events == [.agentMessageSent])
@@ -113,7 +113,7 @@ struct CoderAgentsServiceTests {
         ).register()
 
         let service = CoderAgentsService(state: makeState())
-        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, fileIDs: [])
+        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, extraParts: [])
 
         #expect(!ok)
         #expect(service.messages(for: target.id).isEmpty)
