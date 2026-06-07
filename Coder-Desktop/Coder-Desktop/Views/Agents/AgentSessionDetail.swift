@@ -16,6 +16,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     @State private var didInitialScroll = false
     @State private var editingMessageID: Int64?
     @State var attachments: [PastedAttachment] = []
+    @State var pendingReferences: [ChatInputPart] = [] // diff file-references to send
     @State private var showPanel = false
     @State private var panelTab: SidePanelTab = .git
     // Not private: read/written by the AgentSessionDetail+Context extension (separate file).
@@ -54,7 +55,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             }
             if showPanel {
                 PanelResizeHandle(width: $sidePanelWidth, range: 280 ... 760)
-                SessionSidePanel<Agents>(session: session, tab: $panelTab, onAddToChat: addContextToDraft)
+                SessionSidePanel<Agents>(session: session, tab: $panelTab, onAddToChat: addReferences)
                     .frame(width: sidePanelWidth)
             }
         }
@@ -225,6 +226,9 @@ extension AgentSessionDetail {
             if !attachments.isEmpty {
                 AttachmentChipsView(attachments: $attachments)
             }
+            if !pendingReferences.isEmpty {
+                referenceChips
+            }
             PasteAwareEditor(
                 text: $draft,
                 placeholder: "Type a message...",
@@ -319,21 +323,24 @@ extension AgentSessionDetail {
         draft = ""
     }
 
-    /// Appends selected diff context (from the Git panel) into the composer for self-review.
-    private func addContextToDraft(_ snippet: String) {
-        draft += draft.isEmpty ? snippet : "\n\n\(snippet)"
+    /// Adds selected diff lines (from the Git panel) as file-reference chips, plus the note
+    /// into the draft, for a self-review loop.
+    private func addReferences(_ references: [ChatInputPart], note: String) {
+        pendingReferences += references
+        if !note.isEmpty { draft += draft.isEmpty ? note : "\n\n\(note)" }
         if !showPanel { showPanel = true }
     }
 
     private func send() {
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !typed.isEmpty || !attachments.isEmpty, !sending else { return }
+        guard !typed.isEmpty || !attachments.isEmpty || !pendingReferences.isEmpty, !sending else { return }
         let prompt = attachments.folded(into: typed)
-        let fileIDs = attachments.fileIDs
+        let extraParts = attachments.fileIDs.map(ChatInputPart.file) + pendingReferences
         let restore = { draft = typed }
         sending = true
         draft = ""
         attachments = []
+        pendingReferences = []
         if let editingMessageID {
             let messageID = editingMessageID
             self.editingMessageID = nil
@@ -348,7 +355,8 @@ extension AgentSessionDetail {
         }
         Task {
             let ok = await agents.sendMessage(
-                session.id, prompt: prompt, modelConfigID: selectedModelConfigID, planMode: planMode, fileIDs: fileIDs
+                session.id, prompt: prompt, modelConfigID: selectedModelConfigID,
+                planMode: planMode, extraParts: extraParts
             )
             sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text

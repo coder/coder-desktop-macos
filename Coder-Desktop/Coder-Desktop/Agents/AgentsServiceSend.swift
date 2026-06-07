@@ -5,8 +5,12 @@ import UniformTypeIdentifiers
 // Message sending: follow-ups, plan "Implement", and answering a planning question. All share
 // one core that optimistically echoes the user's message, then reconciles via the stream.
 extension CoderAgentsService {
-    func sendMessage(_ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, fileIDs: [UUID]) async -> Bool {
-        await send(id, prompt: prompt, modelConfigID: modelConfigID, planMode: planMode ? .plan : nil, fileIDs: fileIDs)
+    func sendMessage(
+        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, extraParts: [ChatInputPart]
+    ) async -> Bool {
+        await send(
+            id, prompt: prompt, modelConfigID: modelConfigID, planMode: planMode ? .plan : nil, extra: extraParts
+        )
     }
 
     /// Uploads a picked file's raw bytes and returns its id (referenced as a `file` part).
@@ -22,23 +26,24 @@ extension CoderAgentsService {
         )
     }
 
-    /// Builds message content from the typed prompt plus any uploaded file attachments.
-    func contentParts(_ prompt: String, fileIDs: [UUID]) -> [ChatInputPart] {
+    /// Builds message content from the typed prompt plus extra parts (file attachments and/or
+    /// diff file-references).
+    func contentParts(_ prompt: String, extra: [ChatInputPart]) -> [ChatInputPart] {
         var parts: [ChatInputPart] = []
         if !prompt.isEmpty { parts.append(.text(prompt)) }
-        parts += fileIDs.map { .file($0) }
+        parts += extra
         return parts.isEmpty ? [.text("")] : parts
     }
 
     /// Proceeds from a proposed plan: sends "Implement the plan." and clears plan mode (`""`).
     func implementPlan(_ id: UUID) async -> Bool {
-        await send(id, prompt: "Implement the plan.", modelConfigID: nil, planMode: .clear, fileIDs: [])
+        await send(id, prompt: "Implement the plan.", modelConfigID: nil, planMode: .clear, extra: [])
     }
 
     /// Answers an `ask_user_question` during planning — a normal send that leaves plan mode
     /// unchanged (no `plan_mode` field).
     func answerQuestion(_ id: UUID, text: String) async -> Bool {
-        await send(id, prompt: text, modelConfigID: nil, planMode: nil, fileIDs: [])
+        await send(id, prompt: text, modelConfigID: nil, planMode: nil, extra: [])
     }
 
     /// The proposed plan's markdown, fetched by the `propose_plan` result's `file_id`.
@@ -47,7 +52,7 @@ extension CoderAgentsService {
     }
 
     private func send(
-        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: ChatPlanMode?, fileIDs: [UUID]
+        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: ChatPlanMode?, extra: [ChatInputPart]
     ) async -> Bool {
         guard let client else { return false }
         // Optimistically echo the user's message so it appears instantly.
@@ -60,7 +65,7 @@ extension CoderAgentsService {
         do {
             try await client.sendChatMessage(
                 id, .init(
-                    content: contentParts(prompt, fileIDs: fileIDs), busy_behavior: .queue,
+                    content: contentParts(prompt, extra: extra), busy_behavior: .queue,
                     model_config_id: modelConfigID, plan_mode: planMode
                 )
             )

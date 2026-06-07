@@ -1,4 +1,5 @@
 import AppKit
+import CoderSDK
 import SwiftUI
 
 /// Collects each diff row's vertical extent (in the shared "diff" coordinate space) so a
@@ -17,8 +18,9 @@ private struct DiffRowFrameKey: PreferenceKey {
 struct DiffView: View {
     let text: String
     /// When set, the line-number gutter becomes selectable: click a line, or drag across the
-    /// gutter to select a range, then comment inline and send it into the chat composer.
-    var onAddToChat: ((String) -> Void)?
+    /// gutter to select a range, then comment inline and send it (as structured file-reference
+    /// parts, plus the note) into the chat composer.
+    var onAddToChat: (([ChatInputPart], String) -> Void)?
 
     @State private var selected: Set<Int> = []
     @State private var rowFrames: [Int: CGRect] = [:]
@@ -91,36 +93,28 @@ struct DiffView: View {
     }
 
     private func addToChat() {
-        let snippet = Self.buildContext(files: files, selected: selected, note: note)
-        guard !snippet.isEmpty else { return }
-        onAddToChat?(snippet)
+        let references = buildReferences()
+        guard !references.isEmpty else { return }
+        onAddToChat?(references, note.trimmingCharacters(in: .whitespacesAndNewlines))
         clear()
     }
 
-    /// Formats the selected rows (grouped by file, as a fenced diff) plus the note into a
-    /// markdown context block for the composer. Includes line numbers — a per-file line range
-    /// in the header and a number on each line — so the agent can locate the code.
-    static func buildContext(files: [DiffFile], selected: Set<Int>, note: String) -> String {
-        var blocks: [String] = []
-        for file in files {
+    /// Builds one `file-reference` part per file in the selection (file name, line range, and
+    /// the selected diff lines as content) — what the server expects, instead of a text blob.
+    private func buildReferences() -> [ChatInputPart] {
+        files.compactMap { file in
             let rows = file.rows.filter { selected.contains($0.id) }
-            guard !rows.isEmpty else { continue }
-            let path = file.path.isEmpty ? "diff" : file.path
+            guard !rows.isEmpty else { return nil }
             let numbers = rows.compactMap { $0.newNumber ?? $0.oldNumber }
-            var header = "`\(path)`"
-            if let lo = numbers.min(), let hi = numbers.max() {
-                header += lo == hi ? " (line \(lo))" : " (lines \(lo)–\(hi))"
-            }
-            let body = rows.map { row in
+            let content = rows.map { row in
                 let number = (row.newNumber ?? row.oldNumber).map(String.init) ?? ""
                 return "\(number)\t\(row.diffLine)"
             }.joined(separator: "\n")
-            blocks.append("\(header):\n```diff\n\(body)\n```")
+            return .fileReference(
+                fileName: file.path.isEmpty ? "diff" : file.path,
+                startLine: numbers.min() ?? 0, endLine: numbers.max() ?? 0, content: content
+            )
         }
-        var result = blocks.joined(separator: "\n\n")
-        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedNote.isEmpty { result += result.isEmpty ? trimmedNote : "\n\n\(trimmedNote)" }
-        return result
     }
 }
 
