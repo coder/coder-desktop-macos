@@ -178,7 +178,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
     }
 
     private func openInBrowser(_ session: Chat) {
-        guard let url = state.baseAccessURL?.appending(path: "agents/\(session.id.uuidString)") else { return }
+        // Lowercase the UUID to match the web's URLs (Swift's `uuidString` is uppercase).
+        guard let url = state.baseAccessURL?.appending(path: "agents/\(session.id.uuidString.lowercased())")
+        else { return }
         NSWorkspace.shared.open(url)
     }
 
