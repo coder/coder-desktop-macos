@@ -73,6 +73,13 @@ private struct SSHTerminalView: NSViewRepresentable {
 
     func updateNSView(_: LocalProcessTerminalView, context _: Context) {}
 
+    static func dismantleNSView(_ nsView: LocalProcessTerminalView, coordinator _: Coordinator) {
+        // Explicitly SIGTERM the ssh child on teardown; relying on PTY hangup at dealloc is
+        // non-deterministic and can leave the process lingering (the view is recreated per host
+        // via `.id(host)` and destroyed on panel/tab close).
+        nsView.terminate()
+    }
+
     /// SwiftTerm's process delegate is non-isolated; we only need to surface termination
     /// (ssh exiting fast usually means the host didn't resolve — Coder Connect is off).
     final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
