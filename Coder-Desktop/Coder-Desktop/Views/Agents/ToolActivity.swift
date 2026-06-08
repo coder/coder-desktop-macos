@@ -37,17 +37,21 @@ struct ToolStep: Identifiable {
 
     var label: String {
         guard let source else { return "Tool" }
+        // The model's own intent is the most descriptive title (matches the web) — use it for
+        // tools we'd otherwise label generically (MCP servers, search, anything unrecognized).
+        let intent = call?.modelIntent ?? source.modelIntent
         switch source.toolKind {
         case .execute: return "Ran \(call?.commandPrograms ?? source.commandPrograms ?? "command")"
         case .readFile: return "Read \(source.fileBasename ?? "file")"
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
         case .search:
+            if let intent { return intent }
             if let query = source.searchQuery { return "Searched \"\(query)\"" }
             if let title = source.title, !title.isEmpty { return title }
             return "Searched"
         case .summarize: return result == nil ? "Summarizing…" : "Summarized"
         case .workspace: return workspaceLabel
-        case .other: return source.toolLabel ?? "Tool"
+        case .other: return intent ?? source.toolLabel ?? "Tool"
         }
     }
 
@@ -101,9 +105,15 @@ struct ToolStep: Identifiable {
         return (files.reduce(0) { $0 + $1.additions }, files.reduce(0) { $0 + $1.deletions })
     }
 
+    /// Raw tool input/output (pretty JSON), the fallback so a step we don't render specially
+    /// (e.g. a search) is still expandable and shows what it did and what it found.
+    var argsJSON: String? { call?.argsJSON ?? source?.argsJSON }
+    var resultJSON: String? { result?.resultJSON ?? source?.resultJSON }
+
     var hasDetail: Bool {
         command?.isEmpty == false || output?.isEmpty == false
             || readPath?.isEmpty == false || summary?.isEmpty == false || editDiff?.isEmpty == false
+            || argsJSON != nil || resultJSON != nil
     }
 }
 
@@ -227,8 +237,26 @@ private struct ToolStepView: View {
                 if let output = step.output, !output.isEmpty {
                     ToolOutputView(text: output)
                 }
+                // Fallback for tools without a specialized renderer (e.g. search): show the raw
+                // args (what it asked for) and result (what it found) so the step is never opaque.
+                if step.command?.isEmpty != false, step.output?.isEmpty != false, step.readPath == nil {
+                    if let argsJSON = step.argsJSON {
+                        labeledBlock("Arguments") { CodeBlock(text: argsJSON) }
+                    }
+                    if let resultJSON = step.resultJSON {
+                        labeledBlock("Result") { ToolOutputView(text: resultJSON) }
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private func labeledBlock(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            content()
         }
     }
 }

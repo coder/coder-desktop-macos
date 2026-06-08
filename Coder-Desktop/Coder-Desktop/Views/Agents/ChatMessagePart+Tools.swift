@@ -71,6 +71,16 @@ extension ChatMessagePart {
         return (path as NSString).lastPathComponent
     }
 
+    /// The model's natural-language description of why it's calling this tool (`args.model_intent`).
+    /// The web uses this as the tool's title (first letter capitalized) — e.g. an MCP memory recall
+    /// reads "Checking relevant context" rather than a generic "Searched".
+    var modelIntent: String? {
+        guard let raw = args?["model_intent"]?.stringValue?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty
+        else { return nil }
+        return raw.prefix(1).uppercased() + raw.dropFirst()
+    }
+
     /// The query/pattern for a search tool (grep/glob/find/codebase_search), from args.
     var searchQuery: String? {
         for key in ["query", "pattern", "regex", "q", "search", "glob", "find", "path"] {
@@ -100,5 +110,23 @@ extension ChatMessagePart {
         guard let files = result?["files"]?.arrayValue else { return nil }
         let diffs = files.compactMap { $0["diff"]?.stringValue }.filter { !$0.isEmpty }
         return diffs.isEmpty ? nil : diffs.joined(separator: "\n")
+    }
+
+    /// Pretty-printed tool input args — the always-available fallback so a step we don't render
+    /// specially (e.g. a search whose arg keys we don't recognise) can still show *what* it did.
+    var argsJSON: String? { Self.prettyJSON(args) }
+
+    /// Pretty-printed tool result — the fallback for *what it found* when there's no nicer view.
+    var resultJSON: String? { Self.prettyJSON(result) }
+
+    private static func prettyJSON(_ value: JSONValue?) -> String? {
+        guard let value else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        guard let data = try? encoder.encode(value), let string = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ["{}", "[]", "null", "\"\"", ""].contains(trimmed) ? nil : string
     }
 }
