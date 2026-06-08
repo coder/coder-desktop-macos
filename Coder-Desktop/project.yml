@@ -145,6 +145,11 @@ packages:
   Highlightr:
     url: https://github.com/raspu/Highlightr
     from: 2.2.0
+  RoyalVNC:
+    url: https://github.com/royalapplications/royalvnc
+    # Pinned by revision (= the 1.1.0 release commit): RoyalVNC's Package.swift depends on a
+    # branch of a CryptoSwift fork, which SPM refuses to resolve under a stable `from:` pin.
+    revision: 92d4427c73817d8f849bb289ff190aa4b40c44ea
 
 
 targets:
@@ -223,6 +228,8 @@ targets:
       - package: SDWebImageSVGCoder
       - package: Sparkle
       - package: SwiftTerm
+      - package: RoyalVNC
+        product: RoyalVNCKit
       - package: MarkdownUI
         product: MarkdownUI
       - package: Highlightr
