@@ -95,7 +95,7 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
     }
 }
 
-struct SkillEditorTarget: Identifiable {
+private struct SkillEditorTarget: Identifiable {
     let id: String
     let name: String? // nil = create new
 }
