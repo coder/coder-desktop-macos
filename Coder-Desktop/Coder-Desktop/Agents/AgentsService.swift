@@ -340,7 +340,7 @@ extension CoderAgentsService {
             applyMessageEvent(event.message, to: id)
         case .messagePart:
             if let part = event.message_part?.part {
-                streamingPartsBySession[id, default: []].append(part)
+                appendStreamingPart(part, to: id)
             }
         case .status:
             if let status = event.status?.status {
@@ -355,6 +355,19 @@ extension CoderAgentsService {
         case .retry, .actionRequired, .unknown:
             break
         }
+    }
+
+    /// Appends a streamed part, merging consecutive text/reasoning deltas into the last part. The
+    /// server sends one part per token, so without this the buffer grows linearly and the per-event
+    /// transcript build + coalesce becomes O(n²) over a turn. Merge semantics match MessageView.coalesce.
+    private func appendStreamingPart(_ part: ChatMessagePart, to id: UUID) {
+        var parts = streamingPartsBySession[id] ?? []
+        if let last = parts.last, last.type == part.type, part.type == .text || part.type == .reasoning {
+            parts[parts.count - 1] = ChatMessagePart(type: last.type, text: (last.text ?? "") + (part.text ?? ""))
+        } else {
+            parts.append(part)
+        }
+        streamingPartsBySession[id] = parts
     }
 
     /// Updates a session's `shared` flag locally (after an ACL change) so the share icon
