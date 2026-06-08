@@ -9,8 +9,11 @@ import SwiftUI
 final class VoiceInput: ObservableObject {
     @Published private(set) var isRecording = false
 
-    /// Whether speech recognition is usable at all (a recognizer exists for the locale).
-    var isSupported: Bool { recognizer?.isAvailable ?? false }
+    /// Whether on-device speech recognition is usable (a recognizer exists for the locale AND it
+    /// can run on-device). We require on-device so dictated audio never leaves the machine.
+    var isSupported: Bool {
+        recognizer?.isAvailable == true && recognizer?.supportsOnDeviceRecognition == true
+    }
 
     private let recognizer = SFSpeechRecognizer()
     private let engine = AVAudioEngine()
@@ -40,10 +43,11 @@ final class VoiceInput: ObservableObject {
     }
 
     private func beginCapture() {
-        guard !engine.isRunning, let recognizer, recognizer.isAvailable else { return }
+        guard !engine.isRunning, let recognizer, recognizer.isAvailable,
+              recognizer.supportsOnDeviceRecognition else { isRecording = false; return }
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
-        if recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
+        request.requiresOnDeviceRecognition = true // never send dictated audio to Apple's cloud
         self.request = request
 
         let input = engine.inputNode
@@ -104,7 +108,13 @@ struct VoiceInputButton: View {
                 .foregroundStyle(voice.isRecording ? Color.red : .secondary)
         }
         .buttonStyle(.borderless)
-        .help(voice.isRecording ? "Stop voice input" : "Voice input")
+        .disabled(!voice.isSupported)
+        .help(voice.isSupported
+            ? (voice.isRecording ? "Stop voice input" : "Voice input")
+            : "On-device dictation isn't available on this Mac")
         .accessibilityLabel(voice.isRecording ? "Stop voice input" : "Start voice input")
+        // Deterministically stop if the composer goes away mid-recording so the mic indicator
+        // doesn't linger until the @StateObject is eventually deallocated.
+        .onDisappear { voice.stop() }
     }
 }
