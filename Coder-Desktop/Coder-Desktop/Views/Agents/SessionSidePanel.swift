@@ -76,8 +76,9 @@ struct SessionSidePanel<Agents: AgentsService>: View {
 
     private var workspaceURL: URL? {
         // Best-effort deep link to the workspace dashboard while native streaming lands.
-        guard let id = session.workspace_id else { return nil }
-        return URL(string: "https://dev.coder.com/@me/\(id.uuidString)")
+        // Use the deployment's base URL (not a hardcoded host) like WorkspacePill.dashboardURL.
+        guard let id = session.workspace_id, let base = state.baseAccessURL else { return nil }
+        return base.appending(path: "@me/\(id.uuidString)")
     }
 }
 
