@@ -11,7 +11,12 @@ public extension Client {
         if let token { headers.append(.init(name: Headers.sessionToken, value: token)) }
         let mime = contentType.isEmpty ? "application/octet-stream" : contentType
         headers.append(.init(name: "Content-Type", value: mime))
-        let escaped = filename.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "file"
+        // RFC 5987 ext-value: percent-encode everything outside attr-char so a filename with a
+        // space, `;`, `=`, etc. can't forge/terminate a Content-Disposition parameter.
+        // `.urlPathAllowed` wrongly permits `; = : @ & + , /`.
+        let attrChars = CharacterSet(charactersIn:
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$+-.^_`|~")
+        let escaped = filename.addingPercentEncoding(withAllowedCharacters: attrChars) ?? "file"
         let disposition = "attachment; filename=\"file\"; filename*=UTF-8''\(escaped)"
         headers.append(.init(name: "Content-Disposition", value: disposition))
         let res = try await doRequest(

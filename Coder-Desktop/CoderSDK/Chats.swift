@@ -10,7 +10,11 @@ public extension Client {
     func chats(query: String? = nil) async throws(SDKError) -> [Chat] {
         var path = "/api/experimental/chats"
         if let query, !query.isEmpty {
-            let escaped = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            // `.urlQueryAllowed` leaves `& = + ?` unescaped, so a filter value containing them
+            // would inject/break query parameters. Exclude the sub-delimiters from the value.
+            var allowed = CharacterSet.urlQueryAllowed
+            allowed.remove(charactersIn: "&=+?")
+            let escaped = query.addingPercentEncoding(withAllowedCharacters: allowed) ?? query
             path += "?q=\(escaped)"
         }
         let res = try await request(path, method: .get)
@@ -190,7 +194,9 @@ public extension Client {
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
-        return ((try? decode(UserChatPrompt.self, from: res.data)) ?? .init(custom_prompt: nil)).custom_prompt ?? ""
+        // Propagate a decode failure rather than masking it as an empty prompt — a 200 with an
+        // unparseable body is a real error the caller should see, not "no instructions set".
+        return try decode(UserChatPrompt.self, from: res.data).custom_prompt ?? ""
     }
 
     func setUserChatPrompt(_ prompt: String) async throws(SDKError) {
