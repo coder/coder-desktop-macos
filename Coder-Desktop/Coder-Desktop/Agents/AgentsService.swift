@@ -262,8 +262,16 @@ private extension CoderAgentsService {
                     reconnect.reset()
                     apply(event, to: id)
                 }
-                clearStreamingParts(for: id, generation: generation) // clean close: run finished
-                break
+                clearStreamingParts(for: id, generation: generation)
+                // A clean socket close only means "run finished" when the session is terminal.
+                // A non-terminal clean close (load-balancer recycle, idle timeout, the server
+                // cycling the socket) should resubscribe — with backoff so a socket that closes
+                // immediately each time can't hot-loop.
+                if sessions.first(where: { $0.id == id })?.status.isTerminal == true { break }
+                reconnect.recordFailure(sawEvent: sawEvent)
+                if reconnect.exhausted { break }
+                try? await Task.sleep(for: reconnect.backoff)
+                reconnect.increaseBackoff()
             } catch {
                 if await !shouldReconnect(id, afterID: afterID, sawEvent: sawEvent, error: error, state: &reconnect) {
                     break
@@ -335,23 +343,6 @@ private extension CoderAgentsService {
     func clearStreamingParts(for id: UUID, generation: Int) {
         guard streamGeneration[id] == generation else { return }
         streamingPartsBySession[id] = []
-    }
-
-    func mergeMessages(_ incoming: [ChatMessage], into id: UUID) {
-        var current = messagesBySession[id] ?? []
-        for message in incoming {
-            if let idx = current.firstIndex(where: { $0.id == message.id }) {
-                current[idx] = message
-            } else {
-                current.append(message)
-            }
-        }
-        current.sort { $0.id < $1.id }
-        messagesBySession[id] = current
-        messageStore.save(current, for: id)
-        if incoming.contains(where: { $0.role == .user }) { // drop optimistic echoes
-            pendingSendsBySession[id] = nil
-        }
     }
 
     func updateStatus(_ status: ChatStatus, for id: UUID) {
