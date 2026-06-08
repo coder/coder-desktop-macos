@@ -64,8 +64,12 @@ public enum JSONValue: Codable, Sendable, Equatable {
     }
 
     public var intValue: Int? {
-        if case let .number(value) = self { return Int(value) }
-        return nil
+        // Range-check before the (trapping) Int conversion so an out-of-range number returns nil
+        // instead of crashing — same hazard as `stringValue`.
+        guard case let .number(value) = self, value >= Double(Int.min), value < Double(Int.max) else {
+            return nil
+        }
+        return Int(value)
     }
 
     public var arrayValue: [JSONValue]? {
