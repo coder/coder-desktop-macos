@@ -27,20 +27,21 @@ struct SessionSidePanel<Agents: AgentsService>: View {
         return "\(name).\(state.hostnameSuffix)"
     }
 
+    /// Live workspace latency (P2P/DERP + ms, same data + wording as the menu bar), overlaid in
+    /// the corner of the Terminal/Desktop tabs.
+    @ViewBuilder private var latencyOverlay: some View {
+        if let workspaceID = session.workspace_id {
+            WorkspaceLatencyView<CoderVPNService>(workspaceID: workspaceID).padding(8)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Picker("", selection: $tab) {
-                    ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                // Live workspace latency (same data + presentation as the menu bar dropdown),
-                // useful while using the Terminal/Desktop tabs.
-                if let workspaceID = session.workspace_id {
-                    WorkspaceLatencyView<CoderVPNService>(workspaceID: workspaceID)
-                }
+            Picker("", selection: $tab) {
+                ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
             .padding(8)
             Divider()
             switch tab {
@@ -49,6 +50,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
             case .terminal:
                 if let host = terminalHost {
                     TerminalPanel(host: host)
+                        .overlay(alignment: .topTrailing) { latencyOverlay }
                 } else {
                     streamPlaceholder(
                         title: "Terminal",
@@ -59,6 +61,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
             case .desktop:
                 if let host = terminalHost {
                     VNCPanel(host: host)
+                        .overlay(alignment: .topTrailing) { latencyOverlay }
                 } else {
                     streamPlaceholder(
                         title: "Desktop",

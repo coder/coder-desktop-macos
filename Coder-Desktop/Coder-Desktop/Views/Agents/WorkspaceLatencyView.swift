@@ -14,12 +14,22 @@ struct WorkspaceLatencyView<VPN: VPNService>: View {
 
     var body: some View {
         if let agent {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 Circle().fill(agent.status.color).frame(width: 7, height: 7)
                 if let ping = agent.lastPing {
-                    Text(ping.latency.prettyPrintMs).font(.caption).foregroundStyle(.secondary)
+                    Text(ping.latency.prettyPrintMs)
+                    Text("·").foregroundStyle(.tertiary)
+                    // Same peer-to-peer vs DERP-relay wording/logic as the menu bar.
+                    Text(ping.didP2p ? "Peer-to-peer" : "DERP relay")
+                } else {
+                    Text(agent.status.description)
                 }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: Capsule())
             .help(agent.statusString)
             .accessibilityLabel(
                 "Workspace latency: \(agent.lastPing?.latency.prettyPrintMs ?? agent.status.description)"
