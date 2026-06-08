@@ -24,6 +24,8 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
     @State private var debugLogging: ChatDebugLogging?
     @State private var loadingPrefs = true
     @State private var error: String?
+    /// Serializes preference writes so a slow full-replace PUT can't land after a newer one.
+    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         Form {
@@ -110,12 +112,21 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
                 Toggle("Enable agent debug logging", isOn: Binding(
                     get: { debug.debug_logging_enabled },
                     set: { newValue in
+                        let previous = debugLogging
                         debugLogging = ChatDebugLogging(
                             debug_logging_enabled: newValue,
                             user_toggle_allowed: debug.user_toggle_allowed,
                             forced_by_deployment: debug.forced_by_deployment
                         )
-                        Task { await save { try await agents.setDebugLogging(newValue) } }
+                        Task {
+                            do {
+                                try await agents.setDebugLogging(newValue)
+                                error = nil
+                            } catch let err {
+                                debugLogging = previous
+                                error = err.localizedDescription
+                            }
+                        }
                     }
                 ))
                 .disabled(debug.user_toggle_allowed == false || debug.forced_by_deployment == true)
@@ -159,9 +170,26 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 
     private func updatePrefs(_ mutate: (inout UserPreferences) -> Void) {
         guard var next = prefs else { return }
+        // Capture the pre-edit state so a failed write can snap the control back instead of
+        // leaving it showing a value the server rejected.
+        let previousPrefs = prefs
+        let previousThinking = thinkingDisplay
+        let previousModifier = requireModifierToSend
         mutate(&next)
         prefs = next
-        Task { await save { try await agents.savePreferences(next) } }
+        let previousTask = saveTask
+        saveTask = Task {
+            await previousTask?.value // serialize: a stale PUT can't overwrite a newer one
+            do {
+                try await agents.savePreferences(next)
+                error = nil
+            } catch {
+                prefs = previousPrefs
+                thinkingDisplay = previousThinking
+                requireModifierToSend = previousModifier
+                self.error = error.localizedDescription
+            }
+        }
     }
 
     private func loadServerState() async {
@@ -178,14 +206,10 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
         loadingPrefs = false
         debugLogging = try? await agents.loadDebugLogging()
     }
-
-    private func save(_ op: @escaping () async throws -> Void) async {
-        do { try await op(); error = nil } catch { self.error = error.localizedDescription }
-    }
 }
 
 /// The server's 4-way thinking-display option, mapped to our simpler renderer enum.
-enum ThinkingDisplayMode: String, CaseIterable, Identifiable {
+private enum ThinkingDisplayMode: String, CaseIterable, Identifiable {
     case auto, preview, alwaysExpanded, alwaysCollapsed
     var id: String {
         rawValue
@@ -229,7 +253,7 @@ enum ThinkingDisplayMode: String, CaseIterable, Identifiable {
 }
 
 /// The server's 3-way display option for tool calls and code diffs.
-enum ToolDisplayMode: String, CaseIterable, Identifiable {
+private enum ToolDisplayMode: String, CaseIterable, Identifiable {
     case auto, alwaysExpanded, alwaysCollapsed
     var id: String {
         rawValue
