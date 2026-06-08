@@ -8,15 +8,16 @@ import Foundation
 @MainActor
 final class ChatMessageStore {
     private let directory: URL
-    private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    /// Per-chat write chain: each save awaits the previous so a stale snapshot can never
+    /// land after a newer one (saves fire on every stream event with no other ordering).
+    private var writeChains: [UUID: Task<Void, Never>] = [:]
 
     init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         directory = (base ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("Coder Desktop/agents/messages", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        encoder.dateEncodingStrategy = .secondsSince1970
         decoder.dateDecodingStrategy = .secondsSince1970
     }
 
@@ -35,18 +36,28 @@ final class ChatMessageStore {
     }
 
     /// Persists committed messages (drops optimistic echoes with negative ids) as JSONL.
-    /// Encoding happens here (in-memory, cheap); the disk write is offloaded so streaming —
-    /// which calls this on every message event — never blocks the main thread.
+    /// Both the encode and the disk write run off the main thread (streaming calls this on
+    /// every message event, and a full-session encode on the main thread would hitch the UI),
+    /// chained per chat so writes can't reorder.
     func save(_ messages: [ChatMessage], for chatID: UUID) {
+        let fileURL = url(for: chatID)
+        let previous = writeChains[chatID]
+        writeChains[chatID] = Task.detached(priority: .utility) {
+            await previous?.value
+            Self.write(messages, to: fileURL)
+        }
+    }
+
+    /// Encodes committed messages to JSONL and writes atomically. Runs inside the detached
+    /// write chain; builds its own encoder because `JSONEncoder` isn't `Sendable`.
+    private nonisolated static func write(_ messages: [ChatMessage], to fileURL: URL) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .secondsSince1970
         let lines = messages
             .filter { $0.id >= 0 }
             .compactMap { try? encoder.encode($0) }
             .compactMap { String(data: $0, encoding: .utf8) }
         guard !lines.isEmpty else { return }
-        let blob = lines.joined(separator: "\n")
-        let fileURL = url(for: chatID)
-        Task.detached(priority: .utility) {
-            try? blob.write(to: fileURL, atomically: true, encoding: .utf8)
-        }
+        try? lines.joined(separator: "\n").write(to: fileURL, atomically: true, encoding: .utf8)
     }
 }
