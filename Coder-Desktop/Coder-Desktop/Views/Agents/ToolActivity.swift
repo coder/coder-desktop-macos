@@ -101,7 +101,7 @@ struct ToolStep: Identifiable {
     /// Total additions/deletions across the edit's diff, for the row's "+A −D" badge.
     var diffStats: (additions: Int, deletions: Int)? {
         guard let editDiff else { return nil }
-        let files = DiffFile.parse(editDiff)
+        let files = DiffFile.parseCached(editDiff)
         return (files.reduce(0) { $0 + $1.additions }, files.reduce(0) { $0 + $1.deletions })
     }
 

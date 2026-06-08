@@ -65,7 +65,16 @@ struct SmoothMarkdownText: View {
             let chars = Array(text)
             TimelineView(.animation(paused: engine.isCaughtUp(chars.count))) { context in
                 let count = engine.advance(to: context.date, fullCount: chars.count, isStreaming: true)
-                MarkdownText(text: String(chars.prefix(count)))
+                if count >= chars.count {
+                    // Caught up: render the full markdown once (parsed a single time).
+                    MarkdownText(text: text)
+                } else {
+                    // While revealing, show plain text — re-parsing the growing markdown on every
+                    // animation frame was the dominant streaming cost. Styling snaps in on catch-up.
+                    Text(String(chars.prefix(count)))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         } else {
             MarkdownText(text: text)

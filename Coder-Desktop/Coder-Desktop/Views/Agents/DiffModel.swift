@@ -7,6 +7,20 @@ struct DiffFile: Identifiable {
     var additions: Int
     var deletions: Int
 
+    private final class ParseBox { let files: [DiffFile]; init(_ files: [DiffFile]) { self.files = files } }
+    // Parsing a unified diff is pure but non-trivial, and SwiftUI re-reads it on every render
+    // (the +A/−D badge, the inline DiffView). Cache by diff text so each diff parses only once.
+    nonisolated(unsafe) private static let parseCache = NSCache<NSString, ParseBox>()
+
+    /// `parse` result, cached by the diff text. Use this from view code (renders re-read it).
+    static func parseCached(_ text: String) -> [DiffFile] {
+        let key = text as NSString
+        if let box = parseCache.object(forKey: key) { return box.files }
+        let files = parse(text)
+        parseCache.setObject(ParseBox(files), forKey: key)
+        return files
+    }
+
     /// Parses a unified diff into per-file sections with line-numbered rows.
     static func parse(_ text: String) -> [DiffFile] {
         var parser = DiffParser()

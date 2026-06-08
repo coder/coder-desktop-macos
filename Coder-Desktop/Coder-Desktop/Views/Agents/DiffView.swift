@@ -31,7 +31,7 @@ struct DiffView: View {
     init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
         self.text = text
         self.onAddToChat = onAddToChat
-        files = DiffFile.parse(text)
+        files = DiffFile.parseCached(text)
     }
 
     /// The bottom-most selected row, where the inline comment box is anchored.
@@ -235,9 +235,15 @@ private struct DiffRowView: View {
         }
         .background(selectable && hovering ? Color.secondary.opacity(0.15) : .clear)
         .contentShape(Rectangle())
-        .background(GeometryReader { geo in
-            Color.clear.preference(key: DiffRowFrameKey.self, value: [row.id: geo.frame(in: .named("diff"))])
-        })
+        // The frame preference is only used for gutter drag-selection; read-only inline diffs
+        // (tool steps) shouldn't pay the per-row preference traffic.
+        .background {
+            if selectable {
+                GeometryReader { geo in
+                    Color.clear.preference(key: DiffRowFrameKey.self, value: [row.id: geo.frame(in: .named("diff"))])
+                }
+            }
+        }
         if selectable {
             column.gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .named("diff"))
