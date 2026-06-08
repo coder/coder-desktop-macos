@@ -100,9 +100,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            SessionHeaderActions<Agents>(
-                session: session, showPanel: $showPanel, showToolActivity: $showToolActivity
-            )
+            SessionHeaderActions<Agents>(session: session, showPanel: $showPanel)
         }
         .padding(Theme.Size.trayInset)
     }
