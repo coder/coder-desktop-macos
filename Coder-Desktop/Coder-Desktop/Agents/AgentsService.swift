@@ -308,29 +308,6 @@ private extension CoderAgentsService {
         streamTasks[id] = nil
     }
 
-    func apply(_ event: ChatStreamEvent, to id: UUID) {
-        switch event.type {
-        case .message:
-            applyMessageEvent(event.message, to: id)
-        case .messagePart:
-            if let part = event.message_part?.part {
-                streamingPartsBySession[id, default: []].append(part)
-            }
-        case .status:
-            if let status = event.status?.status {
-                updateStatus(status, for: id)
-            }
-        case .error:
-            if let message = event.error?.message {
-                loadError = message
-            }
-        case .queueUpdate:
-            queuedMessagesBySession[id] = event.queued_messages ?? []
-        case .retry, .actionRequired, .unknown:
-            break
-        }
-    }
-
     private func applyMessageEvent(_ message: ChatMessage?, to id: UUID) {
         guard let message else { return }
         mergeMessages([message], into: id)
@@ -355,6 +332,31 @@ private extension CoderAgentsService {
 // Not in the private extension above: `organizationID()` is called from AgentsServiceSend's
 // file upload too. (`private` is file-scoped, so it still reaches the private cachedOrgID.)
 extension CoderAgentsService {
+    /// Applies a single decoded stream event to the session's state. Internal (not fileprivate)
+    /// so the stream-event handling can be unit-tested; still calls the file's private helpers.
+    func apply(_ event: ChatStreamEvent, to id: UUID) {
+        switch event.type {
+        case .message:
+            applyMessageEvent(event.message, to: id)
+        case .messagePart:
+            if let part = event.message_part?.part {
+                streamingPartsBySession[id, default: []].append(part)
+            }
+        case .status:
+            if let status = event.status?.status {
+                updateStatus(status, for: id)
+            }
+        case .error:
+            if let message = event.error?.message {
+                loadError = message
+            }
+        case .queueUpdate:
+            queuedMessagesBySession[id] = event.queued_messages ?? []
+        case .retry, .actionRequired, .unknown:
+            break
+        }
+    }
+
     /// Updates a session's `shared` flag locally (after an ACL change) so the share icon
     /// reflects the new state immediately.
     func setSharedFlag(_ id: UUID, shared: Bool) {
