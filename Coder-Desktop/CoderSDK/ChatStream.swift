@@ -20,7 +20,7 @@ public extension Client {
                 do {
                     let req = try chatStreamRequest(id: id, afterID: afterID)
                     let ws = URLSession.shared.webSocketTask(with: req)
-                    box.task = ws
+                    box.setTask(ws)
                     ws.resume()
                     while !Task.isCancelled {
                         // The server batches events into a JSON array per frame. Decode
@@ -42,10 +42,10 @@ public extension Client {
                         continuation.finish(throwing: error)
                     }
                 }
-                box.task?.cancel(with: .goingAway, reason: nil)
+                box.cancel()
             }
             continuation.onTermination = { _ in
-                box.task?.cancel(with: .goingAway, reason: nil)
+                box.cancel()
                 streamTask.cancel()
             }
         }
@@ -125,15 +125,26 @@ private extension URLSessionWebSocketTask.Message {
     }
 }
 
-/// Holds the socket so it can be torn down from `onTermination`, which may run off the
-/// streaming task. `cancel`/`closeCode` are thread-safe.
+/// Holds the socket so it can be torn down from `onTermination`, which may run on a
+/// different thread than the streaming task. The `task` reference itself is written on the
+/// stream task and read/cancelled from `onTermination`, so it's guarded by a lock — not just
+/// the (already thread-safe) `cancel`/`closeCode` calls made on it.
 private final class WebSocketBox: @unchecked Sendable {
-    var task: URLSessionWebSocketTask?
+    private let lock = NSLock()
+    private var _task: URLSessionWebSocketTask?
+
+    func setTask(_ task: URLSessionWebSocketTask) {
+        lock.withLock { _task = task }
+    }
+
+    func cancel() {
+        lock.withLock { _task }?.cancel(with: .goingAway, reason: nil)
+    }
 
     /// A close frame was received with a normal/expected code (the run ended), as opposed
     /// to a transient network drop (no close frame: `.invalid`).
     var isCleanClose: Bool {
-        switch task?.closeCode {
+        switch lock.withLock({ _task })?.closeCode {
         case .normalClosure, .goingAway, .noStatusReceived: true
         default: false
         }
