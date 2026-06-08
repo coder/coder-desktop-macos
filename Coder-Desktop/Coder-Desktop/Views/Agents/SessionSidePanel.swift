@@ -29,11 +29,18 @@ struct SessionSidePanel<Agents: AgentsService>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
-                ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
+            HStack(spacing: 8) {
+                Picker("", selection: $tab) {
+                    ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                // Live workspace latency (same data + presentation as the menu bar dropdown),
+                // useful while using the Terminal/Desktop tabs.
+                if let workspaceID = session.workspace_id {
+                    WorkspaceLatencyView<CoderVPNService>(workspaceID: workspaceID)
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
             .padding(8)
             Divider()
             switch tab {
