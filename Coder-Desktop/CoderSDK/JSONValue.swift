@@ -52,7 +52,9 @@ public enum JSONValue: Codable, Sendable, Equatable {
         case let .string(value):
             return value
         case let .number(value):
-            if value == value.rounded() { return String(Int(value)) }
+            // `Int(_:)` traps on a whole value outside Int range (e.g. a ns timestamp in tool
+            // args); `Int(exactly:)` returns nil there so we fall back to the Double form.
+            if value == value.rounded(), let int = Int(exactly: value) { return String(int) }
             return String(value)
         case let .bool(value):
             return String(value)
