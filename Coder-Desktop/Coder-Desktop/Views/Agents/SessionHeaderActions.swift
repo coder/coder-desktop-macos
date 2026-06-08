@@ -1,9 +1,9 @@
 import CoderSDK
 import SwiftUI
 
-/// The session header's trailing actions: Stop (while running), Share, and the side-panel
-/// toggle. (Tool-activity visibility lives in Settings; archive / archive-and-delete live in the
-/// sidebar's session context menu, so there's no header kebab.)
+/// The session header's trailing actions: Share and the side-panel toggle. (Stop-while-running
+/// is now the composer's send button; tool-activity visibility lives in Settings; archive /
+/// archive-and-delete live in the sidebar's session context menu, so there's no header kebab.)
 struct SessionHeaderActions<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     let session: Chat
@@ -13,12 +13,6 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if session.status.isInterruptible {
-                Button { Task { await agents.interrupt(session.id) } } label: {
-                    Label("Stop", systemImage: "stop.fill")
-                }
-                .help("Stop this session")
-            }
             Button { showShare.toggle() } label: {
                 // Same people glyph as the sidebar's shared marker; tinted when shared.
                 Image(systemName: "person.2.fill")

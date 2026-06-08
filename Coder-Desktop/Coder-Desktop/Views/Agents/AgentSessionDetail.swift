@@ -43,9 +43,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 if let error = agents.loadError {
                     banner(icon: "exclamationmark.triangle.fill", tint: .orange, text: error)
                 }
-                if session.status.isWaiting {
-                    banner(icon: "hand.raised", tint: .secondary, text: "The agent is waiting for your reply.")
-                }
                 transcript
                 Divider()
                 QueuedMessagesList<Agents>(session: session) { text in
@@ -274,6 +271,14 @@ extension AgentSessionDetail {
                         .buttonStyle(.borderedProminent)
                         .disabled(sending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .keyboardShortcut(.return, modifiers: [.command])
+                } else if !sending, session.status.isInterruptible {
+                    // While the agent is running, the send button becomes a Stop button.
+                    Button { Task { await agents.interrupt(session.id) } } label: {
+                        Image(systemName: "stop.circle.fill").font(.title2).foregroundStyle(.red)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Stop the agent")
+                    .accessibilityLabel("Stop the agent")
                 } else {
                     Button(action: send) {
                         if sending {
