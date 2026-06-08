@@ -79,10 +79,13 @@ struct SessionSidePanel<Agents: AgentsService>: View {
     }
 
     private var workspaceURL: URL? {
-        // Best-effort deep link to the workspace dashboard while native streaming lands.
-        // Use the deployment's base URL (not a hardcoded host) like WorkspacePill.dashboardURL.
-        guard let id = session.workspace_id, let base = state.baseAccessURL else { return nil }
-        return base.appending(path: "@me/\(id.uuidString)")
+        // Dashboard URLs are `/@owner/workspace-name` — the workspace name, never the UUID
+        // (which doesn't resolve). Falls back to `@me` when the chat owner is unknown.
+        guard let id = session.workspace_id,
+              let name = agents.workspaces.first(where: { $0.id == id })?.name,
+              let base = state.baseAccessURL else { return nil }
+        let owner = session.owner_username ?? "me"
+        return base.appending(path: "@\(owner)/\(name)")
     }
 }
 

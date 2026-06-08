@@ -31,7 +31,9 @@ struct WorkspacePill<Agents: AgentsService>: View {
     private var status: String { workspace?.latest_build.status ?? "" }
 
     private var dashboardURL: URL? {
-        state.baseAccessURL?.appending(path: "@me/\(workspaceID.uuidString)")
+        // Dashboard URLs are `/@owner/workspace-name` — never `/@me/<uuid>` (which doesn't resolve).
+        guard let base = state.baseAccessURL, let name = workspace?.name else { return nil }
+        return base.appending(path: "@me/\(name)")
     }
 
     /// All workspace apps with a resolvable URL — the VS Code display apps first (the web
