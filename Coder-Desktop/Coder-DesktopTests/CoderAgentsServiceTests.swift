@@ -121,6 +121,60 @@ struct CoderAgentsServiceTests {
     }
 
     @Test
+    func mergeMessagesDropsOnlyTheMatchingOptimisticEcho() async throws {
+        let target = chat()
+        try Mock(
+            url: url.appending(path: "api/experimental/chats/\(target.id.uuidString)/messages"),
+            contentType: .json,
+            statusCode: 200,
+            data: [.post: CoderSDK.encoder.encode(CreateChatMessageResponse(message: nil, queued: true))]
+        ).register()
+
+        let service = CoderAgentsService(state: makeState())
+        _ = await service.sendMessage(target.id, prompt: "first", modelConfigID: nil, planMode: false, extraParts: [])
+        _ = await service.sendMessage(target.id, prompt: "second", modelConfigID: nil, planMode: false, extraParts: [])
+        #expect(service.messages(for: target.id).filter { $0.role == .user }.count == 2)
+
+        // The server commits only "first"; "second" is still in flight. The echo for "first"
+        // must be deduped (not duplicated) while the unrelated "second" send is preserved.
+        let committed = ChatMessage(
+            id: 1, chat_id: target.id, role: .user,
+            content: [.init(type: .text, text: "first")], created_at: Date()
+        )
+        service.mergeMessages([committed], into: target.id)
+
+        let users = service.messages(for: target.id).filter { $0.role == .user }
+        #expect(users.filter { $0.displayText == "first" }.count == 1)
+        #expect(users.contains { $0.displayText == "second" })
+    }
+
+    @Test
+    func assistantMessageEventClearsStreamingBuffer() {
+        let service = CoderAgentsService(state: makeState())
+        let id = UUID()
+
+        let part = ChatMessagePart(type: .text, text: "thinking…")
+        service.apply(ChatStreamEvent(
+            type: .messagePart, chat_id: id, message: nil,
+            message_part: ChatStreamMessagePart(part: part, role: .assistant),
+            status: nil, error: nil, queued_messages: nil
+        ), to: id)
+        #expect(service.streamingParts(for: id).count == 1)
+
+        let assistant = ChatMessage(
+            id: 5, chat_id: id, role: .assistant,
+            content: [.init(type: .text, text: "done")], created_at: Date()
+        )
+        service.apply(ChatStreamEvent(
+            type: .message, chat_id: id, message: assistant,
+            message_part: nil, status: nil, error: nil, queued_messages: nil
+        ), to: id)
+        // A completed assistant message supersedes the in-flight buffer.
+        #expect(service.streamingParts(for: id).isEmpty)
+        #expect(service.messages(for: id).contains { $0.id == 5 })
+    }
+
+    @Test
     func archiveRemovesSession() async throws {
         let target = chat()
         try Mock(

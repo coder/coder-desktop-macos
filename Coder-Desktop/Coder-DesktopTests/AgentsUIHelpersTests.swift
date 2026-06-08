@@ -49,4 +49,30 @@ struct AgentsUIHelpersTests {
         #expect(SessionRow.relativeShort(now.addingTimeInterval(-7200)) == "2h")
         #expect(SessionRow.relativeShort(now.addingTimeInterval(-172_800)) == "2d")
     }
+
+    @Test
+    func toolPartAccessorsClassifyAndExtract() {
+        let search = ChatMessagePart(
+            type: .toolCall, text: nil, tool_name: "grep", args: .object(["query": .string("needle")])
+        )
+        #expect(search.toolKind == .search)
+        #expect(search.searchQuery == "needle")
+
+        let workspace = ChatMessagePart(
+            type: .toolResult, text: nil, tool_name: "create_workspace",
+            result: .object(["workspace_name": .string("dev"), "owner_name": .string("alice")])
+        )
+        #expect(workspace.toolKind == .workspace)
+        #expect(workspace.workspaceToolName == "dev")
+        #expect(workspace.workspaceToolOwner == "alice")
+    }
+
+    @Test
+    func jsonValueScalarConversionIsRangeSafe() {
+        #expect(JSONValue.number(42).stringValue == "42")
+        #expect(JSONValue.number(42).intValue == 42)
+        // A whole-valued Double beyond Int range must not trap the app while rendering tool args.
+        #expect(JSONValue.number(1e30).stringValue != nil)
+        #expect(JSONValue.number(1e30).intValue == nil)
+    }
 }
