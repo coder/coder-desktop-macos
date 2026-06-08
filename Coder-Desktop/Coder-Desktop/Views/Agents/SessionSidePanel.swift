@@ -50,11 +50,15 @@ struct SessionSidePanel<Agents: AgentsService>: View {
                     )
                 }
             case .desktop:
-                streamPlaceholder(
-                    title: "Desktop",
-                    systemImage: "display",
-                    detail: "The workspace's remote desktop will stream here."
-                )
+                if let host = terminalHost {
+                    VNCPanel(host: host)
+                } else {
+                    streamPlaceholder(
+                        title: "Desktop",
+                        systemImage: "display",
+                        detail: "Available when the session is attached to a workspace and Coder Connect is on."
+                    )
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
