@@ -105,14 +105,18 @@ struct DiffView: View {
         files.compactMap { file in
             let rows = file.rows.filter { selected.contains($0.id) }
             guard !rows.isEmpty else { return nil }
-            let numbers = rows.compactMap { $0.newNumber ?? $0.oldNumber }
+            // Keep the line range in ONE coordinate space — new-file numbers (the natural space
+            // for a post-edit reference), falling back to old-file numbers only for a pure-
+            // deletion selection. Mixing the two yields a nonsensical start/end for the server.
+            let newNumbers = rows.compactMap(\.newNumber)
+            let lineNumbers = newNumbers.isEmpty ? rows.compactMap(\.oldNumber) : newNumbers
             let content = rows.map { row in
                 let number = (row.newNumber ?? row.oldNumber).map(String.init) ?? ""
                 return "\(number)\t\(row.diffLine)"
             }.joined(separator: "\n")
             return .fileReference(
                 fileName: file.path.isEmpty ? "diff" : file.path,
-                startLine: numbers.min() ?? 0, endLine: numbers.max() ?? 0, content: content
+                startLine: lineNumbers.min() ?? 0, endLine: lineNumbers.max() ?? 0, content: content
             )
         }
     }

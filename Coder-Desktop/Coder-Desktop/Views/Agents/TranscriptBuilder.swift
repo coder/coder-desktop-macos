@@ -48,7 +48,12 @@ enum TranscriptBuilder {
                 ($0.type == .toolCall || $0.type == .toolResult) && $0.toolKind != .summarize
             }
             let content = parts.filter { $0.type != .toolCall && $0.type != .toolResult }
-            let hasContent = content.contains { $0.type == .reasoning || $0.text?.isEmpty == false }
+            // Must agree with MessageView.hasContent — including .file/.fileReference, else a
+            // caption-less attachment never gets a bubble and is silently dropped.
+            let hasContent = content.contains {
+                $0.type == .reasoning || $0.type == .file || $0.type == .fileReference
+                    || $0.text?.isEmpty == false
+            }
             if hasContent {
                 // Content closes the preceding tool run, keeping chronological order.
                 flushTools()

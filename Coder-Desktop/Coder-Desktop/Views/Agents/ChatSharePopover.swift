@@ -92,7 +92,9 @@ struct ChatSharePopover<Agents: AgentsService>: View {
                         ) { Task { await agents.unshareUser(session.id, userID: user.id); await load() } }
                     }
                     ForEach(acl?.groups ?? []) { group in
-                        sharedRow(groupTitle(group), "Group", icon: "person.3", onRemove: nil)
+                        sharedRow(groupTitle(group), "Group", icon: "person.3") {
+                            Task { await agents.unshareGroup(session.id, groupID: group.id); await load() }
+                        }
                     }
                 }
             }
