@@ -230,6 +230,7 @@ targets:
       - package: SwiftTerm
       - package: RoyalVNC
         product: RoyalVNCKit
+        embed: true # dynamic framework — must be embedded+signed into the bundle, or dyld fails
       - package: MarkdownUI
         product: MarkdownUI
       - package: Highlightr
