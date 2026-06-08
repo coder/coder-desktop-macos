@@ -21,13 +21,17 @@ struct DiffView: View {
     /// gutter to select a range, then comment inline and send it (as structured file-reference
     /// parts, plus the note) into the chat composer.
     var onAddToChat: (([ChatInputPart], String) -> Void)?
+    /// Parsed once at init — not on every body eval / drag tick (gutter drags re-run `body`).
+    private let files: [DiffFile]
 
     @State private var selected: Set<Int> = []
     @State private var rowFrames: [Int: CGRect] = [:]
     @State private var note: String = ""
 
-    private var files: [DiffFile] {
-        DiffFile.parse(text)
+    init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
+        self.text = text
+        self.onAddToChat = onAddToChat
+        files = DiffFile.parse(text)
     }
 
     /// The bottom-most selected row, where the inline comment box is anchored.
