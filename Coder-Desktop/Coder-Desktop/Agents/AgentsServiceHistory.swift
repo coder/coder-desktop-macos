@@ -1,17 +1,12 @@
 import CoderSDK
 import Foundation
 
-/// Backward pagination of message history. The server returns only the most recent page; we
-/// page older messages in via the `before_id` cursor as the user scrolls back.
+// Message history: backward pagination (`before_id` cursor), diff loading, message editing,
+// and the merge/echo reconciliation used by the stream.
 extension CoderAgentsService {
     /// Committed messages plus optimistic (not-yet-acknowledged) sends, for rendering.
     func messages(for id: UUID) -> [ChatMessage] {
         (messagesBySession[id] ?? []) + (pendingSendsBySession[id] ?? [])
-    }
-
-    /// The in-flight assistant turn's streamed parts, if any.
-    func streamingParts(for id: UUID) -> [ChatMessagePart] {
-        streamingStore.parts(for: id)
     }
 
     func diff(for id: UUID) -> ChatDiffContents? {

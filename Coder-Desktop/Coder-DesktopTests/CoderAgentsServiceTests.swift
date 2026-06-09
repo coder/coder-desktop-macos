@@ -159,7 +159,7 @@ struct CoderAgentsServiceTests {
             message_part: ChatStreamMessagePart(part: part, role: .assistant),
             status: nil, error: nil, queued_messages: nil
         ), to: id)
-        #expect(service.streamingParts(for: id).count == 1)
+        #expect(service.streamingStore.parts(for: id).count == 1)
 
         let assistant = ChatMessage(
             id: 5, chat_id: id, role: .assistant,
@@ -170,7 +170,7 @@ struct CoderAgentsServiceTests {
             message_part: nil, status: nil, error: nil, queued_messages: nil
         ), to: id)
         // A completed assistant message supersedes the in-flight buffer.
-        #expect(service.streamingParts(for: id).isEmpty)
+        #expect(service.streamingStore.parts(for: id).isEmpty)
         #expect(service.messages(for: id).contains { $0.id == 5 })
     }
 

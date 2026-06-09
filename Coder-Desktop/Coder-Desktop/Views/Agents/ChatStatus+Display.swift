@@ -60,14 +60,6 @@ extension ChatStatus {
         }
     }
 
-    /// The agent is blocked on the user (needs a reply or an answer to a prompt).
-    var isWaiting: Bool {
-        switch self {
-        case .waiting, .requiresAction: true
-        default: false
-        }
-    }
-
     /// Stop/interrupt is meaningful only while the agent is actively working.
     var isInterruptible: Bool {
         isActive

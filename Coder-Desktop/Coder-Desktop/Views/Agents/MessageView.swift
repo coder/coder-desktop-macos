@@ -16,9 +16,7 @@ struct MessageView: View, Equatable {
     }
 
     private var hasContent: Bool {
-        contentParts.contains {
-            $0.type == .reasoning || $0.type == .file || $0.type == .fileReference || $0.text?.isEmpty == false
-        }
+        contentParts.contains(where: \.isRenderableContent)
     }
 
     /// Merges consecutive parts of the same streamable type (reasoning, text).

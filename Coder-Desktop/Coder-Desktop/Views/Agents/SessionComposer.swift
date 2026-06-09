@@ -14,7 +14,6 @@ final class ComposerModel: ObservableObject {
     @Published var selectedMCP: Set<UUID> = []
     @Published var planMode = false
     @Published var selectedModelConfigID: UUID?
-    @Published var attachedWorkspaceID: UUID?
     @Published var compactionPercent: Int?
     var didSeed = false
 
@@ -98,10 +97,11 @@ struct SessionComposer<Agents: AgentsService>: View {
     private var controls: some View {
         HStack(spacing: 8) {
             ComposerPlusMenu<Agents>(
-                workspaceID: $model.attachedWorkspaceID,
+                workspaceID: .constant(nil),
                 selectedMCP: $model.selectedMCP,
                 planMode: $model.planMode,
-                attachments: $model.attachments
+                attachments: $model.attachments,
+                allowsWorkspacePick: false // launch-time only; sends from a chat don't carry it
             )
             ComposerSelectionPills<Agents>(planMode: $model.planMode, selectedMCP: $model.selectedMCP, collapses: true)
             if let workspaceID = session.workspace_id {
@@ -175,7 +175,7 @@ struct SessionComposer<Agents: AgentsService>: View {
             Text("Editing will delete all subsequent messages and restart the conversation here.")
                 .font(.caption).foregroundStyle(.secondary)
             Spacer()
-            Button { model.cancelEditing() } label: { Image(systemName: "xmark") }
+            Button(action: model.cancelEditing) { Image(systemName: "xmark") }
                 .buttonStyle(.borderless)
                 .help("Cancel edit")
                 .accessibilityLabel("Cancel edit")
@@ -215,9 +215,9 @@ struct SessionComposer<Agents: AgentsService>: View {
         return start == end ? "\(name):\(start)" : "\(name):\(start)-\(end)"
     }
 
-    /// Seed the composer's model/workspace from the session and defaults, once configs exist.
+    /// Seed the composer's model from the session and defaults, once configs exist.
     private func seed() {
-        guard !model.didSeed else { return }
+        guard !model.didSeed, !agents.modelConfigs.isEmpty else { return }
         if model.selectedModelConfigID == nil {
             // Prefer the chat's last-used model, then the user's last manual pick, then the
             // server default — but only if the id is actually an available model.
@@ -226,10 +226,6 @@ struct SessionComposer<Agents: AgentsService>: View {
             model.selectedModelConfigID = candidates.compactMap { $0 }.first { available.contains($0) }
                 ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
         }
-        model.attachedWorkspaceID = session.workspace_id
-        // Only model configs matter for sealing: if workspaces happened to load first, the OR
-        // would seal the composer with no model selected and the configs' onChange would no-op.
-        guard !agents.modelConfigs.isEmpty else { return }
         model.didSeed = true
     }
 

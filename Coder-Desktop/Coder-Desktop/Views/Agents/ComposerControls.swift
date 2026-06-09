@@ -50,6 +50,9 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
     @Binding var planMode: Bool
     /// Picked files are uploaded and appended here as attachment chips.
     @Binding var attachments: [PastedAttachment]
+    /// Workspace attachment is launch-time only (the new-chat composer); sends from an
+    /// existing chat don't carry it, so the picker would be a lie there.
+    var allowsWorkspacePick = true
     @State private var showMenu = false
 
     var body: some View {
@@ -70,17 +73,19 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                 actionRow("Plan first", systemImage: "pencil.and.outline", checked: planMode) {
                     planMode.toggle()
                 }
-                Menu {
-                    Button { workspaceID = nil } label: { check("No workspace", workspaceID == nil) }
-                    ForEach(agents.workspaces) { ws in
-                        Button { workspaceID = ws.id } label: { check(ws.name, workspaceID == ws.id) }
+                if allowsWorkspacePick {
+                    Menu {
+                        Button { workspaceID = nil } label: { check("No workspace", workspaceID == nil) }
+                        ForEach(agents.workspaces) { ws in
+                            Button { workspaceID = ws.id } label: { check(ws.name, workspaceID == ws.id) }
+                        }
+                    } label: {
+                        Label("Attach workspace", systemImage: "display")
                     }
-                } label: {
-                    Label("Attach workspace", systemImage: "display")
+                    .menuStyle(.borderlessButton)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 2)
                 }
-                .menuStyle(.borderlessButton)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 2)
 
                 if !agents.mcpServers.isEmpty {
                     Divider().padding(.vertical, 5)

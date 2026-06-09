@@ -2,6 +2,13 @@ import CoderSDK
 import Foundation
 
 extension ChatMessagePart {
+    /// Whether this part renders as message content. The single source of truth for both the
+    /// transcript builder's bubble gate and `MessageView.hasContent` — when these diverged,
+    /// caption-less attachments were silently dropped.
+    var isRenderableContent: Bool {
+        type == .reasoning || type == .file || type == .fileReference || text?.isEmpty == false
+    }
+
     enum ToolKind { case execute, readFile, editFile, search, summarize, workspace, other }
 
     var toolKind: ToolKind {
