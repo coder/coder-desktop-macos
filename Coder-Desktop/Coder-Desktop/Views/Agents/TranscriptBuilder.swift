@@ -104,7 +104,15 @@ enum TranscriptBuilder {
                 flushGroup()
                 items.append(TranscriptItem(id: "ws-\(step.id)", kind: .tools([step])))
             default:
-                group.append(step)
+                // File reads and edits are first-class operations — each gets its own row
+                // (an edit opens to its diff, a read stays collapsed) rather than being lumped
+                // into a "Used N tools" group. Other tools still group.
+                if step.kind == .readFile || step.kind == .editFile {
+                    flushGroup()
+                    if showTools { items.append(TranscriptItem(id: "tool-\(step.id)", kind: .tools([step]))) }
+                } else {
+                    group.append(step)
+                }
             }
         }
         flushGroup()

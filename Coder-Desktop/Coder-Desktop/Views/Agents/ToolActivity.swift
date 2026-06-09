@@ -60,7 +60,8 @@ struct ToolStep: Identifiable {
         }
     }
 
-    var isWorkspace: Bool { source?.toolKind == .workspace }
+    var kind: ChatMessagePart.ToolKind { source?.toolKind ?? .other }
+    var isWorkspace: Bool { kind == .workspace }
     var isRunning: Bool { result == nil }
     var workspaceName: String? { (result ?? call)?.workspaceToolName }
     var workspaceOwner: String? { (result ?? call)?.workspaceToolOwner }
@@ -176,7 +177,13 @@ struct SummaryBlockView: View {
 private struct ToolStepView: View {
     let step: ToolStep
     @EnvironmentObject var state: AppState
-    @State private var expanded = false
+    @State private var expanded: Bool
+
+    init(step: ToolStep) {
+        self.step = step
+        // Edits open to their diff by default; reads (and everything else) start collapsed.
+        _expanded = State(initialValue: step.kind == .editFile)
+    }
 
     var body: some View {
         if step.hasDetail {
