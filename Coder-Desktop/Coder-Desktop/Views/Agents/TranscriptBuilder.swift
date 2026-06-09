@@ -21,6 +21,27 @@ struct TranscriptItem: Identifiable {
     }
 }
 
+/// Memoizes the built transcript. The detail view's body re-evaluates on every service change
+/// (any session's merge, status events, icon loads), but the expensive build only needs to
+/// re-run when THIS session's messages or the tool-visibility toggle actually change. Keyed on
+/// deep message equality — cheap (CoW fast path when unchanged) and can't go stale, unlike a
+/// count/last-id key (merges can rewrite a message's content in place). Plain class mutated
+/// during body evaluation: it's a memo, not SwiftUI state.
+@MainActor
+final class TranscriptCache {
+    private var messages: [ChatMessage]?
+    private var showTools = true
+    private var built: [TranscriptItem] = []
+
+    func items(messages: [ChatMessage], showTools: Bool) -> [TranscriptItem] {
+        if showTools == self.showTools, messages == self.messages { return built }
+        built = TranscriptBuilder.build(messages: messages, streaming: [], showTools: showTools)
+        self.messages = messages
+        self.showTools = showTools
+        return built
+    }
+}
+
 enum TranscriptBuilder {
     /// Builds the ordered transcript from message history (+ in-flight streaming parts).
     /// Tool-call and tool-result parts are paired by `tool_call_id` *across* messages (the
