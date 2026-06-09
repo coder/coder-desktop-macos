@@ -81,8 +81,11 @@ final class VNCWebSocketRelay: @unchecked Sendable {
         pumpTCPToWebSocket()
     }
 
+    // The two pumps run on different queues (the WS task's internal delegate queue and the NWConnection
+    // queue) and race stop()'s nil-out, so every ws/tcp access here is snapshotted under the lock.
     private func pumpWebSocketToTCP() {
-        ws?.receive { [weak self] result in
+        guard let ws = lock.withLock({ self.ws }) else { return }
+        ws.receive { [weak self] result in
             guard let self else { return }
             switch result {
             case let .success(message):
@@ -91,7 +94,9 @@ final class VNCWebSocketRelay: @unchecked Sendable {
                 case let .string(string): Data(string.utf8)
                 @unknown default: Data()
                 }
-                if !data.isEmpty { self.tcp?.send(content: data, completion: .contentProcessed { _ in }) }
+                if !data.isEmpty {
+                    self.lock.withLock { self.tcp }?.send(content: data, completion: .contentProcessed { _ in })
+                }
                 self.pumpWebSocketToTCP()
             case let .failure(error):
                 self.fail("desktop stream closed: \(error.localizedDescription)")
@@ -100,9 +105,10 @@ final class VNCWebSocketRelay: @unchecked Sendable {
     }
 
     private func pumpTCPToWebSocket() {
-        tcp?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
+        guard let tcp = lock.withLock({ self.tcp }) else { return }
+        tcp.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self else { return }
-            if let data, !data.isEmpty { self.ws?.send(.data(data)) { _ in } }
+            if let data, !data.isEmpty { self.lock.withLock { self.ws }?.send(.data(data)) { _ in } }
             if let error { self.fail("VNC socket error: \(error.localizedDescription)"); return }
             if isComplete { self.stop(message: nil); return }
             self.pumpTCPToWebSocket()
@@ -122,6 +128,10 @@ final class VNCWebSocketRelay: @unchecked Sendable {
         self.listener = nil; self.ws = nil; self.tcp = nil
         lock.unlock()
 
+        // If we tear down before the listener reaches `.ready` (e.g. the view disappears mid-start),
+        // the listener is cancelled into `.cancelled` — a state the stateUpdateHandler ignores — so
+        // resume the continuation here, otherwise `await start()` would hang forever.
+        finishStart(.failure(CancellationError()))
         listener?.cancel()
         ws?.cancel(with: .goingAway, reason: nil)
         tcp?.cancel()

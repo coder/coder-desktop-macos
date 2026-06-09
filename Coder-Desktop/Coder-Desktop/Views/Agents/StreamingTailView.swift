@@ -39,10 +39,15 @@ struct StreamingTailView<Agents: AgentsService>: View {
             }
             .modifier(AgentCard(active: !item.isUserBubble))
         }
-        .onChange(of: textLength) {
-            withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
-                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
-            }
+        // Pin to the bottom as text streams in (length grows) AND as new tool-only rows appear
+        // (a tool call with no text would otherwise not move the scroll position).
+        .onChange(of: textLength) { scrollToBottom() }
+        .onChange(of: items.count) { scrollToBottom() }
+    }
+
+    private func scrollToBottom() {
+        withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
         }
     }
 }

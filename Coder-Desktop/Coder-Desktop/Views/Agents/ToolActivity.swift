@@ -113,8 +113,13 @@ struct ToolStep: Identifiable {
     var hasDetail: Bool {
         command?.isEmpty == false || output?.isEmpty == false
             || readPath?.isEmpty == false || summary?.isEmpty == false || editDiff?.isEmpty == false
-            || argsJSON != nil || resultJSON != nil
+            || hasArgs || hasResult
     }
+
+    // Cheap presence checks used by `hasDetail` (read on every body eval): they avoid the full
+    // JSONEncoder that `argsJSON`/`resultJSON` run, which only needs to happen once a row expands.
+    private var hasArgs: Bool { (call?.args ?? result?.args)?.nonEmpty == true }
+    private var hasResult: Bool { (result?.result ?? call?.result)?.nonEmpty == true }
 }
 
 /// Renders a run of tool steps. A single step shows inline; multiple collapse into
