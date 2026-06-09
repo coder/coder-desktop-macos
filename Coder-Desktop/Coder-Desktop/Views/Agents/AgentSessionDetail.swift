@@ -118,9 +118,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
 
     private var transcript: some View {
         let messages = agents.messages(for: session.id)
-        let streaming = agents.streamingParts(for: session.id)
-        // Bubbles + grouped tool runs (tool-call/result paired across messages).
-        let items = TranscriptBuilder.build(messages: messages, streaming: streaming, showTools: showToolActivity)
+        // Committed transcript only — the in-flight turn is rendered by StreamingTailView, which
+        // alone observes the streaming store, so streamed tokens don't re-render this whole view.
+        let items = TranscriptBuilder.build(messages: messages, streaming: [], showTools: showToolActivity)
         let maxWidth: CGFloat = chatFullWidth ? .infinity : 720
         // The latest unanswered question is interactive only once the turn has finished.
         let interactiveQuestionID = Self.interactiveQuestionID(in: items, chatCompleted: session.status == .completed)
@@ -163,6 +163,11 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         // message keeps its accent bubble (rendered inside MessageView).
                         .modifier(AgentCard(active: !item.isUserBubble))
                     }
+                    StreamingTailView<Agents>(
+                        store: agents.streamingStore, sessionID: session.id,
+                        isActive: session.status.isActive, showTools: showToolActivity,
+                        maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor
+                    )
                     Color.clear.frame(height: 1).id(bottomAnchor)
                 }
                 .padding(Theme.Size.trayInset)
@@ -171,7 +176,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             // Scroll to the bottom only when the newest message changes (or a turn streams),
             // not when older messages page in at the top.
             .onChange(of: messages.last?.id) { scrollToBottom(proxy) }
-            .onChange(of: streaming.count) { scrollToBottom(proxy) }
             .onAppear {
                 scrollToBottom(proxy)
                 // Allow auto-paging only after the initial scroll-to-bottom settles, so the
@@ -375,24 +379,6 @@ extension AgentSessionDetail {
             )
             sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text
-        }
-    }
-}
-
-/// The shared agent-side card: a subtle full-width background so the agent's text, thinking,
-/// tools, and summaries all read as one consistent surface (the user's bubble opts out).
-private struct AgentCard: ViewModifier {
-    let active: Bool
-
-    func body(content: Content) -> some View {
-        if active {
-            content
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.secondary.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
-        } else {
-            content
         }
     }
 }

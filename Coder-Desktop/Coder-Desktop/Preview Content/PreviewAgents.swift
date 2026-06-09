@@ -68,8 +68,10 @@ final class PreviewAgents: AgentsService {
         messagesBySession[id] ?? []
     }
 
-    func streamingParts(for _: UUID) -> [ChatMessagePart] {
-        []
+    let streamingStore = StreamingStore()
+
+    func streamingParts(for id: UUID) -> [ChatMessagePart] {
+        streamingStore.parts(for: id)
     }
 
     func startStreaming(_: UUID) {}
