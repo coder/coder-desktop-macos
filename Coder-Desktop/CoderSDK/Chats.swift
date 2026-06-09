@@ -255,17 +255,22 @@ public struct CreateChatMessageRequest: Encodable, Sendable {
     public let busy_behavior: ChatBusyBehavior?
     public let model_config_id: UUID? // optional per-message model switch
     public let plan_mode: ChatPlanMode? // "plan" to run this turn in plan mode
+    // The chat's full MCP server set, applied on the next turn. REPLACE semantics: send the
+    // complete desired set (existing ∪ added). nil/omitted = leave the chat's set unchanged.
+    public let mcp_server_ids: [UUID]?
 
     public init(
         content: [ChatInputPart],
         busy_behavior: ChatBusyBehavior? = nil,
         model_config_id: UUID? = nil,
-        plan_mode: ChatPlanMode? = nil
+        plan_mode: ChatPlanMode? = nil,
+        mcp_server_ids: [UUID]? = nil
     ) {
         self.content = content
         self.busy_behavior = busy_behavior
         self.model_config_id = model_config_id
         self.plan_mode = plan_mode
+        self.mcp_server_ids = mcp_server_ids
     }
 }
 
@@ -315,6 +320,9 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     public var diff_status: ChatDiffStatus?
     /// Whether the chat has been shared with other users/groups (any explicit ACL entry).
     public var shared: Bool?
+    /// The MCP servers (connectors) currently attached to this chat; seeds the composer's
+    /// connector picker so reopening/switching chats reflects each chat's real set.
+    public var mcp_server_ids: [UUID]?
 
     public init(
         id: UUID,
@@ -330,7 +338,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         updated_at: Date,
         last_model_config_id: UUID? = nil,
         diff_status: ChatDiffStatus? = nil,
-        shared: Bool? = nil
+        shared: Bool? = nil,
+        mcp_server_ids: [UUID]? = nil
     ) {
         self.id = id
         self.title = title
@@ -346,6 +355,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.last_model_config_id = last_model_config_id
         self.diff_status = diff_status
         self.shared = shared
+        self.mcp_server_ids = mcp_server_ids
     }
 
     /// Whether the chat is pinned (pin_order > 0).

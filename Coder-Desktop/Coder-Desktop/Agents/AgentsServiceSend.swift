@@ -6,11 +6,9 @@ import UniformTypeIdentifiers
 // one core that optimistically echoes the user's message, then reconciles via the stream.
 extension CoderAgentsService {
     func sendMessage(
-        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, extraParts: [ChatInputPart]
+        _ id: UUID, prompt: String, extraParts: [ChatInputPart], options: SendOptions
     ) async -> Bool {
-        await send(
-            id, prompt: prompt, modelConfigID: modelConfigID, planMode: planMode ? .plan : nil, extra: extraParts
-        )
+        await send(id, prompt: prompt, extra: extraParts, options: options)
     }
 
     /// Uploads a picked file's raw bytes and returns its id (referenced as a `file` part).
@@ -37,13 +35,13 @@ extension CoderAgentsService {
 
     /// Proceeds from a proposed plan: sends "Implement the plan." and clears plan mode (`""`).
     func implementPlan(_ id: UUID) async -> Bool {
-        await send(id, prompt: "Implement the plan.", modelConfigID: nil, planMode: .clear, extra: [])
+        await send(id, prompt: "Implement the plan.", extra: [], options: .init(planMode: .clear))
     }
 
     /// Answers an `ask_user_question` during planning — a normal send that leaves plan mode
-    /// unchanged (no `plan_mode` field).
+    /// (and the chat's MCP set) unchanged.
     func answerQuestion(_ id: UUID, text: String) async -> Bool {
-        await send(id, prompt: text, modelConfigID: nil, planMode: nil, extra: [])
+        await send(id, prompt: text, extra: [], options: .init())
     }
 
     /// The proposed plan's markdown, fetched by the `propose_plan` result's `file_id`.
@@ -52,7 +50,7 @@ extension CoderAgentsService {
     }
 
     private func send(
-        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: ChatPlanMode?, extra: [ChatInputPart]
+        _ id: UUID, prompt: String, extra: [ChatInputPart], options: SendOptions
     ) async -> Bool {
         guard let client else { return false }
         // Optimistically echo the user's message so it appears instantly.
@@ -66,7 +64,8 @@ extension CoderAgentsService {
             try await client.sendChatMessage(
                 id, .init(
                     content: contentParts(prompt, extra: extra), busy_behavior: .queue,
-                    model_config_id: modelConfigID, plan_mode: planMode
+                    model_config_id: options.modelConfigID, plan_mode: options.planMode,
+                    mcp_server_ids: options.mcpServerIDs
                 )
             )
             telemetry.send(.agentMessageSent)

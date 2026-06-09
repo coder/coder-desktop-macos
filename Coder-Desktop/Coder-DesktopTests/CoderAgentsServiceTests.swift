@@ -92,7 +92,7 @@ struct CoderAgentsServiceTests {
 
         let telemetry = RecordingTelemetry()
         let service = CoderAgentsService(state: makeState(), telemetry: telemetry)
-        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, extraParts: [])
+        let ok = await service.sendMessage(target.id, prompt: "hello", extraParts: [], options: .init())
 
         #expect(ok)
         #expect(telemetry.events == [.agentMessageSent])
@@ -113,7 +113,7 @@ struct CoderAgentsServiceTests {
         ).register()
 
         let service = CoderAgentsService(state: makeState())
-        let ok = await service.sendMessage(target.id, prompt: "hello", modelConfigID: nil, planMode: false, extraParts: [])
+        let ok = await service.sendMessage(target.id, prompt: "hello", extraParts: [], options: .init())
 
         #expect(!ok)
         #expect(service.messages(for: target.id).isEmpty)
@@ -131,8 +131,8 @@ struct CoderAgentsServiceTests {
         ).register()
 
         let service = CoderAgentsService(state: makeState())
-        _ = await service.sendMessage(target.id, prompt: "first", modelConfigID: nil, planMode: false, extraParts: [])
-        _ = await service.sendMessage(target.id, prompt: "second", modelConfigID: nil, planMode: false, extraParts: [])
+        _ = await service.sendMessage(target.id, prompt: "first", extraParts: [], options: .init())
+        _ = await service.sendMessage(target.id, prompt: "second", extraParts: [], options: .init())
         #expect(service.messages(for: target.id).filter { $0.role == .user }.count == 2)
 
         // The server commits only "first"; "second" is still in flight. The echo for "first"
