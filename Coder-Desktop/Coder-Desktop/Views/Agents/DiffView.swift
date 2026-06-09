@@ -25,13 +25,20 @@ struct DiffView: View {
     private let files: [DiffFile]
 
     @State private var selected: Set<Int> = []
-    @State private var rowFrames: [Int: CGRect] = [:]
-    @State private var note: String = ""
+    // A plain box, NOT @State data: frames stream in on every layout/scroll pass, and body
+    // never reads them (only the drag handler does) — @State here re-evaluated the whole
+    // diff per scroll frame. Main-thread only; @unchecked for the @Sendable preference closure.
+    private final class FrameBox: @unchecked Sendable { var frames: [Int: CGRect] = [:] }
+    @State private var rowFrames = FrameBox()
+    @State private var note = ""
+    /// Row ids eligible for selection, precomputed so drag ticks don't flatten all rows.
+    private let selectableIDs: Set<Int>
 
     init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
         self.text = text
         self.onAddToChat = onAddToChat
         files = DiffFile.parseCached(text)
+        selectableIDs = Set(files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id))
     }
 
     /// The bottom-most selected row, where the inline comment box is anchored.
@@ -59,7 +66,7 @@ struct DiffView: View {
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .coordinateSpace(name: "diff")
-                .onPreferenceChange(DiffRowFrameKey.self) { rowFrames = $0 }
+                .onPreferenceChange(DiffRowFrameKey.self) { [rowFrames] in rowFrames.frames = $0 }
             }
             if onAddToChat != nil, !selected.isEmpty {
                 bottomBar
@@ -86,9 +93,8 @@ struct DiffView: View {
     /// (`y1`…`y2` in the "diff" space). A plain click is a zero-length band → one line.
     private func dragSelect(_ y1: CGFloat, _ y2: CGFloat) {
         let lo = min(y1, y2), hi = max(y1, y2)
-        let hit = Set(rowFrames.filter { $0.value.minY <= hi && $0.value.maxY >= lo }.keys)
-        let selectable = files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id)
-        selected = Set(selectable.filter { hit.contains($0) })
+        let hit = Set(rowFrames.frames.filter { $0.value.minY <= hi && $0.value.maxY >= lo }.keys)
+        selected = hit.intersection(selectableIDs)
     }
 
     private func clear() {
