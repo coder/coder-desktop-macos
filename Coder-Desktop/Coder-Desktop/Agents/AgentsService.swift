@@ -15,7 +15,7 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var mcpServers: [MCPServer] = []
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
     @Published var userSkills: [UserSkill] = [] // loaded lazily by the skills "/" trigger
-    @Published private(set) var userPrompt: String = ""
+    @Published private(set) var userPrompt = ""
     @Published var mcpIconsByServer: [UUID: NSImage] = [:]
     @Published var workspaceAppIcons: [String: NSImage] = [:] // keyed by icon URL string
     @Published private(set) var hasLoadedOnce = false
@@ -23,9 +23,8 @@ final class CoderAgentsService: AgentsService {
     @Published var messagesBySession: [UUID: [ChatMessage]] = [:]
     /// Whether older messages exist before the earliest loaded one (for scroll-back paging).
     @Published var hasOlderBySession: [UUID: Bool] = [:]
-    // The in-flight streamed parts live in a SEPARATE observable (held as a plain `let`, not
-    // `@Published`) so per-token appends don't fire this service's objectWillChange — only the
-    // streaming-tail view observes them, not the whole screen.
+    // Plain `let`, not `@Published`: see StreamingStore — token appends must not fire this
+    // service's objectWillChange.
     let streamingStore = StreamingStore()
     /// Messages queued while the agent is busy (shown above the composer).
     @Published var queuedMessagesBySession: [UUID: [ChatQueuedMessage]] = [:]

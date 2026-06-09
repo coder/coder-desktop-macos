@@ -6,7 +6,7 @@ import SwiftUI
 /// message on send.
 struct PastedAttachment: Identifiable {
     let id = UUID()
-    var text: String = ""
+    var text = ""
     var name: String?
     /// Set once an attached file finishes uploading; such attachments are sent as `file`
     /// parts (referenced by id) rather than folded into the message text.
@@ -74,7 +74,7 @@ struct AttachmentChipsView: View {
 /// Return-to-send (with Shift/Option+Return inserting a newline) when enabled.
 struct PasteAwareEditor: NSViewRepresentable {
     @Binding var text: String
-    var placeholder: String = ""
+    var placeholder = ""
     var submitOnReturn: Bool = false
     var onSubmit: () -> Void = {}
     var onLargePaste: (String) -> Void = { _ in }
@@ -258,7 +258,7 @@ struct PasteAwareEditor: NSViewRepresentable {
 final class PasteTextView: NSTextView {
     /// Returns true if the paste was handled (and should not be inserted inline).
     var onLargePaste: ((String) -> Bool)?
-    var placeholderString: String = "" { didSet { needsDisplay = true } }
+    var placeholderString = "" { didSet { needsDisplay = true } }
 
     override func paste(_ sender: Any?) {
         if let pasted = NSPasteboard.general.string(forType: .string),

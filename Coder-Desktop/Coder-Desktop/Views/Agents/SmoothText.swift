@@ -56,7 +56,7 @@ final class SmoothTextEngine {
 /// equatable-skipped between stream events.
 struct SmoothMarkdownText: View {
     let text: String
-    var isStreaming: Bool = false
+    var isStreaming = false
 
     @State private var engine = SmoothTextEngine()
 

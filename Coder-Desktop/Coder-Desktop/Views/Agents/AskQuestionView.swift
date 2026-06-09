@@ -38,7 +38,7 @@ struct AskQuestionView<Agents: AgentsService>: View {
             }
 
             if interactive, !submitted {
-                Button { submit() } label: {
+                Button(action: submit) {
                     if submitting { ProgressView().controlSize(.small) } else { Text("Send answer") }
                 }
                 .buttonStyle(.borderedProminent)
@@ -72,7 +72,6 @@ struct AskQuestionView<Agents: AgentsService>: View {
                     .textFieldStyle(.roundedBorder)
                 }
             } else {
-                // Read-only: list the offered options.
                 ForEach(Array(question.options.enumerated()), id: \.offset) { _, option in
                     Text("• \(option.label)").font(.caption).foregroundStyle(.secondary)
                 }

@@ -8,7 +8,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
 
     let onLaunched: (Chat) -> Void
 
-    @State private var prompt: String = ""
+    @State private var prompt = ""
     @State private var workspaceID: UUID?
     @State private var modelConfigID: UUID?
     @State private var selectedMCP: Set<UUID> = []
@@ -47,9 +47,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                         ModelPicker<Agents>(selectedID: $modelConfigID)
                     }
                     VoiceInputButton(draft: $prompt)
-                    Button {
-                        launch()
-                    } label: {
+                    Button(action: launch) {
                         if launching {
                             ProgressView().controlSize(.small)
                         } else {

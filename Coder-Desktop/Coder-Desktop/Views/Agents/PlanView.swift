@@ -42,7 +42,7 @@ struct PlanView<Agents: AgentsService>: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
 
-                    Button { implement() } label: {
+                    Button(action: implement) {
                         if implementing {
                             ProgressView().controlSize(.small)
                         } else {

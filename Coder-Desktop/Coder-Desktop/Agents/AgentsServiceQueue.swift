@@ -1,9 +1,8 @@
 import CoderSDK
 import Foundation
 
-// Queued-message management. While the agent is busy, new messages queue server-side and
-// arrive via `queue_update` stream events. The user can promote ("Send now"), remove, or
-// edit them above the composer.
+// Queued messages (server-side while the agent is busy; promote/remove above the composer)
+// plus small agent utilities (PTY request, listening ports).
 extension CoderAgentsService {
     func queuedMessages(for id: UUID) -> [ChatQueuedMessage] {
         queuedMessagesBySession[id] ?? []
@@ -30,7 +29,6 @@ extension CoderAgentsService {
         }
     }
 
-    /// Removes a queued message.
     func removeQueued(_ queuedID: Int64, in chatID: UUID) async {
         guard let client else { return }
         // Optimistically drop it; the next queue_update reconciles.
