@@ -37,7 +37,8 @@ struct SessionSidePanel<Agents: AgentsService>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
+            // Named (not "") so VoiceOver announces the group; labelsHidden keeps it visual-only.
+            Picker("Panel view", selection: $tab) {
                 ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -130,6 +131,8 @@ struct DiffPanel<Agents: AgentsService>: View {
             Spacer()
             Button { Task { await agents.loadDiff(session.id) } } label: {
                 Image(systemName: "arrow.clockwise")
+                    .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
             .help("Refresh diff")

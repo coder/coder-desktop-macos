@@ -75,6 +75,7 @@ struct SmoothMarkdownText: View {
                     // animation frame was the dominant streaming cost. Styling snaps in on catch-up.
                     Text(String(text.prefix(count)))
                         .textSelection(.enabled)
+                        .accessibilityAddTraits(.updatesFrequently)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

@@ -69,6 +69,7 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Delete \(skill.name)")
                     }
                 }
             }
@@ -147,6 +148,7 @@ private struct SkillEditor<Agents: AgentsService>: View {
                 TextEditor(text: $content)
                     .font(.body.monospaced())
                     .padding(8)
+                    .accessibilityLabel("Skill content for \(name ?? "new skill")")
             }
             if let error {
                 Text(error).font(.caption).foregroundStyle(.red).padding(.horizontal, Theme.Size.trayInset)

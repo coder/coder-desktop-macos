@@ -60,6 +60,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     .keyboardShortcut(.return, modifiers: [.command])
                     .disabled(launching || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .help("Start chat (⌘↵)")
+                    .accessibilityLabel(launching ? "Starting chat" : "Start chat")
                 }
             }
             .padding(Theme.Size.trayInset)

@@ -31,6 +31,7 @@ struct AnalyticsView<Agents: AgentsService>: View {
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .fixedSize()
+                    .accessibilityLabel("Date range")
                 }
 
                 if loading {
@@ -88,18 +89,28 @@ struct AnalyticsView<Agents: AgentsService>: View {
         .padding(12)
         .background(Color.secondary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
+        // VoiceOver otherwise reads the bare value first ("$1.23, Total cost").
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
     }
 
     @ViewBuilder
     private func prRow(_ pr: PRInsightsResponse.PullRequest) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.triangle.branch").font(.caption).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(pr.pr_title ?? "Pull request").lineLimit(1)
                 HStack(spacing: 6) {
                     if let state = pr.state { Text(state.capitalized) }
-                    if let adds = pr.additions, adds > 0 { Text("+\(adds)").foregroundStyle(.green) }
-                    if let dels = pr.deletions, dels > 0 { Text("−\(dels)").foregroundStyle(.red) }
+                    if let adds = pr.additions, adds > 0 {
+                        Text("+\(adds)").foregroundStyle(.green)
+                            .accessibilityLabel("\(adds) additions")
+                    }
+                    if let dels = pr.deletions, dels > 0 {
+                        Text("−\(dels)").foregroundStyle(.red)
+                            .accessibilityLabel("\(dels) deletions")
+                    }
                     if let model = pr.model_display_name { Text("· \(model)") }
                 }
                 .font(.caption2).foregroundStyle(.secondary)

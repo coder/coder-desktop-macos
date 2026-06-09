@@ -58,6 +58,7 @@ struct ChatSharePopover<Agents: AgentsService>: View {
 
             TextField("Search people or groups…", text: $query)
                 .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Search people or groups")
 
             if !results.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
@@ -124,6 +125,8 @@ struct ChatSharePopover<Agents: AgentsService>: View {
             if let onRemove {
                 Button(role: .destructive, action: onRemove) {
                     Image(systemName: "xmark.circle.fill").font(.caption)
+                        .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .help("Remove")

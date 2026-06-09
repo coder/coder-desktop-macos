@@ -87,6 +87,7 @@ struct AskQuestionView<Agents: AgentsService>: View {
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: selected ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(selected ? Color.accentColor : .secondary)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
                     if !description.isEmpty {
@@ -98,6 +99,7 @@ struct AskQuestionView<Agents: AgentsService>: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
     /// Formats the answer exactly like the web: single question = the bare answer; multiple =

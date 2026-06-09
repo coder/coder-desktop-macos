@@ -80,9 +80,13 @@ private struct ProviderKeyRow: View {
             HStack {
                 Text(status.provider.display_name).font(.headline)
                 Spacer()
-                Text(status.statusLabel)
-                    .font(.caption)
-                    .foregroundStyle(status.has_user_api_key ? Color.green : .secondary)
+                // Icon + color so the state isn't conveyed by color alone (WCAG 1.4.1).
+                Label(
+                    status.statusLabel,
+                    systemImage: status.has_user_api_key ? "checkmark.circle.fill" : "circle.dashed"
+                )
+                .font(.caption)
+                .foregroundStyle(status.has_user_api_key ? Color.green : .secondary)
             }
             if status.byok_enabled {
                 HStack {

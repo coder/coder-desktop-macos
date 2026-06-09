@@ -128,6 +128,7 @@ struct WorkspacePill<Agents: AgentsService>: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .help(status.isEmpty ? workspace.name : "Workspace \(status)")
+            .accessibilityLabel("Workspace \(workspace.name)\(status.isEmpty ? "" : ", \(status)")")
             .task(id: workspaceID) {
                 agents.loadWorkspaceAppIcons(entries.compactMap(\.iconURL))
                 if let agentID { ports = await agents.listeningPorts(agentID: agentID) }

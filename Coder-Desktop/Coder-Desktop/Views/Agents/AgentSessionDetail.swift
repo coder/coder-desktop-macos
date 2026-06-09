@@ -117,7 +117,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
 
     private func banner(icon: String, tint: Color, text: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon).foregroundStyle(tint)
+            Image(systemName: icon).foregroundStyle(tint).accessibilityHidden(true)
             Text(text).font(.caption).lineLimit(2)
             Spacer()
         }
@@ -242,9 +242,13 @@ extension AgentSessionDetail {
                 // Model picker + context usage live on the right (a deliberate deviation from
                 // the web, by preference).
                 if let usage = latestUsage, let fraction = usage.contextFraction {
-                    ContextUsageGauge(fraction: fraction)
-                        .onHover { if $0 { showContextInfo = true } }
-                        .popover(isPresented: $showContextInfo, arrowEdge: .top) {
+                    // A button (not bare hover) so keyboard/VoiceOver users can open the details.
+                    Button { showContextInfo.toggle() } label: {
+                        ContextUsageGauge(fraction: fraction)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { if $0 { showContextInfo = true } }
+                    .popover(isPresented: $showContextInfo, arrowEdge: .top) {
                             ContextUsagePopover(
                                 percent: usage.contextPercent ?? 0,
                                 usedTokens: usage.total_tokens,
@@ -285,7 +289,7 @@ extension AgentSessionDetail {
                         && attachments.isEmpty && pendingReferences.isEmpty))
                     .keyboardShortcut(.return, modifiers: [.command])
                     .help("Send (⌘↵)")
-                    .accessibilityLabel("Send message")
+                    .accessibilityLabel(sending ? "Sending message" : "Send message")
                 }
             }
         }
