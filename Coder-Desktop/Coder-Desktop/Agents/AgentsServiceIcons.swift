@@ -40,6 +40,25 @@ extension CoderAgentsService {
         return target
     }
 
+    /// Whether an icon is effectively grayscale (every opaque pixel has R≈G≈B) — i.e. a
+    /// single-color glyph that should be tinted to the label color rather than drawn as-is.
+    /// Sampled on a small grid; colorful icons bail out on the first off-gray pixel.
+    nonisolated static func isMonochrome(_ image: NSImage) -> Bool {
+        guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return false }
+        let width = rep.pixelsWide, height = rep.pixelsHigh
+        guard width > 0, height > 0 else { return false }
+        var sawOpaque = false
+        for y in stride(from: 0, to: height, by: max(1, height / 16)) {
+            for x in stride(from: 0, to: width, by: max(1, width / 16)) {
+                guard let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.1 else { continue }
+                sawOpaque = true
+                let (r, g, b) = (color.redComponent, color.greenComponent, color.blueComponent)
+                if max(r, g, b) - min(r, g, b) > 0.12 { return false }
+            }
+        }
+        return sawOpaque
+    }
+
     /// Fetches connector icons (svg/png/webp) via SDWebImage (the SVG coder is registered
     /// at launch), like the web UI. Relative `/icon/…` paths resolve against the host.
     func loadMCPIcons() {
@@ -53,10 +72,13 @@ extension CoderAgentsService {
                 with: url, options: [], progress: nil
             ) { [weak self] image, _, _, _, _, _ in
                 guard let image else { return }
-                // SwiftUI `Menu` bridges to NSMenu, which draws the item image at the
-                // NSImage's own size and ignores `.frame()`. Setting `.size` alone is
-                // unreliable for SVG-backed reps, so render into a real 16×16 bitmap.
+                // Render into a real 16×16 bitmap (NSMenu draws at the image's own size and
+                // ignores `.frame()`; `.size` alone is unreliable for SVG reps).
                 let resized = Self.menuIcon(from: image)
+                // Many connector glyphs are monochrome white (built for dark UI) and vanish on a
+                // light background. Flagging the grayscale ones as templates makes them render in
+                // the label color, so they adapt to the theme; colorful icons keep their color.
+                resized.isTemplate = Self.isMonochrome(image)
                 Task { @MainActor in self?.mcpIconsByServer[id] = resized }
             }
         }
