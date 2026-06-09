@@ -2,6 +2,10 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
+/// Shared ISO-8601 formatter — formatters are costly to build and thread-safe to format with.
+/// File-level (not a static on the generic view, which Swift disallows).
+nonisolated(unsafe) private let analyticsISO8601 = ISO8601DateFormatter()
+
 /// Personal usage analytics: AI cost summary and pull-request insights over a selectable date
 /// range. Reached from the sidebar usage widget's "View usage". All amounts are micro-dollars.
 struct AnalyticsView<Agents: AgentsService>: View {
@@ -115,9 +119,8 @@ struct AnalyticsView<Agents: AgentsService>: View {
         loading = true
         let now = Date()
         let start = Calendar.current.date(byAdding: .day, value: -rangeDays, to: now) ?? now
-        let formatter = ISO8601DateFormatter()
-        let startStr = formatter.string(from: start)
-        let endStr = formatter.string(from: now)
+        let startStr = analyticsISO8601.string(from: start)
+        let endStr = analyticsISO8601.string(from: now)
         cost = await agents.costSummary(start: startStr, end: endStr)
         insights = await agents.prInsights(start: startStr, end: endStr)
         loading = false
