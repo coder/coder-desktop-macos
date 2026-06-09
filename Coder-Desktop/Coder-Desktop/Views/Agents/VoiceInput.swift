@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 import Speech
 import SwiftUI
 
@@ -15,6 +16,7 @@ final class VoiceInput: ObservableObject {
         recognizer?.isAvailable == true && recognizer?.supportsOnDeviceRecognition == true
     }
 
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "voice-input")
     private let recognizer = SFSpeechRecognizer()
     private let engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
@@ -39,7 +41,11 @@ final class VoiceInput: ObservableObject {
         SFSpeechRecognizer.requestAuthorization { @Sendable status in
             Task { @MainActor in
                 guard gen == self.generation else { return } // stopped while authorizing
-                guard status == .authorized else { self.isRecording = false; return }
+                guard status == .authorized else {
+                    self.logger.error("speech authorization not granted: \(status.rawValue)")
+                    self.isRecording = false
+                    return
+                }
                 self.beginCapture()
             }
         }
@@ -64,6 +70,7 @@ final class VoiceInput: ObservableObject {
         do {
             try engine.start()
         } catch {
+            logger.error("audio engine failed to start: \(error.localizedDescription, privacy: .public)")
             cleanup()
             return
         }
@@ -72,11 +79,13 @@ final class VoiceInput: ObservableObject {
         // hop — SFSpeechRecognitionResult itself can't cross into the MainActor task.
         task = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
             let text = result?.bestTranscription.formattedString
-            let finished = error != nil || (result?.isFinal ?? false)
+            let failure = error.map { "\($0)" }
+            let isFinal = result?.isFinal ?? false
             Task { @MainActor in
                 guard let self else { return }
                 if let text { self.onText?(text) }
-                if finished { self.stop() }
+                if let failure { self.logger.error("recognition failed: \(failure, privacy: .public)") }
+                if failure != nil || isFinal { self.stop() }
             }
         }
     }
