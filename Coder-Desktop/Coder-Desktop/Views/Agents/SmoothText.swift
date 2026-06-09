@@ -65,7 +65,9 @@ struct SmoothMarkdownText: View {
             // Count/slice the String directly rather than materialising an [Character] every token
             // (that allocation was O(n) per token → O(n²) over a long streamed message).
             let fullCount = text.count
-            TimelineView(.animation(paused: engine.isCaughtUp(fullCount))) { context in
+            // 30fps is indistinguishable for a typewriter reveal and halves the per-frame
+            // prefix/diff work on long messages (display refresh would tick at up to 120Hz).
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: engine.isCaughtUp(fullCount))) { context in
                 let count = engine.advance(to: context.date, fullCount: fullCount, isStreaming: true)
                 // Plain text for the WHOLE stream. Swapping to MarkdownText at each catch-up
                 // re-parsed the full message (and re-highlighted its code blocks, always a cache

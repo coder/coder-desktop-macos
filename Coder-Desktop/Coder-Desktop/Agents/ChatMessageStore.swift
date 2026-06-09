@@ -12,6 +12,11 @@ final class ChatMessageStore {
     /// Per-chat write chain: each save awaits the previous so a stale snapshot can never
     /// land after a newer one (saves fire on every stream event with no other ordering).
     private var writeChains: [UUID: Task<Void, Never>] = [:]
+    // Trailing debounce: saves arrive per message event (several/sec during a tool-heavy
+    // run) and each write re-encodes the full history. Latest snapshot wins; losing the
+    // final ~1s on a crash is fine — this is a cache, the server is the source of truth.
+    private var pendingSaves: [UUID: [ChatMessage]] = [:]
+    private var debounceTasks: [UUID: Task<Void, Never>] = [:]
 
     init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -35,16 +40,23 @@ final class ChatMessageStore {
         return messages.sorted { $0.id < $1.id }
     }
 
-    /// Persists committed messages (drops optimistic echoes with negative ids) as JSONL.
-    /// Both the encode and the disk write run off the main thread (streaming calls this on
-    /// every message event, and a full-session encode on the main thread would hitch the UI),
+    /// Persists committed messages (drops optimistic echoes with negative ids) as JSONL,
+    /// debounced per chat. Both the encode and the disk write run off the main thread,
     /// chained per chat so writes can't reorder.
     func save(_ messages: [ChatMessage], for chatID: UUID) {
-        let fileURL = url(for: chatID)
-        let previous = writeChains[chatID]
-        writeChains[chatID] = Task.detached(priority: .utility) {
-            await previous?.value
-            Self.write(messages, to: fileURL)
+        pendingSaves[chatID] = messages
+        guard debounceTasks[chatID] == nil else { return }
+        debounceTasks[chatID] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self else { return }
+            debounceTasks[chatID] = nil
+            guard let latest = pendingSaves.removeValue(forKey: chatID) else { return }
+            let fileURL = url(for: chatID)
+            let previous = writeChains[chatID]
+            writeChains[chatID] = Task.detached(priority: .utility) {
+                await previous?.value
+                Self.write(latest, to: fileURL)
+            }
         }
     }
 
