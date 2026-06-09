@@ -111,28 +111,31 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
             Section("Advanced") {
                 Toggle("Enable agent debug logging", isOn: Binding(
                     get: { debug.debug_logging_enabled },
-                    set: { newValue in
-                        let previous = debugLogging
-                        debugLogging = ChatDebugLogging(
-                            debug_logging_enabled: newValue,
-                            user_toggle_allowed: debug.user_toggle_allowed,
-                            forced_by_deployment: debug.forced_by_deployment
-                        )
-                        Task {
-                            do {
-                                try await agents.setDebugLogging(newValue)
-                                error = nil
-                            } catch let err {
-                                debugLogging = previous
-                                error = err.localizedDescription
-                            }
-                        }
-                    }
+                    set: { setDebugLogging($0, base: debug) }
                 ))
                 .disabled(debug.user_toggle_allowed == false || debug.forced_by_deployment == true)
                 if debug.forced_by_deployment == true {
                     Text("Enforced by your deployment.").font(.caption).foregroundStyle(.secondary)
                 }
+            }
+        }
+    }
+
+    /// Optimistically flips the debug-logging toggle, persists it, and rolls back on failure.
+    private func setDebugLogging(_ enabled: Bool, base: ChatDebugLogging) {
+        let previous = debugLogging
+        debugLogging = ChatDebugLogging(
+            debug_logging_enabled: enabled,
+            user_toggle_allowed: base.user_toggle_allowed,
+            forced_by_deployment: base.forced_by_deployment
+        )
+        Task {
+            do {
+                try await agents.setDebugLogging(enabled)
+                error = nil
+            } catch let err {
+                debugLogging = previous
+                error = err.localizedDescription
             }
         }
     }
