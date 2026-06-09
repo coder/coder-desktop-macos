@@ -80,7 +80,9 @@ struct WorkspacePill<Agents: AgentsService>: View {
     }
 
     var body: some View {
-        if let workspace {
+        // Only show as attached while the workspace is running — a stopped one has no apps,
+        // ports, or SSH to offer (matches the web, which drops the attachment when shut down).
+        if let workspace, status == "running" {
             Menu {
                 ForEach(entries) { entry in
                     Button { NSWorkspace.shared.open(entry.openURL) } label: {
