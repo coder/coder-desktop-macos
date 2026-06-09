@@ -33,7 +33,10 @@ final class VoiceInput: ObservableObject {
         // second engine/tap (installing a second tap on the bus would crash).
         isRecording = true
         let gen = generation
-        SFSpeechRecognizer.requestAuthorization { status in
+        // @Sendable so the closure does NOT inherit this method's MainActor isolation: TCC
+        // invokes it on a background queue, and an isolated closure traps at entry (runtime
+        // isolation assert) before the Task hop below can run.
+        SFSpeechRecognizer.requestAuthorization { @Sendable status in
             Task { @MainActor in
                 guard gen == self.generation else { return } // stopped while authorizing
                 guard status == .authorized else { self.isRecording = false; return }
@@ -64,11 +67,16 @@ final class VoiceInput: ObservableObject {
             cleanup()
             return
         }
-        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        // Same trap as the authorization callback: Speech delivers results on its own queue, so
+        // the handler must be @Sendable (nonisolated). Extract the Sendable pieces before the
+        // hop — SFSpeechRecognitionResult itself can't cross into the MainActor task.
+        task = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
+            let text = result?.bestTranscription.formattedString
+            let finished = error != nil || (result?.isFinal ?? false)
             Task { @MainActor in
                 guard let self else { return }
-                if let result { self.onText?(result.bestTranscription.formattedString) }
-                if error != nil || (result?.isFinal ?? false) { self.stop() }
+                if let text { self.onText?(text) }
+                if finished { self.stop() }
             }
         }
     }
