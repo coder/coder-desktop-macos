@@ -62,6 +62,7 @@ struct CompactionSettingsSection<Agents: AgentsService>: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Remove threshold for \(label(for: threshold.model_config_id))")
                     }
                 }
             }
@@ -75,6 +76,8 @@ struct CompactionSettingsSection<Agents: AgentsService>: View {
                 ForEach(available) { Text($0.label).tag($0.id.uuidString) }
             }
             Stepper("Compact at \(newPercent)%", value: $newPercent, in: 10 ... 100, step: 5)
+                .accessibilityValue("\(newPercent) percent")
+                .accessibilityHint("Lower percentages compact the conversation earlier")
             HStack {
                 Spacer()
                 Button("Add") {

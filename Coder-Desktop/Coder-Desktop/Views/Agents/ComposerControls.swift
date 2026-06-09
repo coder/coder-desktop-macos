@@ -131,11 +131,13 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
             Spacer(minLength: 8)
             if server.locked {
                 Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary)
+                    .accessibilityLabel("Locked by deployment")
             }
             if server.needsAuth {
                 Button("Auth") { authenticate(server) }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityLabel("Authenticate \(server.display_name)")
             } else {
                 Toggle("", isOn: binding(for: server))
                     .labelsHidden()
@@ -229,6 +231,17 @@ struct PanelResizeHandle: View {
             .onDisappear {
                 if pushedCursor { NSCursor.pop(); pushedCursor = false }
             }
+            // VoiceOver path for the pointer-only drag: adjust with VO arrow keys.
+            .accessibilityElement()
+            .accessibilityLabel("Panel width")
+            .accessibilityValue("\(Int(width)) points")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: width = min(range.upperBound, width + 20)
+                case .decrement: width = max(range.lowerBound, width - 20)
+                @unknown default: break
+                }
+            }
     }
 }
 
@@ -297,6 +310,8 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(pills.count) active selections")
+        .accessibilityValue(showOverflow ? "Expanded" : "Collapsed")
         .popover(isPresented: $showOverflow, arrowEdge: .top) {
             VStack(alignment: .leading, spacing: 6) { ForEach(pills) { pillView($0) } }
                 .padding(10)
@@ -313,6 +328,8 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
             Text(pill.label).font(.caption).lineLimit(1)
             Button(action: pill.remove) {
                 Image(systemName: "xmark").font(.caption2)
+                    .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
             .accessibilityLabel("Remove \(pill.label)")

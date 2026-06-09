@@ -190,10 +190,14 @@ private struct DiffFileView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .onSubmit(onSend)
-            Button { onSend() } label: { Image(systemName: "arrow.up.circle.fill") }
-                .buttonStyle(.borderless)
-                .help("Send to chat")
-                .accessibilityLabel("Send selection to chat")
+            Button { onSend() } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .help("Send to chat")
+            .accessibilityLabel("Send selection to chat")
         }
         .padding(8)
         .background(Color.accentColor.opacity(0.06))
@@ -222,6 +226,7 @@ private struct DiffRowView: View {
         .font(.system(.caption, design: .monospaced))
         .padding(.vertical, 1)
         .background(isSelected ? Color.accentColor.opacity(0.18) : row.background)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .onHover { hovering = $0 }
     }
 

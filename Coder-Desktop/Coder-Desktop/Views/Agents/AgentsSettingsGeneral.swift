@@ -54,6 +54,7 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
             TextEditor(text: $instructions)
                 .font(.body.monospaced())
                 .frame(minHeight: 100)
+                .accessibilityLabel("Personal instructions")
             HStack {
                 Spacer()
                 if savingInstructions { ProgressView().controlSize(.small) }

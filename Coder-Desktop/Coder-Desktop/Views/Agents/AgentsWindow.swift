@@ -38,6 +38,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
     private var disabledPlaceholder: some View {
         VStack(spacing: 8) {
             Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text("Agents is turned off").font(.headline)
             Text("Enable it in Settings → General.").foregroundStyle(.secondary)
         }
@@ -208,6 +209,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
             Image(systemName: "sparkles")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text("Select a session or start a new one")
                 .foregroundStyle(.secondary)
         }
@@ -276,23 +278,27 @@ struct SessionRow: View {
                 HStack(spacing: 4) {
                     if session.isPinned {
                         Image(systemName: "pin.fill").font(.caption2).foregroundStyle(.secondary)
+                            .accessibilityLabel("Pinned")
                     }
                     Text(session.title?.isEmpty == false ? session.title! : "Untitled session")
                         .lineLimit(1)
                     Spacer()
-                    // Kebab on hover, relative time otherwise (matches the web row).
-                    if hovering {
+                    // Kebab on hover, relative time otherwise (matches the web row). Swapped via
+                    // opacity, not removal, so the menu stays reachable by keyboard/VoiceOver.
+                    ZStack(alignment: .trailing) {
+                        Text(Self.relativeShort(session.updated_at))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .opacity(hovering ? 0 : 1)
+                            .accessibilityHidden(hovering)
                         Menu { rowMenu } label: {
                             Image(systemName: "ellipsis").foregroundStyle(.secondary)
                         }
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)
                         .fixedSize()
+                        .opacity(hovering ? 1 : 0)
                         .accessibilityLabel("Chat actions")
-                    } else {
-                        Text(Self.relativeShort(session.updated_at))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
                     }
                 }
                 subtitle
@@ -318,7 +324,8 @@ struct SessionRow: View {
             Text(session.status.label)
             if session.shared == true {
                 Spacer(minLength: 4)
-                Image(systemName: "person.2.fill").help("Shared")
+                // .help() is only a tooltip on macOS — VoiceOver needs the explicit label.
+                Image(systemName: "person.2.fill").help("Shared").accessibilityLabel("Shared")
             }
         }
         .font(.caption)

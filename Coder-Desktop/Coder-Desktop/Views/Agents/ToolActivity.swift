@@ -147,6 +147,7 @@ struct ToolGroupView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "hammer").font(.caption2).foregroundStyle(.secondary).frame(width: 14)
+                            .accessibilityHidden(true)
                         Text("Used \(steps.count) tools").font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -213,8 +214,14 @@ private struct ToolStepView: View {
             }
             Text(step.label).lineLimit(1)
             if let stats = step.diffStats {
-                if stats.additions > 0 { Text("+\(stats.additions)").foregroundStyle(.green) }
-                if stats.deletions > 0 { Text("−\(stats.deletions)").foregroundStyle(.red) }
+                if stats.additions > 0 {
+                    Text("+\(stats.additions)").foregroundStyle(.green)
+                        .accessibilityLabel("\(stats.additions) additions")
+                }
+                if stats.deletions > 0 {
+                    Text("−\(stats.deletions)").foregroundStyle(.red)
+                        .accessibilityLabel("\(stats.deletions) deletions")
+                }
             }
             if let duration = step.duration {
                 Text("· \(duration)").foregroundStyle(.secondary)
@@ -317,6 +324,8 @@ struct ToolOutputView: View {
     private func cellView(_ cell: String) -> some View {
         if cell.hasPrefix("http://") || cell.hasPrefix("https://"), let url = URL(string: cell) {
             Link(destination: url) { Image(systemName: "arrow.up.right.square") }
+                .accessibilityLabel("Open link")
+                .accessibilityHint(cell)
         } else {
             Text(cell.isEmpty ? " " : cell).textSelection(.enabled)
         }
@@ -346,10 +355,12 @@ struct QuietDisclosureStyle: DisclosureGroupStyle {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(configuration.isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
                     configuration.label
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
             if configuration.isExpanded {
                 configuration.content.padding(.leading, 16)
             }

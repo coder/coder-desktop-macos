@@ -51,6 +51,8 @@ struct AttachmentChipsView: View {
                         Text(attachment.label).font(.caption2)
                         Button { attachments.removeAll { $0.id == attachment.id } } label: {
                             Image(systemName: "xmark.circle.fill").font(.caption2)
+                                .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Remove attachment")
@@ -93,6 +95,7 @@ struct PasteAwareEditor: NSViewRepresentable {
             return false
         }
         textView.isRichText = false
+        textView.setAccessibilityLabel("Message")
         textView.font = .preferredFont(forTextStyle: .body)
         textView.drawsBackground = false
         textView.textContainerInset = NSSize(width: 0, height: 4)
@@ -117,6 +120,7 @@ struct PasteAwareEditor: NSViewRepresentable {
             textView.string = text
         }
         textView.placeholderString = placeholder
+        textView.setAccessibilityPlaceholderValue(placeholder)
         // Refresh the open skills menu when lazily-loaded skills arrive.
         context.coordinator.refreshSkillMenuIfShown()
     }
