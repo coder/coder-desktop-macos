@@ -9,6 +9,9 @@ struct ToolStep: Identifiable {
     /// is built. Cached here because it's read on every body eval (hasDetail, the +/− badge, and
     /// the expanded diff) and re-parsing the result per token while streaming added up.
     private(set) var editDiff: String?
+    /// The tool's kind, classified once at build time (it reads tool_name with a lowercase+switch,
+    /// and is read repeatedly — by `isWorkspace`, the expand default, and transcript grouping).
+    private(set) var kind: ChatMessagePart.ToolKind = .other
 
     /// Pairs tool-call/tool-result parts by `tool_call_id`, regardless of arrival order.
     static func steps(from parts: [ChatMessagePart]) -> [ToolStep] {
@@ -27,7 +30,10 @@ struct ToolStep: Identifiable {
                 ))
             }
         }
-        for idx in steps.indices { steps[idx].editDiff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff }
+        for idx in steps.indices {
+            steps[idx].editDiff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff
+            steps[idx].kind = (steps[idx].call ?? steps[idx].result)?.toolKind ?? .other
+        }
         return steps
     }
 
@@ -60,7 +66,6 @@ struct ToolStep: Identifiable {
         }
     }
 
-    var kind: ChatMessagePart.ToolKind { source?.toolKind ?? .other }
     var isWorkspace: Bool { kind == .workspace }
     var isRunning: Bool { result == nil }
     var workspaceName: String? { (result ?? call)?.workspaceToolName }
