@@ -6,6 +6,21 @@ import Foundation
 /// governed workspaces; this service only lists, launches, streams, messages, and stops
 /// sessions. It deliberately does NOT resolve tool calls, store provider keys, or run
 /// anything locally.
+/// Per-message send options, bundled so call signatures stay small.
+struct SendOptions: Sendable {
+    var modelConfigID: UUID?
+    var planMode: ChatPlanMode?
+    /// The chat's full MCP server set to apply (REPLACE semantics — pass existing ∪ added);
+    /// nil leaves the chat's attached set unchanged.
+    var mcpServerIDs: [UUID]?
+
+    init(modelConfigID: UUID? = nil, planMode: ChatPlanMode? = nil, mcpServerIDs: [UUID]? = nil) {
+        self.modelConfigID = modelConfigID
+        self.planMode = planMode
+        self.mcpServerIDs = mcpServerIDs
+    }
+}
+
 @MainActor
 protocol AgentsService: ObservableObject {
     var sessions: [Chat] { get }
@@ -67,7 +82,7 @@ protocol AgentsService: ObservableObject {
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
     /// `extraParts` are non-text content (file attachments, diff file-references).
     func sendMessage(
-        _ id: UUID, prompt: String, modelConfigID: UUID?, planMode: Bool, extraParts: [ChatInputPart]
+        _ id: UUID, prompt: String, extraParts: [ChatInputPart], options: SendOptions
     ) async -> Bool
     /// Proceeds from a proposed plan (sends "Implement the plan." and clears plan mode).
     func implementPlan(_ id: UUID) async -> Bool

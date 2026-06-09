@@ -58,6 +58,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         }
         .task(id: session.id) {
             agents.startStreaming(session.id)
+            // Reflect this chat's actually-attached connectors so switching chats shows each
+            // one's real set (instead of resetting), and so sends preserve them.
+            selectedMCP = Set(session.mcp_server_ids ?? [])
             if agents.modelConfigs.isEmpty { await agents.loadModelConfigs() }
             if agents.workspaces.isEmpty { await agents.loadWorkspaces() }
             if agents.mcpServers.isEmpty { await agents.loadMCPServers() }
@@ -361,8 +364,14 @@ extension AgentSessionDetail {
         }
         Task {
             let ok = await agents.sendMessage(
-                session.id, prompt: prompt, modelConfigID: selectedModelConfigID,
-                planMode: planMode, extraParts: extraParts
+                session.id, prompt: prompt, extraParts: extraParts,
+                options: .init(
+                    modelConfigID: selectedModelConfigID,
+                    planMode: planMode ? .plan : nil,
+                    // Full desired connector set (replace semantics) so toggling a connector
+                    // mid-chat actually attaches/detaches it for the next turn.
+                    mcpServerIDs: Array(selectedMCP)
+                )
             )
             sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text
