@@ -76,4 +76,17 @@ public enum JSONValue: Codable, Sendable, Equatable {
         if case let .array(value) = self { return value }
         return nil
     }
+
+    /// Whether this value carries displayable content — a non-empty object/array, a non-empty
+    /// string, or any number/bool. Mirrors what pretty-printing would render, but without
+    /// encoding, so hot paths can cheaply test "is there anything to show?".
+    public var nonEmpty: Bool {
+        switch self {
+        case let .string(value): !value.isEmpty
+        case .number, .bool: true
+        case let .object(dict): !dict.isEmpty
+        case let .array(value): !value.isEmpty
+        case .null: false
+        }
+    }
 }

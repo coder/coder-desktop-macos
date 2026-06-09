@@ -134,9 +134,10 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         Group {
                             switch item.kind {
                             case let .bubble(role, parts, messageID):
+                                // Committed bubbles are never mid-stream; the in-flight turn is
+                                // rendered separately by StreamingTailView (which sets streaming: true).
                                 MessageView(
-                                    role: role, parts: parts, contentMaxWidth: maxWidth,
-                                    streaming: item.id == "streaming" && session.status.isActive
+                                    role: role, parts: parts, contentMaxWidth: maxWidth, streaming: false
                                 )
                                     .equatable()
                                     .id(item.id)
