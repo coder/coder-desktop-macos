@@ -269,7 +269,6 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // A PR chat shows the branch icon; otherwise the status icon.
             Image(systemName: isPR ? "arrow.triangle.branch" : session.status.systemImage)
                 .font(.caption)
                 .foregroundStyle(isPR ? .secondary : session.status.color)
@@ -283,8 +282,9 @@ struct SessionRow: View {
                     Text(session.title?.isEmpty == false ? session.title! : "Untitled session")
                         .lineLimit(1)
                     Spacer()
-                    // Kebab on hover, relative time otherwise (matches the web row). Swapped via
-                    // opacity, not removal, so the menu stays reachable by keyboard/VoiceOver.
+                    // Swapped via opacity, not removal, so the kebab stays reachable by
+                    // keyboard/VoiceOver; hit-testing gated so the invisible menu can't
+                    // swallow row-selection clicks.
                     ZStack(alignment: .trailing) {
                         Text(Self.relativeShort(session.updated_at))
                             .font(.caption2)
@@ -298,6 +298,7 @@ struct SessionRow: View {
                         .menuIndicator(.hidden)
                         .fixedSize()
                         .opacity(hovering ? 1 : 0)
+                        .allowsHitTesting(hovering)
                         .accessibilityLabel("Chat actions")
                     }
                 }

@@ -51,7 +51,7 @@ struct UsageIndicator<Agents: AgentsService>: View {
         }
     }
 
-    /// A 20pt progress ring with a descriptive glyph at its center.
+    /// A progress ring with a descriptive glyph at its center.
     private func ring(_ fraction: Double, color: Color, symbol: String) -> some View {
         ZStack {
             Circle().stroke(Color.secondary.opacity(0.25), lineWidth: 2.5)

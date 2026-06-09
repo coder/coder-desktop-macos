@@ -2,10 +2,11 @@ import AppKit
 import CoderSDK
 import Foundation
 
-/// Thin client of the Coder Agents "Chats" API. All execution happens server-side in
-/// governed workspaces; this service only lists, launches, streams, messages, and stops
-/// sessions. It deliberately does NOT resolve tool calls, store provider keys, or run
-/// anything locally.
+// Thin client of the Coder Agents "Chats" API. All execution happens server-side in
+// governed workspaces; this service only lists, launches, streams, messages, and stops
+// sessions. It deliberately does NOT resolve tool calls, store provider keys, or run
+// anything locally.
+
 /// Per-message send options, bundled so call signatures stay small.
 struct SendOptions: Sendable {
     var modelConfigID: UUID?

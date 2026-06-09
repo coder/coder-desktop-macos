@@ -140,8 +140,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     if agents.hasOlder(session.id) {
                         topLoader(proxy: proxy, anchorID: items.first?.id)
                     }
-                    // Committed rows are never mid-stream (streaming: false); the in-flight turn is
-                    // rendered separately below by StreamingTailView.
                     ForEach(items) { item in
                         TranscriptItemView<Agents>(
                             item: item, chatID: session.id, maxWidth: maxWidth, streaming: false,
@@ -204,8 +202,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
 }
 
 extension AgentSessionDetail {
-    /// Composer matches the Coder web layout: controls sit inside the box, model picker
-    /// and context-usage gauge at bottom-left, send at bottom-right.
+    /// Composer: controls inside the box; model picker, context gauge, and send at bottom-right.
     private var composer: some View {
         VStack(spacing: 8) {
             if editingMessageID != nil {
@@ -363,8 +360,11 @@ extension AgentSessionDetail {
                     modelConfigID: selectedModelConfigID,
                     planMode: planMode ? .plan : nil,
                     // Full desired connector set (replace semantics) so toggling a connector
-                    // mid-chat actually attaches/detaches it for the next turn.
-                    mcpServerIDs: Array(selectedMCP)
+                    // mid-chat actually attaches/detaches it. But if the server never told us
+                    // the chat's set (nil) and the user touched nothing, send nil — an empty
+                    // array would WIPE connectors the server has that we can't see.
+                    mcpServerIDs: selectedMCP.isEmpty && session.mcp_server_ids == nil
+                        ? nil : Array(selectedMCP)
                 )
             )
             sending = false

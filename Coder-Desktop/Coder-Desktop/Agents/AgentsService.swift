@@ -292,6 +292,9 @@ private extension CoderAgentsService {
         // A terminal session won't produce more output — don't hammer reconnects.
         if sessions.first(where: { $0.id == id })?.status.isTerminal == true { return false }
         if let resp = try? await client.chatMessages(id, afterID: afterID) {
+            // Re-check after the suspension: an edit may have cancelled this stream and replaced
+            // the history while we were fetching — merging then would resurrect deleted messages.
+            guard !Task.isCancelled else { return false }
             mergeMessages(resp.messages, into: id)
         }
         state.recordFailure(sawEvent: sawEvent)

@@ -1,6 +1,10 @@
 import CoderSDK
 import SwiftUI
 
+// Compiled once — this runs on every keystroke/selection change. NSRegularExpression is
+// immutable and thread-safe.
+nonisolated(unsafe) private let skillTriggerRegex = try? NSRegularExpression(pattern: "(?:^|\\s)/(\\S*)$")
+
 /// Finds an active "/skill" trigger token ending at the caret: a "/" at the start of input
 /// or after whitespace, followed by non-whitespace. Returns the token range (slash..caret)
 /// and the query after the slash, mirroring the web's `(?:^|\s)/(\S*)$`.
@@ -8,7 +12,7 @@ func parseSkillTrigger(in text: String, caret: Int) -> (range: NSRange, query: S
     let ns = text as NSString
     guard caret >= 0, caret <= ns.length else { return nil }
     let upto = ns.substring(to: caret)
-    guard let re = try? NSRegularExpression(pattern: "(?:^|\\s)/(\\S*)$") else { return nil }
+    guard let re = skillTriggerRegex else { return nil }
     let full = NSRange(location: 0, length: (upto as NSString).length)
     guard let match = re.firstMatch(in: upto, range: full) else { return nil }
     let queryRange = match.range(at: 1)

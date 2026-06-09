@@ -328,8 +328,9 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
             Text(pill.label).font(.caption).lineLimit(1)
             Button(action: pill.remove) {
                 Image(systemName: "xmark").font(.caption2)
-                    .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
-                    .contentShape(Rectangle())
+                    // Negative inset grows the hit area to ~24pt (WCAG 2.5.8) without the
+                    // layout-frame growth that made the capsule 50% taller.
+                    .contentShape(Rectangle().inset(by: -7))
             }
             .buttonStyle(.borderless)
             .accessibilityLabel("Remove \(pill.label)")

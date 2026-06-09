@@ -1,10 +1,7 @@
 import CoderSDK
 import SwiftUI
 
-/// The session header's trailing actions: Share. (The side-panel toggle now lives in the window
-/// toolbar, mirroring the left sidebar's collapse button; stop-while-running is the composer's
-/// send button; tool-activity visibility lives in Settings; archive / archive-and-delete live in
-/// the sidebar's session context menu, so there's no header kebab.)
+/// The session header's trailing action: the Share popover.
 struct SessionHeaderActions<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     let session: Chat

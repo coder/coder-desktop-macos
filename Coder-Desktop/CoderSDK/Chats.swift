@@ -6,7 +6,7 @@ import Foundation
 /// streams, messages, and stops sessions.
 public extension Client {
     /// Lists the current user's chat sessions. `query` uses Coder's filter syntax,
-    /// e.g. `owner:me`.
+    /// e.g. `status:running`. (The endpoint is already owner-scoped; an `owner:` filter 400s.)
     func chats(query: String? = nil) async throws(SDKError) -> [Chat] {
         var path = "/api/experimental/chats"
         if let query, !query.isEmpty {

@@ -44,7 +44,9 @@ extension AgentSessionDetail {
                 ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
         }
         attachedWorkspaceID = session.workspace_id
-        guard !agents.modelConfigs.isEmpty || !agents.workspaces.isEmpty else { return }
+        // Only model configs matter for sealing: if workspaces happened to load first, the OR
+        // would seal the composer with no model selected and the configs' onChange would no-op.
+        guard !agents.modelConfigs.isEmpty else { return }
         didSeedComposer = true
     }
 
