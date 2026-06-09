@@ -23,7 +23,10 @@ final class CoderAgentsService: AgentsService {
     @Published var messagesBySession: [UUID: [ChatMessage]] = [:]
     /// Whether older messages exist before the earliest loaded one (for scroll-back paging).
     @Published var hasOlderBySession: [UUID: Bool] = [:]
-    @Published var streamingPartsBySession: [UUID: [ChatMessagePart]] = [:]
+    // The in-flight streamed parts live in a SEPARATE observable (held as a plain `let`, not
+    // `@Published`) so per-token appends don't fire this service's objectWillChange — only the
+    // streaming-tail view observes them, not the whole screen.
+    let streamingStore = StreamingStore()
     /// Messages queued while the agent is busy (shown above the composer).
     @Published var queuedMessagesBySession: [UUID: [ChatQueuedMessage]] = [:]
     @Published var diffBySession: [UUID: ChatDiffContents] = [:]
@@ -135,7 +138,7 @@ final class CoderAgentsService: AgentsService {
     func stopStreaming(_ id: UUID) {
         streamTasks[id]?.cancel()
         streamTasks[id] = nil
-        streamingPartsBySession[id] = []
+        streamingStore.clear(id)
     }
 
     func interrupt(_ id: UUID) async {
@@ -253,7 +256,7 @@ private extension CoderAgentsService {
             let afterID = messagesBySession[id]?.map(\.id).max()
             // Each (re)subscribe replays from the last committed message, so drop any
             // half-streamed parts first to avoid duplicating them on reconnect.
-            streamingPartsBySession[id] = []
+            streamingStore.clear(id)
             var sawEvent = false
             do {
                 for try await event in client.chatEvents(id: id, afterID: afterID) {
@@ -313,13 +316,13 @@ private extension CoderAgentsService {
         mergeMessages([message], into: id)
         // A completed assistant message supersedes the in-flight buffer.
         if message.role == .assistant {
-            streamingPartsBySession[id] = []
+            streamingStore.clear(id)
         }
     }
 
     func clearStreamingParts(for id: UUID, generation: Int) {
         guard streamGeneration[id] == generation else { return }
-        streamingPartsBySession[id] = []
+        streamingStore.clear(id)
     }
 
     func updateStatus(_ status: ChatStatus, for id: UUID) {
@@ -340,7 +343,7 @@ extension CoderAgentsService {
             applyMessageEvent(event.message, to: id)
         case .messagePart:
             if let part = event.message_part?.part {
-                appendStreamingPart(part, to: id)
+                streamingStore.append(part, to: id)
             }
         case .status:
             if let status = event.status?.status {
@@ -355,19 +358,6 @@ extension CoderAgentsService {
         case .retry, .actionRequired, .unknown:
             break
         }
-    }
-
-    /// Appends a streamed part, merging consecutive text/reasoning deltas into the last part. The
-    /// server sends one part per token, so without this the buffer grows linearly and the per-event
-    /// transcript build + coalesce becomes O(n²) over a turn. Merge semantics match MessageView.coalesce.
-    private func appendStreamingPart(_ part: ChatMessagePart, to id: UUID) {
-        var parts = streamingPartsBySession[id] ?? []
-        if let last = parts.last, last.type == part.type, part.type == .text || part.type == .reasoning {
-            parts[parts.count - 1] = ChatMessagePart(type: last.type, text: (last.text ?? "") + (part.text ?? ""))
-        } else {
-            parts.append(part)
-        }
-        streamingPartsBySession[id] = parts
     }
 
     /// Updates a session's `shared` flag locally (after an ACL change) so the share icon

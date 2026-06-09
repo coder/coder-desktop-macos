@@ -11,7 +11,7 @@ extension CoderAgentsService {
 
     /// The in-flight assistant turn's streamed parts, if any.
     func streamingParts(for id: UUID) -> [ChatMessagePart] {
-        streamingPartsBySession[id] ?? []
+        streamingStore.parts(for: id)
     }
 
     func diff(for id: UUID) -> ChatDiffContents? {
