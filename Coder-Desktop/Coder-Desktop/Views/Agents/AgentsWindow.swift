@@ -15,12 +15,12 @@ struct AgentsWindow<Agents: AgentsService>: View {
     @EnvironmentObject var state: AppState
     /// Ships behind an off-by-default flag. Gated here too (not just the menu entry) so
     /// window-state restoration can't reopen it after the flag is turned off.
-    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled: Bool = false
+    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled = false
 
     @State private var route: AgentsRoute?
-    @State private var search: String = ""
+    @State private var search = ""
     @State private var renaming: Chat?
-    @State private var renameText: String = ""
+    @State private var renameText = ""
     @State private var deletingWorkspace: Chat?
     @State private var showingSettings = false
 
@@ -336,9 +336,9 @@ struct SessionRow: View {
 
     @ViewBuilder
     private var rowMenu: some View {
-        Button { onOpen() } label: { Label("Open in browser", systemImage: "safari") }
-        Button { onRename() } label: { Label("Rename", systemImage: "pencil") }
-        Button { onTogglePin() } label: {
+        Button(action: onOpen) { Label("Open in browser", systemImage: "safari") }
+        Button(action: onRename) { Label("Rename", systemImage: "pencil") }
+        Button(action: onTogglePin) {
             Label(session.isPinned ? "Unpin" : "Pin", systemImage: session.isPinned ? "pin.slash" : "pin")
         }
         Divider()

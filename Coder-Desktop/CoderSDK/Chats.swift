@@ -170,7 +170,6 @@ public extension Client {
         return try decode(ChatDiffContents.self, from: res.data)
     }
 
-    /// Renames a chat.
     func renameChat(_ id: UUID, title: String) async throws(SDKError) {
         try await updateChat(id, .init(title: title))
     }
@@ -220,9 +219,9 @@ struct UserChatPrompt: Codable {
 public struct CreateChatRequest: Encodable, Sendable {
     public let organization_id: UUID
     public let content: [ChatInputPart]
-    public let workspace_id: UUID? // optional workspace/repo selection
-    public let model_config_id: UUID? // optional model selection
-    public let mcp_server_ids: [UUID]? // optional MCP integrations to attach
+    public let workspace_id: UUID?
+    public let model_config_id: UUID?
+    public let mcp_server_ids: [UUID]?
     public let client_type: ChatClientType
     public let plan_mode: ChatPlanMode? // "plan" to start the chat in plan mode
 
