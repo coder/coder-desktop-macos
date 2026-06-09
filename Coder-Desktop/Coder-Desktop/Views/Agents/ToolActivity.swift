@@ -5,6 +5,10 @@ struct ToolStep: Identifiable {
     let id: String
     var call: ChatMessagePart?
     var result: ChatMessagePart?
+    /// The unified diff for an `edit_files` step, parsed out of the result JSON once when the step
+    /// is built. Cached here because it's read on every body eval (hasDetail, the +/− badge, and
+    /// the expanded diff) and re-parsing the result per token while streaming added up.
+    private(set) var editDiff: String?
 
     /// Pairs tool-call/tool-result parts by `tool_call_id`, regardless of arrival order.
     static func steps(from parts: [ChatMessagePart]) -> [ToolStep] {
@@ -23,6 +27,7 @@ struct ToolStep: Identifiable {
                 ))
             }
         }
+        for idx in steps.indices { steps[idx].editDiff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff }
         return steps
     }
 
@@ -91,11 +96,6 @@ struct ToolStep: Identifiable {
     /// The compaction summary (markdown), shown when a `chat_summarized` step expands.
     var summary: String? {
         result?.summaryText ?? source?.summaryText
-    }
-
-    /// The unified diff for an `edit_files` step (rendered inline when expanded).
-    var editDiff: String? {
-        result?.editDiff ?? source?.editDiff
     }
 
     /// Total additions/deletions across the edit's diff, for the row's "+A −D" badge.

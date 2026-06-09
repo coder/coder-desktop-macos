@@ -130,39 +130,14 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     if agents.hasOlder(session.id) {
                         topLoader(proxy: proxy, anchorID: items.first?.id)
                     }
+                    // Committed rows are never mid-stream (streaming: false); the in-flight turn is
+                    // rendered separately below by StreamingTailView.
                     ForEach(items) { item in
-                        Group {
-                            switch item.kind {
-                            case let .bubble(role, parts, messageID):
-                                // Committed bubbles are never mid-stream; the in-flight turn is
-                                // rendered separately by StreamingTailView (which sets streaming: true).
-                                MessageView(
-                                    role: role, parts: parts, contentMaxWidth: maxWidth, streaming: false
-                                )
-                                    .equatable()
-                                    .id(item.id)
-                                    .contextMenu {
-                                        Button("Copy") { copyToPasteboard(MessageView.plainText(parts)) }
-                                        if role == .user, let messageID {
-                                            Button("Edit") { startEditing(messageID, MessageView.plainText(parts)) }
-                                        }
-                                    }
-                            case let .tools(steps):
-                                ToolGroupView(steps: steps).id(item.id)
-                            case let .summary(part):
-                                SummaryBlockView(part: part).id(item.id)
-                            case let .plan(step):
-                                PlanView<Agents>(chatID: session.id, step: step).id(item.id)
-                            case let .question(step):
-                                AskQuestionView<Agents>(
-                                    chatID: session.id, step: step,
-                                    interactive: item.id == interactiveQuestionID
-                                ).id(item.id)
-                            }
-                        }
-                        // Every agent-side block gets the same subtle card; the user's own
-                        // message keeps its accent bubble (rendered inside MessageView).
-                        .modifier(AgentCard(active: !item.isUserBubble))
+                        TranscriptItemView<Agents>(
+                            item: item, chatID: session.id, maxWidth: maxWidth, streaming: false,
+                            questionInteractive: item.id == interactiveQuestionID,
+                            onEdit: startEditing
+                        )
                     }
                     StreamingTailView<Agents>(
                         store: agents.streamingStore, sessionID: session.id,

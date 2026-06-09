@@ -21,23 +21,9 @@ struct StreamingTailView<Agents: AgentsService>: View {
         // track total length to keep the view pinned to the bottom as text streams in.
         let textLength = streamingParts.reduce(0) { $0 + ($1.text?.count ?? 0) }
         ForEach(items) { item in
-            Group {
-                switch item.kind {
-                case let .bubble(role, parts, _):
-                    MessageView(role: role, parts: parts, contentMaxWidth: maxWidth, streaming: isActive)
-                        .id(item.id)
-                case let .tools(steps):
-                    ToolGroupView(steps: steps).id(item.id)
-                case let .summary(part):
-                    SummaryBlockView(part: part).id(item.id)
-                case let .plan(step):
-                    PlanView<Agents>(chatID: sessionID, step: step).id(item.id)
-                case let .question(step):
-                    // Questions are interactive only once committed (the parent handles that).
-                    AskQuestionView<Agents>(chatID: sessionID, step: step, interactive: false).id(item.id)
-                }
-            }
-            .modifier(AgentCard(active: !item.isUserBubble))
+            TranscriptItemView<Agents>(
+                item: item, chatID: sessionID, maxWidth: maxWidth, streaming: isActive
+            )
         }
         // Pin to the bottom as text streams in (length grows) AND as new tool-only rows appear
         // (a tool call with no text would otherwise not move the scroll position).
@@ -48,25 +34,6 @@ struct StreamingTailView<Agents: AgentsService>: View {
     private func scrollToBottom() {
         withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
             proxy.scrollTo(bottomAnchorID, anchor: .bottom)
-        }
-    }
-}
-
-/// The shared agent-side card: a subtle full-width background so the agent's text, thinking,
-/// tools, and summaries all read as one consistent surface (the user's bubble opts out). Used by
-/// both the committed transcript (AgentSessionDetail) and the streaming tail.
-struct AgentCard: ViewModifier {
-    let active: Bool
-
-    func body(content: Content) -> some View {
-        if active {
-            content
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.secondary.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
-        } else {
-            content
         }
     }
 }
