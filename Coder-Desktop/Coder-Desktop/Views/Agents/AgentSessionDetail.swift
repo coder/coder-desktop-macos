@@ -79,6 +79,16 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .onChange(of: session.status) { _, new in
             if new == .completed, completionChime { NSSound.beep() }
         }
+        // Panel toggle in the window toolbar (trailing), echoing the left sidebar's collapse button.
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { withAnimation(.easeOut(duration: 0.18)) { showPanel.toggle() } } label: {
+                    Image(systemName: showPanel ? "sidebar.right" : "sidebar.squares.right")
+                }
+                .help("Toggle Git / Terminal / Desktop panel")
+                .accessibilityLabel("Toggle side panel")
+            }
+        }
     }
 
     private var header: some View {
@@ -100,7 +110,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            SessionHeaderActions<Agents>(session: session, showPanel: $showPanel)
+            SessionHeaderActions<Agents>(session: session)
         }
         .padding(Theme.Size.trayInset)
     }
