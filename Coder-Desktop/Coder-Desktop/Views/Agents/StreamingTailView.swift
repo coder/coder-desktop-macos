@@ -19,7 +19,7 @@ struct StreamingTailView<Agents: AgentsService>: View {
         let items = TranscriptBuilder.build(messages: [], streaming: streamingParts, showTools: showTools)
         // Revealed text grows per token (parts are coalesced, so a count alone wouldn't change);
         // track total length to keep the view pinned to the bottom as text streams in.
-        let textLength = streamingParts.reduce(0) { $0 + ($1.text?.count ?? 0) }
+        let textLength = store.textLength(for: sessionID)
         ForEach(items) { item in
             TranscriptItemView<Agents>(
                 item: item, chatID: sessionID, maxWidth: maxWidth, streaming: isActive

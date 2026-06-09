@@ -79,10 +79,13 @@ struct WorkspacePill<Agents: AgentsService>: View {
         return result
     }
 
+    private var isStarting: Bool { ["starting", "pending"].contains(status) }
+
     var body: some View {
-        // Only show as attached while the workspace is running — a stopped one has no apps,
+        // Attached = running (full pill) or mid-start (dimmed, disabled — so the pill doesn't
+        // silently vanish during a 30–120s rebuild). Stopped workspaces show nothing: no apps,
         // ports, or SSH to offer (matches the web, which drops the attachment when shut down).
-        if let workspace, status == "running" {
+        if let workspace, status == "running" || isStarting {
             Menu {
                 ForEach(entries) { entry in
                     Button { NSWorkspace.shared.open(entry.openURL) } label: {
@@ -127,6 +130,8 @@ struct WorkspacePill<Agents: AgentsService>: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            .opacity(isStarting ? 0.5 : 1)
+            .disabled(isStarting)
             .help(status.isEmpty ? workspace.name : "Workspace \(status)")
             .accessibilityLabel("Workspace \(workspace.name)\(status.isEmpty ? "" : ", \(status)")")
             .task(id: workspaceID) {

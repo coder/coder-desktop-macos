@@ -75,7 +75,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Terminal/Desktop are remote-stream viewers (PTY / VNC) — pending a native emulator.
+    /// Shown when the session has no attached workspace (or Coder Connect is off).
     private func streamPlaceholder(title: String, systemImage: String, detail: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: systemImage).font(.largeTitle).foregroundStyle(.secondary)

@@ -91,8 +91,10 @@ private struct DiffParser {
     }
 
     private func isHeaderNoise(_ raw: String) -> Bool {
-        ["--- ", "index ", "new file", "deleted file", "rename ", "similarity ", "old mode", "new mode"]
-            .contains { raw.hasPrefix($0) }
+        [
+            "--- ", "index ", "new file", "deleted file", "rename ", "similarity ",
+            "old mode", "new mode", "Binary files ",
+        ].contains { raw.hasPrefix($0) }
     }
 
     private func gitPath(_ line: String) -> String {

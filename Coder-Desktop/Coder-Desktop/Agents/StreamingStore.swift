@@ -8,9 +8,17 @@ import Foundation
 @MainActor
 final class StreamingStore: ObservableObject {
     @Published private(set) var partsBySession: [UUID: [ChatMessagePart]] = [:]
+    // Maintained incrementally on append — summing part texts per token would be an
+    // O(message-so-far) grapheme walk, quadratic over a long turn.
+    private var textLengthBySession: [UUID: Int] = [:]
 
     func parts(for id: UUID) -> [ChatMessagePart] {
         partsBySession[id] ?? []
+    }
+
+    /// Total streamed text length — the cheap per-token change key for scroll pinning.
+    func textLength(for id: UUID) -> Int {
+        textLengthBySession[id] ?? 0
     }
 
     /// Appends a streamed part, merging consecutive text/reasoning deltas into the last part so
@@ -23,15 +31,13 @@ final class StreamingStore: ObservableObject {
         } else {
             parts.append(part)
         }
+        textLengthBySession[id, default: 0] += part.text?.count ?? 0
         partsBySession[id] = parts
     }
 
     func clear(_ id: UUID) {
         guard partsBySession[id]?.isEmpty == false else { return }
         partsBySession[id] = []
-    }
-
-    func clearAll() {
-        partsBySession.removeAll()
+        textLengthBySession[id] = 0
     }
 }

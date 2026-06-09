@@ -123,6 +123,11 @@ extension ChatMessagePart {
         guard let value else { return nil }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        // Without this, a NaN/Infinity in tool output makes encode throw → an expandable row
+        // that opens to nothing (nonEmpty said there was detail; the encoder disagreed).
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(
+            positiveInfinity: "Infinity", negativeInfinity: "-Infinity", nan: "NaN"
+        )
         guard let data = try? encoder.encode(value), let string = String(data: data, encoding: .utf8) else {
             return nil
         }

@@ -41,7 +41,6 @@ struct MessageView: View, Equatable {
     var body: some View {
         if hasContent {
             if role == .user {
-                // The user's messages sit right in an accent bubble.
                 HStack(spacing: 0) {
                     Spacer(minLength: 40)
                     VStack(alignment: .trailing, spacing: 6) {

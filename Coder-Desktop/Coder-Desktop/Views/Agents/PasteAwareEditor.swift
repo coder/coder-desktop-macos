@@ -51,8 +51,9 @@ struct AttachmentChipsView: View {
                         Text(attachment.label).font(.caption2)
                         Button { attachments.removeAll { $0.id == attachment.id } } label: {
                             Image(systemName: "xmark.circle.fill").font(.caption2)
-                                .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
-                                .contentShape(Rectangle())
+                                // Hit-area-only growth to ~24pt (WCAG 2.5.8); a layout frame
+                                // here would stretch the chip's height.
+                                .contentShape(Rectangle().inset(by: -6))
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Remove attachment")

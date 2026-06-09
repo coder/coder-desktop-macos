@@ -74,6 +74,9 @@ final class VNCModel: ObservableObject {
         do {
             port = try await relay.start()
         } catch {
+            // stop() mid-start cancels the relay and already reset status to .idle — leaving a
+            // .failed here would make the next start()'s `status == .idle` guard refuse forever.
+            if self.relay !== relay { return }
             status = .failed("Couldn't reach the workspace desktop. Is Coder Connect connected?")
             return
         }
