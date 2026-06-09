@@ -54,8 +54,6 @@ protocol AgentsService: ObservableObject {
 
     /// Live output for a session.
     func messages(for id: UUID) -> [ChatMessage]
-    /// The in-flight assistant turn's parts (reasoning / tool calls / text), if any.
-    func streamingParts(for id: UUID) -> [ChatMessagePart]
     /// The separate observable holding in-flight streamed parts. Observed only by the streaming
     /// tail view, so per-token updates don't re-render the whole screen.
     var streamingStore: StreamingStore { get }

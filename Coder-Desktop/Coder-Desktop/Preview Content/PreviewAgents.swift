@@ -70,10 +70,6 @@ final class PreviewAgents: AgentsService {
 
     let streamingStore = StreamingStore()
 
-    func streamingParts(for id: UUID) -> [ChatMessagePart] {
-        streamingStore.parts(for: id)
-    }
-
     func startStreaming(_: UUID) {}
     func stopStreaming(_: UUID) {}
     func hasOlder(_: UUID) -> Bool {

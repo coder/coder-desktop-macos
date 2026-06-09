@@ -16,7 +16,6 @@ private struct DiffRowFrameKey: PreferenceKey {
 /// add/delete/context coloring. The server hands us a ready unified-diff string, so this
 /// only parses its structure — it doesn't compute diffs.
 struct DiffView: View {
-    let text: String
     /// When set, the line-number gutter becomes selectable: click a line, or drag across the
     /// gutter to select a range, then comment inline and send it (as structured file-reference
     /// parts, plus the note) into the chat composer.
@@ -35,7 +34,6 @@ struct DiffView: View {
     private let selectableIDs: Set<Int>
 
     init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
-        self.text = text
         self.onAddToChat = onAddToChat
         files = DiffFile.parseCached(text)
         selectableIDs = Set(files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id))

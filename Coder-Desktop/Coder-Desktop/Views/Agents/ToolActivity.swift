@@ -50,9 +50,9 @@ struct ToolStep: Identifiable {
         guard let source else { return "Tool" }
         // The model's own intent is the most descriptive title (matches the web) — use it for
         // tools we'd otherwise label generically (MCP servers, search, anything unrecognized).
-        let intent = call?.modelIntent ?? source.modelIntent
-        switch source.toolKind {
-        case .execute: return "Ran \(call?.commandPrograms ?? source.commandPrograms ?? "command")"
+        let intent = source.modelIntent
+        switch kind {
+        case .execute: return "Ran \(source.commandPrograms ?? "command")"
         case .readFile: return "Read \(source.fileBasename ?? "file")"
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
         case .search:
@@ -86,7 +86,7 @@ struct ToolStep: Identifiable {
     }
 
     var command: String? {
-        call?.fullCommand ?? source?.fullCommand
+        source?.fullCommand
     }
 
     var output: String? {
@@ -94,10 +94,10 @@ struct ToolStep: Identifiable {
     }
 
     var readPath: String? {
-        source?.toolKind == .readFile ? source?.filePath : nil
+        kind == .readFile ? source?.filePath : nil
     }
 
-    var isSummary: Bool { source?.toolKind == .summarize }
+    var isSummary: Bool { kind == .summarize }
 
     /// The compaction summary (markdown), shown when a `chat_summarized` step expands.
     var summary: String? {
@@ -113,8 +113,8 @@ struct ToolStep: Identifiable {
 
     /// Raw tool input/output (pretty JSON), the fallback so a step we don't render specially
     /// (e.g. a search) is still expandable and shows what it did and what it found.
-    var argsJSON: String? { call?.argsJSON ?? source?.argsJSON }
-    var resultJSON: String? { result?.resultJSON ?? source?.resultJSON }
+    var argsJSON: String? { source?.argsJSON }
+    var resultJSON: String? { result?.resultJSON ?? call?.resultJSON }
 
     var hasDetail: Bool {
         command?.isEmpty == false || output?.isEmpty == false

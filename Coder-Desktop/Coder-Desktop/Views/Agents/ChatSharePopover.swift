@@ -1,6 +1,16 @@
 import CoderSDK
 import SwiftUI
 
+// Display-name fallbacks shared by the candidate list and the shared-with rows (the org and
+// ACL models carry the same fields as distinct types).
+private func personTitle(name: String?, username: String) -> String {
+    name?.isEmpty == false ? name! : username
+}
+
+private func groupTitle(displayName: String?, name: String?) -> String {
+    displayName?.isEmpty == false ? displayName! : (name ?? "Group")
+}
+
 /// The chat-sharing popover (web parity): search org users/groups to grant read access, see
 /// who it's shared with, and revoke. Sharing is ACL-based — there's no public link.
 struct ChatSharePopover<Agents: AgentsService>: View {
@@ -25,8 +35,8 @@ struct ChatSharePopover<Agents: AgentsService>: View {
         }
         var title: String {
             switch self {
-            case let .user(m): m.name?.isEmpty == false ? m.name! : m.username
-            case let .group(g): g.display_name?.isEmpty == false ? g.display_name! : (g.name ?? "Group")
+            case let .user(m): personTitle(name: m.name, username: m.username)
+            case let .group(g): groupTitle(displayName: g.display_name, name: g.name)
             }
         }
 
@@ -88,12 +98,15 @@ struct ChatSharePopover<Agents: AgentsService>: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(acl?.users ?? []) { user in
                         sharedRow(
-                            user.name?.isEmpty == false ? user.name! : user.username,
+                            personTitle(name: user.name, username: user.username),
                             "@\(user.username)", icon: "person.crop.circle"
                         ) { Task { await agents.unshareUser(session.id, userID: user.id); await load() } }
                     }
                     ForEach(acl?.groups ?? []) { group in
-                        sharedRow(groupTitle(group), "Group", icon: "person.3") {
+                        sharedRow(
+                            groupTitle(displayName: group.display_name, name: group.name),
+                            "Group", icon: "person.3"
+                        ) {
                             Task { await agents.unshareGroup(session.id, groupID: group.id); await load() }
                         }
                     }
@@ -133,10 +146,6 @@ struct ChatSharePopover<Agents: AgentsService>: View {
                 .accessibilityLabel("Remove \(title)")
             }
         }
-    }
-
-    private func groupTitle(_ group: ChatACLGroup) -> String {
-        group.display_name?.isEmpty == false ? group.display_name! : (group.name ?? "Group")
     }
 
     private func load() async {

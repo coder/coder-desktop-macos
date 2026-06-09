@@ -30,7 +30,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 header
                 Divider()
                 if let error = agents.loadError {
-                    banner(icon: "exclamationmark.triangle.fill", tint: .orange, text: error)
+                    errorBanner(error)
                 }
                 transcript
                 Divider()
@@ -88,15 +88,15 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .padding(Theme.Size.trayInset)
     }
 
-    private func banner(icon: String, tint: Color, text: String) -> some View {
+    private func errorBanner(_ text: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon).foregroundStyle(tint).accessibilityHidden(true)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
             Text(text).font(.caption).lineLimit(2)
             Spacer()
         }
         .padding(.horizontal, Theme.Size.trayInset)
         .padding(.vertical, 6)
-        .background(tint.opacity(0.1))
+        .background(Color.orange.opacity(0.1))
     }
 
     private var transcript: some View {
