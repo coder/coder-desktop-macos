@@ -30,6 +30,21 @@ public extension Client {
         return try decode(WorkspaceAgentListeningPortsResponse.self, from: res.data).ports
     }
 
+    /// Wildcard hostname for proxied workspace apps/ports (e.g. `*.apps.dev.coder.com`);
+    /// empty when the deployment has no wildcard access URL configured.
+    func appHost() async throws(SDKError) -> String {
+        let res = try await request("/api/v2/applications/host", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(AppHostResponse.self, from: res.data).host
+    }
+
+    /// The workspace's shared ports (port-sharing ACLs), for the pill's Shared Ports section.
+    func workspacePortShares(_ workspaceID: UUID) async throws(SDKError) -> [WorkspaceAgentPortShare] {
+        let res = try await request("/api/v2/workspaces/\(workspaceID.uuidString)/port-share", method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(WorkspaceAgentPortShares.self, from: res.data).shares
+    }
+
     /// Permanently deletes a workspace by queuing a `delete` build. Returns when the build
     /// has been accepted (the teardown then runs server-side).
     func deleteWorkspace(_ id: UUID) async throws(SDKError) {
@@ -70,15 +85,43 @@ public struct WorkspacesResponse: Codable, Sendable {
     public let count: Int
 }
 
+public struct AppHostResponse: Codable, Sendable {
+    public let host: String
+}
+
+public struct WorkspaceAgentPortShares: Codable, Sendable {
+    public let shares: [WorkspaceAgentPortShare]
+}
+
+public struct WorkspaceAgentPortShare: Codable, Sendable, Equatable, Identifiable {
+    public let agent_name: String
+    public let port: Int
+    public let share_level: String // owner | authenticated | organization | public
+    public let `protocol`: String // http | https
+    public var id: String { "\(agent_name):\(port)" }
+
+    public init(agent_name: String, port: Int, share_level: String, protocol: String) {
+        self.agent_name = agent_name
+        self.port = port
+        self.share_level = share_level
+        self.`protocol` = `protocol`
+    }
+}
+
 public struct Workspace: Codable, Identifiable, Sendable {
     public let id: UUID
     public let name: String
+    public let owner_name: String?
     public let organization_id: UUID?
     public let latest_build: WorkspaceBuild
 
-    public init(id: UUID, name: String, organization_id: UUID? = nil, latest_build: WorkspaceBuild) {
+    public init(
+        id: UUID, name: String, owner_name: String? = nil,
+        organization_id: UUID? = nil, latest_build: WorkspaceBuild
+    ) {
         self.id = id
         self.name = name
+        self.owner_name = owner_name
         self.organization_id = organization_id
         self.latest_build = latest_build
     }
@@ -108,12 +151,17 @@ public struct WorkspaceResource: Codable, Identifiable, Sendable {
 
 public struct WorkspaceAgent: Codable, Identifiable, Sendable {
     public let id: UUID
+    public let name: String?
     public let expanded_directory: String? // `omitempty`
     public let apps: [WorkspaceApp]
     public let display_apps: [DisplayApp]
 
-    public init(id: UUID, expanded_directory: String?, apps: [WorkspaceApp], display_apps: [DisplayApp]) {
+    public init(
+        id: UUID, name: String? = nil, expanded_directory: String?,
+        apps: [WorkspaceApp], display_apps: [DisplayApp]
+    ) {
         self.id = id
+        self.name = name
         self.expanded_directory = expanded_directory
         self.apps = apps
         self.display_apps = display_apps

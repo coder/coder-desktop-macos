@@ -11,17 +11,22 @@ struct WorkspacePill<Agents: AgentsService>: View {
     let workspaceID: UUID
 
     @State private var ports: [WorkspaceAgentListeningPort] = []
+    @State private var shares: [WorkspaceAgentPortShare] = []
+    @State private var appHost = ""
+    @State private var portsLoaded = false
 
     private var workspace: CoderSDK.Workspace? {
         agents.workspaces.first { $0.id == workspaceID }
     }
 
-    private var agentID: UUID? {
+    private var agent: WorkspaceAgent? {
         for resource in workspace?.latest_build.resources ?? [] {
-            if let agent = resource.agents?.first { return agent.id }
+            if let agent = resource.agents?.first { return agent }
         }
         return nil
     }
+
+    private var agentID: UUID? { agent?.id }
 
     private var sshHost: String? {
         guard let name = workspace?.name else { return nil }
@@ -92,17 +97,7 @@ struct WorkspacePill<Agents: AgentsService>: View {
                         appLabel(entry)
                     }
                 }
-                if !ports.isEmpty, let host = sshHost {
-                    Menu("Ports (\(ports.count))") {
-                        ForEach(ports) { port in
-                            Button {
-                                if let url = URL(string: "http://\(host):\(port.port)") { NSWorkspace.shared.open(url) }
-                            } label: {
-                                Text(verbatim: "\(port.port)  \(port.process_name)")
-                            }
-                        }
-                    }
-                }
+                portsMenu
                 Divider()
                 if let host = sshHost {
                     Button { copyToPasteboard("ssh \(host)") } label: {
@@ -136,9 +131,80 @@ struct WorkspacePill<Agents: AgentsService>: View {
             .accessibilityLabel("Workspace \(workspace.name)\(status.isEmpty ? "" : ", \(status)")")
             .task(id: workspaceID) {
                 agents.loadWorkspaceAppIcons(entries.compactMap(\.iconURL))
-                if let agentID { ports = await agents.listeningPorts(agentID: agentID) }
+                await reloadPorts()
             }
         }
+    }
+
+    /// The Ports submenu, mirroring the web's: always present, listening + shared sections,
+    /// an empty state, and a "Manage sharing" link. Refreshes when the submenu opens.
+    private var portsMenu: some View {
+        Menu(portsLoaded ? "Ports (\(ports.count))" : "Ports") {
+            Section("Listening Ports") {
+                if portsLoaded, privatePorts.isEmpty, shares.isEmpty {
+                    Text("No open ports detected.")
+                }
+                ForEach(privatePorts) { port in
+                    portRow("\(port.port)  \(port.process_name)", port: port.port, proto: "http")
+                }
+            }
+            .onAppear { Task { await reloadPorts() } }
+            if !shares.isEmpty {
+                Section("Shared Ports") {
+                    ForEach(shares) { share in
+                        portRow(
+                            "\(share.port)  \(share.share_level.capitalized)",
+                            port: share.port, proto: share.protocol
+                        )
+                    }
+                }
+            }
+            Divider()
+            if let dashboardURL {
+                Button { NSWorkspace.shared.open(dashboardURL) } label: {
+                    Label("Manage sharing", systemImage: "arrow.up.right.square")
+                }
+            }
+        }
+    }
+
+    /// Listening ports not explicitly shared (shared ones bubble to their own section).
+    private var privatePorts: [WorkspaceAgentListeningPort] {
+        let sharedNumbers = Set(shares.map(\.port))
+        return ports.filter { !sharedNumbers.contains($0.port) }
+    }
+
+    @ViewBuilder
+    private func portRow(_ title: String, port: Int, proto: String) -> some View {
+        if let url = portURL(port, proto: proto) {
+            Button { NSWorkspace.shared.open(url) } label: { Text(verbatim: title) }
+        } else {
+            Text(verbatim: title)
+        }
+    }
+
+    /// Direct over the Coder Connect tunnel (`{proto}://{workspace}.{suffix}:{port}`) — the
+    /// native advantage, no proxy hop. Falls back to the web's coderd port-forward proxy URL
+    /// (`{port}--{agent}--{workspace}--{owner}.{appHost}`) when no tunnel host is available.
+    private func portURL(_ port: Int, proto: String) -> URL? {
+        if let host = sshHost {
+            return URL(string: "\(proto)://\(host):\(port)")
+        }
+        guard !appHost.isEmpty, let agentName = agent?.name, let workspace,
+              let owner = workspace.owner_name, let scheme = state.baseAccessURL?.scheme
+        else { return nil }
+        let suffix = proto == "https" ? "s" : ""
+        let subdomain = "\(port)\(suffix)--\(agentName)--\(workspace.name)--\(owner)"
+        return URL(string: "\(scheme)://\(appHost.replacingOccurrences(of: "*", with: subdomain))")
+    }
+
+    private func reloadPorts() async {
+        if appHost.isEmpty { appHost = await agents.appHost() ?? "" }
+        if let agentID { ports = await agents.listeningPorts(agentID: agentID) }
+        if let agentName = agent?.name {
+            shares = await agents.portShares(workspaceID: workspaceID).filter { $0.agent_name == agentName }
+        }
+        portsLoaded = true
     }
 
     @ViewBuilder
