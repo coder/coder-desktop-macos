@@ -37,6 +37,8 @@ struct DiffView: View {
     /// Parsed once at init — not on every body eval / drag tick (gutter drags re-run `body`).
     private let files: [DiffFile]
 
+    /// Rows beyond the inline cap that aren't rendered (transcript diffs only).
+    private let truncatedRows: Int
     @State private var selected: Set<Int> = []
     // A plain box, NOT @State data: frames stream in on every layout/scroll pass, and body
     // never reads them (only the drag handler does) — @State here re-evaluated the whole
@@ -47,14 +49,38 @@ struct DiffView: View {
     /// Row ids eligible for selection, precomputed so drag ticks don't flatten all rows.
     private let selectableIDs: Set<Int>
 
-    init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
+    /// - Parameter inlineRowCap: caps rendered rows for transcript-embedded diffs. They sit
+    ///   inside the transcript's vertical LazyVStack, where a nested view must size itself —
+    ///   so EVERY row realizes at once. An uncapped multi-thousand-line edit diff froze the
+    ///   whole app (sampled: one giant SwiftUI update pass). The Git panel renders uncapped.
+    init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil, inlineRowCap: Int? = nil) {
         self.onAddToChat = onAddToChat
-        files = DiffFile.parseCached(text)
+        let parsed = DiffFile.parseCached(text)
+        if let cap = inlineRowCap {
+            (files, truncatedRows) = Self.capped(parsed, at: cap)
+        } else {
+            files = parsed
+            truncatedRows = 0
+        }
         // Read-only inline diffs (tool steps, rebuilt per streamed token) never select —
         // don't build an all-rows Set they'll never read.
         selectableIDs = onAddToChat == nil
             ? []
             : Set(files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id))
+    }
+
+    /// First `cap` rows across files, plus how many were dropped.
+    private static func capped(_ files: [DiffFile], at cap: Int) -> ([DiffFile], Int) {
+        let total = files.reduce(0) { $0 + $1.rows.count }
+        guard total > cap else { return (files, 0) }
+        var remaining = cap
+        var result: [DiffFile] = []
+        for var file in files where remaining > 0 {
+            if file.rows.count > remaining { file.rows = Array(file.rows.prefix(remaining)) }
+            remaining -= file.rows.count
+            result.append(file)
+        }
+        return (result, total - cap)
     }
 
     /// The bottom-most selected row, where the inline comment box is anchored.
@@ -83,6 +109,14 @@ struct DiffView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .coordinateSpace(name: "diff")
                 .onPreferenceChange(DiffRowFrameKey.self) { [rowFrames] in rowFrames.frames = $0 }
+                if truncatedRows > 0 {
+                    Text("… \(truncatedRows) more lines — open the Git panel for the full diff")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             if onAddToChat != nil, !selected.isEmpty {
                 bottomBar

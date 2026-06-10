@@ -272,7 +272,10 @@ private struct ToolStepView: View {
             MarkdownText(text: summary).frame(maxWidth: .infinity, alignment: .leading)
         } else if let editDiff = step.editDiff, !editDiff.isEmpty {
             // An edit renders as an inline (read-only) diff.
-            DiffView(text: editDiff).frame(maxWidth: .infinity, alignment: .leading)
+            // Capped: transcript-embedded diffs realize every rendered row at once (they're
+            // inside the outer LazyVStack), and edits open by default — an uncapped large
+            // edit froze the app. The Git panel shows the full diff.
+            DiffView(text: editDiff, inlineRowCap: 200).frame(maxWidth: .infinity, alignment: .leading)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 if let path = step.readPath {
