@@ -37,6 +37,8 @@ final class CoderAgentsService: AgentsService {
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
+    // Internal (not private): the AgentsServiceQueue extension caches the wildcard app host.
+    var cachedAppHost: String?
     private var didEmitViewOpened = false
     var nextOptimisticID: Int64 = -1
     // Most-recently-open sessions, for bounded retention: per-chat state is evicted beyond
@@ -79,6 +81,7 @@ final class CoderAgentsService: AgentsService {
         workspaceAppIcons.removeAll()
         recentSessions.removeAll()
         cachedOrgID = nil
+        cachedAppHost = nil
         hasLoadedOnce = false
         loadError = nil
     }

@@ -80,6 +80,10 @@ protocol AgentsService: ObservableObject {
 
     /// A WebSocket request for the agent's reconnecting PTY (terminal), or nil if signed out.
     func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
+    /// Wildcard app hostname for proxied port URLs (cached per sign-in); nil/empty when unset.
+    func appHost() async -> String?
+    /// The workspace's shared ports (port-sharing ACLs).
+    func portShares(workspaceID: UUID) async -> [WorkspaceAgentPortShare]
 
     /// Sends a follow-up message; returns true on success (false lets the caller restore the draft).
     /// `extraParts` are non-text content (file attachments, diff file-references).

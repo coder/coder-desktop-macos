@@ -19,6 +19,19 @@ extension CoderAgentsService {
         return (try? await client.agentListeningPorts(agentID)) ?? []
     }
 
+    func appHost() async -> String? {
+        if let cachedAppHost { return cachedAppHost }
+        guard let client else { return nil }
+        let host = (try? await client.appHost()) ?? ""
+        cachedAppHost = host
+        return host
+    }
+
+    func portShares(workspaceID: UUID) async -> [WorkspaceAgentPortShare] {
+        guard let client else { return [] }
+        return (try? await client.workspacePortShares(workspaceID)) ?? []
+    }
+
     /// Promotes a queued message to run immediately, interrupting the current turn.
     func promoteQueued(_ queuedID: Int64, in chatID: UUID) async {
         guard let client else { return }
