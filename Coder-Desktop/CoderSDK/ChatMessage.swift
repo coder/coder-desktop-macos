@@ -47,20 +47,38 @@ public struct ChatMessageUsage: Codable, Sendable, Equatable {
     public let context_limit: Int?
     public let input_tokens: Int?
     public let output_tokens: Int?
+    public let cache_read_tokens: Int?
+    public let cache_creation_tokens: Int?
+    public let reasoning_tokens: Int?
 
     public init(total_tokens: Int? = nil, context_limit: Int? = nil,
-                input_tokens: Int? = nil, output_tokens: Int? = nil)
+                input_tokens: Int? = nil, output_tokens: Int? = nil,
+                cache_read_tokens: Int? = nil, cache_creation_tokens: Int? = nil,
+                reasoning_tokens: Int? = nil)
     {
         self.total_tokens = total_tokens
         self.context_limit = context_limit
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
+        self.cache_read_tokens = cache_read_tokens
+        self.cache_creation_tokens = cache_creation_tokens
+        self.reasoning_tokens = reasoning_tokens
+    }
+
+    /// Context actually occupied: the SUM of all token components, matching the web
+    /// (chatHelpers.extractContextUsageFromMessage). `total_tokens` is NOT that — with prompt
+    /// caching, the cached prefix (≈ the whole history) is only in `cache_read_tokens`, so
+    /// totals read absurdly low (429 vs the real 66K).
+    public var usedTokens: Int? {
+        let components = [input_tokens, output_tokens, cache_read_tokens,
+                          cache_creation_tokens, reasoning_tokens].compactMap { $0 }
+        return components.isEmpty ? nil : components.reduce(0, +)
     }
 
     /// Fraction of the model's context window used (0...1), if both values are present.
     public var contextFraction: Double? {
-        guard let total = total_tokens, let limit = context_limit, limit > 0 else { return nil }
-        return min(1, Double(total) / Double(limit))
+        guard let used = usedTokens, let limit = context_limit, limit > 0 else { return nil }
+        return min(1, Double(used) / Double(limit))
     }
 
     /// Whole-percent context used (0...100), if known.
