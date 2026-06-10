@@ -1,6 +1,14 @@
 import CoderSDK
 import SwiftUI
 
+// Claude Code-style whimsy for the awaiting-first-chunk callout. File-level (not a static on
+// the generic view, which Swift disallows).
+private let thinkingWords = [
+    "Thinking", "Pondering", "Noodling", "Brewing", "Percolating", "Conjuring", "Mulling",
+    "Ruminating", "Scheming", "Cogitating", "Marinating", "Tinkering", "Crunching",
+    "Divining", "Hatching", "Incubating", "Musing", "Puzzling", "Plotting", "Synthesizing",
+]
+
 /// Renders the in-flight (streaming) assistant turn. It is the ONLY view that observes the
 /// `StreamingStore`, so streamed tokens re-render just this subtree — not the whole session
 /// screen (header, composer, side panel, committed transcript all stay put). Once the turn
@@ -19,19 +27,23 @@ struct StreamingTailView<Agents: AgentsService>: View {
     let proxy: ScrollViewProxy
     let bottomAnchorID: String
 
+    @State private var thinkingWord = "Thinking"
+
     var body: some View {
         let streamingParts = store.parts(for: sessionID)
         let items = TranscriptBuilder.build(messages: [], streaming: streamingParts, showTools: showTools)
         if awaitingReply, streamingParts.isEmpty {
-            // Mirrors the web's "Thinking..." callout (ChatStatusCallout) for the
-            // awaiting-first-chunk window. The spinner only exists while waiting.
+            // The web's "Thinking..." callout for the awaiting-first-chunk window, with a
+            // random word per wait — picked on APPEAR, stable across re-renders while waiting.
+            // The spinner only exists while waiting.
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Thinking…").font(.callout).foregroundStyle(.secondary)
+                Text("\(thinkingWord)…").font(.callout).foregroundStyle(.secondary)
             }
             .modifier(AgentCard(active: true))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Agent is thinking")
+            .onAppear { thinkingWord = thinkingWords.randomElement() ?? "Thinking" }
         }
         // Revealed text grows per token (parts are coalesced, so a count alone wouldn't change);
         // track total length to keep the view pinned to the bottom as text streams in.
