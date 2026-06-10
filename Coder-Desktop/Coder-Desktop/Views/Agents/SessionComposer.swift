@@ -123,7 +123,7 @@ struct SessionComposer<Agents: AgentsService>: View {
                 .popover(isPresented: $showContextInfo, arrowEdge: .top) {
                     ContextUsagePopover(
                         percent: usage.contextPercent ?? 0,
-                        usedTokens: usage.total_tokens,
+                        usedTokens: usage.usedTokens,
                         contextLimit: usage.context_limit,
                         compactsAtPercent: model.compactionPercent,
                         contextFiles: contextFileNames,
