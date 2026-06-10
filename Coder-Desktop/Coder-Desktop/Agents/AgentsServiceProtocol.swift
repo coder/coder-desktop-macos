@@ -80,6 +80,11 @@ protocol AgentsService: ObservableObject {
 
     /// A WebSocket request for the agent's reconnecting PTY (terminal), or nil if signed out.
     func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
+    /// Live uncommitted changes from the agent's git watcher (the web's "local" diff source).
+    func localRepos(for id: UUID) -> [WorkspaceAgentRepoChanges]
+    /// Subscribe/unsubscribe the git watcher while the Git panel is open.
+    func startGitWatch(_ id: UUID)
+    func stopGitWatch(_ id: UUID)
     /// Wildcard app hostname for proxied port URLs (cached per sign-in); nil/empty when unset.
     func appHost() async -> String?
     /// The workspace's shared ports (port-sharing ACLs).
