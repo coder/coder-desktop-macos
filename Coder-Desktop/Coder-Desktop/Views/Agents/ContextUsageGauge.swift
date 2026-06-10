@@ -83,10 +83,16 @@ struct ContextUsagePopover: View {
         }
     }
 
-    /// Compact token count like the web: 19.7K, 200K (not 19,700).
+    /// Compact token count like the web: 429, 19.7K, 200K, 1M (not "1000K").
     static func compact(_ n: Int) -> String {
-        guard n >= 1000 else { return "\(n)" }
-        let k = Double(n) / 1000
-        return k >= 100 ? "\(Int(k.rounded()))K" : String(format: "%.1fK", k)
+        func scaled(_ value: Double, _ suffix: String) -> String {
+            let rounded = (value * 10).rounded() / 10
+            return rounded == rounded.rounded()
+                ? "\(Int(rounded))\(suffix)"
+                : String(format: "%.1f%@", rounded, suffix)
+        }
+        if n >= 1_000_000 { return scaled(Double(n) / 1_000_000, "M") }
+        if n >= 1000 { return scaled(Double(n) / 1000, "K") }
+        return "\(n)"
     }
 }

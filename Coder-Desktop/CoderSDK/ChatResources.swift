@@ -9,13 +9,20 @@ public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
     public let model: String
     public let display_name: String
     public let is_default: Bool?
+    /// The model's compaction threshold percent — the server's default when the user has no
+    /// per-model override (chatd: `effectiveThreshold = modelConfig.CompressionThreshold`).
+    public let compression_threshold: Int?
 
-    public init(id: UUID, provider: String, model: String, display_name: String, is_default: Bool? = nil) {
+    public init(
+        id: UUID, provider: String, model: String, display_name: String,
+        is_default: Bool? = nil, compression_threshold: Int? = nil
+    ) {
         self.id = id
         self.provider = provider
         self.model = model
         self.display_name = display_name
         self.is_default = is_default
+        self.compression_threshold = compression_threshold
     }
 
     /// Display label, falling back to the model id when the server gives no display name.
