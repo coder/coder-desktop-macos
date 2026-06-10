@@ -322,6 +322,9 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     /// The MCP servers (connectors) currently attached to this chat; seeds the composer's
     /// connector picker so reopening/switching chats reflects each chat's real set.
     public var mcp_server_ids: [UUID]?
+    /// The normalized error that put the chat into `.error`, for the sidebar snippet and the
+    /// transcript's error card (web parity — "Error" alone is undebuggable).
+    public var last_error: ChatError?
 
     public init(
         id: UUID,
@@ -338,7 +341,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         last_model_config_id: UUID? = nil,
         diff_status: ChatDiffStatus? = nil,
         shared: Bool? = nil,
-        mcp_server_ids: [UUID]? = nil
+        mcp_server_ids: [UUID]? = nil,
+        last_error: ChatError? = nil
     ) {
         self.id = id
         self.title = title
@@ -355,6 +359,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.diff_status = diff_status
         self.shared = shared
         self.mcp_server_ids = mcp_server_ids
+        self.last_error = last_error
     }
 
     /// Whether the chat is pinned (pin_order > 0).

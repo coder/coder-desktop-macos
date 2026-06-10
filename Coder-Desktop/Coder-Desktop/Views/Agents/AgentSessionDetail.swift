@@ -125,6 +125,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         isActive: session.status.isActive, showTools: showToolActivity,
                         maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor
                     )
+                    if session.status == .error, let chatError = session.last_error {
+                        ChatErrorCard(error: chatError).frame(maxWidth: maxWidth)
+                    }
                     Color.clear.frame(height: 1).id(bottomAnchor)
                 }
                 .padding(Theme.Size.trayInset)
@@ -175,6 +178,37 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     private func addReferences(_ references: [ChatInputPart], note: String) {
         composer.addReferences(references, note: note)
         if !showPanel { showPanel = true }
+    }
+
+    /// Web-parity error card at the end of an errored chat: the normalized message, the raw
+    /// provider detail, and the upstream HTTP status.
+    private struct ChatErrorCard: View {
+        let error: ChatError
+
+        var body: some View {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.circle")
+                    .foregroundStyle(.red)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Request failed").font(.callout.weight(.semibold))
+                    Text(error.message ?? "The agent run failed.").textSelection(.enabled)
+                    if let detail = error.detail, !detail.isEmpty {
+                        Text(detail)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                    if let code = error.status_code, code > 0 {
+                        Text("HTTP \(code)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .background(Color.secondary.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
+        }
     }
 
     /// The id of the latest question that's still interactive: only when the turn has
