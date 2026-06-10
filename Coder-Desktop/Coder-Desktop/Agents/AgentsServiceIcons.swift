@@ -41,27 +41,42 @@ extension CoderAgentsService {
     }
 
     /// Whether an icon is a SINGLE-color glyph (every opaque pixel grayscale AND roughly the
-    /// same luminance) — only those should be tinted to the label color. Grayscale art with
-    /// internal contrast (e.g. Notion's black cube + white N) must NOT be templated: template
-    /// rendering keeps only the alpha channel, flattening it into a solid blob.
+    /// same luminance) — only those become template images, AppKit's native mechanism for
+    /// label-colored, theme-adaptive glyphs. Grayscale art with internal contrast (e.g.
+    /// Notion's black cube + white N) must NOT be templated: template rendering keeps only
+    /// the alpha channel, flattening it into a solid blob.
+    ///
+    /// Renders once into a 16×16 sRGB bitmap and scans the raw bytes — deterministic
+    /// colorspace and no per-pixel NSColor sampling.
     nonisolated static func isMonochrome(_ image: NSImage) -> Bool {
-        guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return false }
-        let width = rep.pixelsWide, height = rep.pixelsHigh
-        guard width > 0, height > 0 else { return false }
+        let side = 16
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let ctx = CGContext(
+                  data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+                  space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else { return false }
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: side, height: side))
+        guard let data = ctx.data else { return false }
+        let px = data.bindMemory(to: UInt8.self, capacity: side * side * 4)
+
         var sawOpaque = false
-        var minLum = 1.0, maxLum = 0.0
-        for y in stride(from: 0, to: height, by: max(1, height / 16)) {
-            for x in stride(from: 0, to: width, by: max(1, width / 16)) {
-                guard let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.1 else { continue }
-                sawOpaque = true
-                let (r, g, b) = (color.redComponent, color.greenComponent, color.blueComponent)
-                if max(r, g, b) - min(r, g, b) > 0.12 { return false }
-                let lum = (Double(r) + Double(g) + Double(b)) / 3
-                minLum = min(minLum, lum)
-                maxLum = max(maxLum, lum)
-            }
+        var minLum = 255, maxLum = 0
+        for i in stride(from: 0, to: side * side * 4, by: 4) {
+            let alpha = Int(px[i + 3])
+            guard alpha > 25 else { continue } // skip transparent + antialiased fringe
+            sawOpaque = true
+            // Un-premultiply so edge pixels compare on true color, not alpha-darkened values.
+            let r = min(255, Int(px[i]) * 255 / alpha)
+            let g = min(255, Int(px[i + 1]) * 255 / alpha)
+            let b = min(255, Int(px[i + 2]) * 255 / alpha)
+            if max(r, g, b) - min(r, g, b) > 30 { return false } // saturated color → keep as-is
+            let lum = (r + g + b) / 3
+            minLum = min(minLum, lum)
+            maxLum = max(maxLum, lum)
         }
-        return sawOpaque && maxLum - minLum < 0.3
+        return sawOpaque && maxLum - minLum < 75
     }
 
     /// Fetches connector icons (svg/png/webp) via SDWebImage (the SVG coder is registered
