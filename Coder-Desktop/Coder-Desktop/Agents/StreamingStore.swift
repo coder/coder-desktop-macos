@@ -36,8 +36,13 @@ final class StreamingStore: ObservableObject {
     }
 
     func clear(_ id: UUID) {
-        guard partsBySession[id]?.isEmpty == false else { return }
-        partsBySession[id] = []
-        textLengthBySession[id] = 0
+        textLengthBySession.removeValue(forKey: id)
+        guard partsBySession[id] != nil else { return } // don't publish a no-op
+        partsBySession.removeValue(forKey: id)
+    }
+
+    func removeAll() {
+        partsBySession.removeAll()
+        textLengthBySession.removeAll()
     }
 }

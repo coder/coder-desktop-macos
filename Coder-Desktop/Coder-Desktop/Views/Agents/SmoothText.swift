@@ -59,6 +59,10 @@ struct SmoothMarkdownText: View {
     var isStreaming = false
 
     @State private var engine = SmoothTextEngine()
+    // Drives `paused:` via real state: the schedule only re-reads `paused` on a body re-eval,
+    // which never happens during an in-turn stall (tool calls) — without this the timeline
+    // kept ticking at 30fps doing O(text) prefix copies for nothing.
+    @State private var caughtUp = false
 
     var body: some View {
         if isStreaming {
@@ -67,19 +71,29 @@ struct SmoothMarkdownText: View {
             let fullCount = text.count
             // 30fps is indistinguishable for a typewriter reveal and halves the per-frame
             // prefix/diff work on long messages (display refresh would tick at up to 120Hz).
-            TimelineView(.animation(minimumInterval: 1 / 30, paused: engine.isCaughtUp(fullCount))) { context in
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: caughtUp)) { context in
                 let count = engine.advance(to: context.date, fullCount: fullCount, isStreaming: true)
+                let reachedEnd = count >= fullCount
+                let _ = scheduleCatchUpPauseIfNeeded(reachedEnd) // swiftlint:disable:this redundant_discardable_let
                 // Plain text for the WHOLE stream. Swapping to MarkdownText at each catch-up
                 // re-parsed the full message (and re-highlighted its code blocks, always a cache
                 // miss on the growing text) several times a second — a repeated main-thread
                 // hitch plus a styled/plain flicker. Styling snaps in once the turn commits.
-                Text(String(text.prefix(count)))
+                Text(reachedEnd ? text : String(text.prefix(count)))
                     .textSelection(.enabled)
                     .accessibilityAddTraits(.updatesFrequently)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .onChange(of: text) { caughtUp = false } // next token resumes the reveal
         } else {
             MarkdownText(text: text)
         }
+    }
+
+    /// Flips `caughtUp` (pausing the timeline) outside the current view update — state can't
+    /// be mutated from inside the TimelineView content closure.
+    private func scheduleCatchUpPauseIfNeeded(_ reachedEnd: Bool) {
+        guard reachedEnd, !caughtUp else { return }
+        DispatchQueue.main.async { caughtUp = true }
     }
 }

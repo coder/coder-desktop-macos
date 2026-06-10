@@ -17,6 +17,7 @@ struct HighlightrSyntaxHighlighter: CodeSyntaxHighlighter {
         let instance = Highlightr()
         instance?.setTheme(to: theme)
         highlightr = instance
+        cache.countLimit = 256 // one entry per distinct code block; bound a marathon session
     }
 
     func highlightCode(_ code: String, language: String?) -> Text {

@@ -24,8 +24,11 @@ final class VoiceInput: ObservableObject {
     }
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "voice-input")
-    private let recognizer = SFSpeechRecognizer()
-    private let engine = AVAudioEngine()
+    // Lazy: the composer's `@State VoiceInput()` initializer runs on every parent body eval
+    // (several/sec during runs) and the throwaways must not each build an audio engine and a
+    // speech recognizer. Only the retained instance ever touches these.
+    private lazy var recognizer = SFSpeechRecognizer()
+    private lazy var engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var tapInstalled = false
@@ -79,29 +82,7 @@ final class VoiceInput: ObservableObject {
         request.requiresOnDeviceRecognition = true // never send dictated audio to Apple's cloud
         self.request = request
 
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        // @Sendable so the tap doesn't inherit this method's MainActor isolation — AVAudio
-        // invokes it on its realtime messenger queue and an isolated closure traps at entry
-        // (the third such trap in this file; every SDK callback here is queue-agnostic).
-        // `append(from:)` is the documented audio-thread usage for the request.
-        nonisolated(unsafe) let tapRequest = request
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable [weak self] buffer, _ in
-            tapRequest.append(buffer)
-            // RMS loudness for the button's pulse; ~47 buffers/sec, computed off-main.
-            guard let self, let channel = buffer.floatChannelData?.pointee else { return }
-            let frames = Int(buffer.frameLength)
-            guard frames > 0 else { return }
-            var sum: Float = 0
-            for i in 0 ..< frames { sum += channel[i] * channel[i] }
-            // ×6 maps typical speech RMS (~0.05–0.15) onto the halo's mid-range.
-            let loudness = min(1.0, Double((sum / Float(frames)).squareRoot()) * 6)
-            Task { @MainActor in
-                // Fast attack, slow decay, so the pulse tracks speech without flickering.
-                self.level = loudness > self.level ? loudness : self.level * 0.7 + loudness * 0.3
-            }
-        }
-        tapInstalled = true
+        installTap(feeding: request)
         engine.prepare()
         do {
             try engine.start()
@@ -148,6 +129,33 @@ final class VoiceInput: ObservableObject {
                 if failure != nil || isFinal { self.stop() }
             }
         }
+    }
+
+    /// Feeds mic buffers to the recognition request and derives the loudness level.
+    private func installTap(feeding request: SFSpeechAudioBufferRecognitionRequest) {
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        // @Sendable so the tap doesn't inherit this method's MainActor isolation — AVAudio
+        // invokes it on its realtime messenger queue and an isolated closure traps at entry
+        // (the third such trap in this file; every SDK callback here is queue-agnostic).
+        // `append(from:)` is the documented audio-thread usage for the request.
+        nonisolated(unsafe) let tapRequest = request
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable [weak self] buffer, _ in
+            tapRequest.append(buffer)
+            // RMS loudness for the button's pulse; ~47 buffers/sec, computed off-main.
+            guard let self, let channel = buffer.floatChannelData?.pointee else { return }
+            let frames = Int(buffer.frameLength)
+            guard frames > 0 else { return }
+            var sum: Float = 0
+            for i in 0 ..< frames { sum += channel[i] * channel[i] }
+            // ×6 maps typical speech RMS (~0.05–0.15) onto the halo's mid-range.
+            let loudness = min(1.0, Double((sum / Float(frames)).squareRoot()) * 6)
+            Task { @MainActor in
+                // Fast attack, slow decay, so the pulse tracks speech without flickering.
+                self.level = loudness > self.level ? loudness : self.level * 0.7 + loudness * 0.3
+            }
+        }
+        tapInstalled = true
     }
 
     func stop() {

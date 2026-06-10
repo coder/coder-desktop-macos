@@ -1,6 +1,17 @@
 import AppKit
 import CoderSDK
 import SwiftUI
+
+// The streaming tail rebuilds its ToolSteps per token; re-walking the result JSON and joining
+// the full diff each time was the dominant remaining per-token cost on edit-heavy turns. A
+// result's diff is immutable once delivered, so cache by tool_call_id (thread-safe NSCache;
+// empty string = "extracted, no diff").
+nonisolated(unsafe) private let editDiffCache: NSCache<NSString, NSString> = {
+    let cache = NSCache<NSString, NSString>()
+    cache.countLimit = 256
+    return cache
+}()
+
 struct ToolStep: Identifiable {
     let id: String
     var call: ChatMessagePart?
@@ -31,7 +42,19 @@ struct ToolStep: Identifiable {
             }
         }
         for idx in steps.indices {
-            steps[idx].editDiff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff
+            // Cache keyed by the result's tool_call_id only — fallback "idx-" ids aren't
+            // globally unique, and a call-only step's diff can still change when its result lands.
+            if let callID = steps[idx].result?.tool_call_id {
+                if let cached = editDiffCache.object(forKey: callID as NSString) {
+                    steps[idx].editDiff = cached.length == 0 ? nil : cached as String
+                } else {
+                    let diff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff
+                    steps[idx].editDiff = diff
+                    editDiffCache.setObject((diff ?? "") as NSString, forKey: callID as NSString)
+                }
+            } else {
+                steps[idx].editDiff = steps[idx].result?.editDiff ?? steps[idx].call?.editDiff
+            }
             steps[idx].kind = (steps[idx].call ?? steps[idx].result)?.toolKind ?? .other
         }
         return steps
