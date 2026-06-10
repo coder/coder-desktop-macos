@@ -114,7 +114,8 @@ public extension Client {
     }
 }
 
-private extension URLSessionWebSocketTask.Message {
+// Internal: shared with the git-watch stream (ChatGitWatch.swift).
+extension URLSessionWebSocketTask.Message {
     /// Normalises a received frame to its UTF-8 bytes for JSON decoding.
     var data: Data {
         switch self {
@@ -128,8 +129,9 @@ private extension URLSessionWebSocketTask.Message {
 /// Holds the socket so it can be torn down from `onTermination`, which may run on a
 /// different thread than the streaming task. The `task` reference itself is written on the
 /// stream task and read/cancelled from `onTermination`, so it's guarded by a lock — not just
-/// the (already thread-safe) `cancel`/`closeCode` calls made on it.
-private final class WebSocketBox: @unchecked Sendable {
+/// the (already thread-safe) `cancel`/`closeCode` calls made on it. Internal: shared with
+/// the git-watch stream (ChatGitWatch.swift).
+final class WebSocketBox: @unchecked Sendable {
     private let lock = NSLock()
     private var _task: URLSessionWebSocketTask?
 

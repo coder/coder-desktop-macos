@@ -102,4 +102,44 @@ extension CoderAgentsService {
         guard streamGeneration[id] == generation else { return }
         streamTasks[id] = nil
     }
+
+    // MARK: Git watch (the web Git panel's "local" diff source)
+
+    /// Subscribes to the agent's live working-tree snapshots while the Git panel is open.
+    func startGitWatch(_ id: UUID) {
+        guard gitWatchTasks[id] == nil, client != nil else { return }
+        gitWatchTasks[id] = Task { [weak self] in await self?.runGitWatch(id) }
+    }
+
+    func stopGitWatch(_ id: UUID) {
+        gitWatchTasks[id]?.cancel()
+        gitWatchTasks[id] = nil
+    }
+
+    func localRepos(for id: UUID) -> [WorkspaceAgentRepoChanges] {
+        localReposBySession[id] ?? []
+    }
+
+    private func runGitWatch(_ id: UUID) async {
+        guard let client else { return }
+        var reconnect = ReconnectState()
+        while !Task.isCancelled {
+            do {
+                for try await message in client.chatGitEvents(id: id) {
+                    if Task.isCancelled { break }
+                    reconnect.reset()
+                    // Each `changes` message is a full snapshot — replace, don't merge.
+                    if message.type == "changes", let repos = message.repositories {
+                        localReposBySession[id] = repos.filter { $0.removed != true }
+                    }
+                }
+                break // clean close (workspace stopped / no workspace) — reopen restarts
+            } catch {
+                reconnect.recordFailure(sawEvent: false)
+                if reconnect.exhausted { break }
+                try? await Task.sleep(for: reconnect.backoff)
+                reconnect.increaseBackoff()
+            }
+        }
+    }
 }

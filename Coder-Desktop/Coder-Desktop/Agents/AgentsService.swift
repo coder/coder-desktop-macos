@@ -30,6 +30,10 @@ final class CoderAgentsService: AgentsService {
     /// Messages queued while the agent is busy (shown above the composer).
     @Published var queuedMessagesBySession: [UUID: [ChatQueuedMessage]] = [:]
     @Published var diffBySession: [UUID: ChatDiffContents] = [:]
+    /// Live uncommitted changes from the workspace agent's git watcher (the web's "local"
+    /// diff source), per chat. Populated while the Git panel is open.
+    @Published var localReposBySession: [UUID: [WorkspaceAgentRepoChanges]] = [:]
+    var gitWatchTasks: [UUID: Task<Void, Never>] = [:]
     /// Optimistically-echoed user messages, shown until the server reflects them.
     @Published var pendingSendsBySession: [UUID: [ChatMessage]] = [:]
 
@@ -64,6 +68,9 @@ final class CoderAgentsService: AgentsService {
     private func reset() {
         for (_, task) in streamTasks { task.cancel() }
         streamTasks.removeAll()
+        for (_, task) in gitWatchTasks { task.cancel() }
+        gitWatchTasks.removeAll()
+        localReposBySession.removeAll()
         streamGeneration.removeAll()
         streamingStore.removeAll()
         sessions = []
@@ -197,6 +204,7 @@ final class CoderAgentsService: AgentsService {
         hasOlderBySession.removeValue(forKey: id)
         queuedMessagesBySession.removeValue(forKey: id)
         diffBySession.removeValue(forKey: id)
+        localReposBySession.removeValue(forKey: id)
         pendingSendsBySession.removeValue(forKey: id)
         streamGeneration.removeValue(forKey: id)
     }
