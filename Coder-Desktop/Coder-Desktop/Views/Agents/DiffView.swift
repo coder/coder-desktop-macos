@@ -2,6 +2,20 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
+/// Installs hover tracking only on selectable rows (the gutter highlight is the sole reader).
+private struct HoverIfSelectable: ViewModifier {
+    let selectable: Bool
+    @Binding var hovering: Bool
+
+    func body(content: Content) -> some View {
+        if selectable {
+            content.onHover { hovering = $0 }
+        } else {
+            content
+        }
+    }
+}
+
 /// Collects each diff row's vertical extent (in the shared "diff" coordinate space) so a
 /// drag over the gutter can map to a range of rows.
 private struct DiffRowFrameKey: PreferenceKey {
@@ -231,7 +245,9 @@ private struct DiffRowView: View {
         .padding(.vertical, 1)
         .background(isSelected ? Color.accentColor.opacity(0.18) : row.background)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-        .onHover { hovering = $0 }
+        // Hover only feeds the gutter's selection highlight — read-only diffs shouldn't pay
+        // a tracking area per row (large diffs realize thousands of rows).
+        .modifier(HoverIfSelectable(selectable: selectable, hovering: $hovering))
     }
 
     /// The line-number gutter: click/drag here to select line range(s). Reports its frame so
