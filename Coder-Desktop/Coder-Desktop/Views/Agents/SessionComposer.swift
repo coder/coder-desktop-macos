@@ -171,17 +171,18 @@ struct SessionComposer<Agents: AgentsService>: View {
         }
     }
 
+    // Wording, icon, and labels mirror the web's history-edit banner (AgentChatInput).
     private var editWarning: some View {
         HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+            Image(systemName: "pencil").font(.caption).foregroundStyle(.orange)
                 .accessibilityHidden(true)
             Text("Editing will delete all subsequent messages and restart the conversation here.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.orange)
             Spacer()
             Button(action: model.cancelEditing) { Image(systemName: "xmark") }
                 .buttonStyle(.borderless)
-                .help("Cancel edit")
-                .accessibilityLabel("Cancel edit")
+                .help("Cancel editing")
+                .accessibilityLabel("Cancel editing")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
