@@ -12,6 +12,8 @@ final class VoiceInput: ObservableObject {
     /// User-facing reason the last attempt failed (shown as a popover on the mic button) —
     /// without it a failure reads as the button silently flipping back to idle.
     @Published var failureMessage: String?
+    /// Deep link to the System Settings pane that fixes the failure, when one applies.
+    @Published var failureSettingsURL: URL?
 
     /// Whether on-device speech recognition is usable (a recognizer exists for the locale AND it
     /// can run on-device). We require on-device so dictated audio never leaves the machine.
@@ -35,6 +37,7 @@ final class VoiceInput: ObservableObject {
     private func start(onText: @escaping (String) -> Void) {
         self.onText = onText
         failureMessage = nil
+        failureSettingsURL = nil
         // Flip synchronously so a quick second tap routes to stop() instead of starting a
         // second engine/tap (installing a second tap on the bus would crash).
         isRecording = true
@@ -93,8 +96,11 @@ final class VoiceInput: ObservableObject {
                 if let failure {
                     self.logger.error("recognition failed: \(failure, privacy: .public)")
                     self.failureMessage = dictationOff
-                        ? "Voice input needs Dictation: System Settings → Keyboard → Dictation."
-                        : "Voice input failed. Check microphone access in System Settings → Privacy."
+                        ? "Voice input needs Dictation, which is turned off."
+                        : "Voice input failed. Check the app's microphone access."
+                    self.failureSettingsURL = URL(string: dictationOff
+                        ? "x-apple.systempreferences:com.apple.Keyboard-Settings.extension?Dictation"
+                        : "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
                 }
                 if failure != nil || isFinal { self.stop() }
             }
@@ -145,10 +151,22 @@ struct VoiceInputButton: View {
             get: { voice.failureMessage != nil },
             set: { if !$0 { voice.failureMessage = nil } }
         ), arrowEdge: .top) {
-            Text(voice.failureMessage ?? "")
-                .font(.caption)
-                .padding(10)
-                .frame(maxWidth: 280)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(voice.failureMessage ?? "")
+                    .font(.caption)
+                    // A fixed width (not maxWidth) forces wrapping — popover sizing otherwise
+                    // collapses the text to one truncated line.
+                    .fixedSize(horizontal: false, vertical: true)
+                if let url = voice.failureSettingsURL {
+                    Button("Open Settings…") {
+                        NSWorkspace.shared.open(url)
+                        voice.failureMessage = nil
+                    }
+                    .controlSize(.small)
+                }
+            }
+            .padding(10)
+            .frame(width: 240)
         }
         // Deterministically stop if the composer goes away mid-recording so the mic indicator
         // doesn't linger until the @StateObject is eventually deallocated.
