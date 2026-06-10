@@ -1,3 +1,4 @@
+import Combine
 import CoderSDK
 import os
 import SwiftUI
@@ -38,10 +39,48 @@ final class CoderAgentsService: AgentsService {
     private var cachedOrgID: UUID?
     private var didEmitViewOpened = false
     var nextOptimisticID: Int64 = -1
+    // Most-recently-open sessions, for bounded retention: per-chat state is evicted beyond
+    // the last few (the JSONL cache rehydrates instantly on reopen). Unbounded, a long
+    // session retains every visited chat's full transcript (~MBs each).
+    private var recentSessions: [UUID] = []
+    private var cancellables: Set<AnyCancellable> = []
 
     init(state: AppState, telemetry: Telemetry = LoggerTelemetry()) {
         self.state = state
         self.telemetry = telemetry
+        // Sign-out must drop all account-scoped state: a different account must not see (or
+        // send — cachedOrgID! — ) the previous one's data, and old-token streams must die now,
+        // not after the reconnect backoff exhausts.
+        state.$hasSession
+            .removeDuplicates()
+            .filter { !$0 }
+            .sink { [weak self] _ in self?.reset() }
+            .store(in: &cancellables)
+    }
+
+    /// Clears everything tied to the signed-in account.
+    private func reset() {
+        for (_, task) in streamTasks { task.cancel() }
+        streamTasks.removeAll()
+        streamGeneration.removeAll()
+        streamingStore.removeAll()
+        sessions = []
+        messagesBySession.removeAll()
+        hasOlderBySession.removeAll()
+        queuedMessagesBySession.removeAll()
+        diffBySession.removeAll()
+        pendingSendsBySession.removeAll()
+        workspaces = []
+        mcpServers = []
+        modelConfigs = []
+        userSkills = []
+        userPrompt = ""
+        mcpIconsByServer.removeAll()
+        workspaceAppIcons.removeAll()
+        recentSessions.removeAll()
+        cachedOrgID = nil
+        hasLoadedOnce = false
+        loadError = nil
     }
 
     var client: CoderSDK.Client? {
@@ -138,6 +177,25 @@ final class CoderAgentsService: AgentsService {
         streamTasks[id]?.cancel()
         streamTasks[id] = nil
         streamingStore.clear(id)
+        // Bounded retention: keep the last few chats' state hot, evict the rest (reopen
+        // rehydrates from the JSONL cache).
+        recentSessions.removeAll { $0 == id }
+        recentSessions.append(id)
+        while recentSessions.count > 8 {
+            let oldest = recentSessions.removeFirst()
+            if streamTasks[oldest] == nil { evictSessionState(oldest) }
+        }
+    }
+
+    /// Drops a chat's in-memory state (messages, diff, paging, queue). Safe to call for an
+    /// open chat only after its stream is stopped.
+    private func evictSessionState(_ id: UUID) {
+        messagesBySession.removeValue(forKey: id)
+        hasOlderBySession.removeValue(forKey: id)
+        queuedMessagesBySession.removeValue(forKey: id)
+        diffBySession.removeValue(forKey: id)
+        pendingSendsBySession.removeValue(forKey: id)
+        streamGeneration.removeValue(forKey: id)
     }
 
     func interrupt(_ id: UUID) async {
@@ -155,6 +213,9 @@ final class CoderAgentsService: AgentsService {
         do {
             try await client.archiveChat(id)
             sessions.removeAll { $0.id == id }
+            evictSessionState(id)
+            recentSessions.removeAll { $0 == id }
+            messageStore.removeCache(id) // archived chats shouldn't keep transcripts on disk
         } catch {
             logger.error("failed to archive: \(error.localizedDescription, privacy: .public)")
         }
@@ -213,106 +274,10 @@ final class CoderAgentsService: AgentsService {
 
 // MARK: - Streaming
 
+// The stream ENGINE (runStream/shouldReconnect/ReconnectState/endStream) lives in
+// AgentsServiceStream.swift; event application stays here with the state it mutates.
 @MainActor
-private extension CoderAgentsService {
-    /// Capped exponential backoff with a give-up threshold for stream reconnects.
-    struct ReconnectState {
-        var backoff: Duration = .seconds(1)
-        var consecutiveFailures = 0
-        let maxBackoff: Duration = .seconds(30)
-        let maxFailures = 6
-
-        var exhausted: Bool {
-            consecutiveFailures >= maxFailures
-        }
-
-        mutating func reset() {
-            backoff = .seconds(1); consecutiveFailures = 0
-        }
-
-        mutating func recordFailure(sawEvent: Bool) {
-            consecutiveFailures = sawEvent ? 0 : consecutiveFailures + 1
-        }
-
-        mutating func increaseBackoff() {
-            backoff = min(maxBackoff, backoff * 2)
-        }
-    }
-
-    /// Streams live output, reconnecting after a drop by replaying only messages newer
-    /// than the last one we hold. Stops cleanly when the run finishes (clean socket
-    /// close) or the session reaches a terminal state.
-    func runStream(_ id: UUID, generation: Int) async {
-        guard let client else { return }
-        seedFromCache(id) // render the JSONL cache instantly, then reconcile below
-        // The server returns the most recent page; older messages page in on scroll-back.
-        if let resp = try? await client.chatMessages(id) {
-            mergeMessages(resp.messages, into: id)
-            hasOlderBySession[id] = resp.has_more ?? hasOlderBySession[id] ?? false
-        }
-        var reconnect = ReconnectState()
-        while !Task.isCancelled, streamGeneration[id] == generation {
-            let afterID = messagesBySession[id]?.map(\.id).max()
-            // Each (re)subscribe replays from the last committed message, so drop any
-            // half-streamed parts first to avoid duplicating them on reconnect.
-            streamingStore.clear(id)
-            var sawEvent = false
-            do {
-                for try await event in client.chatEvents(id: id, afterID: afterID) {
-                    if Task.isCancelled || streamGeneration[id] != generation { break }
-                    sawEvent = true
-                    reconnect.reset()
-                    apply(event, to: id)
-                }
-                clearStreamingParts(for: id, generation: generation)
-                // A clean socket close only means "run finished" when the session is terminal.
-                // A non-terminal clean close (load-balancer recycle, idle timeout, the server
-                // cycling the socket) should resubscribe — with backoff so a socket that closes
-                // immediately each time can't hot-loop.
-                if sessions.first(where: { $0.id == id })?.status.isTerminal == true { break }
-                reconnect.recordFailure(sawEvent: sawEvent)
-                if reconnect.exhausted { break }
-                try? await Task.sleep(for: reconnect.backoff)
-                reconnect.increaseBackoff()
-            } catch {
-                if await !shouldReconnect(id, afterID: afterID, sawEvent: sawEvent, error: error, state: &reconnect) {
-                    break
-                }
-            }
-        }
-        endStream(id, generation: generation)
-    }
-
-    /// Handles a stream drop: catches up via the poll cursor and decides whether to retry.
-    func shouldReconnect(
-        _ id: UUID, afterID: Int64?, sawEvent: Bool, error: Error, state: inout ReconnectState
-    ) async -> Bool {
-        guard let client, !Task.isCancelled, streamGeneration[id] != nil else { return false }
-        // A terminal session won't produce more output — don't hammer reconnects.
-        if sessions.first(where: { $0.id == id })?.status.isTerminal == true { return false }
-        if let resp = try? await client.chatMessages(id, afterID: afterID) {
-            // Re-check after the suspension: an edit may have cancelled this stream and replaced
-            // the history while we were fetching — merging then would resurrect deleted messages.
-            guard !Task.isCancelled else { return false }
-            mergeMessages(resp.messages, into: id)
-        }
-        state.recordFailure(sawEvent: sawEvent)
-        if state.exhausted {
-            loadError = "Lost connection to the agent stream. Reopen the session to retry."
-            logger.error("chat stream giving up: \(error.localizedDescription, privacy: .public)")
-            return false
-        }
-        logger.info("chat stream dropped, reconnecting: \(error.localizedDescription, privacy: .public)")
-        try? await Task.sleep(for: state.backoff)
-        state.increaseBackoff()
-        return true
-    }
-
-    func endStream(_ id: UUID, generation: Int) {
-        guard streamGeneration[id] == generation else { return }
-        streamTasks[id] = nil
-    }
-
+extension CoderAgentsService {
     private func applyMessageEvent(_ message: ChatMessage?, to id: UUID) {
         guard let message else { return }
         mergeMessages([message], into: id)

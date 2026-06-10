@@ -50,7 +50,11 @@ struct DiffView: View {
     init(text: String, onAddToChat: (([ChatInputPart], String) -> Void)? = nil) {
         self.onAddToChat = onAddToChat
         files = DiffFile.parseCached(text)
-        selectableIDs = Set(files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id))
+        // Read-only inline diffs (tool steps, rebuilt per streamed token) never select —
+        // don't build an all-rows Set they'll never read.
+        selectableIDs = onAddToChat == nil
+            ? []
+            : Set(files.flatMap(\.rows).filter { $0.kind != .hunk && $0.kind != .meta }.map(\.id))
     }
 
     /// The bottom-most selected row, where the inline comment box is anchored.

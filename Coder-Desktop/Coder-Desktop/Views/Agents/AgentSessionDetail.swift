@@ -155,7 +155,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     private func topLoader(proxy: ScrollViewProxy, anchorID: String?) -> some View {
         HStack {
             Spacer()
-            ProgressView().controlSize(.small).opacity(loadingOlder ? 1 : 0)
+            // Conditional, not opacity-hidden: an invisible indeterminate spinner still
+            // animates (continuous CA commits). The fixed-height frame avoids layout shift.
+            if loadingOlder { ProgressView().controlSize(.small) }
             Spacer()
         }
         .frame(height: 18)
@@ -172,8 +174,15 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
 
     private let bottomAnchor = "bottom"
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+        // Tool-heavy runs commit several messages/sec; animating each scroll stacks eased
+        // whole-window transactions (the beachball mechanism fixed in be0d02d). Animate only
+        // when the chat is idle (e.g. jumping after a send into a finished chat).
+        if session.status.isActive {
             proxy.scrollTo(bottomAnchor, anchor: .bottom)
+        } else {
+            withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+                proxy.scrollTo(bottomAnchor, anchor: .bottom)
+            }
         }
     }
 

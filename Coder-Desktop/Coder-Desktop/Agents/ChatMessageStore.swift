@@ -60,6 +60,20 @@ final class ChatMessageStore {
         }
     }
 
+    /// Deletes a chat's cache file and pending work (archived chats shouldn't keep
+    /// transcripts on disk). Chained behind any in-flight write so it can't lose the race.
+    func removeCache(_ chatID: UUID) {
+        debounceTasks[chatID]?.cancel()
+        debounceTasks[chatID] = nil
+        pendingSaves[chatID] = nil
+        let fileURL = url(for: chatID)
+        let previous = writeChains[chatID]
+        writeChains[chatID] = Task.detached(priority: .utility) {
+            await previous?.value
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
     /// Encodes committed messages to JSONL and writes atomically. Runs inside the detached
     /// write chain; builds its own encoder because `JSONEncoder` isn't `Sendable`.
     private nonisolated static func write(_ messages: [ChatMessage], to fileURL: URL) {
