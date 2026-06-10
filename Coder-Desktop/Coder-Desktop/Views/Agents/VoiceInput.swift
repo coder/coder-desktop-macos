@@ -68,10 +68,13 @@ final class VoiceInput: ObservableObject {
 
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
-        // Capture the request value, not self: the tap block runs on the realtime audio
-        // thread, so it must not touch MainActor-isolated state.
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [request] buffer, _ in
-            request.append(buffer)
+        // @Sendable so the tap doesn't inherit this method's MainActor isolation — AVAudio
+        // invokes it on its realtime messenger queue and an isolated closure traps at entry
+        // (the third such trap in this file; every SDK callback here is queue-agnostic).
+        // `append(from:)` is the documented audio-thread usage for the request.
+        nonisolated(unsafe) let tapRequest = request
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in
+            tapRequest.append(buffer)
         }
         engine.prepare()
         do {
