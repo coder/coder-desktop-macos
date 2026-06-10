@@ -9,6 +9,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
     let onLaunched: (Chat) -> Void
 
     @State private var prompt = ""
+    @State private var voice = VoiceInput() // owned here so launch() can stop dictation synchronously
     @State private var workspaceID: UUID?
     @State private var modelConfigID: UUID?
     @State private var selectedMCP: Set<UUID> = []
@@ -46,7 +47,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     if !agents.modelConfigs.isEmpty {
                         ModelPicker<Agents>(selectedID: $modelConfigID)
                     }
-                    VoiceInputButton(draft: $prompt)
+                    VoiceInputButton(draft: $prompt, voice: voice)
                     Button(action: launch) {
                         if launching {
                             ProgressView().controlSize(.small)
@@ -102,6 +103,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
     }
 
     private func launch() {
+        voice.stop()
         let typed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty else { return }
         let text = attachments.folded(into: typed)

@@ -46,6 +46,9 @@ struct SessionComposer<Agents: AgentsService>: View {
     @ObservedObject var model: ComposerModel
 
     @State private var showContextInfo = false
+    // Owned here (plain @State, not observed) so send() can stop dictation SYNCHRONOUSLY
+    // before clearing the draft — an in-flight partial would otherwise repopulate the box.
+    @State private var voice = VoiceInput()
     @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
     @AppStorage(Defaults.preferredModel) private var preferredModelID = ""
 
@@ -131,7 +134,7 @@ struct SessionComposer<Agents: AgentsService>: View {
             if !agents.modelConfigs.isEmpty {
                 ModelPicker<Agents>(selectedID: $model.selectedModelConfigID)
             }
-            VoiceInputButton(draft: $model.draft)
+            VoiceInputButton(draft: $model.draft, voice: voice)
             sendButton
         }
     }
@@ -255,15 +258,18 @@ struct SessionComposer<Agents: AgentsService>: View {
         return items.filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
-    /// Loads the compaction threshold for the active model (shown in the context popover).
+    /// Resolves the active model's compaction threshold exactly like the server: the user's
+    /// per-model override if set, else the model config's own `compression_threshold`.
     private func loadCompactionThreshold() async {
-        guard let modelID = (model.selectedModelConfigID ?? session.last_model_config_id)?.uuidString
-        else { return }
-        guard let thresholds = try? await agents.loadCompactionThresholds() else { return }
-        model.compactionPercent = thresholds.first { $0.model_config_id == modelID }?.threshold_percent
+        guard let modelID = model.selectedModelConfigID ?? session.last_model_config_id else { return }
+        let modelDefault = agents.modelConfigs.first { $0.id == modelID }?.compression_threshold
+        let overrides = try? await agents.loadCompactionThresholds()
+        let override = overrides?.first { $0.model_config_id == modelID.uuidString }?.threshold_percent
+        model.compactionPercent = override ?? modelDefault
     }
 
     private func send() {
+        voice.stop() // bumps the dictation generation, so no in-flight partial can refill the box
         let typed = model.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty || !model.attachments.isEmpty || !model.pendingReferences.isEmpty,
               !model.sending else { return }

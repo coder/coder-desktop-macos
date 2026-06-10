@@ -28,11 +28,13 @@ final class VoiceInput: ObservableObject {
     private let engine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
+    private var tapInstalled = false
     private var onText: ((String) -> Void)?
     // On-device recognition restarts its transcript after each silence (utterance boundary),
     // so finished utterances are folded in here — otherwise sentence 2 REPLACES sentence 1.
     private var committed = ""
-    // Bumped on stop() so a stale authorization callback can't start a session we cancelled.
+    // Bumped on stop() so a stale authorization callback can't start a session we cancelled,
+    // and a recognition result already in flight can't repopulate a just-cleared draft.
     private var generation = 0
 
     func toggle(onText: @escaping (String) -> Void) {
@@ -56,7 +58,10 @@ final class VoiceInput: ObservableObject {
                 guard gen == self.generation else { return } // stopped while authorizing
                 guard status == .authorized else {
                     self.logger.error("speech authorization not granted: \(status.rawValue)")
-                    self.isRecording = false
+                    self.fail(
+                        "Speech recognition permission was denied.",
+                        settingsPane: "com.apple.preference.security?Privacy_SpeechRecognition"
+                    )
                     return
                 }
                 self.beginCapture()
@@ -65,8 +70,10 @@ final class VoiceInput: ObservableObject {
     }
 
     private func beginCapture() {
-        guard !engine.isRunning, let recognizer, recognizer.isAvailable,
-              recognizer.supportsOnDeviceRecognition else { isRecording = false; return }
+        guard !engine.isRunning, isSupported else {
+            fail("Speech recognition is unavailable right now.")
+            return
+        }
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true // never send dictated audio to Apple's cloud
@@ -87,25 +94,31 @@ final class VoiceInput: ObservableObject {
             guard frames > 0 else { return }
             var sum: Float = 0
             for i in 0 ..< frames { sum += channel[i] * channel[i] }
+            // ×6 maps typical speech RMS (~0.05–0.15) onto the halo's mid-range.
             let loudness = min(1.0, Double((sum / Float(frames)).squareRoot()) * 6)
             Task { @MainActor in
                 // Fast attack, slow decay, so the pulse tracks speech without flickering.
                 self.level = loudness > self.level ? loudness : self.level * 0.7 + loudness * 0.3
             }
         }
+        tapInstalled = true
         engine.prepare()
         do {
             try engine.start()
         } catch {
             logger.error("audio engine failed to start: \(error.localizedDescription, privacy: .public)")
             cleanup()
+            fail(
+                "Couldn't start the microphone.",
+                settingsPane: "com.apple.preference.security?Privacy_Microphone"
+            )
             return
         }
         // Same trap as the authorization callback: Speech delivers results on its own queue, so
         // the handler must be @Sendable (nonisolated). Extract the Sendable pieces before the
         // hop — SFSpeechRecognitionResult itself can't cross into the MainActor task.
         let gen = generation
-        task = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
+        task = recognizer?.recognitionTask(with: request) { @Sendable [weak self] result, error in
             let text = result?.bestTranscription.formattedString
             let failure = error.map { "\($0)" }
             // kLSRErrorDomain 201: on-device assets exist only when Siri or Dictation is on.
@@ -115,23 +128,22 @@ final class VoiceInput: ObservableObject {
             let utteranceEnded = result?.speechRecognitionMetadata != nil
             let isFinal = result?.isFinal ?? false
             Task { @MainActor in
-                guard let self else { return }
-                // A result already in flight when stop() ran must not repopulate the draft
-                // (e.g. right after Send cleared it).
-                guard gen == self.generation else { return }
-                if let text {
+                guard let self, gen == self.generation else { return }
+                if let text, !text.isEmpty {
                     let combined = self.committed.isEmpty ? text : self.committed + " " + text
-                    if !combined.isEmpty { self.onText?(combined) }
+                    self.onText?(combined)
                     if utteranceEnded { self.committed = combined }
                 }
                 if let failure {
                     self.logger.error("recognition failed: \(failure, privacy: .public)")
-                    self.failureMessage = dictationOff
-                        ? "Voice input needs Dictation, which is turned off."
-                        : "Voice input failed. Check the app's microphone access."
-                    self.failureSettingsURL = URL(string: dictationOff
-                        ? "x-apple.systempreferences:com.apple.Keyboard-Settings.extension?Dictation"
-                        : "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+                    self.fail(
+                        dictationOff
+                            ? "Voice input needs Dictation, which is turned off."
+                            : "Voice input failed. Check the app's microphone access.",
+                        settingsPane: dictationOff
+                            ? "com.apple.Keyboard-Settings.extension?Dictation"
+                            : "com.apple.preference.security?Privacy_Microphone"
+                    )
                 }
                 if failure != nil || isFinal { self.stop() }
             }
@@ -145,21 +157,36 @@ final class VoiceInput: ObservableObject {
         cleanup()
     }
 
+    /// Every failure surfaces through the popover — a silent flip back to idle reads as a
+    /// dead button (and did, repeatedly, before this existed).
+    private func fail(_ message: String, settingsPane: String? = nil) {
+        failureMessage = message
+        failureSettingsURL = settingsPane.flatMap { URL(string: "x-apple.systempreferences:\($0)") }
+        isRecording = false
+    }
+
     private func cleanup() {
-        if engine.isRunning { engine.stop() }
-        engine.inputNode.removeTap(onBus: 0)
+        // Gate on the tap: `engine.inputNode` can raise (uncatchable from Swift) on a Mac with
+        // no input device, and stop() runs unconditionally from onDisappear.
+        if tapInstalled {
+            if engine.isRunning { engine.stop() }
+            engine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
         request = nil
         task = nil
+        onText = nil
         isRecording = false
         level = 0
     }
 }
 
 /// The composer's mic toggle. Captures the current draft as a base, then live-appends the
-/// transcription as the user speaks.
+/// transcription as the user speaks. The `VoiceInput` is owned by the composer (not here) so
+/// the send path can stop dictation synchronously before clearing the draft.
 struct VoiceInputButton: View {
     @Binding var draft: String
-    @StateObject private var voice = VoiceInput()
+    @ObservedObject var voice: VoiceInput
     @State private var base = ""
 
     var body: some View {
@@ -212,16 +239,13 @@ struct VoiceInputButton: View {
             .padding(10)
             .frame(width: 240)
         }
-        // Sending (or manually clearing) the draft while dictating: stop listening, or the
-        // next partial would dump the whole accumulated transcript back into the empty box.
+        // Manually clearing the draft while dictating stops listening (the send path stops
+        // synchronously via its owned VoiceInput; this covers select-all-delete).
         .onChange(of: draft) { _, new in
-            if new.isEmpty, voice.isRecording {
-                voice.stop()
-                base = ""
-            }
+            if new.isEmpty, voice.isRecording { voice.stop() }
         }
         // Deterministically stop if the composer goes away mid-recording so the mic indicator
-        // doesn't linger until the @StateObject is eventually deallocated.
+        // doesn't linger until the owner is eventually deallocated.
         .onDisappear { voice.stop() }
     }
 }
