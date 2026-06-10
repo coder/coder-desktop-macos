@@ -9,6 +9,11 @@ struct StreamingTailView<Agents: AgentsService>: View {
     @ObservedObject var store: StreamingStore
     let sessionID: UUID
     let isActive: Bool
+    /// The conversation is waiting on the assistant (just sent / turn started) — show a
+    /// "Thinking…" callout until the first streamed part arrives, instead of dead air.
+    /// Lives HERE (not the parent) because only this view observes the store, so the callout
+    /// can vanish on the first token without re-rendering the whole screen.
+    var awaitingReply = false
     let showTools: Bool
     let maxWidth: CGFloat
     let proxy: ScrollViewProxy
@@ -17,6 +22,17 @@ struct StreamingTailView<Agents: AgentsService>: View {
     var body: some View {
         let streamingParts = store.parts(for: sessionID)
         let items = TranscriptBuilder.build(messages: [], streaming: streamingParts, showTools: showTools)
+        if awaitingReply, streamingParts.isEmpty {
+            // Mirrors the web's "Thinking..." callout (ChatStatusCallout) for the
+            // awaiting-first-chunk window. The spinner only exists while waiting.
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Thinking…").font(.callout).foregroundStyle(.secondary)
+            }
+            .modifier(AgentCard(active: true))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Agent is thinking")
+        }
         // Revealed text grows per token (parts are coalesced, so a count alone wouldn't change);
         // track total length to keep the view pinned to the bottom as text streams in.
         let textLength = store.textLength(for: sessionID)

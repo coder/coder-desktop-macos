@@ -124,7 +124,13 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     }
                     StreamingTailView<Agents>(
                         store: agents.streamingStore, sessionID: session.id,
-                        isActive: session.status.isActive, showTools: showToolActivity,
+                        isActive: session.status.isActive,
+                        // Web's awaiting-first-chunk gate: an active turn whose last committed
+                        // message isn't the assistant's, or our optimistic echo (negative id)
+                        // covering the window before the server even flips the status.
+                        awaitingReply: (session.status.isActive && messages.last?.role != .assistant)
+                            || (messages.last?.id ?? 0) < 0,
+                        showTools: showToolActivity,
                         maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor
                     )
                     if session.status == .error, let chatError = session.last_error {
