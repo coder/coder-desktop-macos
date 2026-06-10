@@ -187,8 +187,27 @@ public struct ChatStreamStatus: Codable, Sendable {
     public let status: ChatStatus
 }
 
+/// The server's normalized chat error (codersdk `ChatError`) — carried by stream `error`
+/// events and by `Chat.last_error` for errored chats.
 public struct ChatError: Codable, Sendable, Equatable {
+    /// Normalized, user-facing error message.
     public let message: String?
+    /// Optional provider-specific context (raw upstream response).
     public let detail: String?
+    public let kind: String?
+    public let provider: String?
     public let retryable: Bool?
+    /// Best-effort upstream HTTP status code.
+    public let status_code: Int?
+
+    public init(message: String? = nil, detail: String? = nil, kind: String? = nil,
+                provider: String? = nil, retryable: Bool? = nil, status_code: Int? = nil)
+    {
+        self.message = message
+        self.detail = detail
+        self.kind = kind
+        self.provider = provider
+        self.retryable = retryable
+        self.status_code = status_code
+    }
 }

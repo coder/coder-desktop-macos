@@ -322,7 +322,12 @@ struct SessionRow: View {
                 Text(workspaceName)
                 Text("·")
             }
-            Text(session.status.label)
+            // An errored chat shows WHY (web parity) — bare "Error" is undebuggable.
+            if session.status == .error, let message = session.last_error?.message, !message.isEmpty {
+                Text(message).foregroundStyle(.red)
+            } else {
+                Text(session.status.label)
+            }
             if session.shared == true {
                 Spacer(minLength: 4)
                 // .help() is only a tooltip on macOS — VoiceOver needs the explicit label.
