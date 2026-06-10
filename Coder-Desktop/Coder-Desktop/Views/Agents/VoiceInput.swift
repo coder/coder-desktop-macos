@@ -9,6 +9,8 @@ import SwiftUI
 @MainActor
 final class VoiceInput: ObservableObject {
     @Published private(set) var isRecording = false
+    /// Smoothed input loudness (0–1) while recording, driving the mic button's pulse.
+    @Published private(set) var level: Double = 0
     /// User-facing reason the last attempt failed (shown as a popover on the mic button) —
     /// without it a failure reads as the button silently flipping back to idle.
     @Published var failureMessage: String?
@@ -27,6 +29,9 @@ final class VoiceInput: ObservableObject {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var onText: ((String) -> Void)?
+    // On-device recognition restarts its transcript after each silence (utterance boundary),
+    // so finished utterances are folded in here — otherwise sentence 2 REPLACES sentence 1.
+    private var committed = ""
     // Bumped on stop() so a stale authorization callback can't start a session we cancelled.
     private var generation = 0
 
@@ -38,6 +43,7 @@ final class VoiceInput: ObservableObject {
         self.onText = onText
         failureMessage = nil
         failureSettingsURL = nil
+        committed = ""
         // Flip synchronously so a quick second tap routes to stop() instead of starting a
         // second engine/tap (installing a second tap on the bus would crash).
         isRecording = true
@@ -73,8 +79,19 @@ final class VoiceInput: ObservableObject {
         // (the third such trap in this file; every SDK callback here is queue-agnostic).
         // `append(from:)` is the documented audio-thread usage for the request.
         nonisolated(unsafe) let tapRequest = request
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable [weak self] buffer, _ in
             tapRequest.append(buffer)
+            // RMS loudness for the button's pulse; ~47 buffers/sec, computed off-main.
+            guard let self, let channel = buffer.floatChannelData?.pointee else { return }
+            let frames = Int(buffer.frameLength)
+            guard frames > 0 else { return }
+            var sum: Float = 0
+            for i in 0 ..< frames { sum += channel[i] * channel[i] }
+            let loudness = min(1.0, Double((sum / Float(frames)).squareRoot()) * 6)
+            Task { @MainActor in
+                // Fast attack, slow decay, so the pulse tracks speech without flickering.
+                self.level = loudness > self.level ? loudness : self.level * 0.7 + loudness * 0.3
+            }
         }
         engine.prepare()
         do {
@@ -92,10 +109,17 @@ final class VoiceInput: ObservableObject {
             let failure = error.map { "\($0)" }
             // kLSRErrorDomain 201: on-device assets exist only when Siri or Dictation is on.
             let dictationOff = (error as NSError?).map { $0.domain == "kLSRErrorDomain" && $0.code == 201 } ?? false
+            // Non-nil metadata marks an utterance boundary — the next partial starts a FRESH
+            // transcript, so the finished text must be committed or it would be overwritten.
+            let utteranceEnded = result?.speechRecognitionMetadata != nil
             let isFinal = result?.isFinal ?? false
             Task { @MainActor in
                 guard let self else { return }
-                if let text { self.onText?(text) }
+                if let text {
+                    let combined = self.committed.isEmpty ? text : self.committed + " " + text
+                    self.onText?(combined)
+                    if utteranceEnded { self.committed = combined }
+                }
                 if let failure {
                     self.logger.error("recognition failed: \(failure, privacy: .public)")
                     self.failureMessage = dictationOff
@@ -123,6 +147,7 @@ final class VoiceInput: ObservableObject {
         request = nil
         task = nil
         isRecording = false
+        level = 0
     }
 }
 
@@ -140,9 +165,21 @@ struct VoiceInputButton: View {
                 draft = base.isEmpty ? transcript : base + " " + transcript
             }
         } label: {
-            Image(systemName: voice.isRecording ? "mic.fill" : "mic")
-                .font(.title3)
-                .foregroundStyle(voice.isRecording ? Color.red : .secondary)
+            ZStack {
+                if voice.isRecording {
+                    // Loudness-driven halo: scales with the live mic level so it visibly
+                    // pulses while you speak (scaleEffect doesn't affect layout).
+                    Circle()
+                        .fill(Color.red.opacity(0.2 + voice.level * 0.2))
+                        .frame(width: 22, height: 22)
+                        .scaleEffect(1 + voice.level * 1.2)
+                        .animation(.easeOut(duration: 0.12), value: voice.level)
+                }
+                Image(systemName: voice.isRecording ? "mic.fill" : "mic")
+                    .font(.title3)
+                    .foregroundStyle(voice.isRecording ? Color.red : .secondary)
+            }
+            .frame(width: 24, height: 24)
         }
         .buttonStyle(.borderless)
         .disabled(!voice.isSupported)
