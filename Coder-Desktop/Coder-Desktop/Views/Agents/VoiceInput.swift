@@ -104,6 +104,7 @@ final class VoiceInput: ObservableObject {
         // Same trap as the authorization callback: Speech delivers results on its own queue, so
         // the handler must be @Sendable (nonisolated). Extract the Sendable pieces before the
         // hop — SFSpeechRecognitionResult itself can't cross into the MainActor task.
+        let gen = generation
         task = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
             let text = result?.bestTranscription.formattedString
             let failure = error.map { "\($0)" }
@@ -115,9 +116,12 @@ final class VoiceInput: ObservableObject {
             let isFinal = result?.isFinal ?? false
             Task { @MainActor in
                 guard let self else { return }
+                // A result already in flight when stop() ran must not repopulate the draft
+                // (e.g. right after Send cleared it).
+                guard gen == self.generation else { return }
                 if let text {
                     let combined = self.committed.isEmpty ? text : self.committed + " " + text
-                    self.onText?(combined)
+                    if !combined.isEmpty { self.onText?(combined) }
                     if utteranceEnded { self.committed = combined }
                 }
                 if let failure {
@@ -207,6 +211,14 @@ struct VoiceInputButton: View {
             }
             .padding(10)
             .frame(width: 240)
+        }
+        // Sending (or manually clearing) the draft while dictating: stop listening, or the
+        // next partial would dump the whole accumulated transcript back into the empty box.
+        .onChange(of: draft) { _, new in
+            if new.isEmpty, voice.isRecording {
+                voice.stop()
+                base = ""
+            }
         }
         // Deterministically stop if the composer goes away mid-recording so the mic indicator
         // doesn't linger until the @StateObject is eventually deallocated.
