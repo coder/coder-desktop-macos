@@ -40,23 +40,28 @@ extension CoderAgentsService {
         return target
     }
 
-    /// Whether an icon is effectively grayscale (every opaque pixel has R≈G≈B) — i.e. a
-    /// single-color glyph that should be tinted to the label color rather than drawn as-is.
-    /// Sampled on a small grid; colorful icons bail out on the first off-gray pixel.
+    /// Whether an icon is a SINGLE-color glyph (every opaque pixel grayscale AND roughly the
+    /// same luminance) — only those should be tinted to the label color. Grayscale art with
+    /// internal contrast (e.g. Notion's black cube + white N) must NOT be templated: template
+    /// rendering keeps only the alpha channel, flattening it into a solid blob.
     nonisolated static func isMonochrome(_ image: NSImage) -> Bool {
         guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return false }
         let width = rep.pixelsWide, height = rep.pixelsHigh
         guard width > 0, height > 0 else { return false }
         var sawOpaque = false
+        var minLum = 1.0, maxLum = 0.0
         for y in stride(from: 0, to: height, by: max(1, height / 16)) {
             for x in stride(from: 0, to: width, by: max(1, width / 16)) {
                 guard let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.1 else { continue }
                 sawOpaque = true
                 let (r, g, b) = (color.redComponent, color.greenComponent, color.blueComponent)
                 if max(r, g, b) - min(r, g, b) > 0.12 { return false }
+                let lum = (Double(r) + Double(g) + Double(b)) / 3
+                minLum = min(minLum, lum)
+                maxLum = max(maxLum, lum)
             }
         }
-        return sawOpaque
+        return sawOpaque && maxLum - minLum < 0.3
     }
 
     /// Fetches connector icons (svg/png/webp) via SDWebImage (the SVG coder is registered
