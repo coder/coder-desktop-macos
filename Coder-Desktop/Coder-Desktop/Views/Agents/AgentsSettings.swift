@@ -31,7 +31,7 @@ enum AgentsSettingsSection: String, CaseIterable, Identifiable {
     case agents = "Agents"
     case skills = "Personal skills"
     case compaction = "Compaction"
-    case secrets = "Secrets"
+    case secrets = "Secrets (API keys)" // the web's exact nav label
 
     var id: String {
         rawValue
@@ -39,7 +39,7 @@ enum AgentsSettingsSection: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .general: "gearshape"
+        case .general: "person"
         case .agents: "cpu"
         case .skills: "wand.and.stars"
         case .compaction: "arrow.down.right.and.arrow.up.left"

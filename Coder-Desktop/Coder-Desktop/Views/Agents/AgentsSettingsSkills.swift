@@ -11,26 +11,35 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
     @State private var loading = true
     @State private var error: String?
     @State private var editor: SkillEditorTarget?
+    @State private var confirmingDelete: String?
 
     var body: some View {
         Form {
             Section {
-                Text("Reusable SKILL.md instructions agents can apply. Up to 10.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text("""
+                Reusable instructions your agents can pick when they need specialized guidance. \
+                Personal skills hold a single SKILL.md file. For richer skills with supporting \
+                files, add them to your repo under `.agents/skills/` or load them from a workspace.
+                """)
+                .font(.caption).foregroundStyle(.secondary)
             }
             if loading {
                 Section { HStack { ProgressView().controlSize(.small); Text("Loading…").foregroundStyle(.secondary) } }
             } else {
                 skillList
-                if skills.count < 10 {
+                if skills.count < 100 { // the server's per-user limit
                     Section {
                         Button { editor = SkillEditorTarget(id: "new", name: nil) } label: {
-                            Label("New skill", systemImage: "plus")
+                            Label("Add skill", systemImage: "plus")
                         }
                     }
                 } else {
                     Section {
-                        Text("You've reached the limit of 10 skills.").font(.caption).foregroundStyle(.secondary)
+                        Text("""
+                        You have reached the limit of 100 personal skills. Delete a skill \
+                        before creating another one.
+                        """)
+                        .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -43,13 +52,31 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
             SkillEditor<Agents>(name: target.name) { await load() }
                 .environmentObject(agents)
         }
+        // Deleting is irreversible — confirm with the web's wording.
+        .confirmationDialog(
+            "Delete skill",
+            isPresented: Binding(get: { confirmingDelete != nil }, set: { if !$0 { confirmingDelete = nil } }),
+            presenting: confirmingDelete
+        ) { name in
+            Button("Delete skill", role: .destructive) {
+                Task { await delete(name) }
+                confirmingDelete = nil
+            }
+            Button("Cancel", role: .cancel) { confirmingDelete = nil }
+        } message: { name in
+            Text("Delete \(name)? Agents will no longer be able to use this skill. This action cannot be undone.")
+        }
         .task { await load() }
     }
 
     @ViewBuilder
     private var skillList: some View {
         if skills.isEmpty {
-            Section { Text("No skills yet.").foregroundStyle(.secondary) }
+            Section {
+                Text("No personal skills yet").foregroundStyle(.secondary)
+                Text("Create a personal skill to save reusable agent guidance for your workflows.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         } else {
             Section("Skills") {
                 ForEach(skills) { skill in
@@ -58,13 +85,15 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
                             Text(skill.name).font(.body.monospaced())
                             if let description = skill.description, !description.isEmpty {
                                 Text(description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            } else {
+                                Text("No description").font(.caption).foregroundStyle(.tertiary)
                             }
                         }
                         Spacer()
                         Button("Edit") { editor = SkillEditorTarget(id: skill.name, name: skill.name) }
                             .buttonStyle(.borderless)
                         Button(role: .destructive) {
-                            Task { await delete(skill.name) }
+                            confirmingDelete = skill.name
                         } label: {
                             Image(systemName: "trash")
                         }
