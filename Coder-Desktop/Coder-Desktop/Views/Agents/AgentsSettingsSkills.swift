@@ -1,5 +1,7 @@
+import AppKit
 import CoderSDK
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// "Personal skills" settings: reusable SKILL.md instructions (YAML frontmatter + body) that
 /// agents can use. Up to 10. The list shows name/description; editing fetches the full
@@ -32,6 +34,11 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
                         Button { editor = SkillEditorTarget(id: "new", name: nil) } label: {
                             Label("Add skill", systemImage: "plus")
                         }
+                        // Native sibling of the web's paste-to-import: pick a SKILL.md file;
+                        // it opens prefilled in the editor for review before saving.
+                        Button(action: importSkillFile) {
+                            Label("Import SKILL.md…", systemImage: "square.and.arrow.down")
+                        }
                     }
                 } else {
                     Section {
@@ -49,7 +56,7 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
         }
         .formStyle(.grouped)
         .sheet(item: $editor) { target in
-            SkillEditor<Agents>(name: target.name) { await load() }
+            SkillEditor<Agents>(name: target.name, initialContent: target.initialContent) { await load() }
                 .environmentObject(agents)
         }
         // Deleting is irreversible — confirm with the web's wording.
@@ -123,11 +130,32 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
             self.error = error.localizedDescription
         }
     }
+
+    /// Picks a SKILL.md file and opens it in the create editor for review (never saves
+    /// blindly — the normal save path applies the server's name/format validation).
+    private func importSkillFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.init(filenameExtension: "md") ?? .plainText, .plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let data = try? Data(contentsOf: url), data.count <= 64 * 1024 else {
+            error = "Skill content must be 64.0 KiB or smaller." // the server's limit
+            return
+        }
+        guard let content = String(data: data, encoding: .utf8), !content.isEmpty else {
+            error = "The file could not be read as UTF-8 text."
+            return
+        }
+        error = nil
+        editor = SkillEditorTarget(id: "import-\(url.lastPathComponent)", name: nil, initialContent: content)
+    }
 }
 
 private struct SkillEditorTarget: Identifiable {
     let id: String
     let name: String? // nil = create new
+    var initialContent: String? // imported SKILL.md to prefill the create editor
 }
 
 private let skillTemplate = """
@@ -145,6 +173,7 @@ private struct SkillEditor<Agents: AgentsService>: View {
     @Environment(\.dismiss) private var dismiss
 
     let name: String?
+    let initialContent: String?
     let onSaved: () async -> Void
 
     @State private var content = ""
@@ -152,8 +181,9 @@ private struct SkillEditor<Agents: AgentsService>: View {
     @State private var saving = false
     @State private var error: String?
 
-    init(name: String?, onSaved: @escaping () async -> Void) {
+    init(name: String?, initialContent: String? = nil, onSaved: @escaping () async -> Void) {
         self.name = name
+        self.initialContent = initialContent
         self.onSaved = onSaved
         _loading = State(initialValue: name != nil)
     }
@@ -189,7 +219,7 @@ private struct SkillEditor<Agents: AgentsService>: View {
             content = if let name {
                 await (try? agents.loadSkill(name: name).content) ?? ""
             } else {
-                skillTemplate
+                initialContent ?? skillTemplate
             }
             loading = false
         }
