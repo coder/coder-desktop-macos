@@ -13,6 +13,7 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
     // Local-only ("This Mac") rendering options.
     @AppStorage(Defaults.chatFullWidth) private var chatFullWidth = false
     @AppStorage(Defaults.completionChime) private var completionChime = false
+    @AppStorage(Defaults.completionNotification) private var completionNotification = false
     @AppStorage(Defaults.showToolActivity) private var showToolActivity = true
     // Mirrors of server preferences the live renderer reads directly.
     @AppStorage(Defaults.thinkingDisplay) private var thinkingDisplay = ThinkingDisplay.auto.rawValue
@@ -148,7 +149,14 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
             )
             setting(
                 Toggle("Play a chime when a session completes", isOn: $completionChime),
-                help: "Play a short sound when an agent finishes its turn while this window is open."
+                help: "Play a short sound when an agent finishes its turn in a chat you aren't viewing."
+            )
+            setting(
+                Toggle("Show a notification when a session completes", isOn: $completionNotification),
+                help: """
+                Post a macOS notification when an agent finishes its turn or hits an error \
+                in a chat you aren't viewing. Click it to jump to the chat.
+                """
             )
         }
     }

@@ -30,6 +30,11 @@ protocol AgentsService: ObservableObject {
     var mcpServers: [MCPServer] { get }
     var modelConfigs: [ChatModelConfig] { get }
     var hasLoadedOnce: Bool { get }
+    /// The chat open in the detail view; its chime/notifications are suppressed while
+    /// the app is active.
+    var activeSessionID: UUID? { get set }
+    /// Set when a chat notification is clicked; the window consumes it to route there.
+    var pendingOpenChatID: UUID? { get set }
 
     /// Emitted once when the Agents window is opened.
     func viewOpened()

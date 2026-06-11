@@ -22,7 +22,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     // Tool calls/results are collapsed to quiet rows; this hides them entirely.
     @AppStorage(Defaults.showToolActivity) private var showToolActivity = true
     @AppStorage(Defaults.chatFullWidth) private var chatFullWidth = false
-    @AppStorage(Defaults.completionChime) private var completionChime = false
 
     var body: some View {
         // GeometryReader so the side panel CLAMPS to what the window affords: an oversized
@@ -50,13 +49,13 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             }
         }
         .task(id: session.id) {
+            // Chime/notification for the visible chat is suppressed at the service level.
+            agents.activeSessionID = session.id
             agents.startStreaming(session.id)
         }
         .onDisappear {
+            if agents.activeSessionID == session.id { agents.activeSessionID = nil }
             agents.stopStreaming(session.id)
-        }
-        .onChange(of: session.status) { _, new in
-            if new == .completed, completionChime { NSSound.beep() }
         }
         // Panel toggle in the window toolbar (trailing), echoing the left sidebar's collapse button.
         .toolbar {

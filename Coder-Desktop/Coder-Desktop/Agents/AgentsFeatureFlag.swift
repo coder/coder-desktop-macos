@@ -9,6 +9,9 @@ enum Defaults {
     static let thinkingDisplay = "agentsThinkingDisplay"
     static let requireModifierToSend = "agentsRequireModifierToSend"
     static let completionChime = "agentsCompletionChime"
+    /// Post a macOS notification when an agent finishes a turn or errors (the native
+    /// equivalent of the web's push notifications).
+    static let completionNotification = "agentsCompletionNotification"
     static let showToolActivity = "agentsShowToolActivity"
     /// The model config the user last picked, used to seed new chats.
     static let preferredModel = "agentsPreferredModel"

@@ -322,7 +322,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     public let archived: Bool?
     public var pin_order: Int?
     public let created_at: Date
-    public let updated_at: Date
+    public var updated_at: Date
     /// The model this chat last used; seeds the composer so reopening keeps your choice.
     public var last_model_config_id: UUID?
     /// Cached branch/PR diff summary (counts + link), surfaced even when the full diff
@@ -336,6 +336,17 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     /// The normalized error that put the chat into `.error`, for the sidebar snippet and the
     /// transcript's error card (web parity — "Error" alone is undebuggable).
     public var last_error: ChatError?
+    /// Set for sub-agent chats; notifications/chimes fire for root chats only (web parity).
+    public var parent_chat_id: UUID?
+    /// Server-generated one-line summary of the last turn (the sidebar subtitle on the web,
+    /// and the body of its completion push notifications).
+    public var last_turn_summary: String?
+    /// Assistant messages exist beyond the owner's read cursor (which the server advances
+    /// on per-chat stream connect/disconnect). Drives the sidebar unread dot.
+    public var has_unread: Bool?
+    /// Sub-agent chats embedded in their root (the list endpoint returns roots only;
+    /// depth is capped at 1). Rendered as expandable child rows in the sidebar.
+    public var children: [Chat]?
 
     public init(
         id: UUID,

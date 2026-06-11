@@ -10,7 +10,8 @@ final class CoderAgentsService: AgentsService {
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "agents")
     let messageStore = ChatMessageStore()
 
-    @Published private(set) var sessions: [Chat] = []
+    // Setter is internal (not private) so the watch extension can merge live row updates.
+    @Published var sessions: [Chat] = []
     @Published var loadError: String?
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
@@ -38,6 +39,13 @@ final class CoderAgentsService: AgentsService {
     @Published var pendingSendsBySession: [UUID: [ChatMessage]] = [:]
 
     var streamTasks: [UUID: Task<Void, Never>] = [:]
+    /// The global chat-watch socket (sidebar live updates + chime/notifications).
+    var watchTask: Task<Void, Never>?
+    /// The chat currently open in the detail view; chimes/notifications for it are
+    /// suppressed while the app is active (web parity).
+    @Published var activeSessionID: UUID?
+    /// Set when a chat notification is clicked; the Agents window consumes it to route.
+    @Published var pendingOpenChatID: UUID?
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
@@ -74,6 +82,9 @@ final class CoderAgentsService: AgentsService {
             task.cancel()
         }
         gitWatchTasks.removeAll()
+        stopWatching()
+        activeSessionID = nil
+        pendingOpenChatID = nil
         localReposBySession.removeAll()
         streamGeneration.removeAll()
         streamingStore.removeAll()
@@ -133,6 +144,7 @@ final class CoderAgentsService: AgentsService {
                 .sorted { $0.updated_at > $1.updated_at }
             loadError = nil
             purgeTranscriptsOnAccountChange()
+            startWatching()
         } catch {
             loadError = error.localizedDescription
             logger.error("failed to load sessions: \(error.localizedDescription, privacy: .public)")
@@ -197,6 +209,7 @@ final class CoderAgentsService: AgentsService {
 
     func startStreaming(_ id: UUID) {
         guard streamTasks[id] == nil, client != nil else { return }
+        markRead(id) // the server advances the read cursor on stream connect
         let generation = (streamGeneration[id] ?? 0) + 1
         streamGeneration[id] = generation
         streamTasks[id] = Task { [weak self] in
