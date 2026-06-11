@@ -70,7 +70,8 @@ struct AgentsSettingsView<Agents: AgentsService>: View {
                 List(AgentsSettingsSection.allCases, selection: $selection) { section in
                     Label(section.rawValue, systemImage: section.systemImage).tag(section)
                 }
-                .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 230)
+                // Wide enough that "Secrets (API keys)" never truncates at the default width.
+                .navigationSplitViewColumnWidth(min: 200, ideal: 210, max: 250)
             } detail: {
                 detail
             }
