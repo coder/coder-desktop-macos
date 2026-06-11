@@ -90,6 +90,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         urlHandler = URLHandler(state: state, vpn: vpn)
         // `delegate` is weak
         UNUserNotificationCenter.current().delegate = notifDelegate
+        // Clicking an Agents notification routes to that chat. If the window is open it
+        // jumps immediately; otherwise the id is consumed when the window next appears.
+        notifDelegate.onOpenChat = { [weak agents = agents] chatID in
+            agents?.pendingOpenChatID = chatID
+            appActivate()
+            NSApp.windows
+                .first { $0.identifier?.rawValue == Windows.agents.rawValue }?
+                .makeKeyAndOrderFront(nil)
+        }
     }
 
     func applicationDidFinishLaunching(_: Notification) {

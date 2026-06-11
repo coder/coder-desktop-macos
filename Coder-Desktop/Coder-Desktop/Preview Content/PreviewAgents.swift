@@ -11,6 +11,8 @@ final class PreviewAgents: AgentsService {
     @Published var modelConfigs: [ChatModelConfig] = []
     @Published var userSkills: [UserSkill] = []
     @Published var hasLoadedOnce = true
+    @Published var activeSessionID: UUID?
+    @Published var pendingOpenChatID: UUID?
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
 
