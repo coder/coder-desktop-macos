@@ -61,6 +61,11 @@ final class VNCWebSocketRelay: @unchecked Sendable {
     }
 
     /// Accepts the VNC client's connection, opens the agent WebSocket, and starts both pumps.
+    /// Threat model: loopback-only bind, a single accept (the listener closes immediately
+    /// after), and an ephemeral lifetime scoped to the Desktop tab — the same model as
+    /// websockify-style relays. A local process racing RoyalVNC to the port within that
+    /// window would reach the workspace desktop *as this already-authenticated user*; it
+    /// gains nothing it couldn't get by running `coder` CLI commands as the same user.
     private func accept(_ conn: NWConnection) {
         lock.lock()
         guard !closed, tcp == nil else { lock.unlock(); conn.cancel(); return }
