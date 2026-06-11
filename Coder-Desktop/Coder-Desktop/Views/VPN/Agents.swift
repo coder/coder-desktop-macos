@@ -82,7 +82,7 @@ struct Agents<VPN: VPNService>: View {
         var badged: Set<UUID> = []
         for start in stride(from: 0, to: idList.count, by: 25) {
             let chunk = Array(idList[start ..< min(start + 25, idList.count)])
-            let chats = (try? await client.chatsByWorkspace(workspaceIDs: chunk)) ?? [:]
+            let chats = await (try? client.chatsByWorkspace(workspaceIDs: chunk)) ?? [:]
             badged.formUnion(chats.keys.compactMap { UUID(uuidString: $0) })
         }
         agentWorkspaceIDs = badged

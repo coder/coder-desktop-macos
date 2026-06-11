@@ -14,7 +14,7 @@ extension CoderAgentsService {
     /// Loads the user's personal skills once (for the composer's "/" trigger menu).
     func loadUserSkills() async {
         guard let client, userSkills.isEmpty else { return }
-        userSkills = (try? await client.userSkills()) ?? []
+        userSkills = await (try? client.userSkills()) ?? []
     }
 
     // MARK: Chat sharing (ACL)
@@ -57,8 +57,8 @@ extension CoderAgentsService {
     /// Org members + groups to pick from in the share search.
     func shareCandidates(orgID: UUID) async -> (members: [OrgMember], groups: [OrgGroup]) {
         guard let client else { return ([], []) }
-        let members = (try? await client.organizationMembers(orgID)) ?? []
-        let groups = (try? await client.organizationGroups(orgID)) ?? []
+        let members = await (try? client.organizationMembers(orgID)) ?? []
+        let groups = await (try? client.organizationGroups(orgID)) ?? []
         return (members, groups)
     }
 
@@ -79,7 +79,7 @@ extension CoderAgentsService {
     /// Workspace quota for the current user (nil when not configured / not premium).
     func workspaceQuota() async -> WorkspaceQuota? {
         guard let client, let orgID = await organizationID(),
-              let username = (try? await client.user("me"))?.username else { return nil }
+              let username = await (try? client.user("me"))?.username else { return nil }
         return try? await client.workspaceQuota(organizationID: orgID, username: username)
     }
 

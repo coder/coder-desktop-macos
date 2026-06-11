@@ -71,7 +71,7 @@ public struct ChatMessageUsage: Codable, Sendable, Equatable {
     /// totals read absurdly low (429 vs the real 66K).
     public var usedTokens: Int? {
         let components = [input_tokens, output_tokens, cache_read_tokens,
-                          cache_creation_tokens, reasoning_tokens].compactMap { $0 }
+                          cache_creation_tokens, reasoning_tokens].compactMap(\.self)
         return components.isEmpty ? nil : components.reduce(0, +)
     }
 

@@ -63,16 +63,22 @@ final class ChatMessageStore {
     /// Deletes every cached transcript (sign-out: the next account must not inherit the
     /// previous one's chat history on disk).
     func removeAllCaches() {
-        for (id, task) in debounceTasks { task.cancel(); debounceTasks[id] = nil }
+        for (id, task) in debounceTasks {
+            task.cancel(); debounceTasks[id] = nil
+        }
         pendingSaves.removeAll()
         let dir = directory
         // One barrier task so in-flight per-chat writes can't resurrect files afterwards.
         let previous = writeChains.values
         writeChains.removeAll()
         Task.detached(priority: .utility) {
-            for task in previous { await task.value }
+            for task in previous {
+                await task.value
+            }
             let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
-            for file in files { try? FileManager.default.removeItem(at: file) }
+            for file in files {
+                try? FileManager.default.removeItem(at: file)
+            }
         }
     }
 

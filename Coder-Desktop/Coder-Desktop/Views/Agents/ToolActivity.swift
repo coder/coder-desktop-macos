@@ -6,7 +6,7 @@ import SwiftUI
 // the full diff each time was the dominant remaining per-token cost on edit-heavy turns. A
 // result's diff is immutable once delivered, so cache by tool_call_id (thread-safe NSCache;
 // empty string = "extracted, no diff").
-nonisolated(unsafe) private let editDiffCache: NSCache<NSString, NSString> = {
+private nonisolated(unsafe) let editDiffCache: NSCache<NSString, NSString> = {
     let cache = NSCache<NSString, NSString>()
     cache.countLimit = 256
     return cache

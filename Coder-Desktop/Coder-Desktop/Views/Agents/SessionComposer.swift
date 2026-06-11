@@ -164,7 +164,7 @@ struct SessionComposer<Agents: AgentsService>: View {
             }
             .buttonStyle(.borderless)
             .disabled(model.sending || (model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && model.attachments.isEmpty && model.pendingReferences.isEmpty))
+                    && model.attachments.isEmpty && model.pendingReferences.isEmpty))
             .keyboardShortcut(.return, modifiers: [.command])
             .help("Send (⌘↵)")
             .accessibilityLabel(model.sending ? "Sending message" : "Send message")
@@ -227,7 +227,7 @@ struct SessionComposer<Agents: AgentsService>: View {
             // server default — but only if the id is actually an available model.
             let available = Set(agents.modelConfigs.map(\.id))
             let candidates = [session.last_model_config_id, UUID(uuidString: preferredModelID)]
-            model.selectedModelConfigID = candidates.compactMap { $0 }.first { available.contains($0) }
+            model.selectedModelConfigID = candidates.compactMap(\.self).first { available.contains($0) }
                 ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
         }
         model.didSeed = true

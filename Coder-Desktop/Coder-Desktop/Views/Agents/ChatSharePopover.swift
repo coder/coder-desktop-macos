@@ -33,6 +33,7 @@ struct ChatSharePopover<Agents: AgentsService>: View {
             case let .group(group): group.id
             }
         }
+
         var title: String {
             switch self {
             case let .user(m): personTitle(name: m.name, username: m.username)

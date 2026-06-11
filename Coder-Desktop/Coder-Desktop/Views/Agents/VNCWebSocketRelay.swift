@@ -39,10 +39,10 @@ final class VNCWebSocketRelay: @unchecked Sendable {
                 guard let self else { return }
                 switch state {
                 case .ready:
-                    if let port = listener.port { self.finishStart(.success(port.rawValue)) }
+                    if let port = listener.port { finishStart(.success(port.rawValue)) }
                 case let .failed(error):
-                    self.finishStart(.failure(error))
-                    self.fail("local relay failed: \(error.localizedDescription)")
+                    finishStart(.failure(error))
+                    fail("local relay failed: \(error.localizedDescription)")
                 default:
                     break
                 }
@@ -100,11 +100,11 @@ final class VNCWebSocketRelay: @unchecked Sendable {
                 @unknown default: Data()
                 }
                 if !data.isEmpty {
-                    self.lock.withLock { self.tcp }?.send(content: data, completion: .contentProcessed { _ in })
+                    lock.withLock { self.tcp }?.send(content: data, completion: .contentProcessed { _ in })
                 }
-                self.pumpWebSocketToTCP()
+                pumpWebSocketToTCP()
             case let .failure(error):
-                self.fail("desktop stream closed: \(error.localizedDescription)")
+                fail("desktop stream closed: \(error.localizedDescription)")
             }
         }
     }
@@ -113,10 +113,10 @@ final class VNCWebSocketRelay: @unchecked Sendable {
         guard let tcp = lock.withLock({ self.tcp }) else { return }
         tcp.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self else { return }
-            if let data, !data.isEmpty { self.lock.withLock { self.ws }?.send(.data(data)) { _ in } }
-            if let error { self.fail("VNC socket error: \(error.localizedDescription)"); return }
-            if isComplete { self.stop(message: nil); return }
-            self.pumpTCPToWebSocket()
+            if let data, !data.isEmpty { lock.withLock { self.ws }?.send(.data(data)) { _ in } }
+            if let error { fail("VNC socket error: \(error.localizedDescription)"); return }
+            if isComplete { stop(message: nil); return }
+            pumpTCPToWebSocket()
         }
     }
 
@@ -129,7 +129,7 @@ final class VNCWebSocketRelay: @unchecked Sendable {
         lock.lock()
         if closed { lock.unlock(); return }
         closed = true
-        let (listener, ws, tcp) = (self.listener, self.ws, self.tcp)
+        let (listener, ws, tcp) = (self.listener, self.ws, tcp)
         self.listener = nil; self.ws = nil; self.tcp = nil
         lock.unlock()
 

@@ -54,13 +54,13 @@ struct WorkspacePill<Agents: AgentsService>: View {
                 for displayApp in agent.display_apps {
                     let app: WorkspaceApp?
                     let dir = agent.expanded_directory
-                    switch displayApp {
+                    app = switch displayApp {
                     case .vscode:
-                        app = vscodeDisplayApp(hostname: host, baseIconURL: base, path: dir)
+                        vscodeDisplayApp(hostname: host, baseIconURL: base, path: dir)
                     case .vscode_insiders:
-                        app = vscodeInsidersDisplayApp(hostname: host, baseIconURL: base, path: dir)
+                        vscodeInsidersDisplayApp(hostname: host, baseIconURL: base, path: dir)
                     default:
-                        app = nil // drop web_terminal / port-forward / ssh helpers
+                        nil // drop web_terminal / port-forward / ssh helpers
                     }
                     if let app {
                         result.append(AppEntry(

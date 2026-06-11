@@ -27,11 +27,11 @@ struct HighlightrSyntaxHighlighter: CodeSyntaxHighlighter {
         if let cached = cache.object(forKey: key) {
             return Text(AttributedString(cached))
         }
-        let attributed: NSAttributedString?
-        if let lang, !lang.isEmpty, highlightr.supportedLanguages().contains(lang) {
-            attributed = highlightr.highlight(code, as: lang)
+        let supported = lang.map { !$0.isEmpty && highlightr.supportedLanguages().contains($0) } ?? false
+        let attributed: NSAttributedString? = if supported {
+            highlightr.highlight(code, as: lang)
         } else {
-            attributed = highlightr.highlight(code, as: nil) // auto-detect
+            highlightr.highlight(code, as: nil) // auto-detect
         }
         guard let attributed else { return Text(code) }
         cache.setObject(attributed, forKey: key)

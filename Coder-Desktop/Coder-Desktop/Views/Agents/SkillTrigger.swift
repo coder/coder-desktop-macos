@@ -3,7 +3,7 @@ import SwiftUI
 
 // Compiled once — this runs on every keystroke/selection change. NSRegularExpression is
 // immutable and thread-safe.
-nonisolated(unsafe) private let skillTriggerRegex = try? NSRegularExpression(pattern: "(?:^|\\s)/(\\S*)$")
+private nonisolated(unsafe) let skillTriggerRegex = try? NSRegularExpression(pattern: "(?:^|\\s)/(\\S*)$")
 
 /// Finds an active "/skill" trigger token ending at the caret: a "/" at the start of input
 /// or after whitespace, followed by non-whitespace. Returns the token range (slash..caret)

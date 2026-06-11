@@ -104,7 +104,7 @@ public struct WorkspaceAgentPortShare: Codable, Sendable, Equatable, Identifiabl
         self.agent_name = agent_name
         self.port = port
         self.share_level = share_level
-        self.`protocol` = `protocol`
+        self.protocol = `protocol`
     }
 }
 
