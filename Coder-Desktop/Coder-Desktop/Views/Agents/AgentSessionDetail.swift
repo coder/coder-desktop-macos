@@ -25,22 +25,28 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     @AppStorage(Defaults.completionChime) private var completionChime = false
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(spacing: 0) {
-                header
-                Divider()
-                if let error = agents.loadError {
-                    errorBanner(error)
+        // GeometryReader so the side panel CLAMPS to what the window affords: an oversized
+        // stored width made the detail's minimum exceed its column, overflowing the whole
+        // split view rightward and shoving the SIDEBAR's content off the window's left edge.
+        GeometryReader { geo in
+            let maxPanel = max(280, geo.size.width - 420) // chat keeps ≥420pt
+            HStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    header
+                    Divider()
+                    if let error = agents.loadError {
+                        errorBanner(error)
+                    }
+                    transcript
+                    Divider()
+                    QueuedMessagesList<Agents>(session: session) { composer.appendToDraft($0) }
+                    SessionComposer<Agents>(session: session, model: composer)
                 }
-                transcript
-                Divider()
-                QueuedMessagesList<Agents>(session: session) { composer.appendToDraft($0) }
-                SessionComposer<Agents>(session: session, model: composer)
-            }
-            if showPanel {
-                PanelResizeHandle(width: $sidePanelWidth, range: 280 ... 760)
-                SessionSidePanel<Agents>(session: session, tab: $panelTab, onAddToChat: addReferences)
-                    .frame(width: sidePanelWidth)
+                if showPanel {
+                    PanelResizeHandle(width: $sidePanelWidth, range: 280 ... max(280, maxPanel))
+                    SessionSidePanel<Agents>(session: session, tab: $panelTab, onAddToChat: addReferences)
+                        .frame(width: min(max(280, sidePanelWidth), maxPanel))
+                }
             }
         }
         .task(id: session.id) {

@@ -105,6 +105,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
         .sheet(isPresented: $showingSettings) {
             AgentsSettingsView<Agents>().environmentObject(agents)
         }
+        // Belt-and-suspenders for the AppKit glitch where the sidebar list pans horizontally
+        // during live resize and sticks (see SidebarScrollPinner).
+        .background(SidebarScrollPinner())
     }
 
     @ViewBuilder
