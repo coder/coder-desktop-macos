@@ -7,11 +7,10 @@ import Testing
 @MainActor
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct CoderAgentsServiceTests {
-    let url = URL(string: "https://coder.example.com")!
-
-    init() {
-        Mocker.removeAll()
-    }
+    // A unique host per test instance keeps this suite's mocks from colliding across its
+    // own tests. Mocker registrations are process-global and suites run in parallel, so
+    // Mocker.removeAll() here would clobber other suites' in-flight mocks.
+    let url = URL(string: "https://test-agents-\(UUID().uuidString).coder")!
 
     private func makeState() -> AppState {
         let state = AppState(persistent: false)
