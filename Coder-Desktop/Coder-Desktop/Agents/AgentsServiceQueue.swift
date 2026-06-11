@@ -16,20 +16,20 @@ extension CoderAgentsService {
     /// The ports a workspace agent is currently listening on (for the workspace pill).
     func listeningPorts(agentID: UUID) async -> [WorkspaceAgentListeningPort] {
         guard let client else { return [] }
-        return (try? await client.agentListeningPorts(agentID)) ?? []
+        return await (try? client.agentListeningPorts(agentID)) ?? []
     }
 
     func appHost() async -> String? {
         if let cachedAppHost { return cachedAppHost }
         guard let client else { return nil }
-        let host = (try? await client.appHost()) ?? ""
+        let host = await (try? client.appHost()) ?? ""
         cachedAppHost = host
         return host
     }
 
     func portShares(workspaceID: UUID) async -> [WorkspaceAgentPortShare] {
         guard let client else { return [] }
-        return (try? await client.workspacePortShares(workspaceID)) ?? []
+        return await (try? client.workspacePortShares(workspaceID)) ?? []
     }
 
     /// Promotes a queued message to run immediately, interrupting the current turn.

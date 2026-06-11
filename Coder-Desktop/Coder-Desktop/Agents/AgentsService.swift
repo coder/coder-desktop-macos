@@ -1,5 +1,5 @@
-import Combine
 import CoderSDK
+import Combine
 import os
 import SwiftUI
 
@@ -66,9 +66,13 @@ final class CoderAgentsService: AgentsService {
 
     /// Clears everything tied to the signed-in account.
     private func reset() {
-        for (_, task) in streamTasks { task.cancel() }
+        for (_, task) in streamTasks {
+            task.cancel()
+        }
         streamTasks.removeAll()
-        for (_, task) in gitWatchTasks { task.cancel() }
+        for (_, task) in gitWatchTasks {
+            task.cancel()
+        }
         gitWatchTasks.removeAll()
         localReposBySession.removeAll()
         streamGeneration.removeAll()
@@ -324,7 +328,6 @@ extension CoderAgentsService {
         guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[idx].status = status
     }
-
 }
 
 // Not in the private extension above: `organizationID()` is called from AgentsServiceSend's

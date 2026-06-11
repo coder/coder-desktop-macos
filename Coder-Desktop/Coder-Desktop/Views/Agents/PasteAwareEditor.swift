@@ -262,7 +262,8 @@ final class PasteTextView: NSTextView {
 
     override func paste(_ sender: Any?) {
         if let pasted = NSPasteboard.general.string(forType: .string),
-           onLargePaste?(pasted) == true {
+           onLargePaste?(pasted) == true
+        {
             return
         }
         super.paste(sender)

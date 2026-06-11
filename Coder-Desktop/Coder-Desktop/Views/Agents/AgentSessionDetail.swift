@@ -260,7 +260,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     static func interactiveQuestionID(in items: [TranscriptItem], chatCompleted: Bool) -> String? {
         guard chatCompleted else { return nil }
         guard let idx = items.lastIndex(where: {
-            if case .question = $0.kind { return true } else { return false }
+            if case .question = $0.kind { true } else { false }
         }) else { return nil }
         let userAnsweredAfter = items[items.index(after: idx)...].contains { $0.isUserBubble }
         return userAnsweredAfter ? nil : items[idx].id

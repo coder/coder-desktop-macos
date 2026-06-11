@@ -75,7 +75,7 @@ struct UsageIndicator<Agents: AgentsService>: View {
     }
 
     private var combinedHelp: String {
-        let parts = [spendFraction != nil ? spendHelp : nil, quotaFraction != nil ? quotaHelp : nil].compactMap { $0 }
+        let parts = [spendFraction != nil ? spendHelp : nil, quotaFraction != nil ? quotaHelp : nil].compactMap(\.self)
         return parts.isEmpty ? "View usage" : parts.joined(separator: " · ")
     }
 

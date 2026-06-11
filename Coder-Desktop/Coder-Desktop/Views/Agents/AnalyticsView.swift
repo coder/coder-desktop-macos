@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Shared ISO-8601 formatter — formatters are costly to build and thread-safe to format with.
 /// File-level (not a static on the generic view, which Swift disallows).
-nonisolated(unsafe) private let analyticsISO8601 = ISO8601DateFormatter()
+private nonisolated(unsafe) let analyticsISO8601 = ISO8601DateFormatter()
 
 /// Personal usage analytics: AI cost summary and pull-request insights over a selectable date
 /// range. Reached from the sidebar usage widget's "View usage". All amounts are micro-dollars.

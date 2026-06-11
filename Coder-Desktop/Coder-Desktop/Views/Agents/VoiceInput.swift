@@ -147,7 +147,9 @@ final class VoiceInput: ObservableObject {
             let frames = Int(buffer.frameLength)
             guard frames > 0 else { return }
             var sum: Float = 0
-            for i in 0 ..< frames { sum += channel[i] * channel[i] }
+            for i in 0 ..< frames {
+                sum += channel[i] * channel[i]
+            }
             // ×6 maps typical speech RMS (~0.05–0.15) onto the halo's mid-range.
             let loudness = min(1.0, Double((sum / Float(frames)).squareRoot()) * 6)
             Task { @MainActor in
