@@ -104,7 +104,10 @@ private struct ModelThresholdRow: View {
                 Text(model.label).lineLimit(1)
                 Text("Default: \(defaultPercent)%").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                TextField("\(defaultPercent)", text: $draft, prompt: Text("\(defaultPercent)"))
+                // Empty label: a titled TextField in a grouped Form renders the title as a
+                // second text above the field (the value appeared twice).
+                TextField("", text: $draft, prompt: Text("\(defaultPercent)"))
+                    .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 52)
                     .multilineTextAlignment(.trailing)
