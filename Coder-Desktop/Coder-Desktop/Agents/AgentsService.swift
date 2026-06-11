@@ -91,6 +91,7 @@ final class CoderAgentsService: AgentsService {
         cachedAppHost = nil
         hasLoadedOnce = false
         loadError = nil
+        messageStore.removeAllCaches() // on-disk transcripts are account data too
     }
 
     var client: CoderSDK.Client? {
