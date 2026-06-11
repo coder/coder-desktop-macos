@@ -14,4 +14,6 @@ enum Defaults {
     static let preferredModel = "agentsPreferredModel"
     /// Persisted width of the session's right side panel.
     static let sidePanelWidth = "agentsSidePanelWidth"
+    /// deployment#username the on-disk transcript cache belongs to (purged on account change).
+    static let transcriptOwner = "agentsTranscriptOwner"
 }

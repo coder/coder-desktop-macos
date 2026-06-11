@@ -91,7 +91,22 @@ final class CoderAgentsService: AgentsService {
         cachedAppHost = nil
         hasLoadedOnce = false
         loadError = nil
-        messageStore.removeAllCaches() // on-disk transcripts are account data too
+        // The on-disk transcript cache is deliberately NOT purged here: a token expiry forces
+        // a re-login to the SAME account, which should keep its instant history. It's purged
+        // on the next sign-in if the account differs (purgeTranscriptsOnAccountChange) — and
+        // it was never readable cross-account anyway (files are keyed by chat UUID, which
+        // another account never lists).
+    }
+
+    /// Purges cached transcripts only when a DIFFERENT account (deployment + username) signs
+    /// in than the one that wrote them.
+    private func purgeTranscriptsOnAccountChange() {
+        let owner = "\(state.baseAccessURL?.absoluteString ?? "")#\(sessions.first?.owner_username ?? "")"
+        let previous = UserDefaults.standard.string(forKey: Defaults.transcriptOwner)
+        if let previous, previous != owner {
+            messageStore.removeAllCaches()
+        }
+        UserDefaults.standard.set(owner, forKey: Defaults.transcriptOwner)
     }
 
     var client: CoderSDK.Client? {
@@ -113,6 +128,7 @@ final class CoderAgentsService: AgentsService {
                 .filter { $0.archived != true }
                 .sorted { $0.updated_at > $1.updated_at }
             loadError = nil
+            purgeTranscriptsOnAccountChange()
         } catch {
             loadError = error.localizedDescription
             logger.error("failed to load sessions: \(error.localizedDescription, privacy: .public)")
