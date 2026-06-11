@@ -124,16 +124,6 @@ final class CoderAgentsService: AgentsService {
         UserDefaults.standard.set(owner, forKey: Defaults.transcriptOwner)
     }
 
-    var client: CoderSDK.Client? {
-        state.client
-    }
-
-    func viewOpened() {
-        guard !didEmitViewOpened else { return }
-        didEmitViewOpened = true
-        telemetry.send(.agentsViewOpened)
-    }
-
     func reloadSessions() async {
         guard let client else { return }
         do {
@@ -384,5 +374,18 @@ extension CoderAgentsService {
         let me = try? await client.user("me")
         cachedOrgID = me?.organization_ids?.first
         return cachedOrgID
+    }
+}
+
+// Same-file extension: private access preserved; keeps the type body under the lint cap.
+extension CoderAgentsService {
+    var client: CoderSDK.Client? {
+        state.client
+    }
+
+    func viewOpened() {
+        guard !didEmitViewOpened else { return }
+        didEmitViewOpened = true
+        telemetry.send(.agentsViewOpened)
     }
 }
