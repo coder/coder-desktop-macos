@@ -15,16 +15,23 @@ struct SecretsSettingsSection<Agents: AgentsService>: View {
     var body: some View {
         Form {
             Section {
+                // Web's subtitle, plus the desktop-relevant storage note.
                 Text("""
-                Provider API keys are stored securely on the Coder server and never on this \
-                Mac. Once saved, a key can't be viewed again — only replaced or removed.
+                Add a personal API key for each provider. Your personal key takes precedence \
+                over the shared deployment key when both are available.
                 """)
                 .font(.caption).foregroundStyle(.secondary)
+                Text("Keys are stored on the Coder server, never on this Mac, and can't be viewed again once saved.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if loading {
                 Section { HStack { ProgressView().controlSize(.small); Text("Loading…").foregroundStyle(.secondary) } }
             } else if providers.isEmpty {
-                Section { Text("No providers are available on this deployment.").foregroundStyle(.secondary) }
+                Section {
+                    Text("No providers allow personal API keys.").foregroundStyle(.secondary)
+                    Text("Ask your administrator to enable personal API keys for at least one provider.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             } else {
                 ForEach(providers) { provider in
                     ProviderKeyRow(
@@ -74,6 +81,17 @@ private struct ProviderKeyRow: View {
 
     @State private var draft = ""
     @State private var busy = false
+    @State private var confirmingRemove = false
+
+    /// The web's per-state note shown under the provider title (nil for "Key saved").
+    private var stateNote: String? {
+        if !status.byok_enabled { return "Personal API keys are disabled by your admin." }
+        if status.has_user_api_key { return nil }
+        if status.has_provider_api_key {
+            return "The shared deployment key is being used. Add a personal key to use your own."
+        }
+        return "You must add a personal API key to use this provider."
+    }
 
     var body: some View {
         Section {
@@ -88,10 +106,15 @@ private struct ProviderKeyRow: View {
                 .font(.caption)
                 .foregroundStyle(status.has_user_api_key ? Color.green : .secondary)
             }
+            if let stateNote {
+                Text(stateNote).font(.caption).foregroundStyle(.secondary)
+            }
             if status.byok_enabled {
                 HStack {
-                    SecureField(status.has_user_api_key ? "Replace key…" : "Enter API key…", text: $draft)
+                    // Masked placeholder when a key exists, like the web.
+                    SecureField(status.has_user_api_key ? "••••••••••••••••" : "sk-...", text: $draft)
                         .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel("API Key for \(status.provider.display_name)")
                     if busy { ProgressView().controlSize(.small) }
                     Button("Save") {
                         busy = true
@@ -104,18 +127,29 @@ private struct ProviderKeyRow: View {
                     .disabled(busy || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 if status.has_user_api_key {
-                    Button("Remove your key", role: .destructive) {
-                        busy = true
-                        Task {
-                            await onRemove()
-                            busy = false
+                    Button("Remove", role: .destructive) { confirmingRemove = true }
+                        .disabled(busy)
+                        .confirmationDialog("Remove API key?", isPresented: $confirmingRemove) {
+                            Button("Remove", role: .destructive) {
+                                busy = true
+                                Task {
+                                    await onRemove()
+                                    busy = false
+                                }
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text(status.has_provider_api_key
+                                ? """
+                                This will remove your personal API key. Requests will fall back to \
+                                the shared deployment key for this provider.
+                                """
+                                : """
+                                This will remove your personal API key. You will need to add a new \
+                                key before you can use this provider again.
+                                """)
                         }
-                    }
-                    .disabled(busy)
                 }
-            } else {
-                Text("Your own key isn't allowed for this provider on this deployment.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }

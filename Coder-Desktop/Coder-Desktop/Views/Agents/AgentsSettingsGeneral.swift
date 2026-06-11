@@ -29,6 +29,11 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 
     var body: some View {
         Form {
+            // Help texts mirror the web's settings verbatim (Cmd/Ctrl adapted to ⌘ on macOS).
+            Section {
+                Text("Personal preferences for your chat experience.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             instructionsSection
             displaySection
             localSection
@@ -77,20 +82,52 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
             if loadingPrefs {
                 HStack { ProgressView().controlSize(.small); Text("Loading…").foregroundStyle(.secondary) }
             } else {
-                Picker("Thinking", selection: thinkingBinding) {
-                    ForEach(ThinkingDisplayMode.allCases) { Text($0.label).tag($0) }
-                }
-                Picker("Tool calls", selection: displayBinding(\.shell_tool_display_mode)) {
-                    ForEach(ToolDisplayMode.allCases) { Text($0.label).tag($0) }
-                }
-                Picker("Code diffs", selection: displayBinding(\.code_diff_display_mode)) {
-                    ForEach(ToolDisplayMode.allCases) { Text($0.label).tag($0) }
-                }
-                Picker("Send message with", selection: sendShortcutBinding) {
-                    Text("↵ Enter").tag(false)
-                    Text("⌘↵ Command-Enter").tag(true)
-                }
+                setting(
+                    Picker("Thinking display", selection: thinkingBinding) {
+                        ForEach(ThinkingDisplayMode.allCases) { Text($0.label).tag($0) }
+                    },
+                    help: """
+                    How thinking blocks should be displayed by default. 'Auto' fully expands \
+                    during streaming, then auto-collapses when done. 'Preview' auto-expands with \
+                    a height constraint during streaming. 'Always expanded' shows full content. \
+                    'Always collapsed' keeps them collapsed.
+                    """
+                )
+                setting(
+                    Picker("Shell output display", selection: displayBinding(\.shell_tool_display_mode)) {
+                        ForEach(ToolDisplayMode.allCases) { Text($0.label).tag($0) }
+                    },
+                    help: """
+                    How shell command output should be displayed by default. 'Auto' opens running \
+                    commands and completed commands with output, then keeps empty output collapsed. \
+                    'Always expanded' opens shell output by default. 'Always collapsed' keeps it \
+                    collapsed.
+                    """
+                )
+                setting(
+                    Picker("Code diff display", selection: displayBinding(\.code_diff_display_mode)) {
+                        ForEach(ToolDisplayMode.allCases) { Text($0.label).tag($0) }
+                    },
+                    help: """
+                    Controls how code edit diffs appear. 'Auto' starts single-file writes \
+                    collapsed and opens multi-file edits with a height-constrained preview. \
+                    'Always expanded' opens diffs by default; 'Always collapsed' keeps them \
+                    collapsed.
+                    """
+                )
+                setting(
+                    Toggle("Require ⌘↵ to send messages", isOn: sendShortcutBinding),
+                    help: "Require ⌘-Enter to send agent messages. When enabled, Enter inserts a newline instead."
+                )
             }
+        }
+    }
+
+    /// A control with the web's help text rendered beneath it.
+    private func setting(_ control: some View, help: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            control
+            Text(help).font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -98,9 +135,21 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 
     private var localSection: some View {
         Section("This Mac") {
-            Toggle("Full-width agent messages", isOn: $chatFullWidth)
-            Toggle("Show tool activity in the transcript", isOn: $showToolActivity)
-            Toggle("Play a chime when a session completes", isOn: $completionChime)
+            setting(
+                Toggle("Full-width chat", isOn: $chatFullWidth),
+                help: "Use full-width layout for agent chat messages, removing the default max-width constraint."
+            )
+            setting(
+                Toggle("Show tool activity in the transcript", isOn: $showToolActivity),
+                help: """
+                Show collapsed rows for each tool the agent runs. Plans, questions, and \
+                workspace progress always show.
+                """
+            )
+            setting(
+                Toggle("Play a chime when a session completes", isOn: $completionChime),
+                help: "Play a short sound when an agent finishes its turn while this window is open."
+            )
         }
     }
 
@@ -108,16 +157,28 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 
     @ViewBuilder
     private var debugSection: some View {
-        if let debug = debugLogging {
+        // Mirrors the web: hidden entirely unless the user may toggle it (or it's locked on).
+        if let debug = debugLogging,
+           debug.user_toggle_allowed == true || debug.forced_by_deployment == true
+        {
             Section("Advanced") {
-                Toggle("Enable agent debug logging", isOn: Binding(
-                    get: { debug.debug_logging_enabled },
-                    set: { setDebugLogging($0, base: debug) }
-                ))
-                .disabled(debug.user_toggle_allowed == false || debug.forced_by_deployment == true)
-                if debug.forced_by_deployment == true {
-                    Text("Enforced by your deployment.").font(.caption).foregroundStyle(.secondary)
-                }
+                setting(
+                    Toggle("Record debug logs for my chats", isOn: Binding(
+                        get: { debug.debug_logging_enabled },
+                        set: { setDebugLogging($0, base: debug) }
+                    ))
+                    .disabled(debug.forced_by_deployment == true),
+                    help: debug.forced_by_deployment == true
+                        ? """
+                        An administrator has enabled debug logging for every chat in this \
+                        deployment, so this toggle is locked on.
+                        """
+                        : """
+                        Save a detailed trace of your chats: each turn plus the raw API requests \
+                        and responses sent to the model provider. Useful for troubleshooting \
+                        unexpected model behavior.
+                        """
+                )
             }
         }
     }

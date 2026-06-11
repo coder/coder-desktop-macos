@@ -14,18 +14,24 @@ struct AgentsModelSettingsSection<Agents: AgentsService>: View {
     var body: some View {
         Form {
             Section {
-                Text("""
-                Choose which model each context uses. “Chat default” follows the chat's model; \
-                “Deployment default” uses the model your deployment configured.
-                """)
-                .font(.caption).foregroundStyle(.secondary)
+                Text("Choose personal model defaults for root agents and delegated agents.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if loading {
                 Section { HStack { ProgressView().controlSize(.small); Text("Loading…").foregroundStyle(.secondary) } }
             } else if overrides != nil {
-                contextSection(title: "Root", context: "root", keyPath: \.root)
-                contextSection(title: "General", context: "general", keyPath: \.general)
-                contextSection(title: "Explore", context: "explore", keyPath: \.explore)
+                contextSection(
+                    title: "Root agent model", context: "root", keyPath: \.root,
+                    help: "Choose the model behavior for new root agents."
+                )
+                contextSection(
+                    title: "General subagent model", context: "general", keyPath: \.general,
+                    help: "Choose the model behavior for delegated agents with write capabilities."
+                )
+                contextSection(
+                    title: "Explore subagent model", context: "explore", keyPath: \.explore,
+                    help: "Choose the model behavior for read-only Explore subagents."
+                )
             }
             if let error {
                 Section { Text(error).font(.caption).foregroundStyle(.red) }
@@ -42,12 +48,16 @@ struct AgentsModelSettingsSection<Agents: AgentsService>: View {
     private func contextSection(
         title: String,
         context: String,
-        keyPath: WritableKeyPath<ModelOverrides, ModelOverride>
+        keyPath: WritableKeyPath<ModelOverrides, ModelOverride>,
+        help: String
     ) -> some View {
         let current = overrides?[keyPath: keyPath]
+        // Root agents can't follow the deployment default (web hides that option for root).
+        let modes = ModelOverrideMode.allCases.filter { context != "root" || $0 != .deploymentDefault }
         Section(title) {
+            Text(help).font(.caption).foregroundStyle(.secondary)
             Picker("Model selection", selection: modeBinding(context: context, keyPath: keyPath)) {
-                ForEach(ModelOverrideMode.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(modes, id: \.self) { Text($0.label).tag($0) }
             }
             if current?.mode == ModelOverrideMode.model.rawValue, !agents.modelConfigs.isEmpty {
                 Picker("Model", selection: modelBinding(context: context, keyPath: keyPath)) {
@@ -56,7 +66,8 @@ struct AgentsModelSettingsSection<Agents: AgentsService>: View {
                 }
             }
             if current?.is_malformed == true {
-                Text("This override is malformed; re-select a model.").font(.caption).foregroundStyle(.orange)
+                Text("The saved override is malformed. Choose a valid value and save to replace it.")
+                    .font(.caption).foregroundStyle(.orange)
             }
         }
     }
