@@ -74,6 +74,8 @@ struct MenuItemView: View {
     let baseAccessURL: URL
     @Binding var expandedItem: VPNMenuItem.ID?
     @Binding var userInteracted: Bool
+    /// Whether this workspace was created by an Agents chat (web UI's "Agent" badge).
+    var isAgentWorkspace: Bool = false
 
     @State private var nameIsSelected: Bool = false
 
@@ -126,6 +128,15 @@ struct MenuItemView: View {
                     HStack(spacing: Theme.Size.trayPadding) {
                         AnimatedChevron(isExpanded: isExpanded, color: .secondary)
                         Text(itemName).lineLimit(1).truncationMode(.tail)
+                        if isAgentWorkspace {
+                            Text("Agent")
+                                .font(.caption2)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .foregroundStyle(.secondary)
+                                .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+                                .help("Created by an agent chat")
+                        }
                         Spacer()
                     }.padding(.horizontal, Theme.Size.trayPadding)
                         .frame(minHeight: 22)

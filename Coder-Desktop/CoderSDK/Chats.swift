@@ -24,6 +24,17 @@ public extension Client {
         return try decode([Chat].self, from: res.data)
     }
 
+    /// Maps workspace IDs to the chat session that created them — the source of the
+    /// web UI's "Agent" badge on workspace lists. Workspaces without a chat are omitted.
+    func chatsByWorkspace(workspaceIDs: [UUID]) async throws(SDKError) -> [String: String] {
+        let ids = workspaceIDs.map(\.uuidString).joined(separator: ",")
+        let res = try await request("/api/experimental/chats/by-workspace?workspace_ids=\(ids)", method: .get)
+        guard res.resp.statusCode == 200 else {
+            throw responseAsError(res)
+        }
+        return try decode([String: String].self, from: res.data)
+    }
+
     /// Launches a new chat session. The agent runs in the control plane / selected
     /// workspace, never locally.
     func createChat(_ req: CreateChatRequest) async throws(SDKError) -> Chat {
