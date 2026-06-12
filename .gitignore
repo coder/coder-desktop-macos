@@ -305,3 +305,6 @@ release/
 
 # Embedded mutagen resources
 Coder-Desktop/Resources/mutagen-*
+
+# Statically linked Go tunnel for iOS
+Coder-Desktop/CoderVPN.xcframework

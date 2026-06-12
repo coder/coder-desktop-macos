@@ -248,13 +248,11 @@ struct VPNMenuState {
         workspaces[wsID] = nil
     }
 
-    var sorted: [VPNMenuItem] {
-        var items = agents.values.map { VPNMenuItem.agent($0) }
-        // Workspaces with no agents are shown as offline
-        items += workspaces.filter { _, value in
+    // Workspaces with no agents, shown as offline
+    var offlineWorkspaces: [Workspace] {
+        workspaces.filter { _, value in
             value.agents.isEmpty
-        }.map { VPNMenuItem.offlineWorkspace(Workspace(id: $0.key, name: $0.value.name, agents: $0.value.agents)) }
-        return items.sorted()
+        }.map { Workspace(id: $0.key, name: $0.value.name, agents: $0.value.agents) }
     }
 
     var onlineAgents: [Agent] { agents.map(\.value) }
@@ -262,6 +260,25 @@ struct VPNMenuState {
     mutating func clear() {
         agents.removeAll()
         workspaces.removeAll()
+    }
+}
+
+extension UUID {
+    var uuidData: Data {
+        withUnsafePointer(to: uuid) {
+            Data(bytes: $0, count: MemoryLayout.size(ofValue: uuid))
+        }
+    }
+
+    init?(uuidData: Data) {
+        guard uuidData.count == 16 else {
+            return nil
+        }
+        var uuid: uuid_t = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        withUnsafeMutableBytes(of: &uuid) {
+            $0.copyBytes(from: uuidData)
+        }
+        self.init(uuid: uuid)
     }
 }
 

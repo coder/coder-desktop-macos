@@ -21,7 +21,11 @@ public struct TelemetryEnricher {
 
     public func enrich(_ original: Vpn_StartRequest) -> Vpn_StartRequest {
         var req = original
-        req.deviceOs = "macOS"
+        #if os(iOS)
+            req.deviceOs = "iOS"
+        #else
+            req.deviceOs = "macOS"
+        #endif
         req.deviceID = deviceID
         if let version {
             req.coderDesktopVersion = version

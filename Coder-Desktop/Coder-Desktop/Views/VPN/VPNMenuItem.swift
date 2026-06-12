@@ -2,6 +2,14 @@ import CoderSDK
 import os
 import SwiftUI
 
+extension VPNMenuState {
+    var sorted: [VPNMenuItem] {
+        var items = agents.values.map { VPNMenuItem.agent($0) }
+        items += offlineWorkspaces.map { VPNMenuItem.offlineWorkspace($0) }
+        return items.sorted()
+    }
+}
+
 // Each row in the workspaces list is an agent or an offline workspace
 enum VPNMenuItem: Equatable, Comparable, Identifiable {
     case agent(Agent)

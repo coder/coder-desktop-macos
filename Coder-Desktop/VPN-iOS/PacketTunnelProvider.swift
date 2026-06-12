@@ -7,11 +7,11 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
     // a `tunnelRemoteAddress` is required, but not currently used.
     private var currentSettings: NEPacketTunnelNetworkSettings = .init(tunnelRemoteAddress: "127.0.0.1")
+    private var manager: TunnelManager?
 
     override nonisolated(nonsending) func startTunnel(
         options _: [String: NSObject]?
     ) async throws {
-        globalHelperXPCClient.ptp = self
         guard let proto = protocolConfiguration as? NETunnelProviderProtocol,
               let baseAccessURL = proto.serverAddress
         else {
@@ -23,35 +23,43 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
             logger.error("startTunnel called with nil token")
             throw makeNSError(suffix: "PTP", desc: "Missing Token")
         }
-        let headers = proto.providerConfiguration?["literalHeaders"] as? Data
-        let disableSigVal = proto.providerConfiguration?["dangerousDisableCoderSignatureValidation"] as? Bool ?? false
+        let headers: [HTTPHeader] = (proto.providerConfiguration?["literalHeaders"] as? Data)
+            .flatMap { try? JSONDecoder().decode([HTTPHeader].self, from: $0) } ?? []
         logger.debug("retrieved token & access URL")
         guard let tunFd = tunnelFileDescriptor else {
             logger.error("startTunnel called with nil tunnelFileDescriptor")
             throw makeNSError(suffix: "PTP", desc: "Missing Tunnel File Descriptor")
         }
-        try await globalHelperXPCClient.startDaemon(
-            accessURL: .init(string: baseAccessURL)!,
-            token: token,
-            tun: FileHandle(fileDescriptor: tunFd),
-            headers: headers,
-            dangerousDisableSignatureValidation: disableSigVal
-        )
+        let manager = try await TunnelManager(provider: self, cfg: .init(
+            apiToken: token,
+            serverUrl: .init(string: baseAccessURL)!,
+            tunFd: tunFd,
+            literalHeaders: headers
+        ))
+        self.manager = manager
+        try await manager.startVPN()
     }
 
     override func stopTunnel(
         with _: NEProviderStopReason
     ) async {
         logger.debug("stopping tunnel")
-        try? await globalHelperXPCClient.stopDaemon()
+        try? await manager?.stopVPN()
+        manager = nil
         logger.info("tunnel stopped")
-        globalHelperXPCClient.ptp = nil
     }
 
-    override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
-        // Add code here to handle the message.
-        if let handler = completionHandler {
-            handler(messageData)
+    override func handleAppMessage(_ messageData: Data) async -> Data? {
+        guard let cmd = String(data: messageData, encoding: .utf8) else {
+            return nil
+        }
+        switch cmd {
+        case CoderIPC.getPeerStateMessage:
+            guard let manager else { return nil }
+            return try? await manager.getPeerState().serializedData()
+        default:
+            logger.warning("received unknown app message: \(cmd, privacy: .public)")
+            return nil
         }
     }
 

@@ -78,6 +78,8 @@ $(XCPROJECT): $(PROJECT)/project.yml
 		PTP_SUFFIX=${PTP_SUFFIX} \
 		APP_PROVISIONING_PROFILE_ID=${APP_PROVISIONING_PROFILE_ID} \
 		EXT_PROVISIONING_PROFILE_ID=${EXT_PROVISIONING_PROFILE_ID} \
+		APP_IOS_PROVISIONING_PROFILE_ID=${APP_IOS_PROVISIONING_PROFILE_ID} \
+		EXT_IOS_PROVISIONING_PROFILE_ID=${EXT_IOS_PROVISIONING_PROFILE_ID} \
 		CURRENT_PROJECT_VERSION=$(CURRENT_PROJECT_VERSION) \
 		MARKETING_VERSION=$(MARKETING_VERSION) \
 		GIT_COMMIT_HASH=$(GIT_COMMIT_HASH) \
@@ -85,6 +87,23 @@ $(XCPROJECT): $(PROJECT)/project.yml
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 	protoc --swift_opt=Visibility=public --swift_out=. 'Coder-Desktop/VPNLib/vpn.proto'
+
+# The Go tunnel, statically linked into the iOS network extension. iOS
+# forbids downloading executable code, so unlike macOS the tunnel can't be
+# fetched from the deployment at runtime.
+$(PROJECT)/CoderVPN.xcframework: $(wildcard libtunnel/*.go) libtunnel/go.mod libtunnel/go.sum scripts/build-libcodervpn.sh
+	./scripts/build-libcodervpn.sh
+
+.PHONY: ios
+ios: $(PROJECT)/CoderVPN.xcframework $(XCPROJECT) ## Build the iOS app (unsigned)
+	set -o pipefail && xcodebuild build \
+		-project $(XCPROJECT) \
+		-scheme Coder-Desktop-iOS \
+		-destination 'generic/platform=iOS' \
+		-skipMacroValidation \
+		-skipPackagePluginValidation \
+		CODE_SIGNING_REQUIRED=NO \
+		CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 $(MUTAGEN_PROTO_SWIFTS):
 	protoc \
@@ -153,7 +172,7 @@ lint/actions: ## Lint GitHub Actions
 	zizmor .
 
 .PHONY: clean
-clean: clean/project clean/keychain clean/build clean/mutagen ## Clean project and artifacts
+clean: clean/project clean/keychain clean/build clean/mutagen clean/libtunnel ## Clean project and artifacts
 
 .PHONY: clean/project
 clean/project:
@@ -179,6 +198,10 @@ clean/build:
 .PHONY: clean/mutagen
 clean/mutagen:
 	find $(PROJECT)/Resources -name 'mutagen-*' -delete
+
+.PHONY: clean/libtunnel
+clean/libtunnel:
+	rm -rf $(PROJECT)/CoderVPN.xcframework build/libtunnel
 
 .PHONY: proto
 proto: $(PROJECT)/VPNLib/vpn.pb.swift $(MUTAGEN_PROTO_SWIFTS) ## Generate Swift files from protobufs
