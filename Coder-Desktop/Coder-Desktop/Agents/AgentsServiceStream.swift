@@ -143,3 +143,80 @@ extension CoderAgentsService {
         }
     }
 }
+
+// MARK: - Event application
+
+@MainActor
+extension CoderAgentsService {
+    /// Applies a single decoded stream event to the session's state. Internal (not
+    /// fileprivate) so the stream-event handling can be unit-tested.
+    func apply(_ event: ChatStreamEvent, to id: UUID) {
+        // history_reset protocol (chatd stabilization): the rewind starts a replacement run —
+        // subsequent `message` events ARE the new transcript; any other event ends the run.
+        switch event.type {
+        case .historyReset:
+            streamingStore.clear(id)
+            historyReplacement[id] = [] // a newer reset supersedes an in-flight run
+            return
+        case .message where historyReplacement[id] != nil:
+            if let message = event.message { historyReplacement[id]?.append(message) }
+            return
+        default:
+            commitHistoryReplacement(for: id)
+        }
+        dispatch(event, to: id)
+    }
+
+    private func dispatch(_ event: ChatStreamEvent, to id: UUID) {
+        switch event.type {
+        case .message:
+            applyMessageEvent(event.message, to: id)
+        case .messagePart:
+            if let part = event.message_part?.part {
+                streamingStore.append(part, to: id)
+            }
+        case .status:
+            if let status = event.status?.status {
+                updateStatus(status, for: id)
+            }
+        case .error:
+            if let message = event.error?.message {
+                loadError = message
+            }
+        case .queueUpdate:
+            queuedMessagesBySession[id] = event.queued_messages ?? []
+        case .previewReset:
+            streamingStore.clear(id)
+        case .retry, .actionRequired, .historyReset, .unknown:
+            break
+        }
+    }
+
+    private func applyMessageEvent(_ message: ChatMessage?, to id: UUID) {
+        guard let message else { return }
+        mergeMessages([message], into: id)
+        // A completed assistant message supersedes the in-flight buffer.
+        if message.role == .assistant {
+            streamingStore.clear(id)
+        }
+    }
+
+    /// Atomically swaps in a buffered replacement transcript (rewind via message edit —
+    /// possibly from another client; this closes the old cross-client duplicate bug).
+    private func commitHistoryReplacement(for id: UUID) {
+        guard let replacement = historyReplacement.removeValue(forKey: id) else { return }
+        let sorted = replacement.sorted { $0.id < $1.id }
+        messagesBySession[id] = sorted
+        messageStore.save(sorted, for: id)
+    }
+
+    func clearStreamingParts(for id: UUID, generation: Int) {
+        guard streamGeneration[id] == generation else { return }
+        streamingStore.clear(id)
+    }
+
+    func updateStatus(_ status: ChatStatus, for id: UUID) {
+        guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[idx].status = status
+    }
+}

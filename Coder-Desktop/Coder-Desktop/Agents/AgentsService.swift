@@ -37,6 +37,8 @@ final class CoderAgentsService: AgentsService {
     var gitWatchTasks: [UUID: Task<Void, Never>] = [:]
     /// Optimistically-echoed user messages, shown until the server reflects them.
     @Published var pendingSendsBySession: [UUID: [ChatMessage]] = [:]
+    /// Non-nil while a `history_reset` replacement run is being buffered for a chat.
+    var historyReplacement: [UUID: [ChatMessage]] = [:]
 
     var streamTasks: [UUID: Task<Void, Never>] = [:]
     /// The global chat-watch socket (sidebar live updates + chime/notifications).
@@ -94,6 +96,7 @@ final class CoderAgentsService: AgentsService {
         queuedMessagesBySession.removeAll()
         diffBySession.removeAll()
         pendingSendsBySession.removeAll()
+        historyReplacement.removeAll()
         workspaces = []
         mcpServers = []
         modelConfigs = []
@@ -224,6 +227,7 @@ final class CoderAgentsService: AgentsService {
     /// Drops a chat's in-memory state (messages, diff, paging, queue). Safe to call for an
     /// open chat only after its stream is stopped.
     private func evictSessionState(_ id: UUID) {
+        historyReplacement.removeValue(forKey: id)
         messagesBySession.removeValue(forKey: id)
         hasOlderBySession.removeValue(forKey: id)
         queuedMessagesBySession.removeValue(forKey: id)
@@ -307,60 +311,9 @@ final class CoderAgentsService: AgentsService {
     }
 }
 
-// MARK: - Streaming
-
-// The stream ENGINE (runStream/shouldReconnect/ReconnectState/endStream) lives in
-// AgentsServiceStream.swift; event application stays here with the state it mutates.
-@MainActor
+// Stream event APPLICATION lives in AgentsServiceStream.swift with the engine;
+// `organizationID()` stays here because `private cachedOrgID` is file-scoped.
 extension CoderAgentsService {
-    private func applyMessageEvent(_ message: ChatMessage?, to id: UUID) {
-        guard let message else { return }
-        mergeMessages([message], into: id)
-        // A completed assistant message supersedes the in-flight buffer.
-        if message.role == .assistant {
-            streamingStore.clear(id)
-        }
-    }
-
-    func clearStreamingParts(for id: UUID, generation: Int) {
-        guard streamGeneration[id] == generation else { return }
-        streamingStore.clear(id)
-    }
-
-    func updateStatus(_ status: ChatStatus, for id: UUID) {
-        guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
-        sessions[idx].status = status
-    }
-}
-
-// Not in the private extension above: `organizationID()` is called from AgentsServiceSend's
-// file upload too. (`private` is file-scoped, so it still reaches the private cachedOrgID.)
-extension CoderAgentsService {
-    /// Applies a single decoded stream event to the session's state. Internal (not fileprivate)
-    /// so the stream-event handling can be unit-tested; still calls the file's private helpers.
-    func apply(_ event: ChatStreamEvent, to id: UUID) {
-        switch event.type {
-        case .message:
-            applyMessageEvent(event.message, to: id)
-        case .messagePart:
-            if let part = event.message_part?.part {
-                streamingStore.append(part, to: id)
-            }
-        case .status:
-            if let status = event.status?.status {
-                updateStatus(status, for: id)
-            }
-        case .error:
-            if let message = event.error?.message {
-                loadError = message
-            }
-        case .queueUpdate:
-            queuedMessagesBySession[id] = event.queued_messages ?? []
-        case .retry, .actionRequired, .unknown:
-            break
-        }
-    }
-
     /// Updates a session's `shared` flag locally (after an ACL change) so the share icon
     /// reflects the new state immediately.
     func setSharedFlag(_ id: UUID, shared: Bool) {

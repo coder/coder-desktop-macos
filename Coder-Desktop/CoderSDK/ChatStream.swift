@@ -172,6 +172,12 @@ public enum ChatStreamEventType: String, Codable, Sendable {
     case queueUpdate = "queue_update"
     case retry
     case actionRequired = "action_required"
+    /// History was rewound (e.g. a message edit); subsequent `message` events are the FULL
+    /// replacement transcript, emitted contiguously and terminated by the next non-message
+    /// event (the server always emits `preview_reset` in the same sync).
+    case historyReset = "history_reset"
+    /// Discard the in-flight streamed preview parts; durable messages are unaffected.
+    case previewReset = "preview_reset"
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -183,6 +189,11 @@ public enum ChatStreamEventType: String, Codable, Sendable {
 public struct ChatStreamMessagePart: Codable, Sendable {
     public let part: ChatMessagePart
     public let role: ChatMessageRole?
+    // Ordering metadata (chatd stabilization): which history rewind / retry attempt this
+    // part belongs to, and its sequence within the attempt.
+    public let history_version: Int64?
+    public let generation_attempt: Int64?
+    public let seq: Int64?
 }
 
 public struct ChatStreamStatus: Codable, Sendable {
