@@ -35,6 +35,8 @@ protocol AgentsService: ObservableObject {
     var activeSessionID: UUID? { get set }
     /// Set when a chat notification is clicked; the window consumes it to route there.
     var pendingOpenChatID: UUID? { get set }
+    /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
+    var retryBySession: [UUID: ChatRetryInfo] { get }
 
     /// Emitted once when the Agents window is opened.
     func viewOpened()

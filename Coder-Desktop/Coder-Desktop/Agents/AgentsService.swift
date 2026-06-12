@@ -39,6 +39,9 @@ final class CoderAgentsService: AgentsService {
     @Published var pendingSendsBySession: [UUID: [ChatMessage]] = [:]
     /// Non-nil while a `history_reset` replacement run is being buffered for a chat.
     var historyReplacement: [UUID: [ChatMessage]] = [:]
+    /// Live auto-retry state per chat ("Retrying in Xs · Attempt N"), cleared when output
+    /// resumes — mirrors the web's retry callout.
+    @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
 
     var streamTasks: [UUID: Task<Void, Never>] = [:]
     /// The global chat-watch socket (sidebar live updates + chime/notifications).
@@ -97,6 +100,7 @@ final class CoderAgentsService: AgentsService {
         diffBySession.removeAll()
         pendingSendsBySession.removeAll()
         historyReplacement.removeAll()
+        retryBySession.removeAll()
         workspaces = []
         mcpServers = []
         modelConfigs = []
@@ -114,17 +118,6 @@ final class CoderAgentsService: AgentsService {
         // on the next sign-in if the account differs (purgeTranscriptsOnAccountChange) — and
         // it was never readable cross-account anyway (files are keyed by chat UUID, which
         // another account never lists).
-    }
-
-    /// Purges cached transcripts only when a DIFFERENT account (deployment + username) signs
-    /// in than the one that wrote them.
-    private func purgeTranscriptsOnAccountChange() {
-        let owner = "\(state.baseAccessURL?.absoluteString ?? "")#\(sessions.first?.owner_username ?? "")"
-        let previous = UserDefaults.standard.string(forKey: Defaults.transcriptOwner)
-        if let previous, previous != owner {
-            messageStore.removeAllCaches()
-        }
-        UserDefaults.standard.set(owner, forKey: Defaults.transcriptOwner)
     }
 
     func reloadSessions() async {
@@ -228,6 +221,7 @@ final class CoderAgentsService: AgentsService {
     /// open chat only after its stream is stopped.
     private func evictSessionState(_ id: UUID) {
         historyReplacement.removeValue(forKey: id)
+        retryBySession.removeValue(forKey: id)
         messagesBySession.removeValue(forKey: id)
         hasOlderBySession.removeValue(forKey: id)
         queuedMessagesBySession.removeValue(forKey: id)
@@ -334,6 +328,17 @@ extension CoderAgentsService {
 extension CoderAgentsService {
     var client: CoderSDK.Client? {
         state.client
+    }
+
+    /// Purges cached transcripts only when a DIFFERENT account (deployment + username) signs
+    /// in than the one that wrote them.
+    func purgeTranscriptsOnAccountChange() {
+        let owner = "\(state.baseAccessURL?.absoluteString ?? "")#\(sessions.first?.owner_username ?? "")"
+        let previous = UserDefaults.standard.string(forKey: Defaults.transcriptOwner)
+        if let previous, previous != owner {
+            messageStore.removeAllCaches()
+        }
+        UserDefaults.standard.set(owner, forKey: Defaults.transcriptOwner)
     }
 
     func viewOpened() {

@@ -170,8 +170,10 @@ extension CoderAgentsService {
     private func dispatch(_ event: ChatStreamEvent, to id: UUID) {
         switch event.type {
         case .message:
+            retryBySession[id] = nil // output resumed (web: clearRetryState)
             applyMessageEvent(event.message, to: id)
         case .messagePart:
+            retryBySession[id] = nil
             if let part = event.message_part?.part {
                 streamingStore.append(part, to: id)
             }
@@ -183,11 +185,25 @@ extension CoderAgentsService {
             if let message = event.error?.message {
                 loadError = message
             }
+        default:
+            dispatchAuxiliary(event, to: id)
+        }
+    }
+
+    private func dispatchAuxiliary(_ event: ChatStreamEvent, to id: UUID) {
+        switch event.type {
         case .queueUpdate:
             queuedMessagesBySession[id] = event.queued_messages ?? []
         case .previewReset:
             streamingStore.clear(id)
-        case .retry, .actionRequired, .historyReset, .unknown:
+        case .retry:
+            if let retry = event.retry {
+                retryBySession[id] = ChatRetryInfo(
+                    retry: retry,
+                    retryingAt: Date().addingTimeInterval(Double(retry.delay_ms) / 1000)
+                )
+            }
+        default:
             break
         }
     }
@@ -219,4 +235,11 @@ extension CoderAgentsService {
         guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[idx].status = status
     }
+}
+
+/// A live auto-retry notice: the server's payload plus the wall-clock retry deadline
+/// (computed at receipt from `delay_ms`) for the countdown.
+struct ChatRetryInfo {
+    let retry: ChatStreamRetry
+    let retryingAt: Date
 }

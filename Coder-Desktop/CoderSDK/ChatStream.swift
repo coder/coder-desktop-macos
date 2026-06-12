@@ -162,6 +162,38 @@ public struct ChatStreamEvent: Codable, Sendable {
     public let error: ChatError?
     /// Present on `queue_update` events: the current set of queued messages.
     public let queued_messages: [ChatQueuedMessage]?
+    /// Present on `retry` events: the server is backing off before retrying a failed
+    /// LLM call (codersdk `ChatStreamRetry`).
+    public let retry: ChatStreamRetry?
+
+    public init(
+        type: ChatStreamEventType,
+        chat_id: UUID? = nil,
+        message: ChatMessage? = nil,
+        message_part: ChatStreamMessagePart? = nil,
+        status: ChatStreamStatus? = nil,
+        error: ChatError? = nil,
+        queued_messages: [ChatQueuedMessage]? = nil,
+        retry: ChatStreamRetry? = nil
+    ) {
+        self.type = type
+        self.chat_id = chat_id
+        self.message = message
+        self.message_part = message_part
+        self.status = status
+        self.error = error
+        self.queued_messages = queued_messages
+        self.retry = retry
+    }
+}
+
+/// An auto-retry status event: attempt number, backoff delay, and the failure being retried.
+public struct ChatStreamRetry: Codable, Sendable, Equatable {
+    public let attempt: Int
+    public let delay_ms: Int64
+    public let error: String
+    public let kind: String?
+    public let provider: String?
 }
 
 public enum ChatStreamEventType: String, Codable, Sendable {

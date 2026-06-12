@@ -21,6 +21,18 @@ extension CoderAgentsService {
     }
 
     private func runWatch() async {
+        // The watch is best-effort pubsub (no ordering/delivery guarantees — its
+        // hardening is explicitly future upstream work), so reconcile the sidebar
+        // against the authoritative list periodically; a dropped notification can't
+        // pin a stale status forever.
+        let reconcile = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                if Task.isCancelled { return }
+                await self?.reconcileSessions()
+            }
+        }
+        defer { reconcile.cancel() }
         while !Task.isCancelled {
             guard let client else { return }
             do {
@@ -33,6 +45,15 @@ extension CoderAgentsService {
             if Task.isCancelled { return }
             try? await Task.sleep(for: .seconds(3))
         }
+    }
+
+    /// Quiet background refresh of the session list: unlike `reloadSessions`, a transient
+    /// failure here must not surface an error banner over a working UI.
+    private func reconcileSessions() async {
+        guard let client, let chats = try? await client.chats() else { return }
+        sessions = chats
+            .filter { $0.archived != true }
+            .sorted { $0.updated_at > $1.updated_at }
     }
 
     private func handleWatchEvent(_ event: ChatWatchEvent) {
