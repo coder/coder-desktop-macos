@@ -68,6 +68,16 @@ extension ChatStatus {
         isActive && self != .interrupting
     }
 
+    /// The chatd state machine only allows archiving idle chats (`waiting`/`error`);
+    /// archiving mid-run is rejected instead of implicitly interrupting. `unknown` is
+    /// left enabled so the server stays the authority for statuses we don't model.
+    var canArchive: Bool {
+        switch self {
+        case .waiting, .error, .completed, .unknown: true
+        default: false
+        }
+    }
+
     /// VoiceOver description for the status dot.
     var accessibilityLabel: String {
         "Status: \(label)"

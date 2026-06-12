@@ -153,15 +153,17 @@ struct SessionRow: View {
         }
         Divider()
         Button(role: .destructive) { onArchive() } label: { Label("Archive chat", systemImage: "archivebox") }
+            .disabled(!session.status.canArchive)
         if !isChild, session.workspace_id != nil {
             Button(role: .destructive) { onDeleteWorkspace() } label: {
                 Label("Archive chat & delete workspace", systemImage: "trash")
             }
+            .disabled(!session.status.canArchive)
         }
     }
 
     /// Compact relative time like the web UI ("5m", "3h", "2d", "1w", "3mo").
-    static func relativeShort(_ date: Date) -> String {
+    nonisolated static func relativeShort(_ date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
         switch seconds {
         case ..<60: return "now"
