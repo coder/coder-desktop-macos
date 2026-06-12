@@ -190,10 +190,25 @@ public struct ChatStreamMessagePart: Codable, Sendable {
     public let part: ChatMessagePart
     public let role: ChatMessageRole?
     // Ordering metadata (chatd stabilization): which history rewind / retry attempt this
-    // part belongs to, and its sequence within the attempt.
+    // part belongs to, and its sequence within the attempt. The stream endpoint already
+    // filters stale/out-of-order parts server-side; these are informational for clients.
     public let history_version: Int64?
     public let generation_attempt: Int64?
     public let seq: Int64?
+
+    public init(
+        part: ChatMessagePart,
+        role: ChatMessageRole? = nil,
+        history_version: Int64? = nil,
+        generation_attempt: Int64? = nil,
+        seq: Int64? = nil
+    ) {
+        self.part = part
+        self.role = role
+        self.history_version = history_version
+        self.generation_attempt = generation_attempt
+        self.seq = seq
+    }
 }
 
 public struct ChatStreamStatus: Codable, Sendable {
