@@ -1,6 +1,17 @@
 import Foundation
 
 public extension Client {
+    /// Maps workspace IDs to the chat session that created them — the source of the
+    /// web UI's "Agent" badge on workspace lists. Workspaces without a chat are omitted.
+    func chatsByWorkspace(workspaceIDs: [UUID]) async throws(SDKError) -> [String: String] {
+        let ids = workspaceIDs.map(\.uuidString).joined(separator: ",")
+        let res = try await request("/api/experimental/chats/by-workspace?workspace_ids=\(ids)", method: .get)
+        guard res.resp.statusCode == 200 else {
+            throw responseAsError(res)
+        }
+        return try decode([String: String].self, from: res.data)
+    }
+
     /// Streams lifecycle events for all of the authenticated user's chats over the global
     /// `/chats/watch` WebSocket — the web sidebar's live source for status changes, titles,
     /// turn summaries, unread state, and chime/notification triggers.

@@ -9,7 +9,7 @@ extension ChatStatus {
         switch self {
         case .running, .pending:
             .accentColor
-        case .paused, .requiresAction:
+        case .paused, .requiresAction, .interrupting:
             .orange
         case .error:
             .red
@@ -26,6 +26,7 @@ extension ChatStatus {
         case .requiresAction: "Needs action"
         case .completed: "Done"
         case .paused: "Paused"
+        case .interrupting: "Stopping"
         case .error: "Error"
         case .unknown: "Unknown"
         }
@@ -38,16 +39,17 @@ extension ChatStatus {
         case .waiting: "hand.raised"
         case .requiresAction: "exclamationmark.circle"
         case .completed: "checkmark.circle"
-        case .paused: "pause.circle"
+        case .paused, .interrupting: "pause.circle"
         case .error: "xmark.octagon"
         case .unknown: "questionmark.circle"
         }
     }
 
-    /// Whether the agent is actively producing output.
+    /// Whether the agent is actively busy (the web counts `interrupting` too: the turn is
+    /// still winding down).
     var isActive: Bool {
         switch self {
-        case .running, .pending: true
+        case .running, .pending, .interrupting: true
         default: false
         }
     }
@@ -60,9 +62,10 @@ extension ChatStatus {
         }
     }
 
-    /// Stop/interrupt is meaningful only while the agent is actively working.
+    /// Stop/interrupt is meaningful only while the agent is actively working (and not
+    /// already winding down from a previous stop).
     var isInterruptible: Bool {
-        isActive
+        isActive && self != .interrupting
     }
 
     /// VoiceOver description for the status dot.
