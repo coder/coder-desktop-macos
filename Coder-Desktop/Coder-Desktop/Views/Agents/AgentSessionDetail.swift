@@ -37,6 +37,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         errorBanner(error)
                     }
                     transcript
+                    if let retry = agents.retryBySession[session.id] {
+                        RetryCallout(info: retry)
+                    }
                     Divider()
                     QueuedMessagesList<Agents>(session: session) { composer.appendToDraft($0) }
                     SessionComposer<Agents>(session: session, model: composer)
@@ -263,5 +266,34 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         }) else { return nil }
         let userAnsweredAfter = items[items.index(after: idx)...].contains { $0.isUserBubble }
         return userAnsweredAfter ? nil : items[idx].id
+    }
+}
+
+/// The web's auto-retry alert: the failure message with a live "Retrying in Xs · Attempt N"
+/// countdown, shown between the transcript and composer until output resumes.
+private struct RetryCallout: View {
+    let info: ChatRetryInfo
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.trianglehead.2.clockwise")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(info.retry.error).lineLimit(2)
+            Spacer()
+            if info.retryingAt > Date() {
+                (Text("Retrying in ") + Text(info.retryingAt, style: .timer))
+                    .monospacedDigit()
+            } else {
+                Text("Retrying…")
+            }
+            Text("Attempt \(info.retry.attempt)")
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, Theme.Size.trayInset)
+        .padding(.vertical, 6)
+        .background(.orange.opacity(0.08))
+        .accessibilityElement(children: .combine)
     }
 }

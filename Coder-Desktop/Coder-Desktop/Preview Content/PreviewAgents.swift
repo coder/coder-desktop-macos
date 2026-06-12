@@ -13,6 +13,7 @@ final class PreviewAgents: AgentsService {
     @Published var hasLoadedOnce = true
     @Published var activeSessionID: UUID?
     @Published var pendingOpenChatID: UUID?
+    @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
 
