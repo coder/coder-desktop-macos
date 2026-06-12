@@ -42,7 +42,7 @@ extension CoderAgentsService {
         }
         var reconnect = ReconnectState()
         while !Task.isCancelled, streamGeneration[id] == generation {
-            let afterID = messagesBySession[id]?.map(\.id).max()
+            let afterID = await resubscribeCursor(id, generation: generation)
             // Each (re)subscribe replays from the last committed message, so drop any
             // half-streamed parts first to avoid duplicating them on reconnect.
             streamingStore.clear(id)
@@ -71,6 +71,23 @@ extension CoderAgentsService {
             }
         }
         endStream(id, generation: generation)
+    }
+
+    /// The replay cursor for a (re)subscribe. A replacement run is only valid within one
+    /// socket session: a drop mid-run leaves a partial buffer that must never be committed —
+    /// discard it, and since the rewind invalidated the cursor, reload the page instead of
+    /// merging onto the pre-reset transcript (cursor nil after an abort).
+    private func resubscribeCursor(_ id: UUID, generation: Int) async -> Int64? {
+        guard historyReplacement.removeValue(forKey: id) != nil else {
+            return messagesBySession[id]?.map(\.id).max()
+        }
+        if let client, let resp = try? await client.chatMessages(id),
+           streamGeneration[id] == generation
+        {
+            messagesBySession[id] = resp.messages.sorted { $0.id < $1.id }
+            hasOlderBySession[id] = resp.has_more ?? false
+        }
+        return nil
     }
 
     /// Handles a stream drop: catches up via the poll cursor and decides whether to retry.
@@ -156,6 +173,7 @@ extension CoderAgentsService {
         switch event.type {
         case .historyReset:
             streamingStore.clear(id)
+            retryBySession[id] = nil // the rewind abandons the failed run
             historyReplacement[id] = [] // a newer reset supersedes an in-flight run
             return
         case .message where historyReplacement[id] != nil:
@@ -182,6 +200,7 @@ extension CoderAgentsService {
                 updateStatus(status, for: id)
             }
         case .error:
+            retryBySession[id] = nil // retries are over; the error banner takes it from here
             if let message = event.error?.message {
                 loadError = message
             }
@@ -224,6 +243,10 @@ extension CoderAgentsService {
         let sorted = replacement.sorted { $0.id < $1.id }
         messagesBySession[id] = sorted
         messageStore.save(sorted, for: id)
+        // The replacement IS the full transcript: no older page exists, and any optimistic
+        // echo whose committed counterpart it contains must not render twice.
+        hasOlderBySession[id] = false
+        dropEchoedPendingSends(in: sorted, for: id)
     }
 
     func clearStreamingParts(for id: UUID, generation: Int) {
@@ -232,6 +255,7 @@ extension CoderAgentsService {
     }
 
     func updateStatus(_ status: ChatStatus, for id: UUID) {
+        if !status.isActive { retryBySession[id] = nil } // run settled; no more retries coming
         guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[idx].status = status
     }

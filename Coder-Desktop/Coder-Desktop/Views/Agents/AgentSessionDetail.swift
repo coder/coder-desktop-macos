@@ -281,11 +281,15 @@ private struct RetryCallout: View {
                 .accessibilityHidden(true)
             Text(info.retry.error).lineLimit(2)
             Spacer()
-            if info.retryingAt > Date() {
-                (Text("Retrying in ") + Text(info.retryingAt, style: .timer))
-                    .monospacedDigit()
-            } else {
-                Text("Retrying…")
+            // TimelineView so the branch re-evaluates at the deadline — a one-shot Date()
+            // check would let the timer roll past zero and count up.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                if info.retryingAt > context.date {
+                    (Text("Retrying in ") + Text(info.retryingAt, style: .timer))
+                        .monospacedDigit()
+                } else {
+                    Text("Retrying…")
+                }
             }
             Text("Attempt \(info.retry.attempt)")
         }

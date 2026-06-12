@@ -79,7 +79,7 @@ extension CoderAgentsService {
     /// Drops an optimistic echo only once its own server-committed counterpart arrives, matched
     /// by text. Keying on "any user message arrived" wiped unrelated pending sends whenever a
     /// reconnect or initial fetch replayed historical user messages.
-    private func dropEchoedPendingSends(in incoming: [ChatMessage], for id: UUID) {
+    func dropEchoedPendingSends(in incoming: [ChatMessage], for id: UUID) {
         guard var pending = pendingSendsBySession[id], !pending.isEmpty else { return }
         var committed = incoming.filter { $0.id >= 0 && $0.role == .user }.map(Self.userText)
         guard !committed.isEmpty else { return }

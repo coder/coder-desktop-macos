@@ -48,11 +48,18 @@ extension CoderAgentsService {
     }
 
     /// Quiet background refresh of the session list: unlike `reloadSessions`, a transient
-    /// failure here must not surface an error banner over a working UI.
+    /// failure here must not surface an error banner, and rows that changed locally DURING
+    /// the fetch (watch merges, stream status, rename/pin) must not be clobbered by the
+    /// snapshot — per row, the newer of server/local wins by `updated_at`.
     private func reconcileSessions() async {
         guard let client, let chats = try? await client.chats() else { return }
+        let local = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
         sessions = chats
             .filter { $0.archived != true }
+            .map { server in
+                if let cached = local[server.id], cached.updated_at > server.updated_at { return cached }
+                return server
+            }
             .sorted { $0.updated_at > $1.updated_at }
     }
 
