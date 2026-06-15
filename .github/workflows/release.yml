@@ -77,8 +77,8 @@ jobs:
         if: ${{ inputs.dryrun }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: coder-desktop-build
-          path: ${{ github.workspace }}/outputs/out
+          path: ${{ github.workspace }}/outputs/out/Coder-Desktop.pkg
+          archive: false
           retention-days: 7
 
       # Upload to release in non-dry-run mode
