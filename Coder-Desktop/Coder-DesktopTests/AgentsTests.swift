@@ -73,33 +73,29 @@ struct AgentsTests {
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
-                var button = try view.find(ViewType.Button.self)
-                var forEach = try view.find(ViewType.ForEach.self)
-                #expect(forEach.count == Theme.defaultVisibleAgents)
-                #expect(try button.labelView().find(text: "Show all").string() == "Show all")
+                #expect(try view.find(ViewType.ForEach.self).count == Theme.defaultVisibleAgents)
+                #expect(throws: Never.self) { try view.find(button: "Show all") }
+                #expect(throws: (any Error).self) { try view.find(button: "Show less") }
 
-                try button.tap()
-                button = try view.find(ViewType.Button.self)
-                forEach = try view.find(ViewType.ForEach.self)
-                #expect(forEach.count == Theme.defaultVisibleAgents + 2)
-                #expect(try button.labelView().find(text: "Show less").string() == "Show less")
+                try view.find(button: "Show all").tap()
+                #expect(try view.find(ViewType.ForEach.self).count == Theme.defaultVisibleAgents + 2)
+                #expect(throws: Never.self) { try view.find(button: "Show less") }
+                #expect(throws: (any Error).self) { try view.find(button: "Show all") }
 
-                try button.tap()
-                button = try view.find(ViewType.Button.self)
-                forEach = try view.find(ViewType.ForEach.self)
-                #expect(try button.labelView().find(text: "Show all").string() == "Show all")
-                #expect(forEach.count == Theme.defaultVisibleAgents)
+                try view.find(button: "Show less").tap()
+                #expect(try view.find(ViewType.ForEach.self).count == Theme.defaultVisibleAgents)
+                #expect(throws: Never.self) { try view.find(button: "Show all") }
             }
         }
     }
 
     @Test
-    func noToggleFewAgents() throws {
+    func noShowAllButtonFewAgents() throws {
         vpn.state = .connected
         vpn.menuState = .init(agents: createMockAgents(count: 3))
 
         #expect(throws: (any Error).self) {
-            _ = try view.inspect().find(ViewType.Button.self)
+            _ = try view.inspect().find(button: "Show all")
         }
     }
 
