@@ -38,8 +38,10 @@ struct SidebarScrollPinner: NSViewRepresentable {
             observer = NotificationCenter.default.addObserver(
                 forName: NSView.boundsDidChangeNotification, object: clip, queue: .main
             ) { [weak clip] _ in
-                guard let clip, clip.bounds.origin.x != 0 else { return }
-                clip.setBoundsOrigin(NSPoint(x: 0, y: clip.bounds.origin.y))
+                MainActor.assumeIsolated {
+                    guard let clip, clip.bounds.origin.x != 0 else { return }
+                    clip.setBoundsOrigin(NSPoint(x: 0, y: clip.bounds.origin.y))
+                }
             }
         }
 

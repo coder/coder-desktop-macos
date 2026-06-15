@@ -44,5 +44,7 @@
 	<string>https://releases.coder.com/coder-desktop/mac/appcast.xml</string>
 	<key>SUAllowsAutomaticUpdates</key>
 	<false/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
 </dict>
 </plist>
