@@ -1,7 +1,9 @@
 import CoderSDK
 import SwiftUI
 
-struct TranscriptItem: Identifiable {
+// Reference type so SwiftUI's ForEach copies a pointer (O(1)) instead of deep-copying
+// the tools/JSONValue payload on every layout pass.
+final class TranscriptItem: Identifiable {
     enum Kind {
         case bubble(role: ChatMessageRole, parts: [ChatMessagePart], messageID: Int64?)
         case tools([ToolStep])
@@ -13,8 +15,11 @@ struct TranscriptItem: Identifiable {
     let id: String
     let kind: Kind
 
-    /// The user's own messages render as a right-aligned accent bubble (handled by
-    /// `MessageView`); everything else is agent-side and gets the shared agent card.
+    init(id: String, kind: Kind) {
+        self.id = id
+        self.kind = kind
+    }
+
     var isUserBubble: Bool {
         if case let .bubble(role, _, _) = kind { return role == .user }
         return false

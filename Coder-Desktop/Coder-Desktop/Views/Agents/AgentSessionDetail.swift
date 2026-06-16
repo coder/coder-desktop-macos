@@ -115,6 +115,16 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         let maxWidth: CGFloat = chatFullWidth ? .infinity : 720
         // The latest unanswered question is interactive only once the turn has finished.
         let interactiveQuestionID = Self.interactiveQuestionID(in: items, chatCompleted: session.status == .completed)
+        // O(N) once: map each user bubble to its prev/next neighbor, so the ForEach body
+        // can do an O(1) lookup instead of an O(N) scan per row.
+        let userBubbleIDs = items.compactMap { $0.isUserBubble ? $0.id : nil }
+        var jumpTargets: [String: (prev: String?, next: String?)] = [:]
+        for (i, id) in userBubbleIDs.enumerated() {
+            jumpTargets[id] = (
+                prev: i > 0 ? userBubbleIDs[i - 1] : nil,
+                next: i < userBubbleIDs.count - 1 ? userBubbleIDs[i + 1] : nil
+            )
+        }
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
@@ -122,12 +132,21 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         topLoader(proxy: proxy, anchorID: items.first?.id)
                     }
                     ForEach(items) { item in
+                        let targets = jumpTargets[item.id]
                         TranscriptItemView<Agents>(
                             item: item, chatID: session.id, maxWidth: maxWidth, streaming: false,
                             questionInteractive: item.id == interactiveQuestionID,
                             onEdit: composer.startEditing,
-                            onJumpPrevUser: jumpAction(items, from: item, direction: -1, proxy: proxy),
-                            onJumpNextUser: jumpAction(items, from: item, direction: 1, proxy: proxy)
+                            onJumpPrevUser: targets.flatMap(\.prev).map { id in
+                                { withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+                                    proxy.scrollTo(id, anchor: .top)
+                                }}
+                            },
+                            onJumpNextUser: targets.flatMap(\.next).map { id in
+                                { withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+                                    proxy.scrollTo(id, anchor: .top)
+                                }}
+                            }
                         )
                     }
                     StreamingTailView<Agents>(
@@ -203,27 +222,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     private func addReferences(_ references: [ChatInputPart], note: String) {
         composer.addReferences(references, note: note)
         if !showPanel { showPanel = true }
-    }
-
-    /// Scroll action to the neighboring user message (the hover chevrons under user bubbles),
-    /// or nil when there is none in that direction. Computed only for user bubbles.
-    private func jumpAction(
-        _ items: [TranscriptItem], from item: TranscriptItem, direction: Int, proxy: ScrollViewProxy
-    ) -> (() -> Void)? {
-        guard item.isUserBubble, let idx = items.firstIndex(where: { $0.id == item.id }) else { return nil }
-        var i = idx + direction
-        while items.indices.contains(i) {
-            if items[i].isUserBubble {
-                let targetID = items[i].id
-                return {
-                    withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
-                        proxy.scrollTo(targetID, anchor: .top)
-                    }
-                }
-            }
-            i += direction
-        }
-        return nil
     }
 
     /// Web-parity error card at the end of an errored chat: the normalized message, the raw
