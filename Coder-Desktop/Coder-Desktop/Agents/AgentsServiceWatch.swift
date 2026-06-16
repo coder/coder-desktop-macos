@@ -27,7 +27,9 @@ extension CoderAgentsService {
         // pin a stale status forever.
         let reconcile = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
+                // chatd's pubsub-backed watch stream delivers most transitions in real time;
+                // 5 min is enough to catch rare dropped events without triggering layout work.
+                try? await Task.sleep(for: .seconds(300))
                 if Task.isCancelled { return }
                 await self?.reconcileSessions()
             }
@@ -54,13 +56,16 @@ extension CoderAgentsService {
     private func reconcileSessions() async {
         guard let client, let chats = try? await client.chats() else { return }
         let local = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
-        sessions = chats
+        let merged = chats
             .filter { $0.archived != true }
             .map { server in
                 if let cached = local[server.id], cached.updated_at > server.updated_at { return cached }
                 return server
             }
             .sorted { $0.updated_at > $1.updated_at }
+        // Skip the assignment (and the objectWillChange it fires) when nothing actually changed.
+        // Chat: Equatable — same IDs, same content → no layout re-evaluation.
+        if merged != sessions { sessions = merged }
     }
 
     private func handleWatchEvent(_ event: ChatWatchEvent) {
