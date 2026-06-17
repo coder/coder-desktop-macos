@@ -1,9 +1,6 @@
 import Foundation
 
-/// Client of the Coder Agents "Chats" API (`/api/experimental/chats`). This is the
-/// control-plane agent surface that supersedes the deprecated Tasks API. Agents always
-/// execute server-side in governed workspaces; this client only lists, launches,
-/// streams, messages, and stops sessions.
+/// Client extensions for the Coder Agents "Chats" API (`/api/experimental/chats`).
 public extension Client {
     /// Lists the current user's chat sessions. `query` uses Coder's filter syntax,
     /// e.g. `status:running`. (The endpoint is already owner-scoped; an `owner:` filter 400s.)
@@ -42,9 +39,7 @@ public extension Client {
         return try decode(Chat.self, from: res.data)
     }
 
-    /// Fetches messages for a chat. `afterID` enables cursor polling: pass the highest
-    /// message id seen to fetch only newer messages (used to reconnect cleanly after a
-    /// stream drop).
+    /// Fetches messages for a chat. `afterID` is a cursor: only messages newer than it are returned.
     func chatMessages(
         _ id: UUID,
         afterID: Int64? = nil,
@@ -314,27 +309,21 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     public var updated_at: Date
     /// The model this chat last used; seeds the composer so reopening keeps your choice.
     public var last_model_config_id: UUID?
-    /// Cached branch/PR diff summary (counts + link), surfaced even when the full diff
-    /// text can't be fetched.
+    /// Cached branch/PR diff summary (counts + link).
     public var diff_status: ChatDiffStatus?
     /// Whether the chat has been shared with other users/groups (any explicit ACL entry).
     public var shared: Bool?
-    /// The MCP servers (connectors) currently attached to this chat; seeds the composer's
-    /// connector picker so reopening/switching chats reflects each chat's real set.
+    /// MCP servers (connectors) currently attached to this chat; seeds the composer's picker.
     public var mcp_server_ids: [UUID]?
-    /// The normalized error that put the chat into `.error`, for the sidebar snippet and the
-    /// transcript's error card (web parity — "Error" alone is undebuggable).
+    /// The error that put the chat into `.error` (for the sidebar snippet and error card).
     public var last_error: ChatError?
     /// Set for sub-agent chats; notifications/chimes fire for root chats only (web parity).
     public var parent_chat_id: UUID?
-    /// Server-generated one-line summary of the last turn (the sidebar subtitle on the web,
-    /// and the body of its completion push notifications).
+    /// Server-generated one-line summary of the last turn (sidebar subtitle, push notification body).
     public var last_turn_summary: String?
-    /// Assistant messages exist beyond the owner's read cursor (which the server advances
-    /// on per-chat stream connect/disconnect). Drives the sidebar unread dot.
+    /// Has assistant messages beyond the owner's read cursor. Drives the sidebar unread dot.
     public var has_unread: Bool?
-    /// Sub-agent chats embedded in their root (the list endpoint returns roots only;
-    /// depth is capped at 1). Rendered as expandable child rows in the sidebar.
+    /// Sub-agent chats embedded in their root; depth capped at 1.
     public var children: [Chat]?
     public var context: ChatContext?
 
@@ -354,7 +343,12 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         diff_status: ChatDiffStatus? = nil,
         shared: Bool? = nil,
         mcp_server_ids: [UUID]? = nil,
-        last_error: ChatError? = nil
+        last_error: ChatError? = nil,
+        parent_chat_id: UUID? = nil,
+        last_turn_summary: String? = nil,
+        has_unread: Bool? = nil,
+        children: [Chat]? = nil,
+        context: ChatContext? = nil
     ) {
         self.id = id
         self.title = title
@@ -372,6 +366,11 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.shared = shared
         self.mcp_server_ids = mcp_server_ids
         self.last_error = last_error
+        self.parent_chat_id = parent_chat_id
+        self.last_turn_summary = last_turn_summary
+        self.has_unread = has_unread
+        self.children = children
+        self.context = context
     }
 
     /// Whether the chat is pinned (pin_order > 0).

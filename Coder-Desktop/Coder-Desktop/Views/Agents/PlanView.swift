@@ -11,6 +11,7 @@ struct PlanView<Agents: AgentsService>: View {
 
     @State private var markdown: String?
     @State private var loading = false
+    @State private var loadFailed = false
     @State private var implementing = false
 
     private var part: ChatMessagePart? { step.result ?? step.call }
@@ -32,6 +33,13 @@ struct PlanView<Agents: AgentsService>: View {
                 MarkdownText(text: markdown)
             } else if loading {
                 ProgressView().controlSize(.small)
+            } else if loadFailed {
+                HStack(spacing: 6) {
+                    Label("Couldn't load plan", systemImage: "exclamationmark.triangle")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Retry") { loadFailed = false; Task { await loadPlan() } }
+                        .font(.caption).buttonStyle(.borderless)
+                }
             }
 
             if isProposed, let markdown, !markdown.isEmpty {
@@ -64,6 +72,7 @@ struct PlanView<Agents: AgentsService>: View {
         loading = true
         markdown = await agents.planText(fileID: fileID)
         loading = false
+        if markdown == nil { loadFailed = true }
     }
 
     private func implement() {

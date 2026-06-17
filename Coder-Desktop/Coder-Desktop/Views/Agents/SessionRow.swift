@@ -86,11 +86,13 @@ struct SessionRow: View {
                     // keyboard/VoiceOver; hit-testing gated so the invisible menu can't
                     // swallow row-selection clicks.
                     ZStack(alignment: .trailing) {
-                        Text(Self.relativeShort(session.updated_at))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .opacity(hovering ? 0 : 1)
-                            .accessibilityHidden(hovering)
+                        TimelineView(.everyMinute) { _ in
+                            Text(Self.relativeShort(session.updated_at))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .opacity(hovering ? 0 : 1)
+                        .accessibilityHidden(hovering)
                         Menu { rowMenu } label: {
                             Image(systemName: "ellipsis").foregroundStyle(.secondary)
                         }

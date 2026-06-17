@@ -55,7 +55,7 @@ extension CoderAgentsService {
     /// snapshot — per row, the newer of server/local wins by `updated_at`.
     private func reconcileSessions() async {
         guard let client, let chats = try? await client.chats() else { return }
-        let local = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        let local = Dictionary(sessions.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
         let merged = chats
             .filter { $0.archived != true }
             .map { server in

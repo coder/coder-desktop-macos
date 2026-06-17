@@ -276,7 +276,9 @@ struct SessionComposer<Agents: AgentsService>: View {
               !model.sending else { return }
         let prompt = model.attachments.folded(into: typed)
         let extraParts = model.attachments.fileIDs.map(ChatInputPart.file) + model.pendingReferences
-        let restore = { model.draft = typed }
+        let savedAttachments = model.attachments
+        let savedRefs = model.pendingReferences
+        let restore = { model.draft = typed; model.attachments = savedAttachments; model.pendingReferences = savedRefs }
         model.sending = true
         model.draft = ""
         model.attachments = []
