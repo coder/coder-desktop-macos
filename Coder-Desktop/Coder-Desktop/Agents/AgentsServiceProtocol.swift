@@ -133,6 +133,8 @@ protocol AgentsService: ObservableObject {
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
     func setPinned(_ id: UUID, pinned: Bool) async
+    /// Re-pins the chat to the agent's latest context snapshot, clearing the dirty marker.
+    func refreshChatContext(_ id: UUID) async
     /// Permanently deletes the underlying Coder workspace (the chat itself is kept).
     func deleteWorkspace(_ workspaceID: UUID) async
 

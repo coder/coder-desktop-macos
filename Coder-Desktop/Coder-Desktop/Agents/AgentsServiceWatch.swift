@@ -132,6 +132,9 @@ extension CoderAgentsService {
             row.title = chat.title
         case .diffStatusChange:
             row.diff_status = chat.diff_status
+        case .contextDirty:
+            row.context = chat.context
+            row.updated_at = chat.updated_at
         case .created, .deleted, .unknown:
             break
         }

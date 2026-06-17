@@ -348,4 +348,14 @@ extension CoderAgentsService {
         didEmitViewOpened = true
         telemetry.send(.agentsViewOpened)
     }
+
+    func refreshChatContext(_ id: UUID) async {
+        guard let client else { return }
+        do {
+            let updated = try await client.refreshChatContext(id)
+            if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].context = updated.context }
+        } catch {
+            logger.error("failed to refresh context: \(error.localizedDescription, privacy: .public)")
+        }
+    }
 }

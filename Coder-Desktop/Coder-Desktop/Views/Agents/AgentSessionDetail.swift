@@ -36,6 +36,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     if let error = agents.loadError {
                         errorBanner(error)
                     }
+                    if let ctx = session.context, ctx.dirty {
+                        contextDirtyBanner(ctx)
+                    }
                     transcript
                     if let retry = agents.retryBySession[session.id] {
                         RetryCallout(info: retry)
@@ -105,6 +108,27 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .padding(.horizontal, Theme.Size.trayInset)
         .padding(.vertical, 6)
         .background(Color.orange.opacity(0.1))
+    }
+
+    private func contextDirtyBanner(_ ctx: ChatContext) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary).accessibilityHidden(true)
+            if let err = ctx.error, !err.isEmpty {
+                Text(err).font(.caption).lineLimit(2).foregroundStyle(.secondary)
+            } else {
+                Text("Workspace context has changed.").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Refresh") {
+                Task { await agents.refreshChatContext(session.id) }
+            }
+            .font(.caption)
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, Theme.Size.trayInset)
+        .padding(.vertical, 6)
+        .background(Color.secondary.opacity(0.07))
+        .accessibilityElement(children: .combine)
     }
 
     private var transcript: some View {
