@@ -115,6 +115,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary).accessibilityHidden(true)
             if let err = ctx.error, !err.isEmpty {
                 Text(err).font(.caption).lineLimit(2).foregroundStyle(.secondary)
+            } else if let since = ctx.dirty_since {
+                Text("Context changed \(since, style: .relative) ago.")
+                    .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("Workspace context has changed.").font(.caption).foregroundStyle(.secondary)
             }
@@ -138,7 +141,11 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         let items = transcriptCache.items(messages: messages, showTools: showToolActivity)
         let maxWidth: CGFloat = chatFullWidth ? .infinity : 720
         // The latest unanswered question is interactive only once the turn has finished.
-        let interactiveQuestionID = Self.interactiveQuestionID(in: items, chatCompleted: session.status == .completed)
+        // Interactive when the turn finished and the agent is blocked on input — .completed
+        // is the done state, .waiting and .requiresAction are the "handed over to user" states.
+        let awaitingInput = session.status == .completed
+            || session.status == .waiting || session.status == .requiresAction
+        let interactiveQuestionID = Self.interactiveQuestionID(in: items, chatCompleted: awaitingInput)
         // O(N) once: map each user bubble to its prev/next neighbor, so the ForEach body
         // can do an O(1) lookup instead of an O(N) scan per row.
         let userBubbleIDs = items.compactMap { $0.isUserBubble ? $0.id : nil }

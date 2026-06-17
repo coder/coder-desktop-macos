@@ -240,6 +240,9 @@ extension CoderAgentsService {
     /// possibly from another client; this closes the old cross-client duplicate bug).
     private func commitHistoryReplacement(for id: UUID) {
         guard let replacement = historyReplacement.removeValue(forKey: id) else { return }
+        // A non-message event (status, error, …) can trigger commit via default: before any
+        // messages have arrived. An empty replacement would wipe the transcript — skip it.
+        guard !replacement.isEmpty else { return }
         let sorted = replacement.sorted { $0.id < $1.id }
         messagesBySession[id] = sorted
         messageStore.save(sorted, for: id)

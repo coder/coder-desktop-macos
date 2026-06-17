@@ -209,6 +209,8 @@ final class CoderAgentsService: AgentsService {
         streamingStore.clear(id)
         // A half-buffered replacement run must not survive into the next open.
         historyReplacement.removeValue(forKey: id)
+        // Clear any stale retry callout so it doesn't re-appear on the next open.
+        retryBySession.removeValue(forKey: id)
         // Bounded retention: keep the last few chats' state hot, evict the rest (reopen
         // rehydrates from the JSONL cache).
         recentSessions.removeAll { $0 == id }

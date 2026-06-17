@@ -136,6 +136,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 Button("New chat") { route = .newSession }.buttonStyle(.link)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if filteredSessions.isEmpty {
+            ContentUnavailableView.search(text: search)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(selection: $route) {
                 ForEach(SessionGroup.grouped(filteredSessions), id: \.title) { group in

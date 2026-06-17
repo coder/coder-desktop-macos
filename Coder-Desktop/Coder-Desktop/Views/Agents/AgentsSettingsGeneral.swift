@@ -21,6 +21,7 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 
     @State private var instructions = ""
     @State private var savingInstructions = false
+    @State private var instructionsSaved = false
     @State private var prefs: UserPreferences?
     @State private var debugLogging: ChatDebugLogging?
     @State private var loadingPrefs = true
@@ -63,12 +64,21 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
                 .accessibilityLabel("Personal instructions")
             HStack {
                 Spacer()
-                if savingInstructions { ProgressView().controlSize(.small) }
+                if savingInstructions {
+                    ProgressView().controlSize(.small)
+                } else if instructionsSaved {
+                    Label("Saved", systemImage: "checkmark")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Button("Save") {
                     savingInstructions = true
+                    instructionsSaved = false
                     Task {
                         await agents.saveUserPrompt(instructions)
                         savingInstructions = false
+                        instructionsSaved = true
+                        try? await Task.sleep(for: .seconds(2))
+                        instructionsSaved = false
                     }
                 }
                 .disabled(savingInstructions || instructions == agents.userPrompt)

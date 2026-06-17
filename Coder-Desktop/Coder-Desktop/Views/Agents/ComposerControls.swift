@@ -54,6 +54,7 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
     /// existing chat don't carry it, so the picker would be a lie there.
     var allowsWorkspacePick = true
     @State private var showMenu = false
+    @State private var uploadError: String?
 
     var body: some View {
         Button { showMenu.toggle() } label: {
@@ -64,6 +65,14 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         .accessibilityLabel("Attach files, workspace, and connectors")
         .popover(isPresented: $showMenu, arrowEdge: .bottom) { menuContent }
         .task(id: showMenu) { if showMenu { await agents.loadMCPServers() } }
+        .alert("Upload failed", isPresented: .init(
+            get: { uploadError != nil },
+            set: { if !$0 { uploadError = nil } }
+        )) {
+            Button("OK") { uploadError = nil }
+        } message: {
+            Text(uploadError ?? "")
+        }
     }
 
     private var menuContent: some View {
@@ -195,7 +204,8 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                     attachments[idx].fileID = fileID
                     attachments[idx].uploading = false
                 } else {
-                    attachments.remove(at: idx) // upload failed
+                    attachments.remove(at: idx)
+                    uploadError = "Failed to upload \(url.lastPathComponent). Try again."
                 }
             }
         }

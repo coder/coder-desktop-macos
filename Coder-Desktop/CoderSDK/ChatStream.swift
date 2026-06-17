@@ -165,6 +165,9 @@ public struct ChatStreamEvent: Codable, Sendable {
     /// Present on `retry` events: the server is backing off before retrying a failed
     /// LLM call (codersdk `ChatStreamRetry`).
     public let retry: ChatStreamRetry?
+    /// Present on `action_required` events: dynamic tool calls the client must execute
+    /// and submit back via the tool-response endpoint.
+    public let action_required: ChatStreamActionRequired?
 
     public init(
         type: ChatStreamEventType,
@@ -174,7 +177,8 @@ public struct ChatStreamEvent: Codable, Sendable {
         status: ChatStreamStatus? = nil,
         error: ChatError? = nil,
         queued_messages: [ChatQueuedMessage]? = nil,
-        retry: ChatStreamRetry? = nil
+        retry: ChatStreamRetry? = nil,
+        action_required: ChatStreamActionRequired? = nil
     ) {
         self.type = type
         self.chat_id = chat_id
@@ -184,7 +188,20 @@ public struct ChatStreamEvent: Codable, Sendable {
         self.error = error
         self.queued_messages = queued_messages
         self.retry = retry
+        self.action_required = action_required
     }
+}
+
+/// Payload of an `action_required` event: dynamic tool calls the client must execute.
+public struct ChatStreamActionRequired: Codable, Sendable {
+    public let tool_calls: [ChatStreamToolCall]
+}
+
+/// A single pending dynamic tool invocation the client must execute and submit back.
+public struct ChatStreamToolCall: Codable, Sendable {
+    public let tool_call_id: String
+    public let tool_name: String
+    public let args: String
 }
 
 /// An auto-retry status event: attempt number, backoff delay, and the failure being retried.
