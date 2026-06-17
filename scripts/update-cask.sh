@@ -108,6 +108,13 @@ cask "coder-desktop" do
         "~/Library/HTTPStorages/com.coder.Coder-Desktop",
         "~/Library/Preferences/com.coder.Coder-Desktop.plist",
       ]
+
+  caveats <<~CAVEATS
+    Coder Desktop must be installed in /Applications because it contains a
+    System Network Extension, which macOS only activates when the containing
+    app lives in /Applications. As this cask uses a \`pkg\` installer,
+    HOMEBREW_CASK_OPTS=--appdir has no effect.
+  CAVEATS
 end
 EOF
 
