@@ -111,6 +111,11 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
     public let result: JSONValue?
     public let file_name: String?
     public let parsed_commands: [[String]]?
+    /// When this part was emitted: for tool-call/result, the call/result time (duration = result − call);
+    /// for reasoning parts, when streaming started.
+    public let created_at: Date?
+    /// For reasoning parts only: when streaming finished (duration = completed_at − created_at).
+    public let completed_at: Date?
 
     public init(
         type: ChatMessagePartType,
@@ -121,7 +126,9 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
         args: JSONValue? = nil,
         result: JSONValue? = nil,
         file_name: String? = nil,
-        parsed_commands: [[String]]? = nil
+        parsed_commands: [[String]]? = nil,
+        created_at: Date? = nil,
+        completed_at: Date? = nil
     ) {
         self.type = type
         self.text = text
@@ -132,6 +139,8 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
         self.result = result
         self.file_name = file_name
         self.parsed_commands = parsed_commands
+        self.created_at = created_at
+        self.completed_at = completed_at
     }
 
     /// A short human label for a tool-call/result part — the server-provided title if

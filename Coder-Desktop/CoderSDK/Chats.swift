@@ -336,6 +336,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     /// Sub-agent chats embedded in their root (the list endpoint returns roots only;
     /// depth is capped at 1). Rendered as expandable child rows in the sidebar.
     public var children: [Chat]?
+    public var context: ChatContext?
 
     public init(
         id: UUID,

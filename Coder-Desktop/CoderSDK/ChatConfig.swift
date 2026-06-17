@@ -200,3 +200,25 @@ public struct UserSkill: Codable, Sendable, Equatable, Identifiable {
 }
 
 struct UserSkillContentRequest: Encodable { let content: String }
+
+// MARK: - Workspace context
+
+/// Reports a chat's pinned workspace-context state and whether it has drifted
+/// from the agent's latest pushed snapshot. Nil when the chat has no pinned context.
+public struct ChatContext: Codable, Sendable, Equatable {
+    /// True when the agent's latest snapshot hash differs from the chat's pinned hash.
+    public let dirty: Bool
+    /// When drift was first detected; nil when not dirty.
+    public let dirty_since: Date?
+    /// Snapshot-level error copied from the pinned snapshot (empty when healthy).
+    public let error: String?
+}
+
+public extension Client {
+    /// Re-pins a chat to its agent's latest context snapshot and clears the dirty marker.
+    func refreshChatContext(_ chatID: UUID) async throws(SDKError) -> Chat {
+        let res = try await request("/api/experimental/chats/\(chatID)/context", method: .put)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(Chat.self, from: res.data)
+    }
+}

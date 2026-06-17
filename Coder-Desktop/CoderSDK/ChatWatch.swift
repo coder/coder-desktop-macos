@@ -90,6 +90,8 @@ public enum ChatWatchEventKind: String, Codable, Sendable {
     case deleted
     case diffStatusChange = "diff_status_change"
     case actionRequired = "action_required"
+    /// The chat's pinned workspace context drifted from the agent's latest snapshot.
+    case contextDirty = "context_dirty"
     case unknown
 
     /// Future-proof: unrecognized kinds decode as `.unknown` instead of failing the frame.

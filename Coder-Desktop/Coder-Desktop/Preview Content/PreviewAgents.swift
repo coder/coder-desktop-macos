@@ -143,6 +143,7 @@ final class PreviewAgents: AgentsService {
         if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].pin_order = pinned ? 1 : 0 }
     }
 
+    func refreshChatContext(_: UUID) async {}
     func deleteWorkspace(_: UUID) async {}
 
     @Published var userPrompt: String = ""
