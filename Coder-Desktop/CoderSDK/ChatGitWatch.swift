@@ -81,7 +81,9 @@ public struct WorkspaceAgentRepoChanges: Codable, Sendable, Equatable, Identifia
     public let remote_origin: String?
     public let unified_diff: String?
     public let removed: Bool?
-    public var id: String { repo_root }
+    public var id: String {
+        repo_root
+    }
 
     public init(
         repo_root: String, branch: String? = nil, remote_origin: String? = nil,

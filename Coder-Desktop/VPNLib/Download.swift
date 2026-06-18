@@ -43,11 +43,13 @@ public enum DownloadError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
-// The async `URLSession.download` api ignores the passed-in delegate, so we
-// wrap the older delegate methods in an async adapter with a continuation.
+/// The async `URLSession.download` api ignores the passed-in delegate, so we
+/// wrap the older delegate methods in an async adapter with a continuation.
 private final class DownloadManager: NSObject, @unchecked Sendable {
     private var continuation: CheckedContinuation<Void, Error>!
     private var progressHandler: ((DownloadProgress) -> Void)?
@@ -88,7 +90,7 @@ private final class DownloadManager: NSObject, @unchecked Sendable {
 }
 
 extension DownloadManager: URLSessionDownloadDelegate {
-    // Progress
+    /// Progress
     func urlSession(
         _: URLSession,
         downloadTask: URLSessionDownloadTask,
@@ -102,7 +104,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
         progressHandler?(.init(totalBytesWritten: totalBytesWritten, totalBytesToWrite: maybeLength))
     }
 
-    // Completion
+    /// Completion
     func urlSession(_: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         guard let httpResponse = downloadTask.response as? HTTPURLResponse else {
             continuation.resume(throwing: DownloadError.invalidResponse)
@@ -137,7 +139,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
         continuation.resume()
     }
 
-    // Failure
+    /// Failure
     func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
         if let error {
             continuation.resume(throwing: error)
@@ -146,7 +148,9 @@ extension DownloadManager: URLSessionDownloadDelegate {
 }
 
 @objc public final class DownloadProgress: NSObject, NSSecureCoding, @unchecked Sendable {
-    public static var supportsSecureCoding: Bool { true }
+    public static var supportsSecureCoding: Bool {
+        true
+    }
 
     public let totalBytesWritten: Int64
     public let totalBytesToWrite: Int64?

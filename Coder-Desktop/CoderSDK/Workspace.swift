@@ -71,7 +71,9 @@ public struct WorkspaceAgentListeningPort: Codable, Sendable, Equatable, Identif
     public let process_name: String
     public let network: String
     public let port: Int
-    public var id: Int { port }
+    public var id: Int {
+        port
+    }
 
     public init(process_name: String, network: String, port: Int) {
         self.process_name = process_name
@@ -98,7 +100,9 @@ public struct WorkspaceAgentPortShare: Codable, Sendable, Equatable, Identifiabl
     public let port: Int
     public let share_level: String // owner | authenticated | organization | public
     public let `protocol`: String // http | https
-    public var id: String { "\(agent_name):\(port)" }
+    public var id: String {
+        "\(agent_name):\(port)"
+    }
 
     public init(agent_name: String, port: Int, share_level: String, protocol: String) {
         self.agent_name = agent_name

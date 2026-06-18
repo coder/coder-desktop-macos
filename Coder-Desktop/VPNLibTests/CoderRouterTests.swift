@@ -12,7 +12,7 @@ struct CoderRouterTests {
         router = CoderRouter()
     }
 
-    struct RouteTestCase: CustomStringConvertible, Sendable {
+    struct RouteTestCase: CustomStringConvertible {
         let urlString: String
         let expectedRoute: CoderRoute?
         let description: String
@@ -93,8 +93,8 @@ struct CoderRouterTests {
             description: "Wrong scheme"
         ),
     ])
-    func testRdpRoutes(testCase: RouteTestCase) throws {
-        let url = URL(string: testCase.urlString)!
+    func rdpRoutes(testCase: RouteTestCase) throws {
+        let url = try #require(URL(string: testCase.urlString))
 
         if let expectedRoute = testCase.expectedRoute {
             let route = try router.match(url: url)

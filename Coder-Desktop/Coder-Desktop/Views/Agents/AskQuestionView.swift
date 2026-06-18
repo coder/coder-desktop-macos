@@ -51,7 +51,6 @@ struct AskQuestionView<Agents: AgentsService>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    @ViewBuilder
     private func questionView(_ idx: Int, _ question: AskUserQuestion) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if !question.header.isEmpty, question.header != question.question {
@@ -80,7 +79,6 @@ struct AskQuestionView<Agents: AgentsService>: View {
         .padding(.vertical, 2)
     }
 
-    @ViewBuilder
     private func radio(label: String, description: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 6) {

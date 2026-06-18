@@ -24,8 +24,8 @@ public protocol FileSyncDaemon: ObservableObject {
     func resetSessions(ids: [String]) async throws(DaemonError)
 }
 
-// File Sync related code is in VPNLib to workaround a linking issue
-// https://github.com/coder/coder-desktop-macos/issues/149
+/// File Sync related code is in VPNLib to workaround a linking issue
+/// https://github.com/coder/coder-desktop-macos/issues/149
 @MainActor
 public class MutagenDaemon: FileSyncDaemon {
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "mutagen")
@@ -52,7 +52,7 @@ public class MutagenDaemon: FileSyncDaemon {
 
     public let logFile: URL
 
-    // Managing sync sessions could take a while, especially with prompting
+    /// Managing sync sessions could take a while, especially with prompting
     let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
 
     // Non-nil when the daemon is running
@@ -61,7 +61,7 @@ public class MutagenDaemon: FileSyncDaemon {
     private var channel: GRPCChannel?
     private var waitForExit: (@Sendable () async -> Void)?
 
-    // Protect start & stop transitions against re-entrancy
+    /// Protect start & stop transitions against re-entrancy
     private let transition = AsyncSemaphore(value: 1)
 
     public init(mutagenPath: URL? = nil,
@@ -148,8 +148,8 @@ public class MutagenDaemon: FileSyncDaemon {
         )
     }
 
-    // The daemon takes a moment to open the socket, and we don't want to hog the main actor
-    // so poll for it on a background thread
+    /// The daemon takes a moment to open the socket, and we don't want to hog the main actor
+    /// so poll for it on a background thread
     private func waitForDaemonStart(
         maxAttempts: Int = 5,
         attemptInterval: Duration = .milliseconds(100)
@@ -334,8 +334,8 @@ public enum DaemonState {
         }
     }
 
-    // `if case`s are a pain to work with: they're not bools (such as for ORing)
-    // and you can't negate them without doing `if case .. {} else`.
+    /// `if case`s are a pain to work with: they're not bools (such as for ORing)
+    /// and you can't negate them without doing `if case .. {} else`.
     public var isFailed: Bool {
         if case .failed = self {
             return true
@@ -372,5 +372,7 @@ public enum DaemonError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }

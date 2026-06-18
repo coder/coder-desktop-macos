@@ -1,8 +1,8 @@
 import Foundation
 import URLRouting
 
-// This is in VPNLib to avoid depending on `swift-collections` in both the app & extension.
-// https://github.com/coder/coder-desktop-macos/issues/149
+/// This is in VPNLib to avoid depending on `swift-collections` in both the app & extension.
+/// https://github.com/coder/coder-desktop-macos/issues/149
 public struct CoderRouter: ParserPrinter {
     public init() {}
 
@@ -49,7 +49,9 @@ public enum RouterError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 public enum OpenError: Error {
@@ -71,7 +73,9 @@ public enum OpenError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 public enum CoderRoute: Equatable, Sendable {
@@ -82,8 +86,8 @@ public enum OpenRoute: Equatable, Sendable {
     case rdp(RDPCredentials)
 }
 
-// Due to a Swift Result builder limitation, we can't flatten this out to `case rdp(String?, String?)`
-// https://github.com/pointfreeco/swift-url-routing/issues/50
+/// Due to a Swift Result builder limitation, we can't flatten this out to `case rdp(String?, String?)`
+/// https://github.com/pointfreeco/swift-url-routing/issues/50
 public struct RDPCredentials: Equatable, Sendable {
     public let username: String?
     public let password: String?

@@ -17,8 +17,13 @@ public actor TunnelDaemon {
     private var monitorTask: Task<Void, Never>?
     private var onFail: @Sendable (TunnelDaemonError) -> Void
 
-    public var writeHandle: FileHandle { tunnelReadPipe.fileHandleForWriting }
-    public var readHandle: FileHandle { tunnelWritePipe.fileHandleForReading }
+    public var writeHandle: FileHandle {
+        tunnelReadPipe.fileHandleForWriting
+    }
+
+    public var readHandle: FileHandle {
+        tunnelWritePipe.fileHandleForReading
+    }
 
     var pid: pid_t?
 
@@ -70,7 +75,7 @@ public actor TunnelDaemon {
 
     deinit { logger.debug("tunnel daemon deinit") }
 
-    // This could be an isolated deinit in Swift 6.1
+    /// This could be an isolated deinit in Swift 6.1
     public func close() throws(TunnelDaemonError) {
         state = .stopped
 
@@ -160,5 +165,7 @@ public enum TunnelDaemonError: Error, Sendable {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }

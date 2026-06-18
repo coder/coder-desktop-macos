@@ -55,7 +55,9 @@ extension ChatMessagePart {
         result?["workspace_name"]?.stringValue ?? args?["workspace_name"]?.stringValue ?? args?["name"]?.stringValue
     }
 
-    var workspaceToolOwner: String? { result?["owner_name"]?.stringValue }
+    var workspaceToolOwner: String? {
+        result?["owner_name"]?.stringValue
+    }
 
     /// Program names from `parsed_commands`, e.g. "cd, git".
     var commandPrograms: String? {
@@ -121,10 +123,14 @@ extension ChatMessagePart {
 
     /// Pretty-printed tool input args — the always-available fallback so a step we don't render
     /// specially (e.g. a search whose arg keys we don't recognise) can still show *what* it did.
-    var argsJSON: String? { Self.prettyJSON(args) }
+    var argsJSON: String? {
+        Self.prettyJSON(args)
+    }
 
     /// Pretty-printed tool result — the fallback for *what it found* when there's no nicer view.
-    var resultJSON: String? { Self.prettyJSON(result) }
+    var resultJSON: String? {
+        Self.prettyJSON(result)
+    }
 
     private static func prettyJSON(_ value: JSONValue?) -> String? {
         guard let value else { return nil }

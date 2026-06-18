@@ -13,7 +13,7 @@ public extension Client {
 public struct BuildInfoResponse: Codable, Equatable, Sendable {
     public let version: String
 
-    // `version` in the form `[0-9]+.[0-9]+.[0-9]+`
+    /// `version` in the form `[0-9]+.[0-9]+.[0-9]+`
     public var semver: String? {
         try? NSRegularExpression(pattern: #"v(\d+\.\d+\.\d+)"#)
             .firstMatch(in: version, range: NSRange(version.startIndex ..< version.endIndex, in: version))

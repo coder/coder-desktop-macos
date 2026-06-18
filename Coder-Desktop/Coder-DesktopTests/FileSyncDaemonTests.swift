@@ -16,7 +16,7 @@ class FileSyncDaemonTests {
     let mutagenAlphaDirectory: URL
     let mutagenBetaDirectory: URL
 
-    // Before each test
+    /// Before each test
     init() throws {
         tempDir = FileManager.default.makeTempDir()!
         #if arch(arm64)
@@ -32,7 +32,7 @@ class FileSyncDaemonTests {
         try FileManager.default.createDirectory(at: mutagenBetaDirectory, withIntermediateDirectories: true)
     }
 
-    // After each test
+    /// After each test
     deinit {
         try? FileManager.default.removeItem(at: tempDir)
     }
@@ -94,7 +94,8 @@ class FileSyncDaemonTests {
                 return FileManager.default.fileExists(
                     atPath: self.mutagenBetaDirectory.appending(path: "test.txt").path()
                 )
-            })
+            }
+        )
 
         try await daemon.deleteSessions(ids: daemon.sessionState.map(\.id))
         #expect(daemon.sessionState.count == 0)
@@ -160,8 +161,7 @@ class FileSyncDaemonTests {
                     path: mutagenBetaDirectory.path(),
                     protocolKind: .local
                 )
-            )
-        )
+            ))
         #expect(statesEqual(daemon1.state, .running))
         #expect(daemon1.sessionState.count == 1)
 

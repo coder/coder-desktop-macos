@@ -2,9 +2,9 @@ import Sparkle
 import SwiftUI
 
 final class UpdaterService: NSObject, ObservableObject {
-    // The auto-updater can be entirely disabled by setting the
-    // `disableUpdater` UserDefaults key to `true`. This is designed for use in
-    // MDM configurations, where the value can be set to `true` permanently.
+    /// The auto-updater can be entirely disabled by setting the
+    /// `disableUpdater` UserDefaults key to `true`. This is designed for use in
+    /// MDM configurations, where the value can be set to `true` permanently.
     let disabled: Bool = UserDefaults.standard.bool(forKey: Keys.disableUpdater)
 
     @Published var canCheckForUpdates = true
@@ -71,7 +71,9 @@ enum UpdateChannel: String, CaseIterable, Identifiable {
         }
     }
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 }
 
 extension UpdaterService: SPUUpdaterDelegate {

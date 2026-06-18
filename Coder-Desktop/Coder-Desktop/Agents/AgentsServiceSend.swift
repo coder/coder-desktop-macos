@@ -2,8 +2,8 @@ import CoderSDK
 import Foundation
 import UniformTypeIdentifiers
 
-// Message sending: follow-ups, plan "Implement", and answering a planning question. All share
-// one core that optimistically echoes the user's message, then reconciles via the stream.
+/// Message sending: follow-ups, plan "Implement", and answering a planning question. All share
+/// one core that optimistically echoes the user's message, then reconciles via the stream.
 extension CoderAgentsService {
     func sendMessage(
         _ id: UUID, prompt: String, extraParts: [ChatInputPart], options: SendOptions

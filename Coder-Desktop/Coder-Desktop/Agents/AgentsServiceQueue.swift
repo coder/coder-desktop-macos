@@ -1,8 +1,8 @@
 import CoderSDK
 import Foundation
 
-// Queued messages (server-side while the agent is busy; promote/remove above the composer)
-// plus small agent utilities (PTY request, listening ports).
+/// Queued messages (server-side while the agent is busy; promote/remove above the composer)
+/// plus small agent utilities (PTY request, listening ports).
 extension CoderAgentsService {
     func queuedMessages(for id: UUID) -> [ChatQueuedMessage] {
         queuedMessagesBySession[id] ?? []

@@ -1,7 +1,7 @@
 import Foundation
 
-// Chat sharing is ACL-based: users/groups are granted the "read" role on a chat (sending the
-// empty-string role removes them). There is no public-link / visibility model.
+/// Chat sharing is ACL-based: users/groups are granted the "read" role on a chat (sending the
+/// empty-string role removes them). There is no public-link / visibility model.
 public extension Client {
     func chatACL(_ id: UUID) async throws(SDKError) -> ChatACL {
         let res = try await request("/api/experimental/chats/\(id.uuidString)/acl", method: .get)
@@ -43,7 +43,9 @@ public struct OrgMember: Decodable, Sendable, Identifiable, Equatable {
     public let username: String
     public let name: String?
     public let avatar_url: String?
-    public var id: UUID { user_id }
+    public var id: UUID {
+        user_id
+    }
 
     public init(user_id: UUID, username: String, name: String?, avatar_url: String?) {
         self.user_id = user_id

@@ -109,7 +109,6 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         .frame(maxHeight: 440)
     }
 
-    @ViewBuilder
     private func actionRow(
         _ title: String, systemImage: String, checked: Bool = false, action: @escaping () -> Void
     ) -> some View {
@@ -126,7 +125,6 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private func connectorRow(_ server: MCPServer) -> some View {
         HStack(spacing: 8) {
             if let icon = agents.mcpIcon(server.id) {

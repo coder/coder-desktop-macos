@@ -46,7 +46,10 @@ final class PreviewAgents: AgentsService {
         nil
     }
 
-    func workspaceAppIcon(_: URL?) -> NSImage? { nil }
+    func workspaceAppIcon(_: URL?) -> NSImage? {
+        nil
+    }
+
     func loadWorkspaceAppIcons(_: [URL]) {}
 
     func diff(for _: UUID) -> ChatDiffContents? {
@@ -58,7 +61,9 @@ final class PreviewAgents: AgentsService {
         nil
     }
 
-    func uploadFile(_: URL) async -> UUID? { UUID() }
+    func uploadFile(_: URL) async -> UUID? {
+        UUID()
+    }
 
     func createSession(_ request: NewSessionRequest) async -> Chat? {
         let chat = Chat(id: UUID(), title: String(request.prompt.prefix(40)), status: .pending,
@@ -80,25 +85,46 @@ final class PreviewAgents: AgentsService {
     }
 
     func loadOlderMessages(_: UUID) async {}
-    func editMessage(_: Int64, in _: UUID, content _: String, modelConfigID _: UUID?) async -> Bool { true }
-    func queuedMessages(for _: UUID) -> [ChatQueuedMessage] { [] }
+    func editMessage(_: Int64, in _: UUID, content _: String, modelConfigID _: UUID?) async -> Bool {
+        true
+    }
+
+    func queuedMessages(for _: UUID) -> [ChatQueuedMessage] {
+        []
+    }
+
     func promoteQueued(_: Int64, in _: UUID) async {}
     func removeQueued(_: Int64, in _: UUID) async {}
     func listeningPorts(agentID _: UUID) async -> [WorkspaceAgentListeningPort] {
         [WorkspaceAgentListeningPort(process_name: "postgres", network: "tcp", port: 5432)]
     }
 
-    func localRepos(for _: UUID) -> [WorkspaceAgentRepoChanges] { [] }
+    func localRepos(for _: UUID) -> [WorkspaceAgentRepoChanges] {
+        []
+    }
+
     func startGitWatch(_: UUID) {}
     func stopGitWatch(_: UUID) {}
-    func appHost() async -> String? { "*.apps.preview.coder" }
+    func appHost() async -> String? {
+        "*.apps.preview.coder"
+    }
+
     func portShares(workspaceID _: UUID) async -> [WorkspaceAgentPortShare] {
         [WorkspaceAgentPortShare(agent_name: "main", port: 3000, share_level: "public", protocol: "http")]
     }
 
-    func implementPlan(_: UUID) async -> Bool { true }
-    func answerQuestion(_: UUID, text _: String) async -> Bool { true }
-    func planText(fileID _: UUID) async -> String? { "# Plan\n\n1. Do the thing\n2. Verify" }
+    func implementPlan(_: UUID) async -> Bool {
+        true
+    }
+
+    func answerQuestion(_: UUID, text _: String) async -> Bool {
+        true
+    }
+
+    func planText(fileID _: UUID) async -> String? {
+        "# Plan\n\n1. Do the thing\n2. Verify"
+    }
+
     func loadUserSkills() async {}
     func chatACL(_: UUID) async -> ChatACL? {
         ChatACL(users: [ChatACLUser(
@@ -106,15 +132,27 @@ final class PreviewAgents: AgentsService {
         )], groups: [])
     }
 
-    func shareChat(_: UUID, username _: String) async -> String? { nil }
+    func shareChat(_: UUID, username _: String) async -> String? {
+        nil
+    }
+
     func unshareUser(_: UUID, userID _: UUID) async {}
     func unshareGroup(_: UUID, groupID _: UUID) async {}
     func shareWithUser(_: UUID, userID _: UUID) async {}
     func shareWithGroup(_: UUID, groupID _: UUID) async {}
     func setSharedFlag(_: UUID, shared _: Bool) {}
-    func costSummary(start _: String?, end _: String?) async -> ChatCostSummary? { nil }
-    func usageLimit() async -> ChatUsageLimitStatus? { nil }
-    func workspaceQuota() async -> WorkspaceQuota? { nil }
+    func costSummary(start _: String?, end _: String?) async -> ChatCostSummary? {
+        nil
+    }
+
+    func usageLimit() async -> ChatUsageLimitStatus? {
+        nil
+    }
+
+    func workspaceQuota() async -> WorkspaceQuota? {
+        nil
+    }
+
     func shareCandidates(orgID _: UUID) async -> (members: [OrgMember], groups: [OrgGroup]) {
         ([OrgMember(user_id: UUID(), username: "teammate", name: "Team Mate", avatar_url: nil)], [])
     }

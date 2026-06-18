@@ -1,9 +1,9 @@
 import CoderSDK
 import Foundation
 
-// The live-output stream engine: subscribe, apply events, and reconnect with capped backoff
-// after drops. Split from AgentsService.swift for the file-length limit; event application
-// (`apply`) stays there with the state it mutates.
+/// The live-output stream engine: subscribe, apply events, and reconnect with capped backoff
+/// after drops. Split from AgentsService.swift for the file-length limit; event application
+/// (`apply`) stays there with the state it mutates.
 extension CoderAgentsService {
     /// Capped exponential backoff with a give-up threshold for stream reconnects.
     struct ReconnectState {

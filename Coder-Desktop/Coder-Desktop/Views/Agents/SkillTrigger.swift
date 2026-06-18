@@ -1,8 +1,8 @@
 import CoderSDK
 import SwiftUI
 
-// Compiled once — this runs on every keystroke/selection change. NSRegularExpression is
-// immutable and thread-safe.
+/// Compiled once — this runs on every keystroke/selection change. NSRegularExpression is
+/// immutable and thread-safe.
 private let skillTriggerRegex = try? NSRegularExpression(pattern: "(?:^|\\s)/(\\S*)$")
 
 /// Finds an active "/skill" trigger token ending at the caret: a "/" at the start of input

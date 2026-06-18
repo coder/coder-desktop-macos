@@ -14,8 +14,13 @@ struct PlanView<Agents: AgentsService>: View {
     @State private var loadFailed = false
     @State private var implementing = false
 
-    private var part: ChatMessagePart? { step.result ?? step.call }
-    private var isProposed: Bool { step.result != nil }
+    private var part: ChatMessagePart? {
+        step.result ?? step.call
+    }
+
+    private var isProposed: Bool {
+        step.result != nil
+    }
 
     private var title: String {
         guard isProposed else { return "Proposing plan…" }

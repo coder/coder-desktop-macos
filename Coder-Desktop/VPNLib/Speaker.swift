@@ -26,7 +26,9 @@ public struct ProtoVersion: CustomStringConvertible, Equatable, Comparable, Coda
     let major: Int
     let minor: Int
 
-    public var description: String { "\(major).\(minor)" }
+    public var description: String {
+        "\(major).\(minor)"
+    }
 
     public init(_ major: Int, _ minor: Int) {
         self.major = major
@@ -167,7 +169,8 @@ extension Speaker: AsyncSequence, AsyncIteratorProtocol {
                     try await secretary.route(reply: msg)
                 } catch {
                     logger.error(
-                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
+                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)"
+                    )
                 }
                 continue
             }
@@ -239,7 +242,7 @@ actor Handshaker {
         }
     }
 
-    // resumes must only ever throw HandshakeError
+    /// resumes must only ever throw HandshakeError
     private func handleRead(_: Bool, _ data: DispatchData?, _ error: Int32) {
         guard error == 0 else {
             let errStrPtr = strerror(error)
@@ -312,7 +315,9 @@ public enum HandshakeError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 public struct RPCRequest<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Sendable>: Sendable {
@@ -348,7 +353,9 @@ enum RPCError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 /// An actor to record outgoing RPCs and route their replies to the original sender

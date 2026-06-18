@@ -70,7 +70,6 @@ struct ContextUsagePopover: View {
         return "\(percent)% context used"
     }
 
-    @ViewBuilder
     private func section(_ title: String, items: [String], icon: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption.weight(.semibold))

@@ -6,7 +6,7 @@ import Foundation
 public let helperAppMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperApp"
 public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperNE"
 
-// This is the XPC interface the Network Extension exposes to the Helper.
+/// This is the XPC interface the Network Extension exposes to the Helper.
 @preconcurrency
 @objc public protocol NEXPCInterface {
     // diff is a serialized Vpn_NetworkSettingsRequest
@@ -14,7 +14,7 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
     func cancelProvider(error: Error?, reply: @escaping () -> Void)
 }
 
-// This is the XPC interface the GUI app exposes to the Helper.
+/// This is the XPC interface the GUI app exposes to the Helper.
 @preconcurrency
 @objc public protocol AppXPCInterface {
     // diff is a serialized `Vpn_PeerUpdate`
@@ -22,7 +22,7 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
     func onProgress(stage: ProgressStage, downloadProgress: DownloadProgress?, reply: @escaping () -> Void)
 }
 
-// This is the XPC interface the Helper exposes to the Network Extension.
+/// This is the XPC interface the Helper exposes to the Network Extension.
 @preconcurrency
 @objc public protocol HelperNEXPCInterface {
     // headers is a JSON `[HTTPHeader]`
@@ -38,11 +38,11 @@ public let helperNEMachServiceName = "4399GN35BJ.com.coder.Coder-Desktop.HelperN
     func stopDaemon(reply: @escaping (Error?) -> Void)
 }
 
-// This is the XPC interface the Helper exposes to the GUI app.
+/// This is the XPC interface the Helper exposes to the GUI app.
 @preconcurrency
 @objc public protocol HelperAppXPCInterface {
     func ping(reply: @escaping () -> Void)
-    // Data is a serialized `Vpn_PeerUpdate`
+    /// Data is a serialized `Vpn_PeerUpdate`
     func getPeerState(with reply: @escaping (Data?) -> Void)
 }
 
@@ -76,5 +76,7 @@ public enum XPCError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }

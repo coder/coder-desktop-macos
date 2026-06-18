@@ -49,7 +49,9 @@ struct SessionRow: View {
 
     @State private var hovering = false
 
-    private var isPR: Bool { session.diff_status?.isPullRequest == true }
+    private var isPR: Bool {
+        session.diff_status?.isPullRequest == true
+    }
 
     var body: some View {
         HStack(spacing: 8) {

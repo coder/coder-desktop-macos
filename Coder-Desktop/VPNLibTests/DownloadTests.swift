@@ -10,7 +10,7 @@ struct DownloadTests {
         let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let testData = Data("foo".utf8)
 
-        let fileURL = URL(string: "http://example.com/test1.txt")!
+        let fileURL = try #require(URL(string: "http://example.com/test1.txt"))
         Mock(url: fileURL, contentType: .html, statusCode: 200, data: [.get: testData]).register()
 
         try await download(src: fileURL, dest: destinationURL, urlSession: URLSession.shared)
@@ -25,7 +25,7 @@ struct DownloadTests {
     @Test
     func fileNotModified() async throws {
         let testData = Data("foo bar".utf8)
-        let fileURL = URL(string: "http://example.com/test2.txt")!
+        let fileURL = try #require(URL(string: "http://example.com/test2.txt"))
 
         let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: destinationURL) }
@@ -55,7 +55,7 @@ struct DownloadTests {
         let ogData = Data("foo bar".utf8)
         let newData = Data("foo bar qux".utf8)
 
-        let fileURL = URL(string: "http://example.com/test3.txt")!
+        let fileURL = try #require(URL(string: "http://example.com/test3.txt"))
         let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: destinationURL) }
 

@@ -171,7 +171,7 @@ struct SessionComposer<Agents: AgentsService>: View {
         }
     }
 
-    // Wording, icon, and labels mirror the web's history-edit banner (AgentChatInput).
+    /// Wording, icon, and labels mirror the web's history-edit banner (AgentChatInput).
     private var editWarning: some View {
         HStack(spacing: 6) {
             Image(systemName: "pencil").font(.caption).foregroundStyle(.orange)

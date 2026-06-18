@@ -19,7 +19,7 @@ struct LiteralHeadersSettingTests {
     }
 
     @Test
-    func testToggleDisabledWhenVPNEnabled() async throws {
+    func toggleDisabledWhenVPNEnabled() async throws {
         vpn.state = .connected
 
         try await ViewHosting.host(view) {
@@ -32,7 +32,7 @@ struct LiteralHeadersSettingTests {
     }
 
     @Test
-    func testToggleEnabledWhenVPNDisabled() async throws {
+    func toggleEnabledWhenVPNDisabled() async throws {
         vpn.state = .disabled
 
         try await ViewHosting.host(view) {

@@ -105,7 +105,6 @@ struct UsageIndicator<Agents: AgentsService>: View {
         .frame(width: 280, alignment: .leading)
     }
 
-    @ViewBuilder
     private func spendSection(_ fraction: Double) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -125,7 +124,6 @@ struct UsageIndicator<Agents: AgentsService>: View {
         }
     }
 
-    @ViewBuilder
     private func quotaSection(_ fraction: Double) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {

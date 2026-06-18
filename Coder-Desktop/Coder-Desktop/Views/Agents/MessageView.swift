@@ -79,8 +79,8 @@ struct MessagePartView: View {
     let part: ChatMessagePart
     var streaming = false
     @AppStorage(Defaults.thinkingDisplay) private var thinkingDisplay = ThinkingDisplay.auto.rawValue
-    // nil until the user toggles, so the setting's default applies without an .onAppear that
-    // would re-collapse a manually-expanded block when the view's identity changes.
+    /// nil until the user toggles, so the setting's default applies without an .onAppear that
+    /// would re-collapse a manually-expanded block when the view's identity changes.
     @State private var userExpanded: Bool?
 
     private var thinkingExpanded: Binding<Bool> {

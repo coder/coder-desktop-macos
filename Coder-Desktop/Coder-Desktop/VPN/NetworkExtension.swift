@@ -24,7 +24,7 @@ enum NetworkExtensionState: Equatable {
 /// An actor that handles configuring, enabling, and disabling the VPN tunnel via the
 /// NetworkExtension APIs.
 extension CoderVPNService {
-    // Attempts to load the NetworkExtension configuration, returning true if successful.
+    /// Attempts to load the NetworkExtension configuration, returning true if successful.
     func loadNetworkExtensionConfig() async -> Bool {
         do {
             let tm = try await getTunnelManager()
@@ -126,6 +126,6 @@ extension CoderVPNService {
     }
 }
 
-// we're going to mark NETunnelProviderManager as Sendable since there are official APIs that return
-// it async.
+/// we're going to mark NETunnelProviderManager as Sendable since there are official APIs that return
+/// it async.
 extension NETunnelProviderManager: @unchecked @retroactive Sendable {}

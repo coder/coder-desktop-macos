@@ -12,7 +12,7 @@ struct CoderSDKTests {
             username: "johndoe"
         )
 
-        let url = URL(string: "https://example.com")!
+        let url = try #require(URL(string: "https://example.com"))
         let token = "fake-token"
         let client = Client(url: url, token: token, headers: [.init(name: "X-Test-Header", value: "foo")])
         var mock = try Mock(
@@ -39,7 +39,7 @@ struct CoderSDKTests {
             version: "v2.18.2-devel+630fd7c0a"
         )
 
-        let url = URL(string: "https://example.com")!
+        let url = try #require(URL(string: "https://example.com"))
         let client = Client(url: url)
         try Mock(
             url: url.appending(path: "api/v2/buildinfo"),

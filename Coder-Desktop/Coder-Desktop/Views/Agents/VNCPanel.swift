@@ -153,7 +153,9 @@ final class VNCModel: ObservableObject {
 private final class VNCConnectionDelegateProxy: NSObject, VNCConnectionDelegate, @unchecked Sendable {
     weak var model: VNCModel?
 
-    init(model: VNCModel) { self.model = model }
+    init(model: VNCModel) {
+        self.model = model
+    }
 
     func connection(_: VNCConnection, stateDidChange state: VNCConnection.ConnectionState) {
         let transfer = Unchecked(state)
@@ -191,7 +193,9 @@ private final class VNCConnectionDelegateProxy: NSObject, VNCConnectionDelegate,
 /// because they're only used on the main actor after the hop and RoyalVNC owns their lifetime.
 private struct Unchecked<T>: @unchecked Sendable {
     let value: T
-    init(_ value: T) { self.value = value }
+    init(_ value: T) {
+        self.value = value
+    }
 }
 
 /// Hosts the model's framebuffer container in SwiftUI.

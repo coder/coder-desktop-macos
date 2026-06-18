@@ -47,7 +47,9 @@ final class SmoothTextEngine {
         return visibleCount
     }
 
-    func isCaughtUp(_ fullCount: Int) -> Bool { visibleCount >= fullCount }
+    func isCaughtUp(_ fullCount: Int) -> Bool {
+        visibleCount >= fullCount
+    }
 }
 
 /// Renders streaming markdown text with a smooth character reveal; once `isStreaming` is
@@ -59,9 +61,9 @@ struct SmoothMarkdownText: View {
     var isStreaming = false
 
     @State private var engine = SmoothTextEngine()
-    // Drives `paused:` via real state: the schedule only re-reads `paused` on a body re-eval,
-    // which never happens during an in-turn stall (tool calls) — without this the timeline
-    // kept ticking at 30fps doing O(text) prefix copies for nothing.
+    /// Drives `paused:` via real state: the schedule only re-reads `paused` on a body re-eval,
+    /// which never happens during an in-turn stall (tool calls) — without this the timeline
+    /// kept ticking at 30fps doing O(text) prefix copies for nothing.
     @State private var caughtUp = false
 
     var body: some View {

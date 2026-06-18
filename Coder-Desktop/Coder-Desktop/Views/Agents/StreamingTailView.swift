@@ -1,8 +1,8 @@
 import CoderSDK
 import SwiftUI
 
-// Claude Code-style whimsy for the awaiting-first-chunk callout. File-level (not a static on
-// the generic view, which Swift disallows).
+/// Claude Code-style whimsy for the awaiting-first-chunk callout. File-level (not a static on
+/// the generic view, which Swift disallows).
 private let thinkingWords = [
     "Thinking", "Pondering", "Noodling", "Brewing", "Percolating", "Conjuring", "Mulling",
     "Ruminating", "Scheming", "Cogitating", "Marinating", "Tinkering", "Crunching",
@@ -59,9 +59,9 @@ struct StreamingTailView<Agents: AgentsService>: View {
         .onChange(of: items.count) { scrollToBottom() }
     }
 
-    // UNANIMATED on purpose: tokens arrive tens of times/sec, and an eased scrollTo per token
-    // restarts a whole-window animation transaction each time — a continuous relayout storm
-    // that pegged the main thread (62% CPU, beachballs; see the 2026-06-10 cpu_resource.diag).
+    /// UNANIMATED on purpose: tokens arrive tens of times/sec, and an eased scrollTo per token
+    /// restarts a whole-window animation transaction each time — a continuous relayout storm
+    /// that pegged the main thread (62% CPU, beachballs; see the 2026-06-10 cpu_resource.diag).
     private func scrollToBottom() {
         proxy.scrollTo(bottomAnchorID, anchor: .bottom)
     }

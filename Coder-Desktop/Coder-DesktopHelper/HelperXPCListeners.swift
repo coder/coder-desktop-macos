@@ -3,14 +3,14 @@ import Foundation
 import os
 import VPNLib
 
-// This listener handles XPC connections from the Coder Desktop System Network
-// Extension (`com.coder.Coder-Desktop.VPN`).
+/// This listener handles XPC connections from the Coder Desktop System Network
+/// Extension (`com.coder.Coder-Desktop.VPN`).
 class HelperNEXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperNEXPCServer")
     private var conns: [NSXPCConnection] = []
 
-    // Hold a reference to the tun file handle
-    // to prevent it from being closed.
+    /// Hold a reference to the tun file handle
+    /// to prevent it from being closed.
     private var tunFile: FileHandle?
 
     override init() {
@@ -134,8 +134,8 @@ extension HelperNEXPCServer: HelperNEXPCInterface {
     }
 }
 
-// This listener handles XPC connections from the Coder Desktop App
-// (`com.coder.Coder-Desktop`).
+/// This listener handles XPC connections from the Coder Desktop App
+/// (`com.coder.Coder-Desktop`).
 class HelperAppXPCServer: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperAppXPCServer")
     private var conns: [NSXPCConnection] = []

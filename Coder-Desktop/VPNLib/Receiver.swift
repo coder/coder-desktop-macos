@@ -86,7 +86,9 @@ public enum ReceiveError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 func deserializeLen(_ data: Data) throws -> UInt32 {
