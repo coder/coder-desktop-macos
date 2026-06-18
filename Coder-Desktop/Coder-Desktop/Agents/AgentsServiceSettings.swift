@@ -68,10 +68,6 @@ extension CoderAgentsService {
         try? await client?.chatCostSummary(start: start, end: end)
     }
 
-    func prInsights(start: String?, end: String?) async -> PRInsightsResponse? {
-        try? await client?.chatPRInsights(start: start, end: end)
-    }
-
     func usageLimit() async -> ChatUsageLimitStatus? {
         try? await client?.chatUsageLimit()
     }

@@ -126,7 +126,6 @@ protocol AgentsService: ObservableObject {
 
     // Personal usage analytics.
     func costSummary(start: String?, end: String?) async -> ChatCostSummary?
-    func prInsights(start: String?, end: String?) async -> PRInsightsResponse?
     func usageLimit() async -> ChatUsageLimitStatus?
     func workspaceQuota() async -> WorkspaceQuota?
     func interrupt(_ id: UUID) async
