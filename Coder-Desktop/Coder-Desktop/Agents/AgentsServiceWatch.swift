@@ -87,7 +87,10 @@ extension CoderAgentsService {
         default:
             guard let index else { return }
             let previous = sessions[index].status
-            apply(event, to: &sessions[index])
+            var updated = sessions[index]
+            apply(event, to: &updated)
+            // Skip the write-back (and the objectWillChange it fires) when nothing actually changed.
+            if updated != sessions[index] { sessions[index] = updated }
             if event.kind == .statusChange || event.kind == .actionRequired {
                 notifyTurnFinished(previous: previous, chat: chat)
             }
@@ -113,7 +116,7 @@ extension CoderAgentsService {
             guard let cIndex else { return }
             apply(event, to: &children[cIndex])
         }
-        sessions[pIndex].children = children
+        if sessions[pIndex].children != children { sessions[pIndex].children = children }
     }
 
     /// Merges only the fields an event kind owns onto a row (web parity): a watch payload
