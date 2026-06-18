@@ -113,7 +113,6 @@ final class PreviewAgents: AgentsService {
     func shareWithGroup(_: UUID, groupID _: UUID) async {}
     func setSharedFlag(_: UUID, shared _: Bool) {}
     func costSummary(start _: String?, end _: String?) async -> ChatCostSummary? { nil }
-    func prInsights(start _: String?, end _: String?) async -> PRInsightsResponse? { nil }
     func usageLimit() async -> ChatUsageLimitStatus? { nil }
     func workspaceQuota() async -> WorkspaceQuota? { nil }
     func shareCandidates(orgID _: UUID) async -> (members: [OrgMember], groups: [OrgGroup]) {

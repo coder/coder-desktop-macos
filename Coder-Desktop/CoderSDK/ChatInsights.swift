@@ -1,7 +1,7 @@
 import Foundation
 
-// Personal usage analytics: your own AI spend/cost summary, PR insights, and spend-limit
-// status. All monetary values are in micros (USD × 1e6).
+// Personal usage analytics: your own AI spend/cost summary and spend-limit status.
+// All monetary values are in micros (USD × 1e6).
 public extension Client {
     /// Your cost summary over an optional date range (RFC3339). The server defaults the range
     /// when start/end are nil.
@@ -9,13 +9,6 @@ public extension Client {
         let res = try await request(insightsPath("/api/experimental/chats/cost/me/summary", start, end), method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ChatCostSummary.self, from: res.data)
-    }
-
-    func chatPRInsights(start: String? = nil, end: String? = nil) async throws(SDKError) -> PRInsightsResponse {
-        let path = insightsPath("/api/experimental/chats/insights/pull-requests", start, end)
-        let res = try await request(path, method: .get)
-        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
-        return try decode(PRInsightsResponse.self, from: res.data)
     }
 
     func chatUsageLimit() async throws(SDKError) -> ChatUsageLimitStatus {
@@ -64,28 +57,3 @@ public struct ChatUsageLimitStatus: Decodable, Sendable {
     public let period_end: Date?
 }
 
-public struct PRInsightsResponse: Decodable, Sendable {
-    public let summary: Summary?
-    public let recent_prs: [PullRequest]?
-
-    public struct Summary: Decodable, Sendable {
-        public let total_prs_created: Int?
-        public let total_prs_merged: Int?
-        public let merge_rate: Double?
-        public let total_cost_micros: Int?
-        public let cost_per_merged_pr_micros: Int?
-    }
-
-    public struct PullRequest: Decodable, Sendable, Identifiable {
-        public let pr_title: String?
-        public let pr_url: String?
-        public let pr_number: Int?
-        public let state: String?
-        public let additions: Int?
-        public let deletions: Int?
-        public let model_display_name: String?
-        public let cost_micros: Int?
-
-        public var id: String { pr_url ?? "\(pr_number ?? 0)-\(pr_title ?? "")" }
-    }
-}
