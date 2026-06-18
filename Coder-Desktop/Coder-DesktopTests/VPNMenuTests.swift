@@ -9,19 +9,25 @@ struct VPNMenuTests {
     let vpn: MockVPNService
     let fsd: MockFileSyncDaemon
     let state: AppState
-    let sut: VPNMenu<MockVPNService, MockFileSyncDaemon>
+    let agents: PreviewAgents
+    let sut: VPNMenu<MockVPNService, MockFileSyncDaemon, PreviewAgents>
     let view: any View
 
     init() {
         vpn = MockVPNService()
         state = AppState(persistent: false)
-        sut = VPNMenu<MockVPNService, MockFileSyncDaemon>()
+        agents = PreviewAgents()
+        sut = VPNMenu<MockVPNService, MockFileSyncDaemon, PreviewAgents>()
         fsd = MockFileSyncDaemon()
-        view = sut.environmentObject(vpn).environmentObject(state).environmentObject(fsd)
+        view = sut
+            .environmentObject(vpn)
+            .environmentObject(state)
+            .environmentObject(fsd)
+            .environmentObject(agents)
     }
 
     @Test
-    func testVPNLoggedOut() async throws {
+    func vPNLoggedOut() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 let toggle = try view.find(ViewType.Toggle.self)
@@ -33,7 +39,7 @@ struct VPNMenuTests {
     }
 
     @Test
-    func testVPNLoggedOutUnconfigured() async throws {
+    func vPNLoggedOutUnconfigured() async throws {
         vpn.state = .failed(.networkExtensionError(.unconfigured))
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -48,7 +54,7 @@ struct VPNMenuTests {
     }
 
     @Test
-    func testStartStopCalled() async throws {
+    func startStopCalled() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 var toggle = try view.find(ViewType.Toggle.self)
@@ -72,9 +78,9 @@ struct VPNMenuTests {
     }
 
     @Test
-    func testVPNDisabledWhileConnecting() async throws {
+    func vPNDisabledWhileConnecting() async throws {
         vpn.state = .disabled
-        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
+        try state.login(baseAccessURL: #require(URL(string: "https://coder.example.com")), sessionToken: "fake-token")
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -93,9 +99,9 @@ struct VPNMenuTests {
     }
 
     @Test
-    func testVPNDisabledWhileDisconnecting() async throws {
+    func vPNDisabledWhileDisconnecting() async throws {
         vpn.state = .disabled
-        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
+        try state.login(baseAccessURL: #require(URL(string: "https://coder.example.com")), sessionToken: "fake-token")
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
@@ -120,8 +126,8 @@ struct VPNMenuTests {
     }
 
     @Test
-    func testOffWhenFailed() async throws {
-        state.login(baseAccessURL: URL(string: "https://coder.example.com")!, sessionToken: "fake-token")
+    func offWhenFailed() async throws {
+        try state.login(baseAccessURL: #require(URL(string: "https://coder.example.com")), sessionToken: "fake-token")
 
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in

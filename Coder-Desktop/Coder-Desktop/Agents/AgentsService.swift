@@ -25,8 +25,8 @@ final class CoderAgentsService: AgentsService {
     @Published var messagesBySession: [UUID: [ChatMessage]] = [:]
     /// Whether older messages exist before the earliest loaded one (for scroll-back paging).
     @Published var hasOlderBySession: [UUID: Bool] = [:]
-    // Plain `let`, not `@Published`: see StreamingStore — token appends must not fire this
-    // service's objectWillChange.
+    /// Plain `let`, not `@Published`: see StreamingStore — token appends must not fire this
+    /// service's objectWillChange.
     let streamingStore = StreamingStore()
     /// Messages queued while the agent is busy (shown above the composer).
     @Published var queuedMessagesBySession: [UUID: [ChatQueuedMessage]] = [:]
@@ -132,6 +132,8 @@ final class CoderAgentsService: AgentsService {
             purgeTranscriptsOnAccountChange()
             startWatching()
         } catch {
+            // A cancelled probe (tray closed mid-fetch) should not corrupt shared error state.
+            if error is CancellationError || (error as? URLError)?.code == .cancelled { return }
             loadError = error.localizedDescription
             logger.error("failed to load sessions: \(error.localizedDescription, privacy: .public)")
         }
@@ -309,8 +311,8 @@ final class CoderAgentsService: AgentsService {
     }
 }
 
-// Stream event APPLICATION lives in AgentsServiceStream.swift with the engine;
-// `organizationID()` stays here because `private cachedOrgID` is file-scoped.
+/// Stream event APPLICATION lives in AgentsServiceStream.swift with the engine;
+/// `organizationID()` stays here because `private cachedOrgID` is file-scoped.
 extension CoderAgentsService {
     /// Updates a session's `shared` flag locally (after an ACL change) so the share icon
     /// reflects the new state immediately.
@@ -328,7 +330,7 @@ extension CoderAgentsService {
     }
 }
 
-// Same-file extension: private access preserved; keeps the type body under the lint cap.
+/// Same-file extension: private access preserved; keeps the type body under the lint cap.
 extension CoderAgentsService {
     var client: CoderSDK.Client? {
         state.client
