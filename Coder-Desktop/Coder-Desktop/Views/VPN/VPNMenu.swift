@@ -1,7 +1,7 @@
 import SwiftUI
 import VPNLib
 
-struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
+struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var fileSync: FS
     @EnvironmentObject var state: AppState
@@ -49,6 +49,9 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                 VPNState<VPN>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
             Agents<VPN>()
+            if agentsEnabled, state.hasSession {
+                ChatsSection<AgentsSvc>()
+            }
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
                 TrayDivider()
@@ -166,9 +169,10 @@ func openSystemExtensionSettings() {
         appState.login(baseAccessURL: URL(string: "http://127.0.0.1:8080")!, sessionToken: "")
         // appState.clearSession()
 
-        return VPNMenu<PreviewVPN, PreviewFileSync>().frame(width: 256)
+        return VPNMenu<PreviewVPN, PreviewFileSync, PreviewAgents>().frame(width: 256)
             .environmentObject(PreviewVPN())
             .environmentObject(appState)
             .environmentObject(PreviewFileSync())
+            .environmentObject(PreviewAgents())
     }
 #endif

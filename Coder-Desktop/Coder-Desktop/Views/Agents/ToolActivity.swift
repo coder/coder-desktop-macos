@@ -2,10 +2,8 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
-// The streaming tail rebuilds its ToolSteps per token; re-walking the result JSON and joining
-// the full diff each time was the dominant remaining per-token cost on edit-heavy turns. A
-// result's diff is immutable once delivered, so cache by tool_call_id (thread-safe NSCache;
-// empty string = "extracted, no diff").
+/// Cache edit diffs by tool_call_id — result diffs are immutable once delivered, but re-parsing
+/// per streaming token was the dominant per-token cost on edit-heavy turns. Empty string = no diff.
 private nonisolated(unsafe) let editDiffCache: NSCache<NSString, NSString> = {
     let cache = NSCache<NSString, NSString>()
     cache.countLimit = 256
@@ -16,12 +14,8 @@ struct ToolStep: Identifiable {
     let id: String
     var call: ChatMessagePart?
     var result: ChatMessagePart?
-    /// The unified diff for an `edit_files` step, parsed out of the result JSON once when the step
-    /// is built. Cached here because it's read on every body eval (hasDetail, the +/− badge, and
-    /// the expanded diff) and re-parsing the result per token while streaming added up.
+    /// Cached at step-build time; re-parsing the result JSON per streaming token was expensive.
     private(set) var editDiff: String?
-    /// The tool's kind, classified once at build time (it reads tool_name with a lowercase+switch,
-    /// and is read repeatedly — by `isWorkspace`, the expand default, and transcript grouping).
     private(set) var kind: ChatMessagePart.ToolKind = .other
 
     /// Pairs tool-call/tool-result parts by `tool_call_id`, regardless of arrival order.
@@ -60,7 +54,6 @@ struct ToolStep: Identifiable {
         return steps
     }
 
-    /// Prefer the call (carries args / parsed_commands); fall back to the result.
     private var source: ChatMessagePart? {
         call ?? result
     }
@@ -71,8 +64,7 @@ struct ToolStep: Identifiable {
 
     var label: String {
         guard let source else { return "Tool" }
-        // The model's own intent is the most descriptive title (matches the web) — use it for
-        // tools we'd otherwise label generically (MCP servers, search, anything unrecognized).
+        // Prefer the model's own intent for generic tools (MCP servers, search, unrecognized).
         let intent = source.modelIntent
         switch kind {
         case .execute: return "Ran \(source.commandPrograms ?? "command")"
@@ -89,12 +81,22 @@ struct ToolStep: Identifiable {
         }
     }
 
-    var isWorkspace: Bool { kind == .workspace }
-    var isRunning: Bool { result == nil }
-    var workspaceName: String? { (result ?? call)?.workspaceToolName }
-    var workspaceOwner: String? { (result ?? call)?.workspaceToolOwner }
+    var isWorkspace: Bool {
+        kind == .workspace
+    }
 
-    /// "Creating/Starting workspace…" while running, "Created/Started <name>" when done.
+    var isRunning: Bool {
+        result == nil
+    }
+
+    var workspaceName: String? {
+        (result ?? call)?.workspaceToolName
+    }
+
+    var workspaceOwner: String? {
+        (result ?? call)?.workspaceToolOwner
+    }
+
     private var workspaceLabel: String {
         let creating = (source?.tool_name ?? "") == "create_workspace"
         if isRunning { return creating ? "Creating workspace…" : "Starting workspace…" }
@@ -120,9 +122,10 @@ struct ToolStep: Identifiable {
         kind == .readFile ? source?.filePath : nil
     }
 
-    var isSummary: Bool { kind == .summarize }
+    var isSummary: Bool {
+        kind == .summarize
+    }
 
-    /// The compaction summary (markdown), shown when a `chat_summarized` step expands.
     var summary: String? {
         result?.summaryText ?? source?.summaryText
     }
@@ -134,10 +137,14 @@ struct ToolStep: Identifiable {
         return (files.reduce(0) { $0 + $1.additions }, files.reduce(0) { $0 + $1.deletions })
     }
 
-    /// Raw tool input/output (pretty JSON), the fallback so a step we don't render specially
-    /// (e.g. a search) is still expandable and shows what it did and what it found.
-    var argsJSON: String? { source?.argsJSON }
-    var resultJSON: String? { result?.resultJSON ?? call?.resultJSON }
+    /// Raw args/result JSON — fallback detail for steps without a specialized renderer.
+    var argsJSON: String? {
+        source?.argsJSON
+    }
+
+    var resultJSON: String? {
+        result?.resultJSON ?? call?.resultJSON
+    }
 
     var hasDetail: Bool {
         command?.isEmpty == false || output?.isEmpty == false
@@ -145,14 +152,17 @@ struct ToolStep: Identifiable {
             || hasArgs || hasResult
     }
 
-    // Cheap presence checks used by `hasDetail` (read on every body eval): they avoid the full
-    // JSONEncoder that `argsJSON`/`resultJSON` run, which only needs to happen once a row expands.
-    private var hasArgs: Bool { (call?.args ?? result?.args)?.nonEmpty == true }
-    private var hasResult: Bool { (result?.result ?? call?.result)?.nonEmpty == true }
+    /// Avoids running the full JSONEncoder on every body eval — only runs when the row expands.
+    private var hasArgs: Bool {
+        (call?.args ?? result?.args)?.nonEmpty == true
+    }
+
+    private var hasResult: Bool {
+        (result?.result ?? call?.result)?.nonEmpty == true
+    }
 }
 
-/// Renders a run of tool steps. A single step shows inline; multiple collapse into
-/// "Used N tools" (like the web / Claude), expanding to the individual rows.
+/// Renders a run of tool steps; multiple steps collapse into "Used N tools".
 struct ToolGroupView: View {
     let steps: [ToolStep]
     @State private var expanded = false
@@ -181,8 +191,7 @@ struct ToolGroupView: View {
     }
 }
 
-/// A standalone compaction-summary milestone: "Summarized", expanding to the summary
-/// markdown. Always shown (unlike tool rows, it isn't hidden by the tool-activity toggle).
+/// Compaction-summary milestone: always shown (not hidden by the tool-activity toggle).
 struct SummaryBlockView: View {
     let part: ChatMessagePart
     @State private var expanded = false
@@ -258,7 +267,6 @@ private struct ToolStepView: View {
         .foregroundStyle(.secondary)
     }
 
-    /// Dashboard URL for a completed workspace tool, if owner + name are known.
     private var workspaceURL: URL? {
         guard let base = state.baseAccessURL, let owner = step.workspaceOwner, let name = step.workspaceName
         else { return nil }
@@ -287,8 +295,7 @@ private struct ToolStepView: View {
                 if let output = step.output, !output.isEmpty {
                     ToolOutputView(text: output)
                 }
-                // Fallback for tools without a specialized renderer (e.g. search): show the raw
-                // args (what it asked for) and result (what it found) so the step is never opaque.
+                // Fallback for unrecognized tools: raw args + result JSON.
                 if step.command?.isEmpty != false, step.output?.isEmpty != false, step.readPath == nil {
                     if let argsJSON = step.argsJSON {
                         labeledBlock("Arguments") { CodeBlock(text: argsJSON) }
@@ -302,7 +309,6 @@ private struct ToolStepView: View {
         }
     }
 
-    @ViewBuilder
     private func labeledBlock(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
@@ -311,8 +317,7 @@ private struct ToolStepView: View {
     }
 }
 
-/// Renders tool output. Tab-separated output (e.g. CI logs/checks) becomes an aligned,
-/// scrollable grid with clickable URLs, like the web; everything else is a plain code block.
+/// Tab-separated output becomes an aligned scrollable grid; everything else is a code block.
 struct ToolOutputView: View {
     let text: String
 
@@ -357,7 +362,6 @@ struct ToolOutputView: View {
         }
     }
 
-    /// Returns rows of columns when the text is consistently tab-separated, else nil.
     static func tsvRows(_ text: String) -> [[String]]? {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
         guard lines.count >= 2 else { return nil }
