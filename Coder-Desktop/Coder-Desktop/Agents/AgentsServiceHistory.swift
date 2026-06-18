@@ -1,8 +1,8 @@
 import CoderSDK
 import Foundation
 
-// Message history: backward pagination (`before_id` cursor), diff loading, message editing,
-// and the merge/echo reconciliation used by the stream.
+/// Message history: backward pagination (`before_id` cursor), diff loading, message editing,
+/// and the merge/echo reconciliation used by the stream.
 extension CoderAgentsService {
     /// Committed messages plus optimistic (not-yet-acknowledged) sends, for rendering.
     func messages(for id: UUID) -> [ChatMessage] {

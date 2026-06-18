@@ -58,7 +58,9 @@ struct WorkspaceApp {
     let url: URL
     let icon: URL?
 
-    var id: String { slug }
+    var id: String {
+        slug
+    }
 
     private static let magicTokenString = "$SESSION_TOKEN"
 
@@ -142,7 +144,9 @@ enum WorkspaceAppError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 func agentToApps(

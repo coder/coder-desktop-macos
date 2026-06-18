@@ -13,10 +13,21 @@ struct PastedAttachment: Identifiable {
     var fileID: UUID?
     var uploading = false
 
-    var isFile: Bool { fileID != nil || uploading }
-    var lineCount: Int { text.split(separator: "\n", omittingEmptySubsequences: false).count }
-    var label: String { name ?? "Pasted text · \(lineCount) lines" }
-    var preview: String { isFile ? (name ?? "File") : String(text.prefix(240)) }
+    var isFile: Bool {
+        fileID != nil || uploading
+    }
+
+    var lineCount: Int {
+        text.split(separator: "\n", omittingEmptySubsequences: false).count
+    }
+
+    var label: String {
+        name ?? "Pasted text · \(lineCount) lines"
+    }
+
+    var preview: String {
+        isFile ? (name ?? "File") : String(text.prefix(240))
+    }
 }
 
 extension [PastedAttachment] {
@@ -29,7 +40,9 @@ extension [PastedAttachment] {
     }
 
     /// The uploaded file ids to send as `file` parts.
-    var fileIDs: [UUID] { compactMap(\.fileID) }
+    var fileIDs: [UUID] {
+        compactMap(\.fileID)
+    }
 }
 
 /// The composer's attachment chips (pasted text or attached files), each removable. Shared
@@ -83,7 +96,9 @@ struct PasteAwareEditor: NSViewRepresentable {
     var skills: [UserSkill] = []
     var onSkillTrigger: () -> Void = {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
     func makeNSView(context: Context) -> NSScrollView {
         let textView = PasteTextView()
@@ -258,7 +273,9 @@ struct PasteAwareEditor: NSViewRepresentable {
 final class PasteTextView: NSTextView {
     /// Returns true if the paste was handled (and should not be inserted inline).
     var onLargePaste: ((String) -> Bool)?
-    var placeholderString = "" { didSet { needsDisplay = true } }
+    var placeholderString = "" {
+        didSet { needsDisplay = true }
+    }
 
     override func paste(_ sender: Any?) {
         if let pasted = NSPasteboard.general.string(forType: .string),

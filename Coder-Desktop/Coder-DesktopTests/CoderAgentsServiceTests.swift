@@ -7,9 +7,9 @@ import Testing
 @MainActor
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct CoderAgentsServiceTests {
-    // A unique host per test instance keeps this suite's mocks from colliding across its
-    // own tests. Mocker registrations are process-global and suites run in parallel, so
-    // Mocker.removeAll() here would clobber other suites' in-flight mocks.
+    /// A unique host per test instance keeps this suite's mocks from colliding across its
+    /// own tests. Mocker registrations are process-global and suites run in parallel, so
+    /// Mocker.removeAll() here would clobber other suites' in-flight mocks.
     let url = URL(string: "https://test-agents-\(UUID().uuidString).coder")!
 
     private func makeState() -> AppState {
@@ -132,7 +132,7 @@ struct CoderAgentsServiceTests {
         let service = CoderAgentsService(state: makeState())
         _ = await service.sendMessage(target.id, prompt: "first", extraParts: [], options: .init())
         _ = await service.sendMessage(target.id, prompt: "second", extraParts: [], options: .init())
-        #expect(service.messages(for: target.id).filter { $0.role == .user }.count == 2)
+        #expect(service.messages(for: target.id).count(where: { $0.role == .user }) == 2)
 
         // The server commits only "first"; "second" is still in flight. The echo for "first"
         // must be deduped (not duplicated) while the unrelated "second" send is preserved.
@@ -143,7 +143,7 @@ struct CoderAgentsServiceTests {
         service.mergeMessages([committed], into: target.id)
 
         let users = service.messages(for: target.id).filter { $0.role == .user }
-        #expect(users.filter { $0.displayText == "first" }.count == 1)
+        #expect(users.count(where: { $0.displayText == "first" }) == 1)
         #expect(users.contains { $0.displayText == "second" })
     }
 

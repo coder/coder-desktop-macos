@@ -249,8 +249,8 @@ public struct CreateChatMessageRequest: Encodable, Sendable {
     public let busy_behavior: ChatBusyBehavior?
     public let model_config_id: UUID? // optional per-message model switch
     public let plan_mode: ChatPlanMode? // "plan" to run this turn in plan mode
-    // The chat's full MCP server set, applied on the next turn. REPLACE semantics: send the
-    // complete desired set (existing ∪ added). nil/omitted = leave the chat's set unchanged.
+    /// The chat's full MCP server set, applied on the next turn. REPLACE semantics: send the
+    /// complete desired set (existing ∪ added). nil/omitted = leave the chat's set unchanged.
     public let mcp_server_ids: [UUID]?
 
     public init(

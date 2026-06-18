@@ -34,7 +34,7 @@ struct Agent: Identifiable, Equatable, Comparable, Hashable {
         self.primaryHost = primaryHost
     }
 
-    // Agents are sorted by status, and then by name
+    /// Agents are sorted by status, and then by name
     static func < (lhs: Agent, rhs: Agent) -> Bool {
         if lhs.status != rhs.status {
             return lhs.status < rhs.status
@@ -113,7 +113,7 @@ enum AgentStatus: Int, Equatable, Comparable {
     case no_recent_handshake = 3
     case off = 4
 
-    public var description: String {
+    var description: String {
         switch self {
         case .okay: "Connected"
         case .connecting: "Connecting..."
@@ -123,7 +123,7 @@ enum AgentStatus: Int, Equatable, Comparable {
         }
     }
 
-    public var color: Color {
+    var color: Color {
         switch self {
         case .okay: .green
         case .high_latency: .yellow
@@ -151,15 +151,15 @@ struct Workspace: Identifiable, Equatable, Comparable {
 struct VPNMenuState {
     var agents: [UUID: Agent] = [:]
     var workspaces: [UUID: Workspace] = [:]
-    // Upserted agents that don't belong to any known workspace, have no FQDNs,
-    // or have any invalid UUIDs.
+    /// Upserted agents that don't belong to any known workspace, have no FQDNs,
+    /// or have any invalid UUIDs.
     var invalidAgents: [Vpn_Agent] = []
 
-    public func findAgent(workspaceID: UUID, name: String) -> Agent? {
+    func findAgent(workspaceID: UUID, name: String) -> Agent? {
         agents.first(where: { $0.value.wsID == workspaceID && $0.value.name == name })?.value
     }
 
-    public func findWorkspace(name: String) -> Workspace? {
+    func findWorkspace(name: String) -> Workspace? {
         workspaces
             .first(where: { $0.value.name == name })?.value
     }
@@ -257,7 +257,9 @@ struct VPNMenuState {
         return items.sorted()
     }
 
-    var onlineAgents: [Agent] { agents.map(\.value) }
+    var onlineAgents: [Agent] {
+        agents.map(\.value)
+    }
 
     mutating func clear() {
         agents.removeAll()
@@ -289,7 +291,9 @@ extension Vpn_Agent {
         Date.now.addingTimeInterval(-300) // 5 minutes ago
     }
 
-    var healthyPingMax: TimeInterval { 0.15 } // 150ms
+    var healthyPingMax: TimeInterval {
+        0.15
+    } // 150ms
 
     var status: AgentStatus {
         // Initially the handshake is missing

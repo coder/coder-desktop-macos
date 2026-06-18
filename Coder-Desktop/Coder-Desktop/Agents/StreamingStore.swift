@@ -8,8 +8,8 @@ import Foundation
 @MainActor
 final class StreamingStore: ObservableObject {
     @Published private(set) var partsBySession: [UUID: [ChatMessagePart]] = [:]
-    // Maintained incrementally on append — summing part texts per token would be an
-    // O(message-so-far) grapheme walk, quadratic over a long turn.
+    /// Maintained incrementally on append — summing part texts per token would be an
+    /// O(message-so-far) grapheme walk, quadratic over a long turn.
     private var textLengthBySession: [UUID: Int] = [:]
 
     func parts(for id: UUID) -> [ChatMessagePart] {

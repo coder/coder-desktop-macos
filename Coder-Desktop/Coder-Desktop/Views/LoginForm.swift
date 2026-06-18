@@ -232,7 +232,9 @@ enum LoginError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 enum LoginPage {

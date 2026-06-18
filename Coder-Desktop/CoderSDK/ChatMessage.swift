@@ -195,11 +195,16 @@ public struct AskUserQuestion: Sendable, Equatable {
     }
 }
 
-// Plan (`propose_plan`) and question (`ask_user_question`) tool accessors. Both are ordinary
-// tool-call/result parts discriminated by `tool_name` (not a dedicated part type).
+/// Plan (`propose_plan`) and question (`ask_user_question`) tool accessors. Both are ordinary
+/// tool-call/result parts discriminated by `tool_name` (not a dedicated part type).
 public extension ChatMessagePart {
-    var isProposePlan: Bool { tool_name == "propose_plan" }
-    var isAskUserQuestion: Bool { tool_name == "ask_user_question" }
+    var isProposePlan: Bool {
+        tool_name == "propose_plan"
+    }
+
+    var isAskUserQuestion: Bool {
+        tool_name == "ask_user_question"
+    }
 
     /// The uploaded markdown file id for a `propose_plan` result (fetch via `chatFileText`).
     var planFileID: UUID? {

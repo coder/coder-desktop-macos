@@ -35,18 +35,20 @@ public enum ValidationError: Error {
         }
     }
 
-    public var localizedDescription: String { description }
+    public var localizedDescription: String {
+        description
+    }
 }
 
 public class Validator {
-    // This version of the app has a strict version requirement.
+    /// This version of the app has a strict version requirement.
     public static let minimumCoderVersion = "2.24.3"
 
     private static let expectedIdentifier = "com.coder.cli"
-    // The Coder team identifier
+    /// The Coder team identifier
     private static let expectedTeamIdentifier = "4399GN35BJ"
 
-    // Apple-issued certificate chain
+    /// Apple-issued certificate chain
     public static let anchorRequirement = "anchor apple generic"
 
     private static let signInfoFlags: SecCSFlags = .init(rawValue: kSecCSSigningInformation)
@@ -94,8 +96,8 @@ public class Validator {
         }
     }
 
-    // This function executes the binary to read its version, and so it assumes
-    // the signature has already been validated.
+    /// This function executes the binary to read its version, and so it assumes
+    /// the signature has already been validated.
     public static func validateVersion(binaryPath: URL, serverVersion: String) async throws(ValidationError) {
         guard FileManager.default.fileExists(atPath: binaryPath.path) else {
             throw .fileNotFound

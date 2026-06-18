@@ -1,8 +1,8 @@
 import CoderSDK
 import SwiftUI
 
-// Display-name fallbacks shared by the candidate list and the shared-with rows (the org and
-// ACL models carry the same fields as distinct types).
+/// Display-name fallbacks shared by the candidate list and the shared-with rows (the org and
+/// ACL models carry the same fields as distinct types).
 private func personTitle(name: String?, username: String) -> String {
     name?.isEmpty == false ? name! : username
 }
@@ -41,8 +41,13 @@ struct ChatSharePopover<Agents: AgentsService>: View {
             }
         }
 
-        var subtitle: String { if case let .user(m) = self { "@\(m.username)" } else { "Group" } }
-        var icon: String { if case .group = self { "person.3" } else { "person.crop.circle" } }
+        var subtitle: String {
+            if case let .user(m) = self { "@\(m.username)" } else { "Group" }
+        }
+
+        var icon: String {
+            if case .group = self { "person.3" } else { "person.crop.circle" }
+        }
     }
 
     private var results: [Candidate] {
@@ -61,7 +66,9 @@ struct ChatSharePopover<Agents: AgentsService>: View {
         return Array((users + grps).prefix(8))
     }
 
-    private var isEmpty: Bool { (acl?.users.isEmpty ?? true) && (acl?.groups.isEmpty ?? true) }
+    private var isEmpty: Bool {
+        (acl?.users.isEmpty ?? true) && (acl?.groups.isEmpty ?? true)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -119,7 +126,6 @@ struct ChatSharePopover<Agents: AgentsService>: View {
         .task(id: session.id) { await load() }
     }
 
-    @ViewBuilder
     private func principalRow(_ title: String, _ subtitle: String, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).foregroundStyle(.secondary)
@@ -131,7 +137,6 @@ struct ChatSharePopover<Agents: AgentsService>: View {
         }
     }
 
-    @ViewBuilder
     private func sharedRow(_ title: String, _ subtitle: String, icon: String, onRemove: (() -> Void)?) -> some View {
         HStack(spacing: 8) {
             principalRow(title, subtitle, icon: icon)

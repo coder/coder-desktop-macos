@@ -8,7 +8,7 @@ import Foundation
 // anything locally.
 
 /// Per-message send options, bundled so call signatures stay small.
-struct SendOptions: Sendable {
+struct SendOptions {
     var modelConfigID: UUID?
     var planMode: ChatPlanMode?
     /// The chat's full MCP server set to apply (REPLACE semantics — pass existing ∪ added);

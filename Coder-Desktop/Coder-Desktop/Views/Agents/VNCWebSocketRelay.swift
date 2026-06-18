@@ -86,8 +86,8 @@ final class VNCWebSocketRelay: @unchecked Sendable {
         pumpTCPToWebSocket()
     }
 
-    // The two pumps run on different queues (the WS task's internal delegate queue and the NWConnection
-    // queue) and race stop()'s nil-out, so every ws/tcp access here is snapshotted under the lock.
+    /// The two pumps run on different queues (the WS task's internal delegate queue and the NWConnection
+    /// queue) and race stop()'s nil-out, so every ws/tcp access here is snapshotted under the lock.
     private func pumpWebSocketToTCP() {
         guard let ws = lock.withLock({ self.ws }) else { return }
         ws.receive { [weak self] result in

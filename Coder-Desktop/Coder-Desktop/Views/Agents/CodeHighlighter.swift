@@ -8,9 +8,9 @@ import SwiftUI
 /// web client.
 struct HighlightrSyntaxHighlighter: CodeSyntaxHighlighter {
     private let highlightr: Highlightr?
-    // Highlighting the same code is pure, but highlight.js in JSCore costs ~ms per block — and
-    // MarkdownUI re-calls this every time a cell re-appears during scroll or re-renders during
-    // streaming. Cache results (per-theme instance) so a given block is highlighted only once.
+    /// Highlighting the same code is pure, but highlight.js in JSCore costs ~ms per block — and
+    /// MarkdownUI re-calls this every time a cell re-appears during scroll or re-renders during
+    /// streaming. Cache results (per-theme instance) so a given block is highlighted only once.
     private let cache = NSCache<NSString, NSAttributedString>()
 
     init(theme: String) {
@@ -46,7 +46,12 @@ struct HighlightrSyntaxHighlighter: CodeSyntaxHighlighter {
 
 extension CodeSyntaxHighlighter where Self == HighlightrSyntaxHighlighter {
     /// For dark appearance — light-on-dark text.
-    static var darkCode: HighlightrSyntaxHighlighter { .darkInstance }
+    static var darkCode: HighlightrSyntaxHighlighter {
+        .darkInstance
+    }
+
     /// For light appearance — dark-on-light text.
-    static var lightCode: HighlightrSyntaxHighlighter { .lightInstance }
+    static var lightCode: HighlightrSyntaxHighlighter {
+        .lightInstance
+    }
 }

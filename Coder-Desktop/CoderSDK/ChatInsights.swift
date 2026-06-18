@@ -1,7 +1,7 @@
 import Foundation
 
-// Personal usage analytics: your own AI spend/cost summary and spend-limit status.
-// All monetary values are in micros (USD × 1e6).
+/// Personal usage analytics: your own AI spend/cost summary and spend-limit status.
+/// All monetary values are in micros (USD × 1e6).
 public extension Client {
     /// Your cost summary over an optional date range (RFC3339). The server defaults the range
     /// when start/end are nil.
@@ -56,4 +56,3 @@ public struct ChatUsageLimitStatus: Decodable, Sendable {
     public let current_spend: Int? // micros
     public let period_end: Date?
 }
-

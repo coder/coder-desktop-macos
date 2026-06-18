@@ -12,7 +12,7 @@ class AppState: ObservableObject {
 
     let dangerousDisableCoderSignatureValidation: Bool
 
-    // Stored in UserDefaults
+    /// Stored in UserDefaults
     @Published private(set) var hasSession: Bool {
         didSet {
             guard persistent else { return }
@@ -31,7 +31,7 @@ class AppState: ObservableObject {
 
     static let defaultHostnameSuffix: String = "coder"
 
-    // Stored in Keychain
+    /// Stored in Keychain
     @Published private(set) var sessionToken: String? {
         didSet {
             guard persistent else { return }
@@ -39,7 +39,7 @@ class AppState: ObservableObject {
         }
     }
 
-    public var client: Client?
+    var client: Client?
 
     @Published var useLiteralHeaders: Bool = UserDefaults.standard.bool(forKey: Keys.useLiteralHeaders) {
         didSet {
@@ -57,7 +57,7 @@ class AppState: ObservableObject {
         }
     }
 
-    // Defaults to `true`
+    /// Defaults to `true`
     @Published var stopVPNOnQuit: Bool = UserDefaults.standard.optionalBool(forKey: Keys.stopVPNOnQuit) ?? true {
         didSet {
             guard persistent else { return }
@@ -100,13 +100,13 @@ class AppState: ObservableObject {
 
     private let onChange: ((NETunnelProviderProtocol?) -> Void)?
 
-    // reconfigure must be called when any property used to configure the VPN changes
-    public func reconfigure() {
+    /// reconfigure must be called when any property used to configure the VPN changes
+    func reconfigure() {
         if let onChange { onChange(tunnelProviderProtocol()) }
     }
 
-    public init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil,
-                persistent: Bool = true)
+    init(onChange: ((NETunnelProviderProtocol?) -> Void)? = nil,
+         persistent: Bool = true)
     {
         self.persistent = persistent
         self.onChange = onChange
@@ -141,7 +141,7 @@ class AppState: ObservableObject {
         }
     }
 
-    public func login(baseAccessURL: URL, sessionToken: String) {
+    func login(baseAccessURL: URL, sessionToken: String) {
         hasSession = true
         self.baseAccessURL = baseAccessURL
         self.sessionToken = sessionToken
@@ -154,7 +154,7 @@ class AppState: ObservableObject {
         reconfigure()
     }
 
-    public func handleTokenExpiry() async {
+    func handleTokenExpiry() async {
         if hasSession {
             do {
                 _ = try await client!.user("me")
@@ -172,13 +172,13 @@ class AppState: ObservableObject {
     }
 
     private var refreshTask: Task<String?, Never>?
-    public func refreshDeploymentConfig() async {
+    func refreshDeploymentConfig() async {
         // Client is non-nil if there's a sesssion
         if hasSession, let client {
             refreshTask?.cancel()
 
             refreshTask = Task {
-                let res = try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
+                try? await retry(floor: .milliseconds(100), ceil: .seconds(10)) {
                     do {
                         let config = try await client.agentConnectionInfoGeneric()
                         return config.hostname_suffix
@@ -187,14 +187,13 @@ class AppState: ObservableObject {
                         throw error
                     }
                 }
-                return res
             }
 
             hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
         }
     }
 
-    public func clearSession() {
+    func clearSession() {
         hasSession = false
         sessionToken = nil
         refreshTask?.cancel()
@@ -237,11 +236,6 @@ struct LiteralHeader: Hashable, Identifiable, Equatable, Codable {
     var id: String {
         "\(name):\(value)"
     }
-
-    init(name: String, value: String) {
-        self.name = name
-        self.value = value
-    }
 }
 
 extension LiteralHeader {
@@ -251,8 +245,8 @@ extension LiteralHeader {
 }
 
 extension UserDefaults {
-    // Unlike the exisitng `bool(forKey:)` method which returns `false` for both
-    // missing values this method can return `nil`.
+    /// Unlike the exisitng `bool(forKey:)` method which returns `false` for both
+    /// missing values this method can return `nil`.
     func optionalBool(forKey key: String) -> Bool? {
         guard object(forKey: key) != nil else {
             return nil

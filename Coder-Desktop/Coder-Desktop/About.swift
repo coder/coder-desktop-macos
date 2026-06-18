@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum About {
-    public static let repo: String = "https://github.com/coder/coder-desktop-macos"
+    static let repo: String = "https://github.com/coder/coder-desktop-macos"
     private static var credits: NSAttributedString {
         let coder = NSMutableAttributedString(
             string: "Coder.com",

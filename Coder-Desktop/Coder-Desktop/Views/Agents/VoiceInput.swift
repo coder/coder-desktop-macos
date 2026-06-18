@@ -33,11 +33,11 @@ final class VoiceInput: ObservableObject {
     private var task: SFSpeechRecognitionTask?
     private var tapInstalled = false
     private var onText: ((String) -> Void)?
-    // On-device recognition restarts its transcript after each silence (utterance boundary),
-    // so finished utterances are folded in here — otherwise sentence 2 REPLACES sentence 1.
+    /// On-device recognition restarts its transcript after each silence (utterance boundary),
+    /// so finished utterances are folded in here — otherwise sentence 2 REPLACES sentence 1.
     private var committed = ""
-    // Bumped on stop() so a stale authorization callback can't start a session we cancelled,
-    // and a recognition result already in flight can't repopulate a just-cleared draft.
+    /// Bumped on stop() so a stale authorization callback can't start a session we cancelled,
+    /// and a recognition result already in flight can't repopulate a just-cleared draft.
     private var generation = 0
 
     func toggle(onText: @escaping (String) -> Void) {

@@ -2,7 +2,7 @@ import Foundation
 import os
 import SystemExtensions
 
-enum SystemExtensionState: Equatable, Sendable {
+enum SystemExtensionState: Equatable {
     case uninstalled
     case needsUserApproval
     case installed
@@ -82,10 +82,10 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
 {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "vpn-installer")
     private var asyncDelegate: AsyncDelegate
-    // The `didFinishWithResult` function is called for both activation,
-    // deactivation, and replacement requests. The API provides no way to
-    // differentiate them. https://developer.apple.com/forums/thread/684021
-    // This tracks the last request type made, to handle them accordingly.
+    /// The `didFinishWithResult` function is called for both activation,
+    /// deactivation, and replacement requests. The API provides no way to
+    /// differentiate them. https://developer.apple.com/forums/thread/684021
+    /// This tracks the last request type made, to handle them accordingly.
     private var action: SystemExtensionDelegateAction = .none
 
     init(asyncDelegate: AsyncDelegate) {
@@ -158,7 +158,8 @@ class SystemExtensionDelegate<AsyncDelegate: SystemExtensionAsyncRecorder>:
         logger.error("System extension request failed: \(error.localizedDescription)")
         Task { [asyncDelegate] in
             await asyncDelegate.recordSystemExtensionState(
-                .failed(error.localizedDescription))
+                .failed(error.localizedDescription)
+            )
         }
     }
 

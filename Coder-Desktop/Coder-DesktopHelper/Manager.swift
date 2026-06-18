@@ -17,7 +17,7 @@ actor Manager {
         private static let binaryName = "coder-darwin-amd64"
     #endif
 
-    // /var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-{arm64,amd64}
+    /// /var/root/Library/Application Support/com.coder.Coder-Desktop/coder-darwin-{arm64,amd64}
     private let dest = try? FileManager.default
         .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.coder.Coder-Desktop", isDirectory: true)
@@ -101,8 +101,7 @@ actor Manager {
         do {
             try tunnelDaemon = await TunnelDaemon(binaryPath: dest) { err in
                 Task { try? await NEXPCServerDelegate.cancelProvider(error:
-                    makeNSError(suffix: "TunnelDaemon", desc: "Tunnel daemon: \(err.description)")
-                ) }
+                    makeNSError(suffix: "TunnelDaemon", desc: "Tunnel daemon: \(err.description)")) }
             }
         } catch {
             throw .tunnelSetup(error)
@@ -136,8 +135,7 @@ actor Manager {
             logger.error("tunnel read loop failed: \(error.localizedDescription, privacy: .public)")
             try await tunnelDaemon.close()
             try await NEXPCServerDelegate.cancelProvider(error:
-                makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)")
-            )
+                makeNSError(suffix: "Manager", desc: "Tunnel read loop failed: \(error.localizedDescription)"))
             return
         }
         logger.info("tunnel read loop exited")
@@ -206,7 +204,8 @@ actor Manager {
                         }
                         req = telemetryEnricher.enrich(req)
                     }
-                })
+                }
+            )
         } catch {
             logger.error("rpc failed \(error)")
             throw .failedRPC(error)
@@ -229,7 +228,8 @@ actor Manager {
             resp = try await speaker.unaryRPC(
                 .with { msg in
                     msg.stop = .init()
-                })
+                }
+            )
         } catch {
             throw .failedRPC(error)
         }
@@ -247,8 +247,8 @@ actor Manager {
         readLoop.cancel()
     }
 
-    // Retrieves the current state of all peers,
-    // as required when starting the app whilst the network extension is already running
+    /// Retrieves the current state of all peers,
+    /// as required when starting the app whilst the network extension is already running
     func getPeerState() async throws(ManagerError) -> Vpn_PeerUpdate {
         logger.info("sending peer state request")
         let resp: Vpn_TunnelMessage
@@ -256,7 +256,8 @@ actor Manager {
             resp = try await speaker.unaryRPC(
                 .with { msg in
                     msg.getPeerUpdate = .init()
-                })
+                }
+            )
         } catch {
             throw .failedRPC(error)
         }
@@ -325,7 +326,9 @@ enum ManagerError: Error {
         }
     }
 
-    var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 func writeVpnLog(_ log: Vpn_Log) {

@@ -4,7 +4,7 @@ import Testing
 @Suite(.timeLimit(.minutes(1)))
 struct ConvertNetworkSettingsTests {
     @Test
-    func testConvertDnsSettings() async throws {
+    func testConvertDnsSettings() {
         let req: Vpn_NetworkSettingsRequest.DNSSettings = .with { dns in
             dns.servers = ["8.8.8.8"]
             dns.searchDomains = ["example.com"]
@@ -23,7 +23,7 @@ struct ConvertNetworkSettingsTests {
     }
 
     @Test
-    func testConvertIPv4Settings() async throws {
+    func testConvertIPv4Settings() throws {
         let req: Vpn_NetworkSettingsRequest.IPv4Settings = .with { ipv4 in
             ipv4.addrs = ["192.168.1.1"]
             ipv4.subnetMasks = ["255.255.255.0"]
@@ -51,14 +51,14 @@ struct ConvertNetworkSettingsTests {
         #expect(result.router == req.router)
 
         try #require(result.includedRoutes?.count == req.includedRoutes.count)
-        let includedRoute = result.includedRoutes![0]
+        let includedRoute = try #require(result.includedRoutes?[0])
         let expectedIncludedRoute = req.includedRoutes[0]
         #expect(includedRoute.destinationAddress == expectedIncludedRoute.destination)
         #expect(includedRoute.destinationSubnetMask == expectedIncludedRoute.mask)
         #expect(includedRoute.gatewayAddress == expectedIncludedRoute.router)
 
         try #require(result.excludedRoutes?.count == req.excludedRoutes.count)
-        let excludedRoute = result.excludedRoutes![0]
+        let excludedRoute = try #require(result.excludedRoutes?[0])
         let expectedExcludedRoute = req.excludedRoutes[0]
         #expect(excludedRoute.destinationAddress == expectedExcludedRoute.destination)
         #expect(excludedRoute.destinationSubnetMask == expectedExcludedRoute.mask)
@@ -66,7 +66,7 @@ struct ConvertNetworkSettingsTests {
     }
 
     @Test
-    func testConvertIPv6Settings() async throws {
+    func testConvertIPv6Settings() throws {
         let req: Vpn_NetworkSettingsRequest.IPv6Settings = .with { ipv6 in
             ipv6.addrs = ["2001:db8::1"]
             ipv6.prefixLengths = [64]
@@ -92,14 +92,14 @@ struct ConvertNetworkSettingsTests {
         #expect(result.networkPrefixLengths == req.prefixLengths.map { NSNumber(value: $0) })
 
         try #require(result.includedRoutes?.count == req.includedRoutes.count)
-        let includedRoute = result.includedRoutes![0]
+        let includedRoute = try #require(result.includedRoutes?[0])
         let expectedIncludedRoute = req.includedRoutes[0]
         #expect(includedRoute.destinationAddress == expectedIncludedRoute.destination)
         #expect(includedRoute.destinationNetworkPrefixLength == NSNumber(value: 64))
         #expect(includedRoute.gatewayAddress == expectedIncludedRoute.router)
 
         try #require(result.excludedRoutes?.count == req.excludedRoutes.count)
-        let excludedRoute = result.excludedRoutes![0]
+        let excludedRoute = try #require(result.excludedRoutes?[0])
         let expectedExcludedRoute = req.excludedRoutes[0]
         #expect(excludedRoute.destinationAddress == expectedExcludedRoute.destination)
         #expect(excludedRoute.destinationNetworkPrefixLength == NSNumber(value: 128))

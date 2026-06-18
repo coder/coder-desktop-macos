@@ -1,8 +1,8 @@
 import CoderSDK
 import SwiftUI
 
-// Reference type so SwiftUI's ForEach copies a pointer (O(1)) instead of deep-copying
-// the tools/JSONValue payload on every layout pass.
+/// Reference type so SwiftUI's ForEach copies a pointer (O(1)) instead of deep-copying
+/// the tools/JSONValue payload on every layout pass.
 final class TranscriptItem: Identifiable {
     enum Kind {
         case bubble(role: ChatMessageRole, parts: [ChatMessagePart], messageID: Int64?)

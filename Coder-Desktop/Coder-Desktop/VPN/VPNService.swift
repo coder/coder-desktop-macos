@@ -37,7 +37,7 @@ enum VPNServiceError: Error, Equatable {
     case systemExtensionError(SystemExtensionState)
     case networkExtensionError(NetworkExtensionState)
 
-    public var description: String {
+    var description: String {
         switch self {
         case let .internalError(description):
             "Internal Error: \(description)"
@@ -48,7 +48,9 @@ enum VPNServiceError: Error, Equatable {
         }
     }
 
-    public var localizedDescription: String { description }
+    var localizedDescription: String {
+        description
+    }
 }
 
 @MainActor
@@ -88,9 +90,9 @@ final class CoderVPNService: NSObject, VPNService {
     var startWhenReady: Bool = false
     var onStart: (() -> Void)?
 
-    // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
-    // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
-    // only stores a weak reference to the delegate.
+    /// systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
+    /// garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework
+    /// only stores a weak reference to the delegate.
     var systemExtnDelegate: SystemExtensionDelegate<CoderVPNService>?
 
     var serverAddress: String?
@@ -180,7 +182,7 @@ final class CoderVPNService: NSObject, VPNService {
 }
 
 extension CoderVPNService {
-    public func vpnDidUpdate(_ connection: NETunnelProviderSession) {
+    func vpnDidUpdate(_ connection: NETunnelProviderSession) {
         switch (tunnelState, connection.status) {
         // Any -> Disconnected: Update UI w/ error if present
         case (_, .disconnected):

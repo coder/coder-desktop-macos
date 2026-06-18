@@ -26,14 +26,18 @@ struct WorkspacePill<Agents: AgentsService>: View {
         return nil
     }
 
-    private var agentID: UUID? { agent?.id }
+    private var agentID: UUID? {
+        agent?.id
+    }
 
     private var sshHost: String? {
         guard let name = workspace?.name else { return nil }
         return "\(name).\(state.hostnameSuffix)"
     }
 
-    private var status: String { workspace?.latest_build.status ?? "" }
+    private var status: String {
+        workspace?.latest_build.status ?? ""
+    }
 
     private var dashboardURL: URL? {
         // Dashboard URLs are `/@owner/workspace-name` — never `/@me/<uuid>` (which doesn't resolve).
@@ -84,7 +88,9 @@ struct WorkspacePill<Agents: AgentsService>: View {
         return result
     }
 
-    private var isStarting: Bool { ["starting", "pending"].contains(status) }
+    private var isStarting: Bool {
+        ["starting", "pending"].contains(status)
+    }
 
     var body: some View {
         // Attached = running (full pill) or mid-start (dimmed, disabled — so the pill doesn't
@@ -207,7 +213,6 @@ struct WorkspacePill<Agents: AgentsService>: View {
         portsLoaded = true
     }
 
-    @ViewBuilder
     private func appLabel(_ entry: AppEntry) -> some View {
         Label {
             Text(entry.name)

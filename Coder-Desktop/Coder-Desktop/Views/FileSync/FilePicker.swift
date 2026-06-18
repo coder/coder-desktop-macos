@@ -73,8 +73,8 @@ class FilePickerModel: ObservableObject {
     @Published private(set) var rootIsLoading: Bool = false
     @Published private(set) var error: SDKError?
 
-    // It's important that `AgentClient` is a reference type (class)
-    // as we were having performance issues with a struct (unless it was a binding).
+    /// It's important that `AgentClient` is a reference type (class)
+    /// as we were having performance issues with a struct (unless it was a binding).
     let client: AgentClient
 
     init(host: String) {

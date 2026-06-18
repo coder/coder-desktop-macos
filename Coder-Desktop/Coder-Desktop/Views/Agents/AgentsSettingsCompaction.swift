@@ -96,7 +96,9 @@ private struct ModelThresholdRow: View {
 
     @State private var draft = ""
 
-    private var defaultPercent: Int { model.compression_threshold ?? 100 }
+    private var defaultPercent: Int {
+        model.compression_threshold ?? 100
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
