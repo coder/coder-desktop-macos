@@ -1,3 +1,4 @@
+import CoderSDK
 import CryptoKit
 import Foundation
 
@@ -5,12 +6,14 @@ public func download(
     src: URL,
     dest: URL,
     urlSession: URLSession,
+    headers: [HTTPHeader] = [],
     progressUpdates: (@Sendable (DownloadProgress) -> Void)? = nil
 ) async throws(DownloadError) {
     try await DownloadManager().download(
         src: src,
         dest: dest,
         urlSession: urlSession,
+        headers: headers,
         progressUpdates: progressUpdates.flatMap { throttle(interval: .milliseconds(10), $0) }
     )
 }
@@ -54,9 +57,13 @@ private final class DownloadManager: NSObject, @unchecked Sendable {
         src: URL,
         dest: URL,
         urlSession: URLSession,
+        headers: [HTTPHeader] = [],
         progressUpdates: (@Sendable (DownloadProgress) -> Void)?
     ) async throws(DownloadError) {
         var req = URLRequest(url: src)
+        for header in headers {
+            req.setValue(header.value, forHTTPHeaderField: header.name)
+        }
         if FileManager.default.fileExists(atPath: dest.path) {
             if let existingFileData = try? Data(contentsOf: dest, options: .mappedIfSafe) {
                 req.setValue(etag(data: existingFileData), forHTTPHeaderField: "If-None-Match")
