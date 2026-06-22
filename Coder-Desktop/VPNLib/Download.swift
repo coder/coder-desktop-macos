@@ -62,7 +62,7 @@ private final class DownloadManager: NSObject, @unchecked Sendable {
     ) async throws(DownloadError) {
         var req = URLRequest(url: src)
         for header in headers {
-            req.setValue(header.value, forHTTPHeaderField: header.name)
+            req.addValue(header.value, forHTTPHeaderField: header.name)
         }
         if FileManager.default.fileExists(atPath: dest.path) {
             if let existingFileData = try? Data(contentsOf: dest, options: .mappedIfSafe) {
