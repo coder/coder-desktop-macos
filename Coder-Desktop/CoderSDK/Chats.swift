@@ -203,6 +203,36 @@ public extension Client {
             throw responseAsError(res)
         }
     }
+
+    /// The user's past prompts in this chat, newest-first (for composer history cycling).
+    func chatPrompts(_ id: UUID, limit: Int? = nil) async throws(SDKError) -> ChatPromptsResponse {
+        var path = "/api/experimental/chats/\(id.uuidString)/prompts"
+        if let limit, limit > 0 { path += "?limit=\(limit)" }
+        let res = try await request(path, method: .get)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(ChatPromptsResponse.self, from: res.data)
+    }
+
+    /// Regenerates the chat's title from the transcript and persists it; returns the updated Chat.
+    func regenerateChatTitle(_ id: UUID) async throws(SDKError) -> Chat {
+        let res = try await request("/api/experimental/chats/\(id.uuidString)/title/regenerate", method: .post)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(Chat.self, from: res.data)
+    }
+
+    /// Proposes a title without persisting it; returns the suggested title string.
+    func proposeChatTitle(_ id: UUID) async throws(SDKError) -> String {
+        let res = try await request("/api/experimental/chats/\(id.uuidString)/title/propose", method: .post)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(ProposeChatTitleResponse.self, from: res.data).title
+    }
+
+    /// Recovers a chat stuck in an invalid state; returns the updated Chat.
+    func reconcileInvalidChat(_ id: UUID) async throws(SDKError) -> Chat {
+        let res = try await request("/api/experimental/chats/\(id.uuidString)/reconcile-invalid", method: .post)
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(Chat.self, from: res.data)
+    }
 }
 
 struct UserChatPrompt: Codable {
@@ -396,4 +426,17 @@ public enum ChatStatus: String, Codable, Sendable, Equatable {
         let raw = try decoder.singleValueContainer().decode(String.self)
         self = ChatStatus(rawValue: raw) ?? .unknown
     }
+}
+
+public struct ChatPrompt: Codable, Sendable, Equatable {
+    public let id: Int64
+    public let text: String
+}
+
+public struct ChatPromptsResponse: Codable, Sendable {
+    public let prompts: [ChatPrompt]
+}
+
+struct ProposeChatTitleResponse: Decodable {
+    let title: String
 }

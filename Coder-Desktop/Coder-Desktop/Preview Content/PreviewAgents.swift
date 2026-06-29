@@ -180,6 +180,10 @@ final class PreviewAgents: AgentsService {
         if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].pin_order = pinned ? 1 : 0 }
     }
 
+    func regenerateTitle(_ id: UUID) async {}
+    func reconcileInvalidChat(_ id: UUID) async {}
+    func uploadData(_: Data, filename _: String, contentType _: String) async -> UUID? { nil }
+
     func refreshChatContext(_: UUID) async {}
     func deleteWorkspace(_: UUID) async {}
 

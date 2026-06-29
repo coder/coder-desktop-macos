@@ -91,6 +91,8 @@ struct PasteAwareEditor: NSViewRepresentable {
     var submitOnReturn: Bool = false
     var onSubmit: () -> Void = {}
     var onLargePaste: (String) -> Void = { _ in }
+    /// Called when the user pastes an image from the clipboard. Receives PNG data + suggested filename.
+    var onImagePaste: (Data, String) -> Void = { _, _ in }
     var largePasteThreshold = 2000
     /// Personal skills for the "/" trigger menu, and a hook to lazy-load them on first use.
     var skills: [UserSkill] = []
@@ -110,6 +112,7 @@ struct PasteAwareEditor: NSViewRepresentable {
             }
             return false
         }
+        textView.onImagePaste = { data, name in onImagePaste(data, name) }
         textView.isRichText = false
         textView.setAccessibilityLabel("Message")
         textView.font = .preferredFont(forTextStyle: .body)
@@ -137,6 +140,7 @@ struct PasteAwareEditor: NSViewRepresentable {
         }
         textView.placeholderString = placeholder
         textView.setAccessibilityPlaceholderValue(placeholder)
+        textView.onImagePaste = { data, name in onImagePaste(data, name) }
         // Refresh the open skills menu when lazily-loaded skills arrive.
         context.coordinator.refreshSkillMenuIfShown()
     }
@@ -268,17 +272,40 @@ struct PasteAwareEditor: NSViewRepresentable {
     }
 }
 
-/// NSTextView that routes paste through a handler (for large-paste-as-attachment) and draws
-/// a placeholder when empty.
+/// NSTextView that routes paste through a handler (for large-paste-as-attachment and image paste)
+/// and draws a placeholder when empty.
 final class PasteTextView: NSTextView {
     /// Returns true if the paste was handled (and should not be inserted inline).
     var onLargePaste: ((String) -> Bool)?
+    /// Called with PNG data + suggested filename when an image is pasted from the clipboard.
+    var onImagePaste: ((Data, String) -> Void)?
     var placeholderString = "" {
         didSet { needsDisplay = true }
     }
 
     override func paste(_ sender: Any?) {
-        if let pasted = NSPasteboard.general.string(forType: .string),
+        let pb = NSPasteboard.general
+        // Image paste: check for image before text so a screenshot isn't also inserted as text.
+        if let images = pb.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
+           let image = images.first,
+           let tiff = image.tiffRepresentation,
+           let bitmap = NSBitmapImageRep(data: tiff),
+           let png = bitmap.representation(using: .png, properties: [:])
+        {
+            // Prefer the original filename if the image was copied from Finder.
+            let name: String
+            if let fileURL = pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+               let first = fileURL.first
+            {
+                let ext = first.pathExtension.isEmpty ? "png" : first.pathExtension
+                name = first.deletingPathExtension().lastPathComponent + "." + ext
+            } else {
+                name = "pasted-image.png"
+            }
+            onImagePaste?(png, name)
+            return
+        }
+        if let pasted = pb.string(forType: .string),
            onLargePaste?(pasted) == true
         {
             return

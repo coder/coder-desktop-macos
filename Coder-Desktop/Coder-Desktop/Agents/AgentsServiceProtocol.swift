@@ -131,7 +131,13 @@ protocol AgentsService: ObservableObject {
     func interrupt(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
+    /// Regenerates the chat title from transcript (persists it server-side).
+    func regenerateTitle(_ id: UUID) async
+    /// Recovers a chat stuck in an invalid/error state.
+    func reconcileInvalidChat(_ id: UUID) async
     func setPinned(_ id: UUID, pinned: Bool) async
+    /// Uploads raw bytes (e.g. a pasted image); returns the file id on success.
+    func uploadData(_ data: Data, filename: String, contentType: String) async -> UUID?
     /// Re-pins the chat to the agent's latest context snapshot, clearing the dirty marker.
     func refreshChatContext(_ id: UUID) async
     /// Permanently deletes the underlying Coder workspace (the chat itself is kept).

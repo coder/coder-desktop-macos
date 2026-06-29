@@ -2,6 +2,62 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
+// Shared data model used by WorkspacePill and WorkspaceSidebarSection.
+struct AppEntry: Identifiable {
+    let id: String
+    let name: String
+    let openURL: URL
+    let iconURL: URL?
+}
+
+/// Builds the app list (display apps + workspace apps) from all agents in a workspace.
+@MainActor
+func workspaceAppEntries(workspace: CoderSDK.Workspace, state: AppState, sshHost: String?) -> [AppEntry] {
+    guard let base = state.baseAccessURL else { return [] }
+    let token = state.client?.token ?? ""
+    let host = sshHost ?? workspace.name
+    return (workspace.latest_build.resources ?? []).flatMap { resource in
+        (resource.agents ?? []).flatMap { agent in
+            agent.display_apps.compactMap { displayAppEntry($0, agent: agent, host: host, base: base) }
+                + agent.apps.compactMap { agentAppEntry($0, token: token, base: base) }
+        }
+    }
+}
+
+private func displayAppEntry(_ displayApp: DisplayApp, agent: WorkspaceAgent, host: String, base: URL) -> AppEntry? {
+    let dir = agent.expanded_directory
+    let app: Coder_Desktop.WorkspaceApp? = switch displayApp {
+    case .vscode: vscodeDisplayApp(hostname: host, baseIconURL: base, path: dir)
+    case .vscode_insiders: vscodeInsidersDisplayApp(hostname: host, baseIconURL: base, path: dir)
+    default: nil
+    }
+    return app.map { AppEntry(id: $0.slug, name: $0.displayName, openURL: $0.url, iconURL: $0.icon) }
+}
+
+private func agentAppEntry(_ app: CoderSDK.WorkspaceApp, token: String, base: URL) -> AppEntry? {
+    guard let raw = app.url else { return nil }
+    let urlStr = raw.absoluteString.replacingOccurrences(of: "$SESSION_TOKEN", with: token)
+    guard let openURL = URL(string: urlStr) else { return nil }
+    return AppEntry(
+        id: app.slug,
+        name: app.display_name ?? app.slug,
+        openURL: openURL,
+        iconURL: resolvedWorkspaceIconURL(app.icon, base: base)
+    )
+}
+
+/// Resolves a relative workspace app icon URL to an absolute URL using the server base.
+func resolvedWorkspaceIconURL(_ icon: URL?, base: URL) -> URL? {
+    guard let icon else { return nil }
+    guard var components = URLComponents(url: icon, resolvingAgainstBaseURL: false) else { return icon }
+    if components.host == nil {
+        components.scheme = base.scheme
+        components.host = base.host(percentEncoded: false)
+        components.port = base.port
+    }
+    return components.url
+}
+
 /// The composer's workspace pill (shown when a chat has an attached workspace). Mirrors the
 /// web: workspace name + status, with a menu of ALL the workspace's apps (with their real
 /// icons), listening ports, a Copy SSH command, and a link to open it in the dashboard.
@@ -26,70 +82,27 @@ struct WorkspacePill<Agents: AgentsService>: View {
         return nil
     }
 
-    private var agentID: UUID? {
-        agent?.id
-    }
-
     private var sshHost: String? {
         guard let name = workspace?.name else { return nil }
         return "\(name).\(state.hostnameSuffix)"
     }
 
-    private var status: String {
-        workspace?.latest_build.status ?? ""
-    }
+    private var status: String { workspace?.latest_build.status ?? "" }
+    private var isStarting: Bool { ["starting", "pending"].contains(status) }
 
     private var dashboardURL: URL? {
-        // Dashboard URLs are `/@owner/workspace-name` — never `/@me/<uuid>` (which doesn't resolve).
         guard let base = state.baseAccessURL, let name = workspace?.name else { return nil }
         return base.appending(path: "@me/\(name)")
     }
 
-    /// All workspace apps with a resolvable URL — the VS Code display apps first (the web
-    /// terminal is intentionally dropped), then the agent's web/native apps. Each with its
-    /// icon URL.
     private var entries: [AppEntry] {
-        guard let base = state.baseAccessURL else { return [] }
-        let token = state.client?.token ?? ""
-        let host = sshHost ?? workspace?.name ?? ""
-        var result: [AppEntry] = []
-        for resource in workspace?.latest_build.resources ?? [] {
-            for agent in resource.agents ?? [] {
-                for displayApp in agent.display_apps {
-                    let app: WorkspaceApp?
-                    let dir = agent.expanded_directory
-                    app = switch displayApp {
-                    case .vscode:
-                        vscodeDisplayApp(hostname: host, baseIconURL: base, path: dir)
-                    case .vscode_insiders:
-                        vscodeInsidersDisplayApp(hostname: host, baseIconURL: base, path: dir)
-                    default:
-                        nil // drop web_terminal / port-forward / ssh helpers
-                    }
-                    if let app {
-                        result.append(AppEntry(
-                            id: app.slug, name: app.displayName, openURL: app.url, iconURL: app.icon
-                        ))
-                    }
-                }
-                for app in agent.apps {
-                    guard let raw = app.url else { continue }
-                    let urlString = raw.absoluteString.replacingOccurrences(of: "$SESSION_TOKEN", with: token)
-                    guard let openURL = URL(string: urlString) else { continue }
-                    result.append(AppEntry(
-                        id: app.slug,
-                        name: app.display_name ?? app.slug,
-                        openURL: openURL,
-                        iconURL: Self.resolvedIcon(app.icon, base: base)
-                    ))
-                }
-            }
-        }
-        return result
+        guard let workspace else { return [] }
+        return workspaceAppEntries(workspace: workspace, state: state, sshHost: sshHost)
     }
 
-    private var isStarting: Bool {
-        ["starting", "pending"].contains(status)
+    private var privatePorts: [WorkspaceAgentListeningPort] {
+        let shared = Set(shares.map(\.port))
+        return ports.filter { !shared.contains($0.port) }
     }
 
     var body: some View {
@@ -97,11 +110,10 @@ struct WorkspacePill<Agents: AgentsService>: View {
         // silently vanish during a 30–120s rebuild). Stopped workspaces show nothing: no apps,
         // ports, or SSH to offer (matches the web, which drops the attachment when shut down).
         if let workspace, status == "running" || isStarting {
+            let e = entries
             Menu {
-                ForEach(entries) { entry in
-                    Button { NSWorkspace.shared.open(entry.openURL) } label: {
-                        appLabel(entry)
-                    }
+                ForEach(e) { entry in
+                    Button { NSWorkspace.shared.open(entry.openURL) } label: { appLabel(entry) }
                 }
                 portsMenu
                 Divider()
@@ -110,8 +122,8 @@ struct WorkspacePill<Agents: AgentsService>: View {
                         Label("Copy SSH command", systemImage: "terminal")
                     }
                 }
-                if let dashboardURL {
-                    Button { NSWorkspace.shared.open(dashboardURL) } label: {
+                if let url = dashboardURL {
+                    Button { NSWorkspace.shared.open(url) } label: {
                         Label("View workspace", systemImage: "arrow.up.right.square")
                     }
                 }
@@ -136,14 +148,12 @@ struct WorkspacePill<Agents: AgentsService>: View {
             .help(status.isEmpty ? workspace.name : "Workspace \(status)")
             .accessibilityLabel("Workspace \(workspace.name)\(status.isEmpty ? "" : ", \(status)")")
             .task(id: workspaceID) {
-                agents.loadWorkspaceAppIcons(entries.compactMap(\.iconURL))
+                agents.loadWorkspaceAppIcons(e.compactMap(\.iconURL))
                 await reloadPorts()
             }
         }
     }
 
-    /// The Ports submenu, mirroring the web's: always present, listening + shared sections,
-    /// an empty state, and a "Manage sharing" link. Refreshes when the submenu opens.
     private var portsMenu: some View {
         Menu(portsLoaded ? "Ports (\(ports.count))" : "Ports") {
             Section("Listening Ports") {
@@ -166,18 +176,12 @@ struct WorkspacePill<Agents: AgentsService>: View {
                 }
             }
             Divider()
-            if let dashboardURL {
-                Button { NSWorkspace.shared.open(dashboardURL) } label: {
+            if let url = dashboardURL {
+                Button { NSWorkspace.shared.open(url) } label: {
                     Label("Manage sharing", systemImage: "arrow.up.right.square")
                 }
             }
         }
-    }
-
-    /// Listening ports not explicitly shared (shared ones bubble to their own section).
-    private var privatePorts: [WorkspaceAgentListeningPort] {
-        let sharedNumbers = Set(shares.map(\.port))
-        return ports.filter { !sharedNumbers.contains($0.port) }
     }
 
     @ViewBuilder
@@ -189,9 +193,6 @@ struct WorkspacePill<Agents: AgentsService>: View {
         }
     }
 
-    /// Direct over the Coder Connect tunnel (`{proto}://{workspace}.{suffix}:{port}`) — the
-    /// native advantage, no proxy hop. Falls back to the web's coderd port-forward proxy URL
-    /// (`{port}--{agent}--{workspace}--{owner}.{appHost}`) when no tunnel host is available.
     private func portURL(_ port: Int, proto: String) -> URL? {
         if let host = sshHost {
             return URL(string: "\(proto)://\(host):\(port)")
@@ -206,9 +207,9 @@ struct WorkspacePill<Agents: AgentsService>: View {
 
     private func reloadPorts() async {
         if appHost.isEmpty { appHost = await agents.appHost() ?? "" }
-        if let agentID { ports = await agents.listeningPorts(agentID: agentID) }
-        if let agentName = agent?.name {
-            shares = await agents.portShares(workspaceID: workspaceID).filter { $0.agent_name == agentName }
+        if let a = agent {
+            ports = await agents.listeningPorts(agentID: a.id)
+            shares = await agents.portShares(workspaceID: workspaceID).filter { $0.agent_name == a.name }
         }
         portsLoaded = true
     }
@@ -224,23 +225,4 @@ struct WorkspacePill<Agents: AgentsService>: View {
             }
         }
     }
-
-    /// Resolves a possibly-relative app icon URL against the deployment base.
-    private static func resolvedIcon(_ icon: URL?, base: URL) -> URL? {
-        guard let icon else { return nil }
-        guard var components = URLComponents(url: icon, resolvingAgainstBaseURL: false) else { return icon }
-        if components.host == nil {
-            components.scheme = base.scheme
-            components.host = base.host(percentEncoded: false)
-            components.port = base.port
-        }
-        return components.url
-    }
-}
-
-private struct AppEntry: Identifiable {
-    let id: String
-    let name: String
-    let openURL: URL
-    let iconURL: URL?
 }

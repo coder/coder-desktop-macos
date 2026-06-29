@@ -19,4 +19,8 @@ enum Defaults {
     static let sidePanelWidth = "agentsSidePanelWidth"
     /// deployment#username the on-disk transcript cache belongs to (purged on account change).
     static let transcriptOwner = "agentsTranscriptOwner"
+    /// Whether the Chats peek section in the tray is expanded (persisted across sessions).
+    static let trayChatsExpanded = "trayChatsExpanded"
+    /// Whether the Workspaces section in the tray is expanded (persisted across sessions).
+    static let trayWorkspacesExpanded = "trayWorkspacesExpanded"
 }

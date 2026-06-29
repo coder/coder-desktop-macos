@@ -291,5 +291,6 @@ struct AnimatedChevron: View {
             .font(.system(size: 12, weight: .semibold))
             .foregroundColor(color)
             .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            .accessibilityHidden(true)
     }
 }

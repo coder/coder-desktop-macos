@@ -69,6 +69,20 @@ struct SessionComposer<Agents: AgentsService>: View {
                 submitOnReturn: !requireModifierToSend,
                 onSubmit: send,
                 onLargePaste: { model.attachments.append(PastedAttachment(text: $0)) },
+                onImagePaste: { data, name in
+                    let pending = PastedAttachment(name: name, uploading: true)
+                    model.attachments.append(pending)
+                    Task {
+                        let fileID = await agents.uploadData(data, filename: name, contentType: "image/png")
+                        guard let idx = model.attachments.firstIndex(where: { $0.id == pending.id }) else { return }
+                        if let fileID {
+                            model.attachments[idx].fileID = fileID
+                            model.attachments[idx].uploading = false
+                        } else {
+                            model.attachments.remove(at: idx)
+                        }
+                    }
+                },
                 skills: agents.userSkills,
                 onSkillTrigger: { Task { await agents.loadUserSkills() } }
             )

@@ -8,13 +8,15 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
     @AppStorage(Defaults.agentsEnabled) private var agentsEnabled: Bool = false
+    @AppStorage(Defaults.trayChatsExpanded) private var chatsExpanded: Bool = true
+    @AppStorage(Defaults.trayWorkspacesExpanded) private var workspacesExpanded: Bool = false
 
     let inspection = Inspection<Self>()
 
     var body: some View {
         // Main stack
         VStackLayout(alignment: .leading) {
-            // CoderVPN Stack
+            // Coder Connect toggle + divider
             VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
                 HStack {
                     Toggle(isOn: Binding(
@@ -43,14 +45,21 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                         .disabled(vpnDisabled)
                 }
                 Divider()
-                Text("Workspaces")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                VPNState<VPN>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
-            Agents<VPN>()
             if agentsEnabled, state.hasSession {
-                ChatsSection<AgentsSvc>()
+                CollapsibleSectionHeader(title: "Chats", expanded: $chatsExpanded)
+                if chatsExpanded {
+                    ChatsSection<AgentsSvc>()
+                }
+            }
+            CollapsibleSectionHeader(title: "Workspaces", expanded: $workspacesExpanded)
+            // VPNState shows status messages (sign-in prompt, errors, progress) — always
+            // visible so that important state is never hidden behind a collapsed section.
+            VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
+                VPNState<VPN>()
+            }.padding(.horizontal, Theme.Size.trayInset)
+            if workspacesExpanded {
+                Agents<VPN>()
             }
             // Trailing stack
             VStack(alignment: .leading, spacing: 3) {
@@ -64,19 +73,17 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                             Text("Create workspace")
                         }
                     }.buttonStyle(.plain)
-                    TrayDivider()
                 }
-                // Agents talks to the control plane over HTTPS, so it's available whenever
-                // signed in — independent of Coder Connect. Ships behind a flag, off by default.
+                // Open Agents: available whenever signed in — independent of Coder Connect.
+                // Ships behind a flag, off by default.
                 if agentsEnabled, state.hasSession {
                     Button {
                         openWindow(id: .agents)
                     } label: {
                         ButtonRowView {
-                            Text("Agents")
+                            Text("Open Agents")
                         }
                     }.buttonStyle(.plain)
-                    TrayDivider()
                 }
                 if vpn.state == .connected {
                     Button {
@@ -95,6 +102,9 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                             }
                         }
                     }.buttonStyle(.plain)
+                }
+                // One divider separates workspace/feature actions from app-meta items.
+                if state.hasSession || vpn.state == .connected {
                     TrayDivider()
                 }
                 AuthButton<VPN>()
@@ -152,6 +162,31 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                 // Prevent starting the VPN without a VPN configuration.
                 vpn.state == .failed(.networkExtensionError(.unconfigured))
         )
+    }
+}
+
+private struct CollapsibleSectionHeader: View {
+    let title: String
+    @Binding var expanded: Bool
+
+    var body: some View {
+        Button {
+            expanded.toggle()
+        } label: {
+            HStack {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                AnimatedChevron(isExpanded: expanded, color: .secondary)
+            }
+            .padding(.horizontal, Theme.Size.trayInset)
+            .padding(.top, Theme.Size.trayPadding)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(expanded ? "expanded" : "collapsed")")
     }
 }
 
