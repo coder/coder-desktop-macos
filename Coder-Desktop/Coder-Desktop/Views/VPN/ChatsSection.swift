@@ -33,15 +33,16 @@ struct ChatsSection<AgentsSvc: AgentsService>: View {
 
     var body: some View {
         Group {
-            // Defer until at least one load has completed so we never flash
-            // an empty state during the sub-second bootstrap.
-            if agents.hasLoadedOnce {
-                Text("Chats")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, Theme.Size.trayInset)
-                    .padding(.top, Theme.Size.trayPadding)
-
+            if !agents.hasLoadedOnce {
+                // Bootstrap in progress — show a spinner so the section isn't silently blank.
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .controlSize(.small)
+                    Spacer()
+                }
+                .padding(.top, Theme.Size.trayPadding)
+            } else {
                 let rows = peekSessions
                 if rows.isEmpty {
                     Text("No chats yet")

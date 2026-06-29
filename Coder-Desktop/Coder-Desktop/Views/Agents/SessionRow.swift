@@ -43,6 +43,7 @@ struct SessionRow: View {
     var onToggleExpand: () -> Void = {}
     var onOpen: () -> Void = {}
     var onRename: () -> Void = {}
+    var onGenerateTitle: () -> Void = {}
     var onTogglePin: () -> Void = {}
     var onArchive: () -> Void = {}
     var onDeleteWorkspace: () -> Void = {}
@@ -151,6 +152,7 @@ struct SessionRow: View {
         Button(action: onOpen) { Label("Open in browser", systemImage: "safari") }
         if !isChild {
             Button(action: onRename) { Label("Rename", systemImage: "pencil") }
+            Button(action: onGenerateTitle) { Label("Generate title", systemImage: "sparkles") }
             Button(action: onTogglePin) {
                 Label(session.isPinned ? "Unpin" : "Pin", systemImage: session.isPinned ? "pin.slash" : "pin")
             }

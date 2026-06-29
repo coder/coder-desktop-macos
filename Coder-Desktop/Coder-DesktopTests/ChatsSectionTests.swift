@@ -64,7 +64,6 @@ struct ChatsSectionTests {
         agents.sessions = [makeChat(title: "Alpha", status: .running)]
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { v in
-                #expect(throws: (any Error).self) { try v.find(text: "Chats") }
                 #expect(throws: (any Error).self) { try v.find(text: "Alpha") }
             }
         }
@@ -76,7 +75,6 @@ struct ChatsSectionTests {
         agents.sessions = [makeChat(title: "Alpha", status: .running)]
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { v in
-                #expect(throws: Never.self) { try v.find(text: "Chats") }
                 #expect(throws: Never.self) { try v.find(text: "Alpha") }
             }
         }

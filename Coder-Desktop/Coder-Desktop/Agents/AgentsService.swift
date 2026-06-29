@@ -125,9 +125,11 @@ final class CoderAgentsService: AgentsService {
         do {
             // Already scoped to the authed user; it has no `owner` filter (400 if passed).
             let chats = try await client.chats()
-            sessions = chats
-                .filter { $0.archived != true }
-                .sorted { $0.updated_at > $1.updated_at }
+            // Sort first, then dedup by ID (keeping the most-recent copy if the API
+            // somehow returns the same UUID twice — matches reconcileSessions() behavior).
+            let sorted = chats.filter { $0.archived != true }.sorted { $0.updated_at > $1.updated_at }
+            var seen = Set<UUID>()
+            sessions = sorted.filter { seen.insert($0.id).inserted }
             loadError = nil
             purgeTranscriptsOnAccountChange()
             startWatching()
@@ -283,6 +285,34 @@ final class CoderAgentsService: AgentsService {
             logger.error("failed to (un)pin: \(error.localizedDescription, privacy: .public)")
             await reloadSessions()
         }
+    }
+
+    func regenerateTitle(_ id: UUID) async {
+        guard let client else { return }
+        do {
+            let updated = try await client.regenerateChatTitle(id)
+            if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = updated.title }
+        } catch {
+            logger.error("regenerate title failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func reconcileInvalidChat(_ id: UUID) async {
+        guard let client else { return }
+        do {
+            let updated = try await client.reconcileInvalidChat(id)
+            if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx] = updated }
+        } catch {
+            logger.error("reconcile-invalid failed: \(error.localizedDescription, privacy: .public)")
+            loadError = error.localizedDescription
+        }
+    }
+
+    func uploadData(_ data: Data, filename: String, contentType: String) async -> UUID? {
+        guard let client, let orgID = await organizationID() else { return nil }
+        return try? await client.uploadChatFile(
+            organizationID: orgID, contentType: contentType, filename: filename, data: data
+        )
     }
 
     func deleteWorkspace(_ workspaceID: UUID) async {

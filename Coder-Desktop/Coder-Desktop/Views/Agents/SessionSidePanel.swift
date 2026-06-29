@@ -5,9 +5,8 @@ enum SidePanelTab: String, CaseIterable, Identifiable {
     case git = "Git"
     case terminal = "Terminal"
     case desktop = "Desktop"
-    var id: String {
-        rawValue
-    }
+    case browser = "Browser"
+    var id: String { rawValue }
 }
 
 struct SessionSidePanel<Agents: AgentsService>: View {
@@ -17,6 +16,45 @@ struct SessionSidePanel<Agents: AgentsService>: View {
     @Binding var tab: SidePanelTab
     /// Sends selected diff lines (+ a note) into the chat composer as context.
     var onAddToChat: (([ChatInputPart], String) -> Void)?
+
+    @State private var browserTabs: [BrowserTabData] = [BrowserTabData()]
+    @State private var activeBrowserTabID: UUID?
+    private var currentBrowserTabID: UUID { activeBrowserTabID ?? browserTabs[0].id }
+
+    private func addBrowserTab(url: URL? = nil) {
+        let tab = BrowserTabData(url: url)
+        browserTabs.append(tab)
+        activeBrowserTabID = tab.id
+    }
+
+    private func closeBrowserTab(_ id: UUID) {
+        guard browserTabs.count > 1, let idx = browserTabs.firstIndex(where: { $0.id == id }) else { return }
+        browserTabs.remove(at: idx)
+        if activeBrowserTabID == id {
+            activeBrowserTabID = browserTabs[min(idx, browserTabs.count - 1)].id
+        }
+    }
+
+    // Each UUID is a stable identity for one concurrent SSH terminal session.
+    @State private var terminalSessions: [UUID] = [UUID()]
+    // nil falls back to the first session (avoids init-ordering complexity).
+    @State private var activeTerminalID: UUID?
+
+    private var currentTerminalID: UUID { activeTerminalID ?? terminalSessions[0] }
+
+    private func addTerminal() {
+        let id = UUID()
+        terminalSessions.append(id)
+        activeTerminalID = id
+    }
+
+    private func closeTerminal(_ id: UUID) {
+        guard terminalSessions.count > 1, let idx = terminalSessions.firstIndex(of: id) else { return }
+        terminalSessions.remove(at: idx)
+        if activeTerminalID == id {
+            activeTerminalID = terminalSessions[min(idx, terminalSessions.count - 1)]
+        }
+    }
 
     /// The workspace's Coder Connect hostname (e.g. `my-workspace.coder`) for SSH, if the
     /// session is backed by a known workspace.
@@ -37,6 +75,16 @@ struct SessionSidePanel<Agents: AgentsService>: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let workspaceID = session.workspace_id {
+                WorkspaceSidebarSection<Agents>(workspaceID: workspaceID, onOpenPort: { url in
+                    if let idx = browserTabs.firstIndex(where: { $0.id == currentBrowserTabID }) {
+                        browserTabs[idx].url = url
+                    }
+                    tab = .browser
+                })
+                .id(workspaceID)
+                Divider()
+            }
             // Named (not "") so VoiceOver announces the group; labelsHidden keeps it visual-only.
             Picker("Panel view", selection: $tab) {
                 ForEach(SidePanelTab.allCases) { Text($0.rawValue).tag($0) }
@@ -50,8 +98,18 @@ struct SessionSidePanel<Agents: AgentsService>: View {
                 DiffPanel<Agents>(session: session, onAddToChat: onAddToChat)
             case .terminal:
                 if let host = terminalHost {
-                    TerminalPanel(host: host)
+                    VStack(spacing: 0) {
+                        terminalTabBar
+                        Divider()
+                        ZStack {
+                            ForEach(terminalSessions, id: \.self) { tabID in
+                                TerminalPanel(host: host)
+                                    .opacity(tabID == currentTerminalID ? 1 : 0)
+                                    .allowsHitTesting(tabID == currentTerminalID)
+                            }
+                        }
                         .overlay(alignment: .topTrailing) { latencyOverlay }
+                    }
                 } else {
                     streamPlaceholder(
                         title: "Terminal",
@@ -70,9 +128,126 @@ struct SessionSidePanel<Agents: AgentsService>: View {
                         detail: "Available when the session is attached to a workspace and Coder Connect is on."
                     )
                 }
+            case .browser:
+                VStack(spacing: 0) {
+                    browserTabBar
+                    Divider()
+                    ZStack {
+                        ForEach(browserTabs) { tabData in
+                            BrowserPanel(
+                                url: Binding(
+                                    get: { browserTabs.first { $0.id == tabData.id }?.url },
+                                    set: {
+                                        if let i = browserTabs.firstIndex(where: { $0.id == tabData.id }) {
+                                            browserTabs[i].url = $0
+                                        }
+                                    }
+                                ),
+                                store: tabData.store
+                            )
+                            .opacity(tabData.id == currentBrowserTabID ? 1 : 0)
+                            .allowsHitTesting(tabData.id == currentBrowserTabID)
+                        }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var terminalTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(terminalSessions.enumerated()), id: \.element) { index, tabID in
+                    terminalTab(tabID: tabID, label: "Terminal \(index + 1)")
+                }
+                Button { addTerminal() } label: {
+                    Image(systemName: "plus")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("New terminal session")
+                .accessibilityLabel("New terminal session")
+            }
+        }
+        .background(Color.secondary.opacity(0.05))
+    }
+
+    @ViewBuilder
+    private func terminalTab(tabID: UUID, label: String) -> some View {
+        tabItem(
+            label: label,
+            isActive: tabID == currentTerminalID,
+            showClose: terminalSessions.count > 1,
+            onSelect: { activeTerminalID = tabID },
+            onClose: terminalSessions.count > 1 ? { closeTerminal(tabID) } : nil
+        )
+    }
+
+    @ViewBuilder
+    private func tabItem(
+        label: String, isActive: Bool, showClose: Bool,
+        onSelect: @escaping () -> Void, onClose: (() -> Void)?
+    ) -> some View {
+        HStack(spacing: 0) {
+            Button(action: onSelect) {
+                Text(label).font(.caption)
+                    .padding(.leading, 8)
+                    .padding(.trailing, showClose ? 4 : 8)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(label)
+            if showClose, let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8))
+                        .padding(.trailing, 6)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Close \(label)")
+                .accessibilityLabel("Close \(label)")
+            }
+        }
+        .background(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
+    }
+
+    private var browserTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(browserTabs.enumerated()), id: \.element.id) { index, tabData in
+                    browserTab(tabData: tabData, label: "Browser \(index + 1)")
+                }
+                Button { addBrowserTab() } label: {
+                    Image(systemName: "plus")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("New browser tab")
+                .accessibilityLabel("New browser tab")
+            }
+        }
+        .background(Color.secondary.opacity(0.05))
+    }
+
+    @ViewBuilder
+    private func browserTab(tabData: BrowserTabData, label: String) -> some View {
+        tabItem(
+            label: label,
+            isActive: tabData.id == currentBrowserTabID,
+            showClose: browserTabs.count > 1,
+            onSelect: { activeBrowserTabID = tabData.id },
+            onClose: browserTabs.count > 1 ? { closeBrowserTab(tabData.id) } : nil
+        )
     }
 
     /// Shown when the session has no attached workspace (or Coder Connect is off).
@@ -97,164 +272,5 @@ struct SessionSidePanel<Agents: AgentsService>: View {
               let base = state.baseAccessURL else { return nil }
         let owner = session.owner_username ?? "me"
         return base.appending(path: "@\(owner)/\(name)")
-    }
-}
-
-struct DiffPanel<Agents: AgentsService>: View {
-    @EnvironmentObject var agents: Agents
-    let session: Chat
-    var onAddToChat: (([ChatInputPart], String) -> Void)?
-
-    /// Selected local repo root, or nil for the remote/branch diff. Auto-falls-back to the
-    /// first dirty local repo when the remote source has nothing (web behavior).
-    @State private var selectedRepo: String?
-
-    var body: some View {
-        let diff = agents.diff(for: session.id)
-        let status = session.diff_status
-        let repos = agents.localRepos(for: session.id)
-        let activeRepo = activeLocalRepo(repos: repos, diff: diff, status: status)
-        VStack(alignment: .leading, spacing: 0) {
-            header(diff: diff, status: status, repos: repos, activeRepo: activeRepo)
-            Divider()
-            if activeRepo == nil, let status, status.hasContent {
-                summary(status)
-                Divider()
-            }
-            if let activeRepo {
-                // Live uncommitted changes streamed from the workspace agent.
-                if let text = activeRepo.unified_diff, !text.isEmpty {
-                    DiffView(text: text, onAddToChat: onAddToChat)
-                } else {
-                    placeholder(icon: "checkmark.circle", text: "No file changes.")
-                }
-            } else {
-                body(diff: diff, status: status)
-            }
-        }
-        .task(id: session.id) {
-            agents.startGitWatch(session.id)
-            await agents.loadDiff(session.id)
-        }
-        .onDisappear { agents.stopGitWatch(session.id) }
-    }
-
-    /// The local repo to show: the explicit pick, else the first dirty repo when the remote
-    /// source is empty (mirrors the web's default-to-local gate).
-    private func activeLocalRepo(
-        repos: [WorkspaceAgentRepoChanges], diff: ChatDiffContents?, status: ChatDiffStatus?
-    ) -> WorkspaceAgentRepoChanges? {
-        if let selectedRepo {
-            return repos.first { $0.repo_root == selectedRepo }
-        }
-        let remoteHasContent = diff?.diff?.isEmpty == false || status?.hasContent == true
-        return remoteHasContent ? nil : repos.first { $0.unified_diff?.isEmpty == false }
-    }
-
-    private func header(
-        diff: ChatDiffContents?, status: ChatDiffStatus?,
-        repos: [WorkspaceAgentRepoChanges], activeRepo: WorkspaceAgentRepoChanges?
-    ) -> some View {
-        HStack(spacing: 6) {
-            let branch = activeRepo.map { $0.branch?.isEmpty == false ? $0.branch! : repoName($0) }
-                ?? status?.label ?? (diff?.branch?.isEmpty == false ? diff?.branch : nil)
-            if repos.isEmpty {
-                if let branch {
-                    Label(branch, systemImage: "arrow.triangle.branch").font(.caption).lineLimit(1)
-                } else {
-                    Text("Diff").font(.caption).foregroundStyle(.secondary)
-                }
-            } else {
-                // Source picker, like the web's Remote/local tabs.
-                Menu {
-                    Button { selectedRepo = "" } label: {
-                        sourceLabel("Remote branch", checked: activeRepo == nil)
-                    }
-                    ForEach(repos) { repo in
-                        Button { selectedRepo = repo.repo_root } label: {
-                            sourceLabel(repoName(repo), checked: activeRepo?.id == repo.id)
-                        }
-                    }
-                } label: {
-                    Label(branch ?? "Diff", systemImage: "arrow.triangle.branch").font(.caption).lineLimit(1)
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .accessibilityLabel("Diff source")
-            }
-            Spacer()
-            Button { Task { await agents.loadDiff(session.id) } } label: {
-                Image(systemName: "arrow.clockwise")
-                    .frame(minWidth: 24, minHeight: 24) // WCAG 2.5.8 minimum target
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .help("Refresh diff")
-            .accessibilityLabel("Refresh diff")
-        }
-        .padding(8)
-    }
-
-    private func repoName(_ repo: WorkspaceAgentRepoChanges) -> String {
-        (repo.repo_root as NSString).lastPathComponent
-    }
-
-    @ViewBuilder
-    private func sourceLabel(_ title: String, checked: Bool) -> some View {
-        if checked { Label(title, systemImage: "checkmark") } else { Text(title) }
-    }
-
-    private func placeholder(icon: String, text: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon).font(.title2).foregroundStyle(.secondary)
-            Text(text).font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// Counts + PR link, like the web's diff header. Only links to a real pull request —
-    /// never a `/tree/<branch>` page, which 404s once the ephemeral branch is gone.
-    private func summary(_ status: ChatDiffStatus) -> some View {
-        HStack(spacing: 10) {
-            if let additions = status.additions { Text("+\(additions)").foregroundStyle(.green) }
-            if let deletions = status.deletions { Text("−\(deletions)").foregroundStyle(.red) }
-            if let files = status.changed_files, files > 0 {
-                Text("· \(files) file\(files == 1 ? "" : "s")").foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let url = status.pullRequestURL {
-                Link(destination: url) {
-                    Label("View PR", systemImage: "arrow.up.right.square")
-                }
-                .font(.caption)
-            }
-        }
-        .font(.system(.caption, design: .monospaced))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-    }
-
-    @ViewBuilder
-    private func body(diff: ChatDiffContents?, status: ChatDiffStatus?) -> some View {
-        if let text = diff?.diff, !text.isEmpty {
-            // The resolved diff — server-side this is the local working-tree (uncommitted)
-            // diff while dirty, or the PR/target-branch diff once pushed.
-            DiffView(text: text, onAddToChat: onAddToChat)
-        } else if let status, status.isPullRequest, let url = status.pullRequestURL {
-            VStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.branch").font(.title2).foregroundStyle(.secondary)
-                Text("This chat has an open pull request.").font(.caption).foregroundStyle(.secondary)
-                Link("View pull request", destination: url).font(.caption)
-            }
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding()
-        } else {
-            VStack(spacing: 6) {
-                Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(.secondary)
-                Text("No changes yet").font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
     }
 }

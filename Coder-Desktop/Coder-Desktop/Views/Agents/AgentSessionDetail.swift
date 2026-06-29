@@ -192,7 +192,8 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor
                     )
                     if session.status == .error, let chatError = session.last_error {
-                        ChatErrorCard(error: chatError).frame(maxWidth: maxWidth)
+                        ChatErrorCard(error: chatError, onRecover: { Task { await agents.reconcileInvalidChat(session.id) } })
+                            .frame(maxWidth: maxWidth)
                     }
                     Color.clear.frame(height: 1).id(bottomAnchor)
                 }
@@ -256,9 +257,10 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     }
 
     /// Web-parity error card at the end of an errored chat: the normalized message, the raw
-    /// provider detail, and the upstream HTTP status.
+    /// provider detail, the upstream HTTP status, and a recovery action.
     private struct ChatErrorCard: View {
         let error: ChatError
+        var onRecover: (() -> Void)? = nil
 
         var body: some View {
             HStack(alignment: .top, spacing: 8) {
@@ -276,6 +278,11 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     }
                     if let code = error.status_code, code > 0 {
                         Text("HTTP \(code)").font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let onRecover {
+                        Button("Try to recover", action: onRecover)
+                            .buttonStyle(.borderless)
+                            .font(.caption)
                     }
                 }
                 Spacer(minLength: 0)

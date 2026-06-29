@@ -79,6 +79,11 @@ struct AgentsWindow<Agents: AgentsService>: View {
         return agents.sessions.filter { ($0.title ?? "").lowercased().contains(query) }
     }
 
+    private func session(for id: UUID) -> Chat? {
+        agents.sessions.first { $0.id == id }
+            ?? agents.sessions.lazy.compactMap { $0.children?.first { $0.id == id } }.first
+    }
+
     private var sidebar: some View {
         VStack(spacing: 0) {
             Button {
@@ -152,6 +157,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                 onToggleExpand: { toggleExpanded(session.id) },
                                 onOpen: { openInBrowser(session) },
                                 onRename: { renameText = session.title ?? ""; renaming = session },
+                                onGenerateTitle: { Task { await agents.regenerateTitle(session.id) } },
                                 onTogglePin: { Task { await agents.setPinned(session.id, pinned: !session.isPinned) } },
                                 onArchive: { Task { await agents.archive(session.id) } },
                                 onDeleteWorkspace: { deletingWorkspace = session }
@@ -221,10 +227,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
         case .newSession:
             NewAgentSession<Agents>(onLaunched: { route = .session($0.id) })
         case let .session(id):
-            // Roots first, then embedded sub-agent children.
-            if let session = agents.sessions.first(where: { $0.id == id })
-                ?? agents.sessions.lazy.compactMap({ $0.children?.first { $0.id == id } }).first
-            {
+            if let session = session(for: id) {
                 AgentSessionDetail<Agents>(session: session, workspaceName: workspaceName(session.workspace_id))
                     .id(id)
             } else {

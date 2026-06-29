@@ -6,10 +6,10 @@ struct StatusDot: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(color.opacity(0.4))
+                .fill(color.opacity(0.2))
                 .frame(width: 12, height: 12)
             Circle()
-                .fill(color.opacity(1.0))
+                .fill(color)
                 .frame(width: 7, height: 7)
         }
     }
