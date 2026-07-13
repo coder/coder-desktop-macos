@@ -1,5 +1,5 @@
 import Foundation
-import IOKit
+import IOKit.pwr_mgt
 import os
 
 /// Observes system power events and invokes `onWake` once the system has
