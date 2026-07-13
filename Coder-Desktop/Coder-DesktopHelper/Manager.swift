@@ -155,7 +155,7 @@ actor Manager {
             Task { try? await appXPCServerDelegate.onPeerUpdate(update: msg.peerUpdate) }
         case let .log(logMsg):
             writeVpnLog(logMsg)
-        case .networkSettings, .start, .stop:
+        case .networkSettings, .start, .stop, .wake:
             logger.critical("received unexpected message: `\(String(describing: msgType))`")
         }
     }
@@ -182,7 +182,7 @@ actor Manager {
                     }
                 })
             }
-        case .log, .peerUpdate, .start, .stop:
+        case .log, .peerUpdate, .start, .stop, .wake:
             logger.critical("received unexpected rpc: `\(String(describing: msgType))`")
         }
     }
@@ -220,6 +220,12 @@ actor Manager {
             throw .errorResponse(msg: startResp.errorMessage)
         }
         logger.info("startVPN done")
+    }
+
+    // Notifies the tunnel that the system has woken from sleep. Best-effort:
+    // failures are logged by the speaker, not thrown.
+    func wake() async {
+        await speaker.wake()
     }
 
     func stopVPN() async throws(ManagerError) {

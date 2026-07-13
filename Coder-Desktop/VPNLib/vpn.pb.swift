@@ -87,6 +87,14 @@ public struct Vpn_ManagerMessage: Sendable {
     set {msg = .stop(newValue)}
   }
 
+  public var wake: Vpn_WakeRequest {
+    get {
+      if case .wake(let v)? = msg {return v}
+      return Vpn_WakeRequest()
+    }
+    set {msg = .wake(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public enum OneOf_Msg: Equatable, Sendable {
@@ -94,6 +102,7 @@ public struct Vpn_ManagerMessage: Sendable {
     case networkSettings(Vpn_NetworkSettingsResponse)
     case start(Vpn_StartRequest)
     case stop(Vpn_StopRequest)
+    case wake(Vpn_WakeRequest)
 
   }
 
@@ -159,6 +168,14 @@ public struct Vpn_TunnelMessage: Sendable {
     set {msg = .stop(newValue)}
   }
 
+  public var wake: Vpn_WakeResponse {
+    get {
+      if case .wake(let v)? = msg {return v}
+      return Vpn_WakeResponse()
+    }
+    set {msg = .wake(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public enum OneOf_Msg: Equatable, Sendable {
@@ -167,6 +184,7 @@ public struct Vpn_TunnelMessage: Sendable {
     case networkSettings(Vpn_NetworkSettingsRequest)
     case start(Vpn_StartResponse)
     case stop(Vpn_StopResponse)
+    case wake(Vpn_WakeResponse)
 
   }
 
@@ -922,6 +940,30 @@ public struct Vpn_Status: Sendable {
   fileprivate var _peerUpdate: Vpn_PeerUpdate? = nil
 }
 
+/// WakeRequest is sent by the manager after the system wakes from sleep. The
+/// tunnel uses this as a hint to rediscover network paths.
+public struct Vpn_WakeRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public struct Vpn_WakeResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var success: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "vpn"
@@ -972,6 +1014,7 @@ extension Vpn_ManagerMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
     3: .standard(proto: "network_settings"),
     4: .same(proto: "start"),
     5: .same(proto: "stop"),
+    6: .same(proto: "wake"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1033,6 +1076,19 @@ extension Vpn_ManagerMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
           self.msg = .stop(v)
         }
       }()
+      case 6: try {
+        var v: Vpn_WakeRequest?
+        var hadOneofValue = false
+        if let current = self.msg {
+          hadOneofValue = true
+          if case .wake(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.msg = .wake(v)
+        }
+      }()
       default: break
       }
     }
@@ -1063,6 +1119,10 @@ extension Vpn_ManagerMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
       guard case .stop(let v)? = self.msg else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     }()
+    case .wake?: try {
+      guard case .wake(let v)? = self.msg else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    }()
     case nil: break
     }
     try unknownFields.traverse(visitor: &visitor)
@@ -1085,6 +1145,7 @@ extension Vpn_TunnelMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     4: .standard(proto: "network_settings"),
     5: .same(proto: "start"),
     6: .same(proto: "stop"),
+    7: .same(proto: "wake"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1159,6 +1220,19 @@ extension Vpn_TunnelMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
           self.msg = .stop(v)
         }
       }()
+      case 7: try {
+        var v: Vpn_WakeResponse?
+        var hadOneofValue = false
+        if let current = self.msg {
+          hadOneofValue = true
+          if case .wake(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.msg = .wake(v)
+        }
+      }()
       default: break
       }
     }
@@ -1192,6 +1266,10 @@ extension Vpn_TunnelMessage: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     case .stop?: try {
       guard case .stop(let v)? = self.msg else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    }()
+    case .wake?: try {
+      guard case .wake(let v)? = self.msg else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
     }()
     case nil: break
     }
@@ -2428,4 +2506,55 @@ extension Vpn_Status.Lifecycle: SwiftProtobuf._ProtoNameProviding {
     3: .same(proto: "STOPPING"),
     4: .same(proto: "STOPPED"),
   ]
+}
+
+extension Vpn_WakeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WakeRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap()
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    // Load everything into unknown fields
+    while try decoder.nextFieldNumber() != nil {}
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Vpn_WakeRequest, rhs: Vpn_WakeRequest) -> Bool {
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Vpn_WakeResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WakeResponse"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "success"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularBoolField(value: &self.success) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if self.success != false {
+      try visitor.visitSingularBoolField(value: self.success, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Vpn_WakeResponse, rhs: Vpn_WakeResponse) -> Bool {
+    if lhs.success != rhs.success {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
 }
