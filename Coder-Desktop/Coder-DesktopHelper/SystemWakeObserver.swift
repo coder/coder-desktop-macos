@@ -2,6 +2,12 @@ import Foundation
 import IOKit.pwr_mgt
 import os
 
+// IOKit message macros (iokit_common_msg) are not importable into Swift.
+// Values from <IOKit/IOMessage.h>.
+private let kIOMessageCanSystemSleep: UInt32 = 0xE000_0270
+private let kIOMessageSystemWillSleep: UInt32 = 0xE000_0280
+private let kIOMessageSystemHasPoweredOn: UInt32 = 0xE000_0300
+
 /// Observes system power events and invokes `onWake` once the system has
 /// fully woken from sleep.
 ///
@@ -36,10 +42,10 @@ final class SystemWakeObserver {
 
     private func handle(messageType: natural_t, messageArgument: UnsafeMutableRawPointer?) {
         switch messageType {
-        case UInt32(kIOMessageSystemHasPoweredOn):
+        case kIOMessageSystemHasPoweredOn:
             logger.info("system woke from sleep")
             onWake()
-        case UInt32(kIOMessageCanSystemSleep), UInt32(kIOMessageSystemWillSleep):
+        case kIOMessageCanSystemSleep, kIOMessageSystemWillSleep:
             // The system delays sleep until these are acknowledged.
             IOAllowPowerChange(rootPort, Int(bitPattern: messageArgument))
         default:
