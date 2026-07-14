@@ -64,8 +64,7 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     private let receiver: Receiver<RecvMsg>
     private let secretary = RPCSecretary<RecvMsg>()
     let role: ProtoRole
-    /// The protocol version negotiated during the handshake, or nil if the
-    /// handshake has not yet completed.
+    /// The version negotiated during the handshake, or nil before it completes.
     public private(set) var negotiatedVersion: ProtoVersion?
 
     /// Creates an instance that communicates over the provided file handles.
@@ -99,10 +98,8 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     public func handshake() async throws(HandshakeError) {
         let hndsh = Handshaker(writeFD: writeFD, dispatch: dispatch, queue: queue, role: role,
                                versions: [ProtoVersion(1, 3)])
-        // All versions on the same major version are backwards compatible, so
-        // we don't need to change any behavior based on the negotiated minor
-        // version, but we record it so callers can gate messages the peer
-        // doesn't understand, e.g. WakeRequest (1.3).
+        // Minor versions are backwards compatible, so the negotiated version
+        // is only recorded to gate messages newer than the peer.
         negotiatedVersion = try await hndsh.handshake()
     }
 

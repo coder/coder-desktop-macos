@@ -222,10 +222,14 @@ actor Manager {
         logger.info("startVPN done")
     }
 
-    // Notifies the tunnel that the system has woken from sleep. Best-effort:
-    // failures are logged by the speaker, not thrown.
+    // Notifies the tunnel that the system has woken from sleep.
     func wake() async {
-        await speaker.wake()
+        logger.info("sending wake rpc")
+        do {
+            try await speaker.wake()
+        } catch {
+            logger.error("wake rpc failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func stopVPN() async throws(ManagerError) {
