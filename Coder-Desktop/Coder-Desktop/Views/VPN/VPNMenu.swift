@@ -43,7 +43,8 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon>: View {
                 }
                 Divider()
                 Text("Workspaces")
-                    .font(.headline)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
                     .foregroundColor(.secondary)
                 VPNState<VPN>()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
