@@ -187,7 +187,9 @@ struct ManagerSpeakerTests: Sendable {
         async let v = oldHandshaker.handshake()
         try await uut.handshake()
         #expect(try await v == ProtoVersion(1, 1))
-        try await uut.wake()
+        await #expect(throws: WakeError.self) {
+            try await uut.wake()
+        }
         await uut.closeWrite()
         var count = 0
         for try await _ in try await receiver.messages() {
