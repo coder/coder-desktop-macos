@@ -22,15 +22,19 @@ enum ProtoRole: String {
 }
 
 /// A version of the VPN protocol that can be negotiated.
-public struct ProtoVersion: CustomStringConvertible, Equatable, Codable, Sendable {
+public struct ProtoVersion: CustomStringConvertible, Equatable, Comparable, Codable, Sendable {
     let major: Int
     let minor: Int
 
     public var description: String { "\(major).\(minor)" }
 
-    init(_ major: Int, _ minor: Int) {
+    public init(_ major: Int, _ minor: Int) {
         self.major = major
         self.minor = minor
+    }
+
+    public static func < (lhs: ProtoVersion, rhs: ProtoVersion) -> Bool {
+        (lhs.major, lhs.minor) < (rhs.major, rhs.minor)
     }
 
     init(parse str: String) throws(HandshakeError) {
@@ -60,6 +64,8 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     private let receiver: Receiver<RecvMsg>
     private let secretary = RPCSecretary<RecvMsg>()
     let role: ProtoRole
+    /// The version negotiated during the handshake, or nil before it completes.
+    public private(set) var negotiatedVersion: ProtoVersion?
 
     /// Creates an instance that communicates over the provided file handles.
     public init(writeFD: FileHandle, readFD: FileHandle) {
@@ -91,11 +97,10 @@ public actor Speaker<SendMsg: RPCMessage & Message, RecvMsg: RPCMessage & Messag
     /// Does the VPN Protocol handshake and validates the result
     public func handshake() async throws(HandshakeError) {
         let hndsh = Handshaker(writeFD: writeFD, dispatch: dispatch, queue: queue, role: role,
-                               versions: [ProtoVersion(1, 1)])
-        // ignore the version for now because we know it can only be 1.0 or 1.1.
-        // 1.1 adds support for telemetry to StartRequest, but since setting these
-        // fields won't adversely affect a 1.0 speaker, we set them regardless.
-        try _ = await hndsh.handshake()
+                               versions: [ProtoVersion(1, 3)])
+        // Minor versions are backwards compatible, so the negotiated version
+        // is only recorded to gate messages newer than the peer.
+        negotiatedVersion = try await hndsh.handshake()
     }
 
     /// Send a unary RPC message and handle the response

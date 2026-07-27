@@ -38,6 +38,7 @@ struct SpeakerTests: Sendable {
         async let v = handshaker.handshake()
         try await uut.handshake()
         #expect(try await v == ProtoVersion(1, 1))
+        #expect(await uut.negotiatedVersion == ProtoVersion(1, 1))
     }
 
     @Test func handleSingleMessage() async throws {
@@ -116,5 +117,85 @@ struct SpeakerTests: Sendable {
         _ = await managerDone
         try await sender.close()
         try await readDone.value
+    }
+}
+
+@Suite(.timeLimit(.minutes(1)))
+struct ManagerSpeakerTests: Sendable {
+    let pipeMT = Pipe()
+    let pipeTM = Pipe()
+    let queue: DispatchQueue = .global(qos: .utility)
+    let uut: Speaker<Vpn_ManagerMessage, Vpn_TunnelMessage>
+    let sender: Sender<Vpn_TunnelMessage>
+    let dispatch: DispatchIO
+    let receiver: Receiver<Vpn_ManagerMessage>
+    let handshaker: Handshaker
+
+    init() {
+        uut = Speaker(
+            writeFD: pipeMT.fileHandleForWriting,
+            readFD: pipeTM.fileHandleForReading
+        )
+        dispatch = DispatchIO(
+            type: .stream,
+            fileDescriptor: pipeMT.fileHandleForReading.fileDescriptor,
+            queue: queue,
+            cleanupHandler: { error in print("cleanupHandler: \(error)") }
+        )
+        sender = Sender(writeFD: pipeTM.fileHandleForWriting)
+        receiver = Receiver(dispatch: dispatch, queue: queue)
+        handshaker = Handshaker(
+            writeFD: pipeTM.fileHandleForWriting,
+            dispatch: dispatch, queue: queue,
+            role: .tunnel,
+            versions: [ProtoVersion(1, 3)]
+        )
+    }
+
+    @Test func wake() async throws {
+        async let v = handshaker.handshake()
+        try await uut.handshake()
+        #expect(try await v == ProtoVersion(1, 3))
+        #expect(await uut.negotiatedVersion == ProtoVersion(1, 3))
+        // Speaker must be reading from the receiver for `unaryRPC` to return
+        let readDone = Task {
+            for try await _ in uut {}
+        }
+        async let tunnelDone = Task {
+            for try await req in try await receiver.messages() {
+                #expect(req.msg == .wake(Vpn_WakeRequest()))
+                var reply = Vpn_TunnelMessage()
+                reply.wake = Vpn_WakeResponse()
+                reply.rpc.responseTo = req.rpc.msgID
+                try await sender.send(reply)
+            }
+        }
+        try await uut.wake()
+        await uut.closeWrite()
+        _ = await tunnelDone
+        try await sender.close()
+        try await readDone.value
+    }
+
+    @Test func wakeUnsupportedByPeer() async throws {
+        let oldHandshaker = Handshaker(
+            writeFD: pipeTM.fileHandleForWriting,
+            dispatch: dispatch, queue: queue,
+            role: .tunnel,
+            versions: [ProtoVersion(1, 1)]
+        )
+        async let v = oldHandshaker.handshake()
+        try await uut.handshake()
+        #expect(try await v == ProtoVersion(1, 1))
+        await #expect(throws: WakeError.self) {
+            try await uut.wake()
+        }
+        await uut.closeWrite()
+        var count = 0
+        for try await _ in try await receiver.messages() {
+            count += 1
+        }
+        #expect(count == 0)
+        try await sender.close()
     }
 }

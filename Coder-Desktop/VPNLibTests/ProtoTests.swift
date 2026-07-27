@@ -56,6 +56,16 @@ struct SenderReceiverTests {
 }
 
 @Suite(.timeLimit(.minutes(1)))
+struct ProtoVersionTests {
+    @Test func comparable() {
+        #expect(ProtoVersion(1, 1) < ProtoVersion(1, 3))
+        #expect(ProtoVersion(1, 3) >= ProtoVersion(1, 3))
+        #expect(ProtoVersion(2, 0) > ProtoVersion(1, 9))
+        #expect(!(ProtoVersion(1, 2) >= ProtoVersion(1, 3)))
+    }
+}
+
+@Suite(.timeLimit(.minutes(1)))
 struct HandshakerTests {
     let pipeMT = Pipe()
     let pipeTM = Pipe()

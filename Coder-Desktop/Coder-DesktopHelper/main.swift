@@ -15,4 +15,11 @@ let appXPCServer = NSXPCListener(machServiceName: helperAppMachServiceName)
 appXPCServer.delegate = appXPCServerDelegate
 appXPCServer.resume()
 
+// Nudge the tunnel to rediscover network paths on system wake.
+let wakeObserver = SystemWakeObserver {
+    Task { @MainActor in
+        await globalManager?.wake()
+    }
+}
+
 RunLoop.main.run()
