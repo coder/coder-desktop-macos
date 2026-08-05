@@ -4,7 +4,6 @@ import SwiftUI
 enum AgentsRoute: Hashable {
     case newSession
     case session(UUID)
-    case usage
 }
 
 /// The Agents command center: a sidebar of sessions plus a detail pane (session output +
@@ -103,7 +102,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
 
             Divider()
             HStack {
-                UsageIndicator<Agents>(onViewUsage: { route = .usage })
+                UsageIndicator<Agents>()
                 Spacer()
                 Button { showingSettings = true } label: {
                     Image(systemName: "gearshape")
@@ -233,8 +232,6 @@ struct AgentsWindow<Agents: AgentsService>: View {
             } else {
                 placeholder
             }
-        case .usage:
-            AnalyticsView<Agents>()
         case nil:
             placeholder
         }

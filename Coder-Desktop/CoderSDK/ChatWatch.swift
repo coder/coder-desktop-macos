@@ -84,7 +84,10 @@ public struct ChatWatchEvent: Codable, Sendable {
 
 public enum ChatWatchEventKind: String, Codable, Sendable {
     case statusChange = "status_change"
+    /// The last-turn summary changed.
     case summaryChange = "summary_change"
+    /// The persisted whole-chat summary changed (generated in the background).
+    case chatSummaryChange = "chat_summary_change"
     case titleChange = "title_change"
     case created
     case deleted

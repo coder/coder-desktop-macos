@@ -2,6 +2,7 @@ import CoderSDK
 import SwiftUI
 
 enum SidePanelTab: String, CaseIterable, Identifiable {
+    case summary = "Summary"
     case git = "Git"
     case terminal = "Terminal"
     case desktop = "Desktop"
@@ -94,6 +95,8 @@ struct SessionSidePanel<Agents: AgentsService>: View {
             .padding(8)
             Divider()
             switch tab {
+            case .summary:
+                SummaryPanel<Agents>(session: session)
             case .git:
                 DiffPanel<Agents>(session: session, onAddToChat: onAddToChat)
             case .terminal:

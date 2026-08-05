@@ -92,6 +92,15 @@ public extension Client {
         }
     }
 
+    /// Requests a manual context compaction. The chat transitions to running and the summary
+    /// streams in like any other turn.
+    func compactChat(_ id: UUID) async throws(SDKError) {
+        let res = try await request("/api/experimental/chats/\(id.uuidString)/compact", method: .post)
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
+            throw responseAsError(res)
+        }
+    }
+
     /// Archives a chat (the API has no hard delete).
     func archiveChat(_ id: UUID) async throws(SDKError) {
         let res = try await request(
@@ -349,8 +358,14 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     public var last_error: ChatError?
     /// Set for sub-agent chats; notifications/chimes fire for root chats only (web parity).
     public var parent_chat_id: UUID?
+    /// The root of this chat's tree. Deleting a root cascades to every chat sharing it.
+    public var root_chat_id: UUID?
     /// Server-generated one-line summary of the last turn (sidebar subtitle, push notification body).
     public var last_turn_summary: String?
+    /// Persisted whole-chat summary, generated in the background. Nil until the first one lands.
+    public var summary: String?
+    /// The reasoning effort this chat last used; seeds the composer so reopening keeps your choice.
+    public var last_reasoning_effort: String?
     /// Has assistant messages beyond the owner's read cursor. Drives the sidebar unread dot.
     public var has_unread: Bool?
     /// Sub-agent chats embedded in their root; depth capped at 1.
@@ -375,7 +390,10 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         mcp_server_ids: [UUID]? = nil,
         last_error: ChatError? = nil,
         parent_chat_id: UUID? = nil,
+        root_chat_id: UUID? = nil,
         last_turn_summary: String? = nil,
+        summary: String? = nil,
+        last_reasoning_effort: String? = nil,
         has_unread: Bool? = nil,
         children: [Chat]? = nil,
         context: ChatContext? = nil
@@ -397,7 +415,10 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.mcp_server_ids = mcp_server_ids
         self.last_error = last_error
         self.parent_chat_id = parent_chat_id
+        self.root_chat_id = root_chat_id
         self.last_turn_summary = last_turn_summary
+        self.summary = summary
+        self.last_reasoning_effort = last_reasoning_effort
         self.has_unread = has_unread
         self.children = children
         self.context = context
@@ -411,11 +432,13 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
 
 public enum ChatStatus: String, Codable, Sendable, Equatable {
     case waiting
-    case pending
     case running
+    case error
+    // Removed from the server in coder/coder #27064. Kept so older deployments — which still
+    // emit them — keep decoding and behaving correctly; current servers never send these.
+    case pending
     case paused
     case completed
-    case error
     case requiresAction = "requires_action"
     /// A stop was requested and the server is winding the turn down.
     case interrupting

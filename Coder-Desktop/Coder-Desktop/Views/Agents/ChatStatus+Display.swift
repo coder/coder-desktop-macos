@@ -54,10 +54,12 @@ extension ChatStatus {
         }
     }
 
-    /// The run is over; no more output will arrive.
+    /// The run is over; no more output will arrive. `waiting` counts — a finished turn parks
+    /// there awaiting your next message. `requiresAction` does not: output resumes once the
+    /// action is answered.
     var isTerminal: Bool {
         switch self {
-        case .completed, .error: true
+        case .waiting, .error, .completed: true
         default: false
         }
     }

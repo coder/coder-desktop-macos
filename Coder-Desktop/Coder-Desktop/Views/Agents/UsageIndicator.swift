@@ -2,21 +2,24 @@ import CoderSDK
 import SwiftUI
 
 /// The sidebar-footer usage widget: a dual ring (AI spend + workspace quota) that opens a
-/// popover with the weekly-usage and workspace-quota breakdowns plus a "View usage" link to
-/// the full insights view. The quota ring only appears when a workspace quota is configured
-/// (premium deployments). Mirrors the web's UsageIndicator.
+/// popover with the budget-period and workspace-quota breakdowns. Mirrors the web's
+/// UsageIndicator.
+///
+/// Spend comes from AI Gateway budgets. Either ring is hidden when its data is absent —
+/// deployments without AI Gateway, or without a budget or workspace quota configured, simply
+/// fail or return no limit, which stands in for the web's `aibridge` feature check.
 struct UsageIndicator<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
-    var onViewUsage: () -> Void
 
-    @State private var limit: ChatUsageLimitStatus?
+    @State private var spend: UserAISpendStatus?
     @State private var quota: WorkspaceQuota?
     @State private var show = false
 
+    /// Nil when no budget applies (unlimited), which hides the ring.
     private var spendFraction: Double? {
-        guard limit?.is_limited == true, let spend = limit?.current_spend,
-              let max = limit?.spend_limit_micros, max > 0 else { return nil }
-        return min(1, Double(spend) / Double(max))
+        guard let used = spend?.current_spend_micros,
+              let budget = spend?.effective_budget?.spend_limit_micros else { return nil }
+        return Budget.fraction(used: used, budget: budget)
     }
 
     private var quotaFraction: Double? {
@@ -46,7 +49,7 @@ struct UsageIndicator<Agents: AgentsService>: View {
         .help(combinedHelp)
         .popover(isPresented: $show, arrowEdge: .top) { popover }
         .task {
-            limit = await agents.usageLimit()
+            spend = await agents.aiSpend()
             quota = await agents.workspaceQuota()
         }
     }
@@ -65,8 +68,9 @@ struct UsageIndicator<Agents: AgentsService>: View {
     }
 
     private var spendHelp: String {
-        guard let spend = limit?.current_spend, let max = limit?.spend_limit_micros else { return "AI usage" }
-        return "AI spend: \(Money.dollars(spend)) of \(Money.dollars(max))"
+        guard let used = spend?.current_spend_micros,
+              let budget = spend?.effective_budget?.spend_limit_micros else { return "AI usage" }
+        return "AI spend: \(Money.dollars(used)) of \(Money.dollars(budget))"
     }
 
     private var quotaHelp: String {
@@ -76,7 +80,7 @@ struct UsageIndicator<Agents: AgentsService>: View {
 
     private var combinedHelp: String {
         let parts = [spendFraction != nil ? spendHelp : nil, quotaFraction != nil ? quotaHelp : nil].compactMap(\.self)
-        return parts.isEmpty ? "View usage" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "Usage" : parts.joined(separator: " · ")
     }
 
     private func severity(_ fraction: Double) -> Color {
@@ -95,11 +99,9 @@ struct UsageIndicator<Agents: AgentsService>: View {
                 quotaSection(quotaFraction)
             }
             if spendFraction == nil, quotaFraction == nil {
-                Text("No usage limits configured.").font(.caption).foregroundStyle(.secondary)
+                Text("No AI budget or workspace quota configured.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            Divider()
-            Button("View usage") { show = false; onViewUsage() }
-                .buttonStyle(.borderless)
         }
         .padding(14)
         .frame(width: 280, alignment: .leading)
@@ -108,18 +110,19 @@ struct UsageIndicator<Agents: AgentsService>: View {
     private func spendSection(_ fraction: Double) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(periodLabel).font(.callout.weight(.semibold))
+                Text("AI spend").font(.callout.weight(.semibold))
                 Spacer()
                 Text("\(Int((fraction * 100).rounded()))%").foregroundStyle(.secondary)
             }
             ProgressView(value: fraction).tint(severity(fraction))
-            if let spend = limit?.current_spend, let max = limit?.spend_limit_micros {
-                Text("\(Money.dollars(spend)) of \(Money.dollars(max)) used")
+            if let used = spend?.current_spend_micros,
+               let budget = spend?.effective_budget?.spend_limit_micros
+            {
+                Text("\(Money.dollars(used)) of \(Money.dollars(budget)) used")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if let resets = limit?.period_end {
-                Text("Resets \(resets.formatted(.dateTime.month().day().year()))")
-                    .font(.caption).foregroundStyle(.secondary)
+            if let period = periodLabel {
+                Text(period).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -139,12 +142,12 @@ struct UsageIndicator<Agents: AgentsService>: View {
         }
     }
 
-    private var periodLabel: String {
-        switch limit?.period {
-        case "day": "Daily usage"
-        case "month": "Monthly usage"
-        default: "Weekly usage"
-        }
+    /// The budget window, e.g. "June 1 - July 1, 2026". `period_end` is exclusive and rendered
+    /// as-is, matching the web's `formatSpendPeriodLabel`.
+    private var periodLabel: String? {
+        guard let start = spend?.period_start, let end = spend?.period_end else { return nil }
+        return "\(start.formatted(.dateTime.month(.wide).day())) - "
+            + "\(end.formatted(.dateTime.month(.wide).day().year()))"
     }
 }
 
@@ -152,5 +155,15 @@ struct UsageIndicator<Agents: AgentsService>: View {
 enum Money {
     static func dollars(_ micros: Int) -> String {
         String(format: "$%.2f", Double(micros) / 1_000_000)
+    }
+}
+
+/// Budget severity/progress rules, matching the web's `utils/budget.ts`.
+enum Budget {
+    /// Usage as a 0...1 fraction. A budget of 0 counts as fully used once anything is spent.
+    static func fraction(used: Int, budget: Int) -> Double? {
+        guard budget >= 0 else { return nil }
+        if budget == 0 { return used > 0 ? 1 : 0 }
+        return min(1, Double(used) / Double(budget))
     }
 }

@@ -141,11 +141,11 @@ final class PreviewAgents: AgentsService {
     func shareWithUser(_: UUID, userID _: UUID) async {}
     func shareWithGroup(_: UUID, groupID _: UUID) async {}
     func setSharedFlag(_: UUID, shared _: Bool) {}
-    func costSummary(start _: String?, end _: String?) async -> ChatCostSummary? {
+    func aiSpend() async -> UserAISpendStatus? {
         nil
     }
 
-    func usageLimit() async -> ChatUsageLimitStatus? {
+    func chatCost(_: UUID) async -> ChatCost? {
         nil
     }
 
@@ -168,6 +168,7 @@ final class PreviewAgents: AgentsService {
     }
 
     func interrupt(_: UUID) async {}
+    func compact(_: UUID) async {}
     func archive(_ id: UUID) async {
         sessions.removeAll { $0.id == id }
     }

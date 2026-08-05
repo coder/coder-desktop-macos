@@ -11,6 +11,17 @@ extension CoderAgentsService {
         await send(id, prompt: prompt, extra: extraParts, options: options)
     }
 
+    /// Manually compacts the context. The chat transitions to running and the summary streams
+    /// in like any other turn, so there's nothing to reconcile here.
+    func compact(_ id: UUID) async {
+        guard let client else { return }
+        do {
+            try await client.compactChat(id)
+        } catch {
+            logger.error("failed to compact: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     /// Uploads a picked file's raw bytes and returns its id (referenced as a `file` part).
     func uploadFile(_ url: URL) async -> UUID? {
         guard let client, let orgID = await organizationID() else { return nil }

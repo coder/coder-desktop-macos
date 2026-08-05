@@ -1,6 +1,9 @@
 import CoderSDK
 import SwiftUI
 
+/// The built-in slash command intercepted at submit time instead of being sent as a message.
+private let compactSlashCommand = "/compact"
+
 /// The composer's state, held by `AgentSessionDetail` as a plain `@State` reference —
 /// deliberately NOT `@StateObject` — so per-keystroke draft changes invalidate only
 /// `SessionComposer` (which observes it), never the parent and its full transcript.
@@ -83,7 +86,7 @@ struct SessionComposer<Agents: AgentsService>: View {
                         }
                     }
                 },
-                skills: agents.userSkills,
+                skills: menuSkills,
                 onSkillTrigger: { Task { await agents.loadUserSkills() } }
             )
             .frame(minHeight: 24, maxHeight: 140)
@@ -288,6 +291,7 @@ struct SessionComposer<Agents: AgentsService>: View {
         let typed = model.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty || !model.attachments.isEmpty || !model.pendingReferences.isEmpty,
               !model.sending else { return }
+        if interceptCompactCommand(typed) { return }
         let prompt = model.attachments.folded(into: typed)
         let extraParts = model.attachments.fileIDs.map(ChatInputPart.file) + model.pendingReferences
         let savedAttachments = model.attachments
@@ -326,5 +330,59 @@ struct SessionComposer<Agents: AgentsService>: View {
             model.sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text
         }
+    }
+}
+
+// MARK: - Built-in "/compact" command
+
+extension SessionComposer {
+    /// Built-in commands share the skill menu item shape so filtering and keyboard selection
+    /// work unchanged (web parity). A real skill of the same name takes precedence and is
+    /// offered instead.
+    var menuSkills: [UserSkill] {
+        guard !agents.userSkills.contains(where: { $0.name == "compact" }) else {
+            return agents.userSkills
+        }
+        return agents.userSkills + [UserSkill(
+            id: "builtin-compact",
+            name: "compact",
+            description: "Summarize the conversation so far to free up context window space"
+        )]
+    }
+
+    /// Claims a bare "/compact" submission for the built-in command instead of sending it as a
+    /// message. Attachments, file references and edits keep their original meaning (web parity).
+    /// Returns true when the submission was claimed.
+    func interceptCompactCommand(_ typed: String) -> Bool {
+        guard typed == compactSlashCommand, model.editingMessageID == nil,
+              model.attachments.isEmpty, model.pendingReferences.isEmpty
+        else { return false }
+        model.sending = true
+        model.draft = ""
+        Task { await sendCompact(restoring: typed) }
+        return true
+    }
+
+    /// Runs the built-in compaction, unless a personal skill of the same name shadows it — in
+    /// which case the text is sent as an ordinary message so the skill still wins. Skills are
+    /// loaded lazily, so they're resolved here rather than guessed from an empty list.
+    func sendCompact(restoring typed: String) async {
+        await agents.loadUserSkills()
+        if agents.userSkills.contains(where: { $0.name == "compact" }) {
+            let ok = await agents.sendMessage(
+                session.id, prompt: typed, extraParts: [],
+                options: .init(
+                    modelConfigID: model.selectedModelConfigID,
+                    planMode: model.planMode ? .plan : nil,
+                    mcpServerIDs: model.selectedMCP.isEmpty && session.mcp_server_ids == nil
+                        ? nil : Array(model.selectedMCP)
+                )
+            )
+            model.sending = false
+            if !ok { model.draft = typed }
+            return
+        }
+        await agents.compact(session.id)
+        model.sending = false
     }
 }

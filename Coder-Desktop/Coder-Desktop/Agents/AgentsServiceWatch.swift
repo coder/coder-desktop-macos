@@ -83,7 +83,8 @@ extension CoderAgentsService {
                 sessions.insert(chat, at: 0)
             }
         case .deleted:
-            if let index { sessions.remove(at: index) }
+            // Deleting a root cascades to every chat sharing it as their root (web parity).
+            sessions.removeAll { $0.id == chat.id || $0.root_chat_id == chat.id }
         default:
             guard let index else { return }
             let previous = sessions[index].status
@@ -131,6 +132,8 @@ extension CoderAgentsService {
         case .summaryChange:
             row.last_turn_summary = chat.last_turn_summary
             row.has_unread = chat.has_unread
+        case .chatSummaryChange:
+            row.summary = chat.summary
         case .titleChange:
             row.title = chat.title
         case .diffStatusChange:
@@ -154,8 +157,9 @@ extension CoderAgentsService {
 
     // MARK: Completion chime + macOS notification
 
-    /// The web's `maybePlayChime` transitions: into waiting/pending from running/pending.
-    /// ("pending" is both the queued state and a resting state after a finished turn.)
+    /// The web's `maybePlayChime` transition, which on current servers is exactly
+    /// running → waiting. The legacy pending/completed statuses are kept in the condition so
+    /// pre-#27064 deployments still chime.
     private func isFinishedTurn(previous: ChatStatus, next: ChatStatus) -> Bool {
         previous != next
             && (next == .waiting || next == .pending || next == .completed)

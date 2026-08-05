@@ -124,11 +124,13 @@ protocol AgentsService: ObservableObject {
     /// Updates the local `shared` flag for a chat after an ACL change.
     func setSharedFlag(_ id: UUID, shared: Bool)
 
-    // Personal usage analytics.
-    func costSummary(start: String?, end: String?) async -> ChatCostSummary?
-    func usageLimit() async -> ChatUsageLimitStatus?
+    // Personal usage. Nil whenever the deployment has no AI Gateway / no budget configured.
+    func aiSpend() async -> UserAISpendStatus?
+    func chatCost(_ id: UUID) async -> ChatCost?
     func workspaceQuota() async -> WorkspaceQuota?
     func interrupt(_ id: UUID) async
+    /// Manually compacts the context, summarizing the conversation so far.
+    func compact(_ id: UUID) async
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
     /// Regenerates the chat title from transcript (persists it server-side).
