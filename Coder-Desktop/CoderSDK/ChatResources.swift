@@ -5,7 +5,11 @@ import Foundation
 
 public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
-    public let provider: String
+    /// Dropped from the server in coder/coder #26877 — optional so decoding doesn't fail against
+    /// current deployments, and still populated by older ones.
+    public let provider: String?
+    /// Replaced `provider`; identifies the model's AI provider.
+    public let ai_provider_id: UUID?
     public let model: String
     public let display_name: String
     public let is_default: Bool?
@@ -19,12 +23,14 @@ public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
     public let model_config: ChatModelCallConfig?
 
     public init(
-        id: UUID, provider: String, model: String, display_name: String,
+        id: UUID, provider: String? = nil, ai_provider_id: UUID? = nil,
+        model: String, display_name: String,
         is_default: Bool? = nil, compression_threshold: Int? = nil,
         reasoning_efforts: [String]? = nil, model_config: ChatModelCallConfig? = nil
     ) {
         self.id = id
         self.provider = provider
+        self.ai_provider_id = ai_provider_id
         self.model = model
         self.display_name = display_name
         self.is_default = is_default

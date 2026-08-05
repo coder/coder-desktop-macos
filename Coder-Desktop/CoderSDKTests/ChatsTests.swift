@@ -184,6 +184,35 @@ struct ChatsTests {
         )
     }
 
+    /// The server dropped `provider` in coder/coder #26877 and sends `ai_provider_id` instead.
+    /// A required `provider` made the whole model list fail to decode, which silently emptied
+    /// the composer's model picker.
+    @Test
+    func modelConfigDecodesWithoutTheDroppedProviderField() throws {
+        let json = Data("""
+        [{
+          "id": "38AFEC34-7984-4992-85EB-3CD2A75CC7CF",
+          "ai_provider_id": "9F0DDE1C-9A1E-4D2B-9E4E-3C6C4C4E4A11",
+          "model": "claude-opus-5",
+          "display_name": "Claude Opus 5",
+          "enabled": true,
+          "is_default": true,
+          "context_limit": 200000,
+          "compression_threshold": 80,
+          "reasoning_efforts": ["low", "medium", "high"],
+          "model_config": {"reasoning_effort": {"default": "medium", "max": "high"}},
+          "created_at": "2026-08-05T00:00:00Z",
+          "updated_at": "2026-08-05T00:00:00Z"
+        }]
+        """.utf8)
+        let configs = try CoderSDK.decoder.decode([ChatModelConfig].self, from: json)
+        let config = try #require(configs.first)
+        #expect(config.provider == nil)
+        #expect(config.label == "Claude Opus 5")
+        #expect(config.selectableEfforts == ["low", "medium", "high"])
+        #expect(config.pickEffort(nil) == "medium")
+    }
+
     @Test
     func pickEffortPrefersRequestedThenDefaultThenHighest() {
         // No reasoning control on this model: the field must stay off the request entirely.
