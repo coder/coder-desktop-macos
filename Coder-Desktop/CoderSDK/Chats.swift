@@ -258,6 +258,8 @@ public struct CreateChatRequest: Encodable, Sendable {
     public let mcp_server_ids: [UUID]?
     public let client_type: ChatClientType
     public let plan_mode: ChatPlanMode? // "plan" to start the chat in plan mode
+    /// Overrides the model's default reasoning effort. Omitted when the model has none.
+    public let reasoning_effort: String?
 
     public init(
         organization_id: UUID,
@@ -266,7 +268,8 @@ public struct CreateChatRequest: Encodable, Sendable {
         model_config_id: UUID? = nil,
         mcp_server_ids: [UUID]? = nil,
         client_type: ChatClientType = .api,
-        plan_mode: ChatPlanMode? = nil
+        plan_mode: ChatPlanMode? = nil,
+        reasoning_effort: String? = nil
     ) {
         self.organization_id = organization_id
         self.content = content
@@ -275,6 +278,7 @@ public struct CreateChatRequest: Encodable, Sendable {
         self.mcp_server_ids = mcp_server_ids
         self.client_type = client_type
         self.plan_mode = plan_mode
+        self.reasoning_effort = reasoning_effort
     }
 }
 
@@ -291,19 +295,23 @@ public struct CreateChatMessageRequest: Encodable, Sendable {
     /// The chat's full MCP server set, applied on the next turn. REPLACE semantics: send the
     /// complete desired set (existing ∪ added). nil/omitted = leave the chat's set unchanged.
     public let mcp_server_ids: [UUID]?
+    /// Overrides the model's default reasoning effort for this turn.
+    public let reasoning_effort: String?
 
     public init(
         content: [ChatInputPart],
         busy_behavior: ChatBusyBehavior? = nil,
         model_config_id: UUID? = nil,
         plan_mode: ChatPlanMode? = nil,
-        mcp_server_ids: [UUID]? = nil
+        mcp_server_ids: [UUID]? = nil,
+        reasoning_effort: String? = nil
     ) {
         self.content = content
         self.busy_behavior = busy_behavior
         self.model_config_id = model_config_id
         self.plan_mode = plan_mode
         self.mcp_server_ids = mcp_server_ids
+        self.reasoning_effort = reasoning_effort
     }
 }
 

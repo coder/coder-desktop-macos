@@ -2,43 +2,6 @@ import AppKit
 import CoderSDK
 import SwiftUI
 
-/// A model picker showing the selected model's name. A native `Menu` (which is fully
-/// keyboard-navigable and auto-scrolls for long lists) lists the models with a checkmark on
-/// the current one.
-struct ModelPicker<Agents: AgentsService>: View {
-    @EnvironmentObject var agents: Agents
-    @Binding var selectedID: UUID?
-
-    private var label: String {
-        agents.modelConfigs.first { $0.id == selectedID }?.label ?? "Model"
-    }
-
-    var body: some View {
-        Menu {
-            ForEach(agents.modelConfigs) { config in
-                Button { selectedID = config.id } label: {
-                    if config.id == selectedID {
-                        Label(config.label, systemImage: "checkmark")
-                    } else {
-                        Text(config.label)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(label).lineLimit(1).foregroundStyle(.primary)
-                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
-            }
-            .font(.callout)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("Model")
-        .accessibilityLabel("Model: \(label)")
-    }
-}
-
 /// The composer "+" popover, mirroring the web: Attach file (system picker), Plan first
 /// (plan-mode toggle), Attach workspace, then the deployment's MCP connectors — each with an
 /// on/off switch, or an "Authenticate" button for OAuth2 servers not yet connected.

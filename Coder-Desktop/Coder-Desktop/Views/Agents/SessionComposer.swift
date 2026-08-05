@@ -1,9 +1,6 @@
 import CoderSDK
 import SwiftUI
 
-/// The built-in slash command intercepted at submit time instead of being sent as a message.
-private let compactSlashCommand = "/compact"
-
 /// The composer's state, held by `AgentSessionDetail` as a plain `@State` reference —
 /// deliberately NOT `@StateObject` — so per-keystroke draft changes invalidate only
 /// `SessionComposer` (which observes it), never the parent and its full transcript.
@@ -17,6 +14,8 @@ final class ComposerModel: ObservableObject {
     @Published var selectedMCP: Set<UUID> = []
     @Published var planMode = false
     @Published var selectedModelConfigID: UUID?
+    /// Reasoning effort for the next turn; nil when the selected model has no reasoning control.
+    @Published var reasoningEffort: String?
     @Published var compactionPercent: Int?
     var didSeed = false
 
@@ -110,7 +109,12 @@ struct SessionComposer<Agents: AgentsService>: View {
         .onChange(of: model.selectedModelConfigID) { _, new in
             // Remember the user's choice so new chats start with it instead of resetting.
             if let new { preferredModelID = new.uuidString }
+            seedEffort()
             Task { await loadCompactionThreshold() }
+        }
+        .onChange(of: model.reasoningEffort) { _, new in
+            // Remember the effort per model, so reselecting that model restores it.
+            if let new, let id = model.selectedModelConfigID { EffortMemory.save(new, for: id) }
         }
     }
 
@@ -149,7 +153,10 @@ struct SessionComposer<Agents: AgentsService>: View {
                 }
             }
             if !agents.modelConfigs.isEmpty {
-                ModelPicker<Agents>(selectedID: $model.selectedModelConfigID)
+                ModelPicker<Agents>(
+                    selectedID: $model.selectedModelConfigID,
+                    effort: $model.reasoningEffort
+                )
             }
             VoiceInputButton(draft: $model.draft, voice: voice)
             sendButton
@@ -236,46 +243,6 @@ struct SessionComposer<Agents: AgentsService>: View {
         return start == end ? "\(name):\(start)" : "\(name):\(start)-\(end)"
     }
 
-    /// Seed the composer's model from the session and defaults, once configs exist.
-    private func seed() {
-        guard !model.didSeed, !agents.modelConfigs.isEmpty else { return }
-        if model.selectedModelConfigID == nil {
-            // Prefer the chat's last-used model, then the user's last manual pick, then the
-            // server default — but only if the id is actually an available model.
-            let available = Set(agents.modelConfigs.map(\.id))
-            let candidates = [session.last_model_config_id, UUID(uuidString: preferredModelID)]
-            model.selectedModelConfigID = candidates.compactMap(\.self).first { available.contains($0) }
-                ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
-        }
-        model.didSeed = true
-    }
-
-    /// Latest reported context-window usage for this session, if any.
-    private var latestUsage: ChatMessageUsage? {
-        agents.messages(for: session.id).last { $0.usage?.contextFraction != nil }?.usage
-    }
-
-    private var sessionParts: [ChatMessagePart] {
-        agents.messages(for: session.id).flatMap(\.content)
-    }
-
-    /// Distinct context-file names loaded into the conversation (for the usage popover).
-    private var contextFileNames: [String] {
-        Self.distinct(sessionParts.filter { $0.type == .contextFile }
-            .compactMap { $0.file_name ?? $0.title ?? $0.text })
-    }
-
-    /// Distinct skill names active in the conversation (for the usage popover).
-    private var skillNames: [String] {
-        Self.distinct(sessionParts.filter { $0.type == .skill }
-            .compactMap { $0.title ?? $0.text ?? $0.file_name })
-    }
-
-    private static func distinct(_ items: [String]) -> [String] {
-        var seen = Set<String>()
-        return items.filter { !$0.isEmpty && seen.insert($0).inserted }
-    }
-
     /// Resolves the active model's compaction threshold exactly like the server: the user's
     /// per-model override if set, else the model config's own `compression_threshold`.
     private func loadCompactionThreshold() async {
@@ -324,7 +291,8 @@ struct SessionComposer<Agents: AgentsService>: View {
                     // the chat's set (nil) and the user touched nothing, send nil — an empty
                     // array would WIPE connectors the server has that we can't see.
                     mcpServerIDs: model.selectedMCP.isEmpty && session.mcp_server_ids == nil
-                        ? nil : Array(model.selectedMCP)
+                        ? nil : Array(model.selectedMCP),
+                    reasoningEffort: model.reasoningEffort
                 )
             )
             model.sending = false
@@ -333,62 +301,61 @@ struct SessionComposer<Agents: AgentsService>: View {
     }
 }
 
-// MARK: - Built-in "/compact" command
+// MARK: - Seeding
 
 extension SessionComposer {
-    /// Built-in commands share the skill menu item shape so filtering and keyboard selection
-    /// work unchanged (web parity). A real skill of the same name takes precedence and is
-    /// offered instead.
-    var menuSkills: [UserSkill] {
-        guard !agents.userSkills.contains(where: { $0.name == "compact" }) else {
-            return agents.userSkills
+    /// Seed the composer's model from the session and defaults, once configs exist.
+    func seed() {
+        guard !model.didSeed, !agents.modelConfigs.isEmpty else { return }
+        if model.selectedModelConfigID == nil {
+            // Prefer the chat's last-used model, then the user's last manual pick, then the
+            // server default — but only if the id is actually an available model.
+            let available = Set(agents.modelConfigs.map(\.id))
+            let candidates = [session.last_model_config_id, UUID(uuidString: preferredModelID)]
+            model.selectedModelConfigID = candidates.compactMap(\.self).first { available.contains($0) }
+                ?? (agents.modelConfigs.first { $0.is_default == true } ?? agents.modelConfigs.first)?.id
         }
-        return agents.userSkills + [UserSkill(
-            id: "builtin-compact",
-            name: "compact",
-            description: "Summarize the conversation so far to free up context window space"
-        )]
+        seedEffort()
+        model.didSeed = true
     }
 
-    /// Claims a bare "/compact" submission for the built-in command instead of sending it as a
-    /// message. Attachments, file references and edits keep their original meaning (web parity).
-    /// Returns true when the submission was claimed.
-    func interceptCompactCommand(_ typed: String) -> Bool {
-        guard typed == compactSlashCommand, model.editingMessageID == nil,
-              model.attachments.isEmpty, model.pendingReferences.isEmpty
-        else { return false }
-        model.sending = true
-        model.draft = ""
-        Task { await sendCompact(restoring: typed) }
-        return true
-    }
-
-    /// Runs the built-in compaction, unless a personal OR workspace skill of the same name
-    /// shadows it — in which case the text is sent as an ordinary message so the skill still
-    /// wins. Both sources are resolved here: personal skills load lazily, and workspace skills
-    /// need the single-chat GET, so neither can be read off the sidebar row.
-    func sendCompact(restoring typed: String) async {
-        await agents.loadUserSkills()
-        var shadowed = agents.userSkills.contains { $0.name == "compact" }
-        if !shadowed {
-            // Only worth the single-chat GET when no personal skill already shadowed it.
-            shadowed = await agents.workspaceSkillNames(session.id).contains("compact")
-        }
-        if shadowed {
-            let ok = await agents.sendMessage(
-                session.id, prompt: typed, extraParts: [],
-                options: .init(
-                    modelConfigID: model.selectedModelConfigID,
-                    planMode: model.planMode ? .plan : nil,
-                    mcpServerIDs: model.selectedMCP.isEmpty && session.mcp_server_ids == nil
-                        ? nil : Array(model.selectedMCP)
-                )
-            )
-            model.sending = false
-            if !ok { model.draft = typed }
+    /// Resolves the effort for the selected model: the chat's last-used value on first seed, then
+    /// what was last picked for that model, then the model's own default, then its highest.
+    /// Nil for models with no reasoning control, so the field is omitted from sends.
+    func seedEffort() {
+        guard let id = model.selectedModelConfigID,
+              let config = agents.modelConfigs.first(where: { $0.id == id })
+        else {
+            model.reasoningEffort = nil
             return
         }
-        await agents.compact(session.id)
-        model.sending = false
+        let remembered = model.didSeed ? nil : session.last_reasoning_effort
+        model.reasoningEffort = config.pickEffort(remembered ?? EffortMemory.stored(for: id))
+    }
+
+    /// Latest reported context-window usage for this session, if any.
+    private var latestUsage: ChatMessageUsage? {
+        agents.messages(for: session.id).last { $0.usage?.contextFraction != nil }?.usage
+    }
+
+    private var sessionParts: [ChatMessagePart] {
+        agents.messages(for: session.id).flatMap(\.content)
+    }
+
+    /// Distinct context-file names loaded into the conversation (for the usage popover).
+    private var contextFileNames: [String] {
+        Self.distinct(sessionParts.filter { $0.type == .contextFile }
+            .compactMap { $0.file_name ?? $0.title ?? $0.text })
+    }
+
+    /// Distinct skill names active in the conversation (for the usage popover).
+    private var skillNames: [String] {
+        Self.distinct(sessionParts.filter { $0.type == .skill }
+            .compactMap { $0.title ?? $0.text ?? $0.file_name })
+    }
+
+    private static func distinct(_ items: [String]) -> [String] {
+        var seen = Set<String>()
+        return items.filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 }

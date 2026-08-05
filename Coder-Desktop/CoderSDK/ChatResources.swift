@@ -12,10 +12,16 @@ public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
     /// The model's compaction threshold percent — the server's default when the user has no
     /// per-model override (chatd: `effectiveThreshold = modelConfig.CompressionThreshold`).
     public let compression_threshold: Int?
+    /// Selectable reasoning efforts, ordered low to high through the model's configured
+    /// maximum. Empty/nil for models that don't expose reasoning effort.
+    public let reasoning_efforts: [String]?
+    /// Per-call defaults, including the default reasoning effort.
+    public let model_config: ChatModelCallConfig?
 
     public init(
         id: UUID, provider: String, model: String, display_name: String,
-        is_default: Bool? = nil, compression_threshold: Int? = nil
+        is_default: Bool? = nil, compression_threshold: Int? = nil,
+        reasoning_efforts: [String]? = nil, model_config: ChatModelCallConfig? = nil
     ) {
         self.id = id
         self.provider = provider
@@ -23,11 +29,49 @@ public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
         self.display_name = display_name
         self.is_default = is_default
         self.compression_threshold = compression_threshold
+        self.reasoning_efforts = reasoning_efforts
+        self.model_config = model_config
+    }
+
+    /// The efforts the picker can offer, empty when the model has no reasoning control.
+    public var selectableEfforts: [String] {
+        reasoning_efforts ?? []
+    }
+
+    /// Picks an effort: the requested one, else the model's default, else the highest offered.
+    /// Mirrors the web's `pickReasoningEffort`.
+    public func pickEffort(_ requested: String?) -> String? {
+        let efforts = selectableEfforts
+        guard !efforts.isEmpty else { return nil }
+        if let requested, efforts.contains(requested) { return requested }
+        if let fallback = model_config?.reasoning_effort?.default, efforts.contains(fallback) {
+            return fallback
+        }
+        return efforts.last
     }
 
     /// Display label, falling back to the model id when the server gives no display name.
     public var label: String {
         display_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? model : display_name
+    }
+}
+
+/// Per-call model behaviour defaults. Only the fields the client reads are modelled.
+public struct ChatModelCallConfig: Codable, Sendable, Equatable {
+    public let reasoning_effort: ChatModelReasoningEffortConfig?
+
+    public init(reasoning_effort: ChatModelReasoningEffortConfig? = nil) {
+        self.reasoning_effort = reasoning_effort
+    }
+}
+
+public struct ChatModelReasoningEffortConfig: Codable, Sendable, Equatable {
+    public let `default`: String?
+    public let max: String?
+
+    public init(default defaultValue: String? = nil, max: String? = nil) {
+        self.default = defaultValue
+        self.max = max
     }
 }
 

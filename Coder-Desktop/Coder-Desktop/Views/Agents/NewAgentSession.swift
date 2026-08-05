@@ -12,6 +12,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
     @State private var voice = VoiceInput() // owned here so launch() can stop dictation synchronously
     @State private var workspaceID: UUID?
     @State private var modelConfigID: UUID?
+    @State private var reasoningEffort: String?
     @State private var selectedMCP: Set<UUID> = []
     @State private var planMode = false
     @State private var attachments: [PastedAttachment] = []
@@ -45,7 +46,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: false)
                     Spacer()
                     if !agents.modelConfigs.isEmpty {
-                        ModelPicker<Agents>(selectedID: $modelConfigID)
+                        ModelPicker<Agents>(selectedID: $modelConfigID, effort: $reasoningEffort)
                     }
                     VoiceInputButton(draft: $prompt, voice: voice)
                     Button(action: launch) {
@@ -86,6 +87,10 @@ struct NewAgentSession<Agents: AgentsService>: View {
         }
         .onChange(of: agents.mcpServers.map(\.id)) { seedMCPSelection() }
         .onChange(of: agents.modelConfigs.map(\.id)) { seedModelSelection() }
+        .onChange(of: modelConfigID) { seedEffort() }
+        .onChange(of: reasoningEffort) { _, new in
+            if let new, let id = modelConfigID { EffortMemory.save(new, for: id) }
+        }
     }
 
     /// Pre-select default-on / force-on servers once, like the web composer.
@@ -100,6 +105,16 @@ struct NewAgentSession<Agents: AgentsService>: View {
         guard !didSeedModel, !agents.modelConfigs.isEmpty else { return }
         didSeedModel = true
         modelConfigID = (agents.modelConfigs.first(where: { $0.is_default == true }) ?? agents.modelConfigs.first)?.id
+        seedEffort()
+    }
+
+    /// Effort last used with this model, else the model's default, else its highest.
+    private func seedEffort() {
+        guard let id = modelConfigID, let config = agents.modelConfigs.first(where: { $0.id == id }) else {
+            reasoningEffort = nil
+            return
+        }
+        reasoningEffort = config.pickEffort(EffortMemory.stored(for: id))
     }
 
     private func launch() {
@@ -113,7 +128,8 @@ struct NewAgentSession<Agents: AgentsService>: View {
             defer { launching = false }
             let request = NewSessionRequest(
                 prompt: text, workspaceID: workspaceID, modelConfigID: modelConfigID,
-                mcpServerIDs: Array(selectedMCP), planMode: planMode, fileIDs: fileIDs
+                mcpServerIDs: Array(selectedMCP), planMode: planMode, fileIDs: fileIDs,
+                reasoningEffort: reasoningEffort
             )
             if let chat = await agents.createSession(request) {
                 prompt = ""

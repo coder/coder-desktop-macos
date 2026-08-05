@@ -185,7 +185,8 @@ final class CoderAgentsService: AgentsService {
                 content: contentParts(request.prompt, extra: request.fileIDs.map { .file($0) }),
                 workspace_id: request.workspaceID, model_config_id: request.modelConfigID,
                 mcp_server_ids: request.mcpServerIDs.isEmpty ? nil : request.mcpServerIDs,
-                plan_mode: request.planMode ? .plan : nil
+                plan_mode: request.planMode ? .plan : nil,
+                reasoning_effort: request.reasoningEffort
             ))
             telemetry.send(.agentLaunched)
             sessions.insert(chat, at: 0)

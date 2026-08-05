@@ -175,4 +175,28 @@ struct ChatsTests {
         let decoded = try CoderSDK.decoder.decode(Wrapper.self, from: json)
         #expect(decoded.status == .unknown)
     }
+
+    private func modelConfig(efforts: [String]?, default defaultEffort: String? = nil) -> ChatModelConfig {
+        ChatModelConfig(
+            id: UUID(), provider: "anthropic", model: "claude", display_name: "Claude",
+            reasoning_efforts: efforts,
+            model_config: defaultEffort.map { .init(reasoning_effort: .init(default: $0)) }
+        )
+    }
+
+    @Test
+    func pickEffortPrefersRequestedThenDefaultThenHighest() {
+        // No reasoning control on this model: the field must stay off the request entirely.
+        #expect(modelConfig(efforts: nil).pickEffort("high") == nil)
+        #expect(modelConfig(efforts: []).pickEffort("high") == nil)
+
+        let config = modelConfig(efforts: ["low", "medium", "high"], default: "medium")
+        #expect(config.pickEffort("low") == "low")
+        // An effort the model doesn't offer (e.g. remembered from another model) falls back.
+        #expect(config.pickEffort("xhigh") == "medium")
+        #expect(config.pickEffort(nil) == "medium")
+        // Without a usable default, the highest offered effort wins.
+        #expect(modelConfig(efforts: ["low", "high"]).pickEffort(nil) == "high")
+        #expect(modelConfig(efforts: ["low", "high"], default: "bogus").pickEffort(nil) == "high")
+    }
 }

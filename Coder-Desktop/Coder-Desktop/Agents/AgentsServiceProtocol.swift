@@ -14,11 +14,17 @@ struct SendOptions {
     /// The chat's full MCP server set to apply (REPLACE semantics — pass existing ∪ added);
     /// nil leaves the chat's attached set unchanged.
     var mcpServerIDs: [UUID]?
+    /// Overrides the model's default reasoning effort for this turn; nil omits the field.
+    var reasoningEffort: String?
 
-    init(modelConfigID: UUID? = nil, planMode: ChatPlanMode? = nil, mcpServerIDs: [UUID]? = nil) {
+    init(
+        modelConfigID: UUID? = nil, planMode: ChatPlanMode? = nil, mcpServerIDs: [UUID]? = nil,
+        reasoningEffort: String? = nil
+    ) {
         self.modelConfigID = modelConfigID
         self.planMode = planMode
         self.mcpServerIDs = mcpServerIDs
+        self.reasoningEffort = reasoningEffort
     }
 }
 
@@ -191,4 +197,6 @@ struct NewSessionRequest {
     var mcpServerIDs: [UUID] = []
     var planMode = false
     var fileIDs: [UUID] = []
+    /// Overrides the model's default reasoning effort; nil omits the field.
+    var reasoningEffort: String?
 }

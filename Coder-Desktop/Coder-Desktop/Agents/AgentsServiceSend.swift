@@ -85,7 +85,7 @@ extension CoderAgentsService {
                 id, .init(
                     content: contentParts(prompt, extra: extra), busy_behavior: .queue,
                     model_config_id: options.modelConfigID, plan_mode: options.planMode,
-                    mcp_server_ids: options.mcpServerIDs
+                    mcp_server_ids: options.mcpServerIDs, reasoning_effort: options.reasoningEffort
                 )
             )
             telemetry.send(.agentMessageSent)
