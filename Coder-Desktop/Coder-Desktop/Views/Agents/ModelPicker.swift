@@ -35,6 +35,7 @@ struct ModelPicker<Agents: AgentsService>: View {
     @Binding var effort: String?
 
     @State private var show = false
+    @State private var hoveredID: UUID?
 
     private var selected: ChatModelConfig? {
         agents.modelConfigs.first { $0.id == selectedID }
@@ -46,13 +47,18 @@ struct ModelPicker<Agents: AgentsService>: View {
         Button { show.toggle() } label: {
             HStack(spacing: 4) {
                 Text(label).lineLimit(1).foregroundStyle(.primary)
-                if let effort, selected?.selectableEfforts.isEmpty == false {
-                    Text(effortLabel(effort))
-                        .font(.caption2)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
-                        .foregroundStyle(.secondary)
+                if let effort, let efforts = selected?.selectableEfforts, !efforts.isEmpty {
+                    // Sized to the longest label so changing effort doesn't shift the controls
+                    // either side of the picker.
+                    ZStack {
+                        ForEach(efforts, id: \.self) { Text(effortLabel($0)).hidden() }
+                        Text(effortLabel(effort))
+                    }
+                    .font(.caption2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
+                    .foregroundStyle(.secondary)
                 }
                 Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
             }
@@ -61,6 +67,7 @@ struct ModelPicker<Agents: AgentsService>: View {
         }
         .buttonStyle(.plain)
         .fixedSize()
+        .onHoverWithPointingHand { _ in }
         .help("Model")
         .accessibilityLabel(accessibilityLabel)
         .popover(isPresented: $show, arrowEdge: .top) { picker }
@@ -93,6 +100,11 @@ struct ModelPicker<Agents: AgentsService>: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .onHoverWithPointingHand { hovering in hoveredID = hovering ? config.id : nil }
+                        .background(
+                            hoveredID == config.id ? Color.secondary.opacity(0.12) : .clear,
+                            in: RoundedRectangle(cornerRadius: 4)
+                        )
                         .accessibilityLabel(config.id == selectedID ? "\(config.label), selected" : config.label)
                     }
                 }
@@ -134,6 +146,7 @@ private struct EffortSlider: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .onHoverWithPointingHand { _ in }
                 .help("Controls how much reasoning the model performs before responding. "
                     + "Higher effort can improve quality but is slower and costs more.")
                 .accessibilityLabel("About reasoning effort")
@@ -164,13 +177,18 @@ private struct EffortSlider: View {
                 .accessibilityLabel("Reasoning effort")
                 .accessibilityValue(effortLabel(effort ?? ""))
             }
-            Text(effortLabel(effort ?? efforts[0]))
-                .font(.caption)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
-                .foregroundStyle(.secondary)
-                .fixedSize()
+            // Every possible label is laid out invisibly underneath, so the chip keeps the width
+            // of the longest one and dragging the slider can't resize the track under the cursor.
+            ZStack {
+                ForEach(efforts, id: \.self) { Text(effortLabel($0)).hidden() }
+                Text(effortLabel(effort ?? efforts[0]))
+            }
+            .font(.caption)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
+            .foregroundStyle(.secondary)
+            .fixedSize()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
