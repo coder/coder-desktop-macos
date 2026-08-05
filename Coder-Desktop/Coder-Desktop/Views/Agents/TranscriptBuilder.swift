@@ -10,6 +10,8 @@ final class TranscriptItem: Identifiable {
         case summary(ChatMessagePart)
         case plan(ToolStep)
         case question(ToolStep)
+        /// A lifecycle hook's user-facing notice, shown as its own labelled row.
+        case hookNotice(String)
     }
 
     let id: String
@@ -73,7 +75,11 @@ enum TranscriptBuilder {
             let tools = parts.filter {
                 ($0.type == .toolCall || $0.type == .toolResult) && $0.toolKind != .summarize
             }
-            let content = parts.filter { $0.type != .toolCall && $0.type != .toolResult }
+            // Hook notices are pulled out below into their own rows, so keep them out of the
+            // bubble's parts entirely rather than relying on the render gate alone.
+            let content = parts.filter {
+                $0.type != .toolCall && $0.type != .toolResult && $0.type != .hookNotice
+            }
             let hasContent = content.contains(where: \.isRenderableContent)
             if hasContent {
                 // Content closes the preceding tool run, keeping chronological order.
@@ -83,6 +89,15 @@ enum TranscriptBuilder {
             for summary in summaries {
                 flushTools()
                 items.append(TranscriptItem(id: "summary-\(summary.tool_call_id ?? id)", kind: .summary(summary)))
+            }
+            // After the message they're attached to (web parity); a hook-only system message
+            // yields just these rows.
+            let notices = parts.filter { $0.type == .hookNotice }
+                .compactMap { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            for (index, notice) in notices.enumerated() {
+                flushTools()
+                items.append(TranscriptItem(id: "hook-\(id)-\(index)", kind: .hookNotice(notice)))
             }
             toolBuffer += tools
         }

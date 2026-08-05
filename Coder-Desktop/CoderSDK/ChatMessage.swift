@@ -174,6 +174,9 @@ public enum ChatMessagePartType: String, Codable, Sendable, Equatable {
     case fileReference = "file-reference"
     case contextFile = "context-file"
     case skill
+    /// A user-facing lifecycle-hook notice, either attached to a prompt or in its own row.
+    /// (`hook-context` is stripped server-side and never reaches clients.)
+    case hookNotice = "hook-notice"
     case unknown
 
     public init(from decoder: Decoder) throws {

@@ -6,7 +6,10 @@ extension ChatMessagePart {
     /// transcript builder's bubble gate and `MessageView.hasContent` — when these diverged,
     /// caption-less attachments were silently dropped.
     var isRenderableContent: Bool {
-        type == .reasoning || type == .file || type == .fileReference || text?.isEmpty == false
+        // Hook notices carry text but are rendered as their own labelled row, not as message
+        // content — otherwise they'd read as the agent talking.
+        guard type != .hookNotice else { return false }
+        return type == .reasoning || type == .file || type == .fileReference || text?.isEmpty == false
     }
 
     enum ToolKind { case execute, readFile, editFile, search, summarize, workspace, agent, desktop, other }

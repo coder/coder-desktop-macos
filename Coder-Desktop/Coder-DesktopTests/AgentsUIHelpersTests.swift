@@ -152,3 +152,51 @@ struct ChatErrorDisplayTests {
         #expect(!ChatError().isBlocked)
     }
 }
+
+@Suite(.timeLimit(.minutes(1)))
+struct TranscriptHookNoticeTests {
+    private func message(_ id: Int64, _ role: ChatMessageRole, _ parts: [ChatMessagePart]) -> ChatMessage {
+        ChatMessage(id: id, role: role, content: parts)
+    }
+
+    @Test
+    func hookNoticesBecomeTheirOwnRowsAfterTheMessage() {
+        let items = TranscriptBuilder.build(
+            messages: [message(1, .user, [
+                .init(type: .text, text: "ship it"),
+                .init(type: .hookNotice, text: "Approval required before deployment."),
+            ])],
+            streaming: [],
+            showTools: true
+        )
+        // The prompt keeps its bubble; the notice follows as a labelled row of its own.
+        #expect(items.count == 2)
+        #expect(items[0].isUserBubble)
+        guard case let .hookNotice(text) = items[1].kind else {
+            Issue.record("expected a hookNotice item, got \(items[1].kind)")
+            return
+        }
+        #expect(text == "Approval required before deployment.")
+    }
+
+    @Test
+    func aHookOnlyMessageRendersJustTheNoticeAndNoEmptyBubble() {
+        let items = TranscriptBuilder.build(
+            messages: [message(1, .assistant, [.init(type: .hookNotice, text: "Blocked by policy.")])],
+            streaming: [],
+            showTools: true
+        )
+        #expect(items.count == 1)
+        if case .bubble = items[0].kind { Issue.record("hook notice must not render as a bubble") }
+    }
+
+    @Test
+    func blankNoticesAreDropped() {
+        let items = TranscriptBuilder.build(
+            messages: [message(1, .assistant, [.init(type: .hookNotice, text: "   ")])],
+            streaming: [],
+            showTools: true
+        )
+        #expect(items.isEmpty)
+    }
+}

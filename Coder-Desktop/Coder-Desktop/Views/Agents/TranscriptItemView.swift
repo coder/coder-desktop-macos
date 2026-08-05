@@ -48,6 +48,8 @@ struct TranscriptItemView<Agents: AgentsService>: View {
                 PlanView<Agents>(chatID: chatID, step: step).id(item.id)
             case let .question(step):
                 AskQuestionView<Agents>(chatID: chatID, step: step, interactive: questionInteractive).id(item.id)
+            case let .hookNotice(text):
+                HookNoticeView(text: text).id(item.id)
             }
         }
         .modifier(AgentCard(active: !item.isUserBubble))
