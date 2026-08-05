@@ -214,18 +214,27 @@ struct ChatsSectionTests {
 
     // MARK: - Accessibility
 
+    /// Asserts the label itself rather than reading it back off the hosted view: ViewInspector's
+    /// `accessibilityLabel()` reflects SwiftUI internals and stopped resolving on macOS 26 /
+    /// Xcode 26.6, so a view-tree search for it silently matched nothing.
     @Test
-    func accessibilityLabelIncludesStatusAndUnread() async throws {
-        agents.hasLoadedOnce = true
-        agents.sessions = [makeChat(title: "My Chat", status: .running, hasUnread: true)]
-        try await ViewHosting.host(view) {
-            try await sut.inspection.inspect { v in
-                let labeled = try v.find { view in
-                    (try? view.accessibilityLabel().string()) == "My Chat, Running, unread"
-                }
-                #expect(try labeled.accessibilityLabel().string() == "My Chat, Running, unread")
-            }
-        }
+    func accessibilityLabelIncludesStatusAndUnread() {
+        let unread = makeChat(title: "My Chat", status: .running, hasUnread: true)
+        #expect(ChatPeekRow.accessibilityLabel(for: unread) == "My Chat, Running, unread")
+
+        // Unread is the only conditional part; a read chat stops at the status.
+        let read = makeChat(title: "My Chat", status: .running, hasUnread: false)
+        #expect(ChatPeekRow.accessibilityLabel(for: read) == "My Chat, Running")
+    }
+
+    @Test
+    func accessibilityLabelUsesEachStatusLabel() {
+        #expect(ChatPeekRow.accessibilityLabel(for: makeChat(title: "T", status: .error)) == "T, Error")
+        #expect(
+            ChatPeekRow.accessibilityLabel(for: makeChat(title: "T", status: .requiresAction))
+                == "T, Needs action"
+        )
+        #expect(ChatPeekRow.accessibilityLabel(for: makeChat(title: "T", status: .waiting)) == "T, Waiting")
     }
 }
 
@@ -320,15 +329,15 @@ struct ChatsSectionRowTests {
     @Test
     func nilTitleFallsBackToChat() async throws {
         agents.hasLoadedOnce = true
-        agents.sessions = [Chat(id: UUID(), title: nil, status: .completed, created_at: Date(), updated_at: Date())]
+        let untitled = Chat(id: UUID(), title: nil, status: .completed, created_at: Date(), updated_at: Date())
+        agents.sessions = [untitled]
+        // The rendered title is still checked through the view; only the accessibility label is
+        // asserted directly (ViewInspector can't resolve that modifier on macOS 26).
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { v in
                 #expect(throws: Never.self) { try v.find(text: "Chat") }
-                let labeled = try v.find { view in
-                    (try? view.accessibilityLabel().string())?.hasPrefix("Chat,") == true
-                }
-                #expect(try labeled.accessibilityLabel().string().hasPrefix("Chat,"))
             }
         }
+        #expect(ChatPeekRow.accessibilityLabel(for: untitled).hasPrefix("Chat,"))
     }
 }

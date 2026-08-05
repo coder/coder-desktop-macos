@@ -86,7 +86,7 @@ struct ChatsSection<AgentsSvc: AgentsService>: View {
 
 // MARK: - Row
 
-private struct ChatPeekRow: View {
+struct ChatPeekRow: View {
     let chat: Chat
 
     var body: some View {
@@ -111,10 +111,14 @@ private struct ChatPeekRow: View {
                 }
             }
         }
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(Self.accessibilityLabel(for: chat))
     }
 
-    private var accessibilityLabel: String {
+    /// VoiceOver description for the row: title, status, and unread when applicable. A static
+    /// function of the chat alone so it can be asserted directly — reading it back out of the
+    /// hosted view depends on ViewInspector reflecting SwiftUI's accessibility internals, which
+    /// breaks across OS releases.
+    nonisolated static func accessibilityLabel(for chat: Chat) -> String {
         var parts = [chat.title ?? "Chat", chat.status.label]
         if chat.has_unread == true { parts.append("unread") }
         return parts.joined(separator: ", ")
