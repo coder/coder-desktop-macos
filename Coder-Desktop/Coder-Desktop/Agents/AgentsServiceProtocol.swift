@@ -54,6 +54,10 @@ protocol AgentsService: ObservableObject {
     /// AI providers by id, for grouping/labelling models in the picker.
     var aiProviders: [UUID: AIProvider] { get }
     func loadAIProviders() async
+    /// The archived chats, which the normal listing hides.
+    func loadArchivedSessions() async -> [Chat]
+    /// Restores an archived chat to the sidebar.
+    func unarchive(_ id: UUID) async -> Bool
     /// Disconnects a connector's OAuth2 credentials. Nil means the request failed; a result may
     /// still report that revocation at the provider didn't succeed.
     func disconnectMCPOAuth(_ id: UUID) async -> MCPOAuthDisconnect?

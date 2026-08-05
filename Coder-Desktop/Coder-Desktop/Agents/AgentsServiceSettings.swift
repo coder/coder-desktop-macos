@@ -72,6 +72,34 @@ extension CoderAgentsService {
         try? await client?.chatCost(chatID: id)
     }
 
+    /// Loads the archived chats, which the default listing hides. Kept separate from `sessions`
+    /// so the normal sidebar never has to filter them back out.
+    func loadArchivedSessions() async -> [Chat] {
+        guard let client else { return [] }
+        do {
+            return try await client.chats(query: "archived:true")
+                .sorted { $0.updated_at > $1.updated_at }
+        } catch {
+            loadError = error.localizedDescription
+            logger.error("failed to load archived chats: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Restores an archived chat and puts it back in the sidebar.
+    func unarchive(_ id: UUID) async -> Bool {
+        guard let client else { return false }
+        do {
+            try await client.unarchiveChat(id)
+            await reloadSessions()
+            return true
+        } catch {
+            loadError = error.localizedDescription
+            logger.error("failed to unarchive chat: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     /// Disconnects a connector's OAuth2 credentials and refreshes the connector list. Returns nil
     /// when the request failed; a non-nil result may still carry a provider-side revocation error.
     func disconnectMCPOAuth(_ id: UUID) async -> MCPOAuthDisconnect? {

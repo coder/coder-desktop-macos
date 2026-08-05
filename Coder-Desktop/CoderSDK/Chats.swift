@@ -114,6 +114,18 @@ public extension Client {
         }
     }
 
+    /// Restores an archived chat. Archive state is root-only, so this is rejected for children.
+    func unarchiveChat(_ id: UUID) async throws(SDKError) {
+        let res = try await request(
+            "/api/experimental/chats/\(id.uuidString)",
+            method: .patch,
+            body: UpdateChatRequest(archived: false)
+        )
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
+            throw responseAsError(res)
+        }
+    }
+
     /// Edits a user message, which rewinds the chat to that point: the server soft-deletes
     /// the message and everything after it, clears the queue, and restarts the turn.
     func editChatMessage(

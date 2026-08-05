@@ -22,6 +22,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
     @State private var renameText = ""
     @State private var deletingWorkspace: Chat?
     @State private var showingSettings = false
+    /// Archived chats are a separate browsing mode: the normal listing hides them, and archive
+    /// state is the only way back to a chat put away by mistake.
+    @State private var showingArchived = false
     /// Root chats whose sub-agent children are shown (the web sidebar's expandable tree).
     @State private var expandedRoots: Set<UUID> = []
 
@@ -98,12 +101,18 @@ struct AgentsWindow<Agents: AgentsService>: View {
 
             Divider()
 
-            sessionList
+            if showingArchived { ArchivedSessions<Agents>(onBack: { showingArchived = false }) } else { sessionList }
 
             Divider()
             HStack {
                 UsageIndicator<Agents>()
                 Spacer()
+                Button { showingArchived.toggle() } label: {
+                    Image(systemName: "archivebox")
+                }
+                .buttonStyle(.borderless)
+                .help(showingArchived ? "Back to chats" : "Archived chats")
+                .accessibilityLabel(showingArchived ? "Back to chats" : "Archived chats")
                 Button { showingSettings = true } label: {
                     Image(systemName: "gearshape")
                 }

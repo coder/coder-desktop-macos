@@ -45,6 +45,8 @@ final class PreviewAgents: AgentsService {
     @Published var aiProviders: [UUID: AIProvider] = [:]
     func loadAIProviders() async {}
     func disconnectMCPOAuth(_: UUID) async -> MCPOAuthDisconnect? { nil }
+    func loadArchivedSessions() async -> [Chat] { [] }
+    func unarchive(_: UUID) async -> Bool { true }
     func mcpIcon(_: UUID) -> NSImage? {
         nil
     }
