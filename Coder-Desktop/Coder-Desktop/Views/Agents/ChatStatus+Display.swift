@@ -54,12 +54,17 @@ extension ChatStatus {
         }
     }
 
-    /// The run is over; no more output will arrive. `waiting` counts — a finished turn parks
-    /// there awaiting your next message. `requiresAction` does not: output resumes once the
-    /// action is answered.
+    /// The run is over; no more output will arrive. Used only to decide whether the per-chat
+    /// stream should stop resubscribing after a clean socket close.
+    ///
+    /// Deliberately NOT including `waiting`, even though that's where a finished turn parks on
+    /// current servers: chatd holds the subscription open across turns (its stream goroutine
+    /// exits only on client disconnect or error, never on a terminal status), so a clean close
+    /// is an infrastructure event — a load-balancer recycle or idle timeout — and must be
+    /// resubscribed or the chat silently stops receiving updates made from other clients.
     var isTerminal: Bool {
         switch self {
-        case .waiting, .error, .completed: true
+        case .error, .completed: true
         default: false
         }
     }

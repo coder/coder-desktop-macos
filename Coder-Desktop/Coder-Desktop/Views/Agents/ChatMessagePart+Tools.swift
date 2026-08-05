@@ -9,19 +9,27 @@ extension ChatMessagePart {
         type == .reasoning || type == .file || type == .fileReference || text?.isEmpty == false
     }
 
-    enum ToolKind { case execute, readFile, editFile, search, summarize, workspace, other }
+    enum ToolKind { case execute, readFile, editFile, search, summarize, workspace, agent, desktop, other }
 
+    /// Exact names come first and mirror the server's canonical tool set (coder/coder's
+    /// ToolIcon registry); the substring heuristics below stay as a tolerant fallback for
+    /// tools this client doesn't know yet, rather than rendering them as anonymous.
     var toolKind: ToolKind {
         let name = (tool_name ?? "").lowercased()
         switch name {
-        case "execute", "bash", "shell", "run", "run_command":
+        case "execute", "bash", "shell", "run", "run_command",
+             "process_output", "process_list", "process_signal":
             return .execute
-        case "read_file", "read", "view", "cat", "open":
+        case "read_file", "read", "view", "cat", "open", "read_skill":
             return .readFile
         case "chat_summarized":
             return .summarize
-        case "create_workspace", "start_workspace":
+        case "create_workspace", "start_workspace", "list_templates", "read_template":
             return .workspace
+        case "list_agents", "advisor":
+            return .agent
+        case "computer":
+            return .desktop
         default:
             if name.contains("summariz") || name.contains("compact") {
                 return .summarize
@@ -46,6 +54,8 @@ extension ChatMessagePart {
         case .search: "magnifyingglass"
         case .summarize: "arrow.down.right.and.arrow.up.left"
         case .workspace: "desktopcomputer"
+        case .agent: "sparkles"
+        case .desktop: "display"
         case .other: "wrench.and.screwdriver"
         }
     }

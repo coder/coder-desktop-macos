@@ -7,14 +7,13 @@ import Testing
 struct AgentsUIHelpersTests {
     @Test
     func chatStatusSemantics() {
-        // `waiting` is where a finished turn parks on current servers; `completed` only still
-        // arrives from pre-#27064 deployments.
-        #expect(ChatStatus.waiting.isTerminal)
         #expect(ChatStatus.completed.isTerminal)
         #expect(ChatStatus.error.isTerminal)
         #expect(!ChatStatus.running.isTerminal)
-        // The run resumes once the action is answered, so more output is still coming.
-        #expect(!ChatStatus.requiresAction.isTerminal)
+        // `waiting` is where a finished turn parks, but chatd keeps the stream subscription
+        // open across turns — treating it as terminal would stop resubscribing and silently
+        // drop updates made from other clients.
+        #expect(!ChatStatus.waiting.isTerminal)
         #expect(ChatStatus.running.isInterruptible)
         #expect(ChatStatus.pending.isInterruptible)
         #expect(!ChatStatus.completed.isInterruptible)

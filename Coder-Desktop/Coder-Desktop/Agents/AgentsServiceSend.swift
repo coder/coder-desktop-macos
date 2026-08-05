@@ -11,6 +11,15 @@ extension CoderAgentsService {
         await send(id, prompt: prompt, extra: extraParts, options: options)
     }
 
+    /// Names of the workspace skills pinned to a chat's context. Requires the single-chat GET:
+    /// list and watch payloads omit `context.resources`. Only healthy resources count, matching
+    /// how the server resolves `read_skill`.
+    func workspaceSkillNames(_ id: UUID) async -> Set<String> {
+        guard let client, let chat = try? await client.chat(id) else { return [] }
+        let skills = (chat.context?.resources ?? []).filter { $0.kind == "skill" && $0.status == "ok" }
+        return Set(skills.compactMap(\.skill_name))
+    }
+
     /// Manually compacts the context. The chat transitions to running and the summary streams
     /// in like any other turn, so there's nothing to reconcile here.
     func compact(_ id: UUID) async {

@@ -169,6 +169,7 @@ final class PreviewAgents: AgentsService {
 
     func interrupt(_: UUID) async {}
     func compact(_: UUID) async {}
+    func workspaceSkillNames(_: UUID) async -> Set<String> { [] }
     func archive(_ id: UUID) async {
         sessions.removeAll { $0.id == id }
     }

@@ -77,7 +77,8 @@ struct ToolStep: Identifiable {
             return "Searched"
         case .summarize: return result == nil ? "Summarizing…" : "Summarized"
         case .workspace: return workspaceLabel
-        case .other: return intent ?? source.toolLabel ?? "Tool"
+        // The model's own intent reads better than a generic verb here.
+        case .agent, .desktop, .other: return intent ?? source.toolLabel ?? "Tool"
         }
     }
 

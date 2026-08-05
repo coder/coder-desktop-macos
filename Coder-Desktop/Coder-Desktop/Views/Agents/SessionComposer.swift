@@ -363,12 +363,18 @@ extension SessionComposer {
         return true
     }
 
-    /// Runs the built-in compaction, unless a personal skill of the same name shadows it — in
-    /// which case the text is sent as an ordinary message so the skill still wins. Skills are
-    /// loaded lazily, so they're resolved here rather than guessed from an empty list.
+    /// Runs the built-in compaction, unless a personal OR workspace skill of the same name
+    /// shadows it — in which case the text is sent as an ordinary message so the skill still
+    /// wins. Both sources are resolved here: personal skills load lazily, and workspace skills
+    /// need the single-chat GET, so neither can be read off the sidebar row.
     func sendCompact(restoring typed: String) async {
         await agents.loadUserSkills()
-        if agents.userSkills.contains(where: { $0.name == "compact" }) {
+        var shadowed = agents.userSkills.contains { $0.name == "compact" }
+        if !shadowed {
+            // Only worth the single-chat GET when no personal skill already shadowed it.
+            shadowed = await agents.workspaceSkillNames(session.id).contains("compact")
+        }
+        if shadowed {
             let ok = await agents.sendMessage(
                 session.id, prompt: typed, extraParts: [],
                 options: .init(

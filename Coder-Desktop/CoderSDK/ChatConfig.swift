@@ -212,6 +212,23 @@ public struct ChatContext: Codable, Sendable, Equatable {
     public let dirty_since: Date?
     /// Snapshot-level error copied from the pinned snapshot (empty when healthy).
     public let error: String?
+    /// The chat's pinned context (instruction files and skills), metadata only. Populated
+    /// ONLY on the single-chat GET — list and watch payloads leave it nil to stay light.
+    public let resources: [ChatContextResource]?
+}
+
+/// One pinned context resource. Non-ok resources are still reported so the UI can explain why
+/// something was dropped from the prompt; their kind-specific fields are then empty.
+public struct ChatContextResource: Codable, Sendable, Equatable {
+    /// Canonical file path, skill directory, or MCP server name.
+    public let source: String?
+    /// "instruction_file", "skill", "mcp_config", "mcp_server".
+    public let kind: String?
+    /// Populated only for skill kinds.
+    public let skill_name: String?
+    public let skill_description: String?
+    /// "ok", or a reason the resource was dropped (invalid/unreadable/oversize/excluded).
+    public let status: String?
 }
 
 public extension Client {
