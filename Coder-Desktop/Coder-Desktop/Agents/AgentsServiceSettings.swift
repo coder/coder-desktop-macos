@@ -72,6 +72,21 @@ extension CoderAgentsService {
         try? await client?.chatCost(chatID: id)
     }
 
+    /// Deletes a workspace outright (the "archive chat & delete workspace" action). Reports
+    /// failure so the caller can hold off archiving the chat.
+    func deleteWorkspace(_ workspaceID: UUID) async -> Bool {
+        guard let client else { return false }
+        do {
+            try await client.deleteWorkspace(workspaceID)
+            await loadWorkspaces()
+            return true
+        } catch {
+            loadError = error.localizedDescription
+            logger.error("failed to delete workspace: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     /// Workspace quota for the current user (nil when not configured / not premium).
     func workspaceQuota() async -> WorkspaceQuota? {
         guard let client, let orgID = await organizationID(),
