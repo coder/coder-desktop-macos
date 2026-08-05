@@ -16,6 +16,9 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
+    /// AI providers keyed by id, for grouping and labelling models in the picker. Loaded lazily
+    /// the first time the picker opens. Setter is internal so the settings extension can fill it.
+    @Published var aiProviders: [UUID: AIProvider] = [:]
     @Published var userSkills: [UserSkill] = [] // loaded lazily by the skills "/" trigger
     /// Workspace skills per chat, from the single-chat GET's pinned context. Nil (absent) means
     /// "not loaded yet", which the menu needs in order to qualify colliding personal names.
@@ -107,6 +110,7 @@ final class CoderAgentsService: AgentsService {
         workspaces = []
         mcpServers = []
         modelConfigs = []
+        aiProviders.removeAll()
         userSkills = []
         workspaceSkillsBySession.removeAll()
         userPrompt = ""

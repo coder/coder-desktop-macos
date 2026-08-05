@@ -42,6 +42,8 @@ final class PreviewAgents: AgentsService {
     func loadWorkspaces() async {}
     func loadMCPServers() async {}
     func loadModelConfigs() async {}
+    @Published var aiProviders: [UUID: AIProvider] = [:]
+    func loadAIProviders() async {}
     func mcpIcon(_: UUID) -> NSImage? {
         nil
     }

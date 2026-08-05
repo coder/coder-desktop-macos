@@ -105,13 +105,26 @@ public struct AIProvider: Codable, Sendable, Equatable, Identifiable {
     public let name: String
     public let display_name: String
     public let enabled: Bool
+    /// Icon path, absolute or relative to the deployment (resolve before loading).
+    public let icon: String?
+    public let deleted: Bool?
 
-    public init(id: UUID, type: String, name: String, display_name: String, enabled: Bool) {
+    public init(
+        id: UUID, type: String, name: String, display_name: String, enabled: Bool,
+        icon: String? = nil, deleted: Bool? = nil
+    ) {
         self.id = id
         self.type = type
         self.name = name
         self.display_name = display_name
         self.enabled = enabled
+        self.icon = icon
+        self.deleted = deleted
+    }
+
+    /// Display label, falling back to the provider's internal name.
+    public var label: String {
+        display_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? name : display_name
     }
 }
 

@@ -51,6 +51,9 @@ protocol AgentsService: ObservableObject {
     func loadWorkspaces() async
     func loadMCPServers() async
     func loadModelConfigs() async
+    /// AI providers by id, for grouping/labelling models in the picker.
+    var aiProviders: [UUID: AIProvider] { get }
+    func loadAIProviders() async
 
     /// Fetched connector icon for an MCP server, if loaded.
     func mcpIcon(_ id: UUID) -> NSImage?

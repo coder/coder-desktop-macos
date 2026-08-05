@@ -72,6 +72,17 @@ extension CoderAgentsService {
         try? await client?.chatCost(chatID: id)
     }
 
+    /// Loads the deployment's AI providers, for grouping and labelling models in the picker.
+    /// Same source the web's picker uses for provider info; skipped once populated.
+    func loadAIProviders() async {
+        guard let client, aiProviders.isEmpty,
+              let statuses = try? await client.aiProviderKeys() else { return }
+        aiProviders = Dictionary(
+            statuses.map(\.provider).map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
     /// Deletes a workspace outright (the "archive chat & delete workspace" action). Reports
     /// failure so the caller can hold off archiving the chat.
     func deleteWorkspace(_ workspaceID: UUID) async -> Bool {
