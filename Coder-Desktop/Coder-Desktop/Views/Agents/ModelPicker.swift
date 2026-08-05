@@ -280,8 +280,19 @@ private struct EffortSlider: View {
 
     @State private var showInfo = false
 
-    /// The slider works in indices; an unknown/absent effort shows the lowest.
-    private var index: Double {
+    /// The knob's position, owned locally so it tracks the drag immediately. Deriving it from
+    /// `effort` instead made the knob redraw from the bound value, which lives on the composer's
+    /// model outside this popover — when that didn't propagate back in, the knob snapped to the
+    /// old position even though the effort had changed.
+    @State private var index: Double = 0
+
+    /// The effort the knob is currently sitting on, so the chip can never disagree with it.
+    private var currentEffort: String {
+        efforts[min(max(Int(index.rounded()), 0), efforts.count - 1)]
+    }
+
+    /// Position for an effort value; an unknown or absent one sits at the lowest.
+    private func position(of effort: String?) -> Double {
         Double(effort.flatMap { efforts.firstIndex(of: $0) } ?? 0)
     }
 
@@ -309,27 +320,22 @@ private struct EffortSlider: View {
             .fixedSize()
             // A single-model range would make Slider's bounds invalid, so show just the chip.
             if efforts.count > 1 {
-                Slider(
-                    value: Binding(
-                        get: { index },
-                        set: { newValue in
-                            let clamped = min(max(Int(newValue.rounded()), 0), efforts.count - 1)
-                            guard efforts[clamped] != effort else { return }
-                            effort = efforts[clamped]
-                            EffortMemory.save(efforts[clamped], for: modelConfigID)
-                        }
-                    ),
-                    in: 0 ... Double(efforts.count - 1),
-                    step: 1
-                )
-                .accessibilityLabel("Reasoning effort")
-                .accessibilityValue(effortLabel(effort ?? ""))
+                Slider(value: $index, in: 0 ... Double(efforts.count - 1), step: 1)
+                    .accessibilityLabel("Reasoning effort")
+                    .accessibilityValue(effortLabel(currentEffort))
+                    .onChange(of: index) {
+                        // Persist only a real change, so settling on the same step is a no-op.
+                        guard currentEffort != effort else { return }
+                        effort = currentEffort
+                        EffortMemory.save(currentEffort, for: modelConfigID)
+                    }
             }
             // Every possible label is laid out invisibly underneath, so the chip keeps the width
             // of the longest one and dragging the slider can't resize the track under the cursor.
             ZStack {
                 ForEach(efforts, id: \.self) { Text(effortLabel($0)).hidden() }
-                Text(effortLabel(effort ?? efforts[0]))
+                // Reads the knob, not the binding, so the two can't drift apart.
+                Text(effortLabel(currentEffort))
             }
             .font(.caption)
             .padding(.horizontal, 5)
@@ -340,5 +346,8 @@ private struct EffortSlider: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        // Seeded per model, so switching models moves the knob to that model's effort. Keyed on
+        // the model rather than the effort, which would fight the drag.
+        .task(id: modelConfigID) { index = position(of: effort) }
     }
 }
