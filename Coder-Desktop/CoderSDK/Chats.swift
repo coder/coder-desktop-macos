@@ -155,6 +155,17 @@ public extension Client {
         return try decode([MCPServer].self, from: res.data)
     }
 
+    /// Disconnects a connector's OAuth2 credentials, revoking the grant at the provider when it
+    /// supports revocation. A failure to revoke upstream still disconnects locally, reported via
+    /// `token_revocation_error`.
+    func disconnectMCPOAuth(_ id: UUID) async throws(SDKError) -> MCPOAuthDisconnect {
+        let res = try await request(
+            "/api/experimental/mcp/servers/\(id.uuidString)/oauth2/disconnect", method: .delete
+        )
+        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
+        return try decode(MCPOAuthDisconnect.self, from: res.data)
+    }
+
     /// Lists the selectable model configurations. Each has a UUID `id` used as
     /// `model_config_id` when creating a chat.
     func chatModelConfigs() async throws(SDKError) -> [ChatModelConfig] {

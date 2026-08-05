@@ -54,6 +54,9 @@ protocol AgentsService: ObservableObject {
     /// AI providers by id, for grouping/labelling models in the picker.
     var aiProviders: [UUID: AIProvider] { get }
     func loadAIProviders() async
+    /// Disconnects a connector's OAuth2 credentials. Nil means the request failed; a result may
+    /// still report that revocation at the provider didn't succeed.
+    func disconnectMCPOAuth(_ id: UUID) async -> MCPOAuthDisconnect?
 
     /// Fetched connector icon for an MCP server, if loaded.
     func mcpIcon(_ id: UUID) -> NSImage?

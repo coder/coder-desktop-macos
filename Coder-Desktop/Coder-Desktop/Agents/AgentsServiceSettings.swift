@@ -72,6 +72,21 @@ extension CoderAgentsService {
         try? await client?.chatCost(chatID: id)
     }
 
+    /// Disconnects a connector's OAuth2 credentials and refreshes the connector list. Returns nil
+    /// when the request failed; a non-nil result may still carry a provider-side revocation error.
+    func disconnectMCPOAuth(_ id: UUID) async -> MCPOAuthDisconnect? {
+        guard let client else { return nil }
+        do {
+            let result = try await client.disconnectMCPOAuth(id)
+            await loadMCPServers()
+            return result
+        } catch {
+            loadError = error.localizedDescription
+            logger.error("failed to disconnect connector: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     /// Loads the deployment's AI providers, for grouping and labelling models in the picker.
     /// Same source the web's picker uses for provider info; skipped once populated.
     func loadAIProviders() async {

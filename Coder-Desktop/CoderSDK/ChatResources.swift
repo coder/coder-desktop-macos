@@ -166,6 +166,18 @@ public struct ChatDiffStatus: Codable, Sendable, Equatable {
     }
 }
 
+/// Result of disconnecting a connector's OAuth2 credentials. The grant is always dropped
+/// locally; `token_revocation_error` reports that the provider's revocation call failed.
+public struct MCPOAuthDisconnect: Codable, Sendable, Equatable {
+    public let token_revoked: Bool?
+    public let token_revocation_error: String?
+
+    public init(token_revoked: Bool? = nil, token_revocation_error: String? = nil) {
+        self.token_revoked = token_revoked
+        self.token_revocation_error = token_revocation_error
+    }
+}
+
 public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     public let display_name: String
@@ -211,6 +223,11 @@ public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     public var hasAuth: Bool {
         let type = auth_type ?? "none"
         return type != "none" && !type.isEmpty
+    }
+
+    /// A connected OAuth2 server, whose credentials can be disconnected (and revoked upstream).
+    public var canDisconnectAuth: Bool {
+        auth_type == "oauth2" && auth_connected == true
     }
 }
 

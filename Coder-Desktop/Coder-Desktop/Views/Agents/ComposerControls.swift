@@ -18,6 +18,10 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
     var allowsWorkspacePick = true
     @State private var showMenu = false
     @State private var uploadError: String?
+    /// The connector awaiting disconnect confirmation.
+    @State private var disconnectTarget: MCPServer?
+    /// Shown after a disconnect that couldn't revoke the token at the provider.
+    @State private var revocationWarning: String?
 
     var body: some View {
         Button { showMenu.toggle() } label: {
@@ -35,6 +39,38 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
             Button("OK") { uploadError = nil }
         } message: {
             Text(uploadError ?? "")
+        }
+        .confirmationDialog(
+            "Disconnect \(disconnectTarget?.display_name ?? "connector")?",
+            isPresented: Binding(get: { disconnectTarget != nil }, set: { if !$0 { disconnectTarget = nil } }),
+            presenting: disconnectTarget
+        ) { server in
+            Button("Disconnect", role: .destructive) {
+                disconnectTarget = nil
+                Task { await disconnect(server) }
+            }
+            Button("Cancel", role: .cancel) { disconnectTarget = nil }
+        } message: { _ in
+            Text("Your authorization is removed and revoked at the provider. You'll need to "
+                + "authenticate again to use this connector.")
+        }
+        .alert("Disconnected, but not revoked", isPresented: Binding(
+            get: { revocationWarning != nil },
+            set: { if !$0 { revocationWarning = nil } }
+        )) {
+            Button("OK") { revocationWarning = nil }
+        } message: {
+            Text(revocationWarning ?? "")
+        }
+    }
+
+    /// Disconnects the connector. The grant is dropped locally even when the provider's own
+    /// revocation fails, so that case surfaces as a warning rather than an error (web parity).
+    private func disconnect(_ server: MCPServer) async {
+        guard let result = await agents.disconnectMCPOAuth(server.id) else { return }
+        if let error = result.token_revocation_error, !error.isEmpty {
+            revocationWarning = "\(server.display_name) was disconnected here, but revoking the "
+                + "token at the provider failed: \(error)"
         }
     }
 
@@ -114,6 +150,14 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                     .controlSize(.small)
                     .accessibilityLabel("Authenticate \(server.display_name)")
             } else {
+                if server.canDisconnectAuth {
+                    Button { disconnectTarget = server } label: {
+                        Image(systemName: "link.badge.plus").rotationEffect(.degrees(45))
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Disconnect \(server.display_name)")
+                    .accessibilityLabel("Disconnect \(server.display_name)")
+                }
                 Toggle("", isOn: binding(for: server))
                     .labelsHidden()
                     .toggleStyle(.switch)
