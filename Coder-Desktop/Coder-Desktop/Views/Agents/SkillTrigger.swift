@@ -32,6 +32,9 @@ struct SkillMenuItem: Identifiable, Equatable {
     let source: Source
     /// What gets inserted, e.g. "/compact" or "/workspace/deploy".
     let triggerText: String
+    /// The qualified form, always searchable even when `triggerText` is bare — so a query typed
+    /// against the qualified alias keeps matching if collision state changes mid-trigger.
+    let altTriggerText: String
 
     var id: String { "\(source.rawValue)/\(name)" }
 
@@ -43,27 +46,44 @@ struct SkillMenuItem: Identifiable, Equatable {
         self.description = description
         self.source = source
         let qualify = qualified ?? (source == .workspace)
-        triggerText = qualify && source != .command ? "/\(source.rawValue)/\(name)" : "/\(name)"
+        let qualifiedText = "/\(source.rawValue)/\(name)"
+        triggerText = qualify && source != .command ? qualifiedText : "/\(name)"
+        altTriggerText = source == .command ? "/\(name)" : qualifiedText
     }
 }
 
-/// Ranks menu items against a query: name-prefix, then name-substring, then
-/// description-substring. Ties break alphabetically; the caller's ordering across sources
-/// (commands, personal, workspace) is preserved by filtering each group separately.
+/// Ranks menu items against a query typed after the "/": prefix match on the name or either
+/// trigger form, then a substring match on those, then a description substring. Matching the
+/// trigger forms is what lets a typed qualified query ("workspace/dep") find its skill.
+///
+/// Equal ranks break by name, then by the caller's original order — which keeps commands ahead
+/// of personal skills ahead of workspace skills among otherwise-equal matches. A higher-ranked
+/// match from a later group can still sort first; the menu is a flat list, not web's
+/// section-partitioned one.
 func filterSkills(_ items: [SkillMenuItem], query: String) -> [SkillMenuItem] {
     let q = query.lowercased()
+    if q.isEmpty { return items }
+
     func rank(_ s: SkillMenuItem) -> Int {
-        let name = s.name.lowercased()
-        if name.hasPrefix(q) { return 0 }
-        if name.contains(q) { return 1 }
+        // Compared without the leading slash, since the query is what follows it.
+        let candidates = [s.name, s.triggerText, s.altTriggerText]
+            .map { $0.hasPrefix("/") ? String($0.dropFirst()) : $0 }
+            .map { $0.lowercased() }
+        if candidates.contains(where: { $0.hasPrefix(q) }) { return 0 }
+        if candidates.contains(where: { $0.contains(q) }) { return 1 }
         if (s.description ?? "").lowercased().contains(q) { return 2 }
         return 3
     }
-    if q.isEmpty { return items }
-    return items.filter { rank($0) < 3 }.sorted { a, b in
-        let ra = rank(a), rb = rank(b)
-        return ra == rb ? a.name.lowercased() < b.name.lowercased() : ra < rb
-    }
+
+    return items.enumerated()
+        .map { (index: $0.offset, item: $0.element, rank: rank($0.element)) }
+        .filter { $0.rank < 3 }
+        .sorted { a, b in
+            if a.rank != b.rank { return a.rank < b.rank }
+            let nameOrder = a.item.name.lowercased().compare(b.item.name.lowercased())
+            return nameOrder == .orderedSame ? a.index < b.index : nameOrder == .orderedAscending
+        }
+        .map(\.item)
 }
 
 /// State shared between the editor's coordinator and the SwiftUI menu hosted in the popover.

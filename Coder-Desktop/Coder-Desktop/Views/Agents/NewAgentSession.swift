@@ -88,9 +88,6 @@ struct NewAgentSession<Agents: AgentsService>: View {
         .onChange(of: agents.mcpServers.map(\.id)) { seedMCPSelection() }
         .onChange(of: agents.modelConfigs.map(\.id)) { seedModelSelection() }
         .onChange(of: modelConfigID) { seedEffort() }
-        .onChange(of: reasoningEffort) { _, new in
-            if let new, let id = modelConfigID { EffortMemory.save(new, for: id) }
-        }
     }
 
     /// Pre-select default-on / force-on servers once, like the web composer.

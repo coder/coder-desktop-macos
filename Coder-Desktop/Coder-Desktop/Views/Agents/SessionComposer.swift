@@ -117,10 +117,6 @@ struct SessionComposer<Agents: AgentsService>: View {
             seedEffort()
             Task { await loadCompactionThreshold() }
         }
-        .onChange(of: model.reasoningEffort) { _, new in
-            // Remember the effort per model, so reselecting that model restores it.
-            if let new, let id = model.selectedModelConfigID { EffortMemory.save(new, for: id) }
-        }
     }
 
     private var controls: some View {

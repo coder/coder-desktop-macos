@@ -101,7 +101,7 @@ struct ModelPicker<Agents: AgentsService>: View {
             .frame(maxHeight: 240)
             if let selected, !selected.selectableEfforts.isEmpty {
                 Divider()
-                EffortSlider(efforts: selected.selectableEfforts, effort: $effort)
+                EffortSlider(efforts: selected.selectableEfforts, effort: $effort, modelConfigID: selected.id)
             }
         }
         .frame(width: 260)
@@ -113,6 +113,10 @@ struct ModelPicker<Agents: AgentsService>: View {
 private struct EffortSlider: View {
     let efforts: [String]
     @Binding var effort: String?
+    /// Persisting happens here rather than on every `effort` change, so a value the user never
+    /// touched isn't pinned — otherwise raising a model's default server-side would never reach
+    /// anyone who had merely opened the picker once.
+    let modelConfigID: UUID
 
     @State private var showInfo = false
 
@@ -149,7 +153,9 @@ private struct EffortSlider: View {
                         get: { index },
                         set: { newValue in
                             let clamped = min(max(Int(newValue.rounded()), 0), efforts.count - 1)
-                            if efforts[clamped] != effort { effort = efforts[clamped] }
+                            guard efforts[clamped] != effort else { return }
+                            effort = efforts[clamped]
+                            EffortMemory.save(efforts[clamped], for: modelConfigID)
                         }
                     ),
                     in: 0 ... Double(efforts.count - 1),

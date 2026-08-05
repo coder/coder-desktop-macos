@@ -101,6 +101,21 @@ struct SkillMenuItemTests {
     }
 
     @Test
+    func typingTheQualifiedFormStillMatches() {
+        let workspace = SkillMenuItem(name: "deploy", description: nil, source: .workspace)
+        let personalBare = SkillMenuItem(name: "review", description: nil, source: .personal, qualified: false)
+        let items = [workspace, personalBare]
+
+        // The trigger the menu displays is what a user copies, so it must match as typed.
+        #expect(filterSkills(items, query: "workspace/dep").map(\.name) == ["deploy"])
+        // The qualified alias matches even when the displayed trigger is bare, which covers a
+        // personal skill whose qualification flips once workspace skills load.
+        #expect(filterSkills(items, query: "personal/rev").map(\.name) == ["review"])
+        // Bare names keep working.
+        #expect(filterSkills(items, query: "deploy").map(\.name) == ["deploy"])
+    }
+
+    @Test
     func filterRanksNamePrefixOverSubstringOverDescription() {
         let items = [
             SkillMenuItem(name: "zzz", description: "deployment helper", source: .personal, qualified: false),
