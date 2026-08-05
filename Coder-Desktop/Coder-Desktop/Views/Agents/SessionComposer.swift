@@ -86,7 +86,12 @@ struct SessionComposer<Agents: AgentsService>: View {
                     }
                 },
                 skills: menuSkills,
-                onSkillTrigger: { Task { await agents.loadUserSkills() } }
+                onSkillTrigger: {
+                    Task {
+                        await agents.loadUserSkills()
+                        await agents.loadWorkspaceSkills(session.id)
+                    }
+                }
             )
             .frame(minHeight: 24, maxHeight: 140)
             controls

@@ -140,6 +140,10 @@ protocol AgentsService: ObservableObject {
     /// Workspace skills pinned to a chat's context; needed to tell whether a skill shadows a
     /// built-in slash command.
     func workspaceSkillNames(_ id: UUID) async -> Set<String>
+    /// Lazily loads the chat's workspace skills (single-chat GET), cached per chat.
+    func loadWorkspaceSkills(_ id: UUID) async
+    /// Cached workspace skills, nil until loaded — which distinguishes "none" from "unknown".
+    func workspaceSkills(for id: UUID) -> [WorkspaceSkill]?
     func archive(_ id: UUID) async
     func rename(_ id: UUID, title: String) async
     /// Regenerates the chat title from transcript (persists it server-side).
@@ -190,6 +194,13 @@ protocol AgentsService: ObservableObject {
 }
 
 /// Parameters for launching a new chat session (bundled to keep the call concise).
+/// A skill pinned to a chat's workspace context, offered in the composer's "/" menu.
+struct WorkspaceSkill: Identifiable, Equatable {
+    let name: String
+    let description: String?
+    var id: String { name }
+}
+
 struct NewSessionRequest {
     let prompt: String
     var workspaceID: UUID?

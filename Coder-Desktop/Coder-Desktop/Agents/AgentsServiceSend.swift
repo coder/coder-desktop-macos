@@ -11,13 +11,29 @@ extension CoderAgentsService {
         await send(id, prompt: prompt, extra: extraParts, options: options)
     }
 
-    /// Names of the workspace skills pinned to a chat's context. Requires the single-chat GET:
-    /// list and watch payloads omit `context.resources`. Only healthy resources count, matching
-    /// how the server resolves `read_skill`.
+    /// Loads the workspace skills pinned to a chat's context, caching them per chat. Requires the
+    /// single-chat GET: list and watch payloads omit `context.resources`. Only healthy resources
+    /// count, matching how the server resolves `read_skill`. Duplicate names keep the first, as
+    /// the server also collapses them first-wins in resource order.
+    func loadWorkspaceSkills(_ id: UUID) async {
+        guard let client, workspaceSkillsBySession[id] == nil, let chat = try? await client.chat(id) else { return }
+        var seen = Set<String>()
+        workspaceSkillsBySession[id] = (chat.context?.resources ?? [])
+            .filter { $0.kind == "skill" && $0.status == "ok" }
+            .compactMap { resource -> WorkspaceSkill? in
+                guard let name = resource.skill_name, !name.isEmpty, seen.insert(name).inserted else { return nil }
+                return WorkspaceSkill(name: name, description: resource.skill_description)
+            }
+    }
+
+    func workspaceSkills(for id: UUID) -> [WorkspaceSkill]? {
+        workspaceSkillsBySession[id]
+    }
+
+    /// Names of the chat's workspace skills, fetching them if they aren't cached yet.
     func workspaceSkillNames(_ id: UUID) async -> Set<String> {
-        guard let client, let chat = try? await client.chat(id) else { return [] }
-        let skills = (chat.context?.resources ?? []).filter { $0.kind == "skill" && $0.status == "ok" }
-        return Set(skills.compactMap(\.skill_name))
+        await loadWorkspaceSkills(id)
+        return Set((workspaceSkillsBySession[id] ?? []).map(\.name))
     }
 
     /// Manually compacts the context. The chat transitions to running and the summary streams

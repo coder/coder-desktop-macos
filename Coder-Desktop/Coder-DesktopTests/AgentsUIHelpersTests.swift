@@ -77,3 +77,40 @@ struct AgentsUIHelpersTests {
         #expect(JSONValue.number(1e30).intValue == nil)
     }
 }
+
+@Suite(.timeLimit(.minutes(1)))
+struct SkillMenuItemTests {
+    @Test
+    func workspaceSkillsAlwaysQualifyAndCommandsNeverDo() {
+        // A bare workspace name is ambiguous to read_skill, so it always carries its source.
+        let workspace = SkillMenuItem(name: "deploy", description: nil, source: .workspace)
+        #expect(workspace.triggerText == "/workspace/deploy")
+
+        // Commands are never source-qualified.
+        let command = SkillMenuItem(name: "compact", description: nil, source: .command)
+        #expect(command.triggerText == "/compact")
+    }
+
+    @Test
+    func personalSkillQualifiesOnlyWhenItCollides() {
+        let bare = SkillMenuItem(name: "deploy", description: nil, source: .personal, qualified: false)
+        #expect(bare.triggerText == "/deploy")
+
+        let colliding = SkillMenuItem(name: "deploy", description: nil, source: .personal, qualified: true)
+        #expect(colliding.triggerText == "/personal/deploy")
+    }
+
+    @Test
+    func filterRanksNamePrefixOverSubstringOverDescription() {
+        let items = [
+            SkillMenuItem(name: "zzz", description: "deployment helper", source: .personal, qualified: false),
+            SkillMenuItem(name: "redeploy", description: nil, source: .personal, qualified: false),
+            SkillMenuItem(name: "deploy", description: nil, source: .personal, qualified: false),
+        ]
+        #expect(filterSkills(items, query: "deploy").map(\.name) == ["deploy", "redeploy", "zzz"])
+        // A non-matching query drops the item entirely.
+        #expect(filterSkills(items, query: "nomatch").isEmpty)
+        // An empty query preserves the caller's ordering across sources.
+        #expect(filterSkills(items, query: "").map(\.name) == ["zzz", "redeploy", "deploy"])
+    }
+}

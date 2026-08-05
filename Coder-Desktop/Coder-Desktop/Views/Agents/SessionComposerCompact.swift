@@ -7,18 +7,32 @@ let compactSlashCommand = "/compact"
 // MARK: - Built-in "/compact" command
 
 extension SessionComposer {
-    /// Built-in commands share the skill menu item shape so filtering and keyboard selection
-    /// work unchanged (web parity). A real skill of the same name takes precedence and is
-    /// offered instead.
-    var menuSkills: [UserSkill] {
-        guard !agents.userSkills.contains(where: { $0.name == "compact" }) else {
-            return agents.userSkills
+    /// The "/" menu: built-in commands, then personal skills, then this chat's workspace skills
+    /// — the web's ordering. A skill named after a command takes precedence, so the command is
+    /// dropped rather than shadowing it.
+    var menuSkills: [SkillMenuItem] {
+        let workspace = agents.workspaceSkills(for: session.id)
+        let workspaceNames = Set((workspace ?? []).map(\.name))
+        let commands = agents.userSkills.contains(where: { $0.name == "compact" })
+            || workspaceNames.contains("compact")
+            ? []
+            : [SkillMenuItem(
+                name: "compact",
+                description: "Summarize the conversation so far to free up context window space",
+                source: .command
+            )]
+        // Until workspace skills are known, personal names stay qualified: a bare name would be
+        // ambiguous to read_skill if a workspace skill turns out to share it.
+        let personal = agents.userSkills.map {
+            SkillMenuItem(
+                name: $0.name, description: $0.description, source: .personal,
+                qualified: workspace == nil || workspaceNames.contains($0.name)
+            )
         }
-        return agents.userSkills + [UserSkill(
-            id: "builtin-compact",
-            name: "compact",
-            description: "Summarize the conversation so far to free up context window space"
-        )]
+        let workspaceItems = (workspace ?? []).map {
+            SkillMenuItem(name: $0.name, description: $0.description, source: .workspace)
+        }
+        return commands + personal + workspaceItems
     }
 
     /// Claims a bare "/compact" submission for the built-in command instead of sending it as a

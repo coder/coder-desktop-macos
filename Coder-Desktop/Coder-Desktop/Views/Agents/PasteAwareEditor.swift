@@ -94,8 +94,9 @@ struct PasteAwareEditor: NSViewRepresentable {
     /// Called when the user pastes an image from the clipboard. Receives PNG data + suggested filename.
     var onImagePaste: (Data, String) -> Void = { _, _ in }
     var largePasteThreshold = 2000
-    /// Personal skills for the "/" trigger menu, and a hook to lazy-load them on first use.
-    var skills: [UserSkill] = []
+    /// Entries for the "/" trigger menu (commands + personal/workspace skills), and a hook to
+    /// lazy-load them on first use.
+    var skills: [SkillMenuItem] = []
     var onSkillTrigger: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
@@ -233,9 +234,9 @@ struct PasteAwareEditor: NSViewRepresentable {
             }
         }
 
-        private func insertSkill(_ skill: UserSkill) {
+        private func insertSkill(_ skill: SkillMenuItem) {
             guard let tv = textView, let range = skillTokenRange else { return }
-            let replacement = "/\(skill.name) "
+            let replacement = "\(skill.triggerText) "
             if tv.shouldChangeText(in: range, replacementString: replacement) {
                 tv.textStorage?.replaceCharacters(in: range, with: replacement)
                 tv.didChangeText()

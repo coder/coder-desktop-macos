@@ -22,18 +22,45 @@ func parseSkillTrigger(in text: String, caret: Int) -> (range: NSRange, query: S
     return (NSRange(location: slash, length: caret - slash), query)
 }
 
-/// Ranks skills against a query: name-prefix, then name-substring, then description-substring.
-func filterSkills(_ skills: [UserSkill], query: String) -> [UserSkill] {
+/// One entry in the "/" menu: a personal skill, a workspace skill, or a built-in command. They
+/// share a shape so filtering, keyboard selection and insertion work the same for all three.
+struct SkillMenuItem: Identifiable, Equatable {
+    enum Source: String { case command, personal, workspace }
+
+    let name: String
+    let description: String?
+    let source: Source
+    /// What gets inserted, e.g. "/compact" or "/workspace/deploy".
+    let triggerText: String
+
+    var id: String { "\(source.rawValue)/\(name)" }
+
+    /// Workspace skills are always source-qualified, and a personal skill is qualified when a
+    /// workspace skill shares its name (or when workspace skills aren't known yet), since a bare
+    /// name is ambiguous to `read_skill`. Mirrors the web's `createSkillMenuItem`.
+    init(name: String, description: String?, source: Source, qualified: Bool? = nil) {
+        self.name = name
+        self.description = description
+        self.source = source
+        let qualify = qualified ?? (source == .workspace)
+        triggerText = qualify && source != .command ? "/\(source.rawValue)/\(name)" : "/\(name)"
+    }
+}
+
+/// Ranks menu items against a query: name-prefix, then name-substring, then
+/// description-substring. Ties break alphabetically; the caller's ordering across sources
+/// (commands, personal, workspace) is preserved by filtering each group separately.
+func filterSkills(_ items: [SkillMenuItem], query: String) -> [SkillMenuItem] {
     let q = query.lowercased()
-    func rank(_ s: UserSkill) -> Int {
+    func rank(_ s: SkillMenuItem) -> Int {
         let name = s.name.lowercased()
         if name.hasPrefix(q) { return 0 }
         if name.contains(q) { return 1 }
         if (s.description ?? "").lowercased().contains(q) { return 2 }
         return 3
     }
-    if q.isEmpty { return skills.sorted { $0.name.lowercased() < $1.name.lowercased() } }
-    return skills.filter { rank($0) < 3 }.sorted { a, b in
+    if q.isEmpty { return items }
+    return items.filter { rank($0) < 3 }.sorted { a, b in
         let ra = rank(a), rb = rank(b)
         return ra == rb ? a.name.lowercased() < b.name.lowercased() : ra < rb
     }
@@ -42,9 +69,9 @@ func filterSkills(_ skills: [UserSkill], query: String) -> [UserSkill] {
 /// State shared between the editor's coordinator and the SwiftUI menu hosted in the popover.
 @MainActor
 final class SkillMenuModel: ObservableObject {
-    @Published var skills: [UserSkill] = []
+    @Published var skills: [SkillMenuItem] = []
     @Published var highlighted = 0
-    var onSelect: (UserSkill) -> Void = { _ in }
+    var onSelect: (SkillMenuItem) -> Void = { _ in }
 }
 
 /// The "/" skills menu shown in the composer popover.
@@ -61,7 +88,19 @@ struct SkillsMenuView: View {
                         ForEach(Array(model.skills.enumerated()), id: \.element.id) { idx, skill in
                             Button { model.onSelect(skill) } label: {
                                 VStack(alignment: .leading, spacing: 1) {
-                                    Text("/\(skill.name)").font(.callout.monospaced())
+                                    HStack(spacing: 5) {
+                                        Text(skill.triggerText).font(.callout.monospaced())
+                                        if skill.source == .workspace {
+                                            Text("Workspace")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 4)
+                                                .background(
+                                                    Color.secondary.opacity(0.15),
+                                                    in: RoundedRectangle(cornerRadius: 3)
+                                                )
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                     if let desc = skill.description, !desc.isEmpty {
                                         Text(desc).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                                     }

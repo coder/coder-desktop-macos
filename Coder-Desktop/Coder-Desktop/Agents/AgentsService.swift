@@ -17,6 +17,9 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var mcpServers: [MCPServer] = []
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
     @Published var userSkills: [UserSkill] = [] // loaded lazily by the skills "/" trigger
+    /// Workspace skills per chat, from the single-chat GET's pinned context. Nil (absent) means
+    /// "not loaded yet", which the menu needs in order to qualify colliding personal names.
+    @Published var workspaceSkillsBySession: [UUID: [WorkspaceSkill]] = [:]
     @Published private(set) var userPrompt = ""
     @Published var mcpIconsByServer: [UUID: NSImage] = [:]
     @Published var workspaceAppIcons: [String: NSImage] = [:] // keyed by icon URL string
@@ -105,6 +108,7 @@ final class CoderAgentsService: AgentsService {
         mcpServers = []
         modelConfigs = []
         userSkills = []
+        workspaceSkillsBySession.removeAll()
         userPrompt = ""
         mcpIconsByServer.removeAll()
         workspaceAppIcons.removeAll()
