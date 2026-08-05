@@ -190,6 +190,27 @@ struct TranscriptHookNoticeTests {
         if case .bubble = items[0].kind { Issue.record("hook notice must not render as a bubble") }
     }
 
+    /// Streaming parts go through the same builder (both the transcript's trailing call and
+    /// StreamingTailView), so a notice arriving mid-turn must already be a labelled row rather
+    /// than snapping into one once the message persists.
+    @Test
+    func hookNoticesInTheStreamingPathAlsoGetTheirOwnRow() {
+        let items = TranscriptBuilder.build(
+            messages: [],
+            streaming: [
+                .init(type: .text, text: "working on it"),
+                .init(type: .hookNotice, text: "Audit logging is enabled for this workspace."),
+            ],
+            showTools: true
+        )
+        #expect(items.count == 2)
+        guard case let .hookNotice(text) = items[1].kind else {
+            Issue.record("expected a hookNotice item, got \(items[1].kind)")
+            return
+        }
+        #expect(text == "Audit logging is enabled for this workspace.")
+    }
+
     @Test
     func blankNoticesAreDropped() {
         let items = TranscriptBuilder.build(

@@ -89,11 +89,13 @@ struct ModelPicker<Agents: AgentsService>: View {
         .task(id: show) {
             guard show else { return }
             await agents.loadAIProviders()
+            // Cleared before reading `groups`, or a stale query from the last visit would narrow
+            // which providers' icons get fetched.
+            search = ""
             // Reuses the URL-keyed icon cache the workspace-app icons use.
             agents.loadWorkspaceAppIcons(groups.compactMap(\.icon))
             // Open on the current model so arrow keys start from something meaningful.
             highlighted = selectedID
-            search = ""
             searchFocused = true
         }
     }
