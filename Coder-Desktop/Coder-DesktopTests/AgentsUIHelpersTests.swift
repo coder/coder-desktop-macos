@@ -114,3 +114,26 @@ struct SkillMenuItemTests {
         #expect(filterSkills(items, query: "").map(\.name) == ["zzz", "redeploy", "deploy"])
     }
 }
+
+@Suite(.timeLimit(.minutes(1)))
+struct ChatErrorDisplayTests {
+    @Test
+    func titlesMatchTheServersErrorKinds() {
+        #expect(ChatError(kind: "content_filter").title == "Response blocked")
+        #expect(ChatError(kind: "hook_denied").title == "Blocked by policy")
+        #expect(ChatError(kind: "rate_limit").title == "Rate limited")
+        // An unmodelled or absent kind still reads as a plain failure.
+        #expect(ChatError(kind: "brand_new_kind").title == "Request failed")
+        #expect(ChatError().title == "Request failed")
+    }
+
+    @Test
+    func onlyRefusalsCountAsBlocked() {
+        // A refusal isn't a fault to retry, so it gets the softer treatment and no recover action.
+        #expect(ChatError(kind: "content_filter").isBlocked)
+        #expect(ChatError(kind: "hook_denied").isBlocked)
+        #expect(!ChatError(kind: "rate_limit").isBlocked)
+        #expect(!ChatError(kind: "hook_dispatch_failed").isBlocked)
+        #expect(!ChatError().isBlocked)
+    }
+}

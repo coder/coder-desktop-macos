@@ -320,13 +320,16 @@ final class CoderAgentsService: AgentsService {
         )
     }
 
-    func deleteWorkspace(_ workspaceID: UUID) async {
-        guard let client else { return }
+    func deleteWorkspace(_ workspaceID: UUID) async -> Bool {
+        guard let client else { return false }
         do {
             try await client.deleteWorkspace(workspaceID)
             await loadWorkspaces()
+            return true
         } catch {
             loadError = error.localizedDescription
+            logger.error("failed to delete workspace: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 

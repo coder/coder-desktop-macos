@@ -198,8 +198,11 @@ struct AgentsWindow<Agents: AgentsService>: View {
             ) { chat in
                 Button("Archive chat & delete workspace", role: .destructive) {
                     Task {
-                        if let id = chat.workspace_id { await agents.deleteWorkspace(id) }
-                        await agents.archive(chat.id)
+                        // Only archive once the workspace is actually gone: archiving hides the
+                        // chat from the sidebar, so doing it after a failed delete would strand
+                        // the workspace with no obvious way back to retry.
+                        guard let id = chat.workspace_id else { return }
+                        if await agents.deleteWorkspace(id) { await agents.archive(chat.id) }
                     }
                     deletingWorkspace = nil
                 }

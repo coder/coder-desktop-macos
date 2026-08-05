@@ -157,14 +157,18 @@ struct SessionRow: View {
                 Label(session.isPinned ? "Unpin" : "Pin", systemImage: session.isPinned ? "pin.slash" : "pin")
             }
         }
-        Divider()
-        Button(role: .destructive) { onArchive() } label: { Label("Archive chat", systemImage: "archivebox") }
-            .disabled(!session.status.canArchive)
-        if !isChild, session.workspace_id != nil {
-            Button(role: .destructive) { onDeleteWorkspace() } label: {
-                Label("Archive chat & delete workspace", systemImage: "trash")
+        // Archive state is root-only server-side and cascades to children, so a child's archive
+        // request is always rejected — don't offer it (web parity, coder/coder #27063).
+        if !isChild {
+            Divider()
+            Button(role: .destructive) { onArchive() } label: { Label("Archive chat", systemImage: "archivebox") }
+                .disabled(!session.status.canArchive)
+            if session.workspace_id != nil {
+                Button(role: .destructive) { onDeleteWorkspace() } label: {
+                    Label("Archive chat & delete workspace", systemImage: "trash")
+                }
+                .disabled(!session.status.canArchive)
             }
-            .disabled(!session.status.canArchive)
         }
     }
 

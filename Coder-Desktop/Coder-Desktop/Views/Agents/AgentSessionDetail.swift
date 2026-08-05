@@ -264,11 +264,11 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
 
         var body: some View {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "exclamationmark.circle")
-                    .foregroundStyle(.red)
+                Image(systemName: error.systemImage)
+                    .foregroundStyle(error.tint)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Request failed").font(.callout.weight(.semibold))
+                    Text(error.title).font(.callout.weight(.semibold))
                     Text(error.message ?? "The agent run failed.").textSelection(.enabled)
                     if let detail = error.detail, !detail.isEmpty {
                         Text(detail)
@@ -279,7 +279,9 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     if let code = error.status_code, code > 0 {
                         Text("HTTP \(code)").font(.caption).foregroundStyle(.secondary)
                     }
-                    if let onRecover {
+                    // Nothing to recover from when the model or a hook declined — the run
+                    // didn't break, so offering a retry would just repeat the refusal.
+                    if let onRecover, !error.isBlocked {
                         Button("Try to recover", action: onRecover)
                             .buttonStyle(.borderless)
                             .font(.caption)

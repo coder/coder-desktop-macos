@@ -189,7 +189,7 @@ final class PreviewAgents: AgentsService {
     func uploadData(_: Data, filename _: String, contentType _: String) async -> UUID? { nil }
 
     func refreshChatContext(_: UUID) async {}
-    func deleteWorkspace(_: UUID) async {}
+    func deleteWorkspace(_: UUID) async -> Bool { true }
 
     @Published var userPrompt: String = ""
     func loadUserPrompt() async {}

@@ -156,7 +156,9 @@ protocol AgentsService: ObservableObject {
     /// Re-pins the chat to the agent's latest context snapshot, clearing the dirty marker.
     func refreshChatContext(_ id: UUID) async
     /// Permanently deletes the underlying Coder workspace (the chat itself is kept).
-    func deleteWorkspace(_ workspaceID: UUID) async
+    /// Deletes the chat's workspace. Returns false (and sets `loadError`) on failure, so callers
+    /// don't archive the chat and hide it while its workspace is still around.
+    func deleteWorkspace(_ workspaceID: UUID) async -> Bool
 
     // Settings: the user's "Personal instructions" (applied to all their chats).
     var userPrompt: String { get }
