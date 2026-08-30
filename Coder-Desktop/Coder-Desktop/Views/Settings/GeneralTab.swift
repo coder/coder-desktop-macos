@@ -12,7 +12,7 @@ struct GeneralTab: View {
             }
             Section {
                 Toggle(isOn: $agentsEnabled) {
-                    Text("Enable Agents (Early Access)")
+                    Text("Enable Agents")
                     Text("Launch and supervise Coder Agents sessions from Desktop.")
                 }
             }
