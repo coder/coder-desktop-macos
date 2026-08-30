@@ -148,7 +148,7 @@ public struct AIProviderKeyStatus: Codable, Sendable, Equatable, Identifiable {
     /// Status label for the provider, like the web's badge.
     public var statusLabel: String {
         if has_user_api_key { return "Key saved" }
-        if has_provider_api_key { return "Using shared key" }
+        if has_provider_api_key { return "Shared key" }
         return "No key"
     }
 }

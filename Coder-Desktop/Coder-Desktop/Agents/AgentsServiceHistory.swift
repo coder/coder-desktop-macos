@@ -37,11 +37,17 @@ extension CoderAgentsService {
 
     /// Edits a user message, rewinding the chat to that point (the server truncates
     /// everything after it). Reloads the authoritative truncated state and resumes.
-    func editMessage(_ messageID: Int64, in chatID: UUID, content: String, modelConfigID: UUID?) async -> Bool {
+    /// `options.planMode` is ignored — the edit endpoint has no plan-mode field.
+    func editMessage(
+        _ messageID: Int64, in chatID: UUID, content: [ChatInputPart], options: SendOptions
+    ) async -> Bool {
         guard let client else { return false }
         do {
             try await client.editChatMessage(
-                chatID, messageID: messageID, content: [.text(content)], modelConfigID: modelConfigID
+                chatID, messageID: messageID, content: content,
+                modelConfigID: options.modelConfigID,
+                reasoningEffort: options.reasoningEffort,
+                mcpServerIDs: options.mcpServerIDs
             )
         } catch {
             logger.error("failed to edit message: \(error.localizedDescription, privacy: .public)")

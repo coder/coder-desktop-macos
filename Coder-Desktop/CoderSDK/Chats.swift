@@ -80,9 +80,14 @@ public extension Client {
     /// Fetches an uploaded chat file's contents as text (e.g. a proposed plan's markdown,
     /// referenced by `file_id` in a `propose_plan` tool result). Returns raw text, not JSON.
     func chatFileText(_ fileID: UUID) async throws(SDKError) -> String {
+        try await String(data: chatFileData(fileID), encoding: .utf8) ?? ""
+    }
+
+    /// Fetches an uploaded chat file's raw bytes (image thumbnails, Quick Look previews).
+    func chatFileData(_ fileID: UUID) async throws(SDKError) -> Data {
         let res = try await request("/api/v2/chats/files/\(fileID.uuidString)", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
-        return String(data: res.data, encoding: .utf8) ?? ""
+        return res.data
     }
 
     /// Stops / interrupts an in-progress run.
@@ -142,12 +147,17 @@ public extension Client {
         _ chatID: UUID,
         messageID: Int64,
         content: [ChatInputPart],
-        modelConfigID: UUID? = nil
+        modelConfigID: UUID? = nil,
+        reasoningEffort: String? = nil,
+        mcpServerIDs: [UUID]? = nil
     ) async throws(SDKError) {
         let res = try await request(
             "/api/v2/chats/\(chatID.uuidString)/messages/\(messageID)",
             method: .patch,
-            body: EditChatMessageRequest(content: content, model_config_id: modelConfigID)
+            body: EditChatMessageRequest(
+                content: content, model_config_id: modelConfigID,
+                reasoning_effort: reasoningEffort, mcp_server_ids: mcpServerIDs
+            )
         )
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
     }
@@ -318,6 +328,12 @@ public struct CreateChatRequest: Encodable, Sendable {
 public struct EditChatMessageRequest: Encodable, Sendable {
     public let content: [ChatInputPart]
     public let model_config_id: UUID?
+    /// Overrides the reasoning effort for the replacement turn. Omit to preserve
+    /// the original (web sends it only when touched during the edit).
+    public let reasoning_effort: String?
+    /// Replaces the chat's MCP server selection before the replacement turn runs
+    /// (web sends the current composer selection on every edit).
+    public let mcp_server_ids: [UUID]?
 }
 
 public struct CreateChatMessageRequest: Encodable, Sendable {
@@ -412,6 +428,9 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
     /// Sub-agent chats embedded in their root; depth capped at 1.
     public var children: [Chat]?
     public var context: ChatContext?
+    /// Queued because the deployment hit its concurrent-agent capacity. Set only on the
+    /// single-chat GET (poll while running); watch events can only clear it.
+    public var queued_for_capacity: Bool?
 
     public init(
         id: UUID,
@@ -437,7 +456,8 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         last_reasoning_effort: String? = nil,
         has_unread: Bool? = nil,
         children: [Chat]? = nil,
-        context: ChatContext? = nil
+        context: ChatContext? = nil,
+        queued_for_capacity: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -463,6 +483,7 @@ public struct Chat: Codable, Identifiable, Sendable, Equatable {
         self.has_unread = has_unread
         self.children = children
         self.context = context
+        self.queued_for_capacity = queued_for_capacity
     }
 
     /// Whether the chat is pinned (pin_order > 0).

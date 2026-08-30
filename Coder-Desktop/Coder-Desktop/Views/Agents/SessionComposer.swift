@@ -18,14 +18,19 @@ final class ComposerModel: ObservableObject {
     @Published var reasoningEffort: String?
     @Published var compactionPercent: Int?
     var didSeed = false
+    /// Whether the user touched the effort slider during this edit. Web parity: an edit sends
+    /// `reasoning_effort` only when dirty, so an untouched edit preserves the original turn's.
+    var editEffortDirty = false
 
     func startEditing(_ messageID: Int64, _ text: String) {
         editingMessageID = messageID
+        editEffortDirty = false
         draft = text
     }
 
     func cancelEditing() {
         editingMessageID = nil
+        editEffortDirty = false
         draft = ""
     }
 
@@ -156,7 +161,15 @@ struct SessionComposer<Agents: AgentsService>: View {
             if !agents.modelConfigs.isEmpty {
                 ModelPicker<Agents>(
                     selectedID: $model.selectedModelConfigID,
-                    effort: $model.reasoningEffort
+                    // Marks the effort dirty when touched mid-edit; programmatic seeds
+                    // (seedEffort) write model.reasoningEffort directly and stay clean.
+                    effort: Binding(
+                        get: { model.reasoningEffort },
+                        set: {
+                            model.reasoningEffort = $0
+                            if model.editingMessageID != nil { model.editEffortDirty = true }
+                        }
+                    )
                 )
             }
             VoiceInputButton(draft: $model.draft, voice: voice)
@@ -179,6 +192,12 @@ struct SessionComposer<Agents: AgentsService>: View {
             .buttonStyle(.borderless)
             .help("Stop the agent")
             .accessibilityLabel("Stop the agent")
+        } else if !model.sending, session.status == .interrupting {
+            // Interrupt requested and draining: neither stoppable again nor sendable yet
+            // (web's isInterruptPending state).
+            ProgressView().controlSize(.small)
+                .help("Stopping…")
+                .accessibilityLabel("Stopping the agent")
         } else {
             Button(action: send) {
                 if model.sending {
@@ -271,10 +290,26 @@ struct SessionComposer<Agents: AgentsService>: View {
         model.pendingReferences = []
         if let editingMessageID = model.editingMessageID {
             model.editingMessageID = nil
+            // Carry the edited message's own attachments through (the server replaces the
+            // whole content; dropping them here would silently destroy the uploads).
+            let originalFiles = agents.messages(for: session.id)
+                .first { $0.id == editingMessageID }?
+                .content.filter { $0.type == .file }
+                .compactMap(\.file_id).map(ChatInputPart.file) ?? []
+            let effortDirty = model.editEffortDirty
+            model.editEffortDirty = false
             Task {
                 let ok = await agents.editMessage(
-                    editingMessageID, in: session.id, content: prompt,
-                    modelConfigID: model.selectedModelConfigID
+                    editingMessageID, in: session.id,
+                    content: [.text(prompt)] + originalFiles + extraParts,
+                    options: .init(
+                        modelConfigID: model.selectedModelConfigID,
+                        // Same replace-set guard as send(): never wipe a set we can't see.
+                        mcpServerIDs: model.selectedMCP.isEmpty && session.mcp_server_ids == nil
+                            ? nil : Array(model.selectedMCP),
+                        // Web parity: preserve the original effort unless touched mid-edit.
+                        reasoningEffort: effortDirty ? model.reasoningEffort : nil
+                    )
                 )
                 model.sending = false
                 if !ok { restore(); model.editingMessageID = editingMessageID } // restore edit on failure

@@ -107,12 +107,7 @@ struct MessagePartView: View {
         case .text:
             SmoothMarkdownText(text: part.text ?? "", isStreaming: streaming)
         case .file:
-            Label(part.file_name ?? part.title ?? "Attachment", systemImage: "paperclip")
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.15))
-                .clipShape(Capsule())
+            AttachmentPartView(part: part)
         case .fileReference:
             Label(part.file_name ?? "Code reference", systemImage: "text.alignleft")
                 .font(.caption)

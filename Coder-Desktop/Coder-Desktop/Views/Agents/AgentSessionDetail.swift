@@ -1,5 +1,6 @@
 import AppKit
 import CoderSDK
+import QuickLook
 import SwiftUI
 
 /// A single session: live streamed output (rendered per typed part) plus a prompt
@@ -16,9 +17,14 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     @State private var transcriptCache = TranscriptCache()
     @State private var loadingOlder = false
     @State private var didInitialScroll = false
+    /// Whether the view is anchored at the live edge. While false (user reading history),
+    /// new messages and streamed tokens must not yank the scroll position (web parity).
+    @State private var atBottom = true
     @State private var showPanel = false
     @State private var panelTab: SidePanelTab = .git
     @AppStorage(Defaults.sidePanelWidth) var sidePanelWidth = 380.0
+    /// Staged temp-file URL for the Quick Look attachment preview.
+    @State private var attachmentPreviewURL: URL?
     // Tool calls/results are collapsed to quiet rows; this hides them entirely.
     @AppStorage(Defaults.showToolActivity) private var showToolActivity = true
     @AppStorage(Defaults.chatFullWidth) private var chatFullWidth = false
@@ -39,7 +45,16 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     if let ctx = session.context, ctx.dirty {
                         contextDirtyBanner(ctx)
                     }
-                    transcript
+                    if let loadFailure = agents.historyLoadErrorBySession[session.id],
+                       agents.messages(for: session.id).isEmpty
+                    {
+                        chatLoadErrorView(loadFailure)
+                    } else {
+                        transcript
+                    }
+                    if session.queued_for_capacity == true {
+                        queuedForCapacityBanner
+                    }
                     if let retry = agents.retryBySession[session.id] {
                         RetryCallout(info: retry)
                     }
@@ -54,10 +69,24 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 }
             }
         }
+        .environment(\.chatAttachments, ChatAttachmentActions(
+            image: { agents.attachmentImage($0) },
+            failure: { agents.attachmentFailure($0) },
+            load: { agents.loadAttachment($0) },
+            open: { part in Task { attachmentPreviewURL = await agents.attachmentFileURL(part) } },
+            save: { part in Task { await agents.saveAttachment(part) } }
+        ))
+        .quickLookPreview($attachmentPreviewURL)
         .task(id: session.id) {
             // Chime/notification for the visible chat is suppressed at the service level.
             agents.activeSessionID = session.id
             agents.startStreaming(session.id)
+            // `queued_for_capacity` is only reported by the single-chat GET (never pushed),
+            // so poll it while this chat is open; the refresh no-ops when the chat is idle.
+            while !Task.isCancelled {
+                await agents.refreshCapacityQueue(session.id)
+                try? await Task.sleep(for: .seconds(15))
+            }
         }
         .onDisappear {
             if agents.activeSessionID == session.id { agents.activeSessionID = nil }
@@ -134,6 +163,30 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Web-parity warning shown while the deployment's concurrent-agent capacity holds this
+    /// chat in a queue. Generic copy only — the web's license-specific variants need
+    /// entitlements/permissions endpoints this client deliberately doesn't call.
+    private var queuedForCapacityBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
+            Text(
+                "Your team has reached its limit for active agents. "
+                    + "This agent is queued and will start automatically when capacity is available."
+            )
+            .font(.caption).lineLimit(3)
+            Link(
+                "Learn more",
+                destination: URL(string: "https://coder.com/docs/ai-coder/agents/platform-controls#concurrent-agents")!
+            )
+            .font(.caption)
+            Spacer()
+        }
+        .padding(.horizontal, Theme.Size.trayInset)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.1))
+        .accessibilityElement(children: .combine)
+    }
+
     private var transcript: some View {
         let messages = agents.messages(for: session.id)
         // Committed transcript only — the in-flight turn is rendered by StreamingTailView, which
@@ -189,20 +242,32 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                         awaitingReply: (session.status.isActive && messages.last?.role != .assistant)
                             || (messages.last?.id ?? 0) < 0,
                         showTools: showToolActivity,
-                        maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor
+                        maxWidth: maxWidth, proxy: proxy, bottomAnchorID: bottomAnchor,
+                        autoScroll: atBottom
                     )
                     if session.status == .error, let chatError = session.last_error {
                         ChatErrorCard(error: chatError, onRecover: { Task { await agents.reconcileInvalidChat(session.id) } })
                             .frame(maxWidth: maxWidth)
                     }
                     Color.clear.frame(height: 1).id(bottomAnchor)
+                        // The sentinel entering/leaving the lazy container tracks whether the
+                        // user sits at the live edge (macOS-14-safe; no scroll-geometry API).
+                        .onAppear { atBottom = true }
+                        .onDisappear { atBottom = false }
                 }
                 .padding(Theme.Size.trayInset)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            // Scroll to the bottom only when the newest message changes (or a turn streams),
-            // not when older messages page in at the top.
-            .onChange(of: messages.last?.id) { scrollToBottom(proxy) }
+            .overlay(alignment: .bottom) {
+                if !atBottom {
+                    scrollToBottomButton(proxy)
+                }
+            }
+            // Follow new messages only while anchored at the live edge — except the user's
+            // own send (optimistic echo, negative id), which always re-anchors (web parity).
+            .onChange(of: messages.last?.id) {
+                if atBottom || (messages.last?.id ?? 0) < 0 { scrollToBottom(proxy) }
+            }
             .onAppear {
                 scrollToBottom(proxy)
                 // Allow auto-paging only after the initial scroll-to-bottom settles, so the
@@ -215,14 +280,58 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         }
     }
 
+    /// Full-panel error state when a chat's history can't be fetched and nothing is cached
+    /// (web's AgentChatPageErrorView).
+    private func chatLoadErrorView(_ message: String) -> some View {
+        VStack(spacing: 8) {
+            Text("Failed to load chat").font(.headline)
+            Text(message.isEmpty ? "The chat could not be loaded." : message)
+                .font(.caption).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+            Button {
+                agents.stopStreaming(session.id)
+                agents.startStreaming(session.id)
+            } label: {
+                Label("Try again", systemImage: "arrow.counterclockwise")
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Floating jump-to-live-edge affordance, shown while scrolled up (web parity).
+    private func scrollToBottomButton(_ proxy: ScrollViewProxy) -> some View {
+        Button {
+            withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
+                proxy.scrollTo(bottomAnchor, anchor: .bottom)
+            }
+        } label: {
+            Image(systemName: "arrow.down")
+                .font(.callout)
+                .padding(8)
+                .background(.regularMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(Color.secondary.opacity(0.25)))
+                .shadow(radius: 2, y: 1)
+        }
+        .buttonStyle(.plain)
+        .help("Scroll to bottom")
+        .accessibilityLabel("Scroll to bottom")
+        .padding(.bottom, 8)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+
     /// Auto-loads older history when scrolled to the top, then re-anchors to the previously
     /// top-most item so the view doesn't jump (infinite scroll without the jank).
     private func topLoader(proxy: ScrollViewProxy, anchorID: String?) -> some View {
-        HStack {
+        HStack(spacing: 6) {
             Spacer()
             // Conditional, not opacity-hidden: an invisible indeterminate spinner still
             // animates (continuous CA commits). The fixed-height frame avoids layout shift.
-            if loadingOlder { ProgressView().controlSize(.small) }
+            if loadingOlder {
+                ProgressView().controlSize(.small)
+                Text("Loading earlier messages").font(.caption).foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .frame(height: 18)

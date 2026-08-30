@@ -14,6 +14,7 @@ final class PreviewAgents: AgentsService {
     @Published var activeSessionID: UUID?
     @Published var pendingOpenChatID: UUID?
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
+    @Published var historyLoadErrorBySession: [UUID: String] = [:]
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
 
@@ -90,7 +91,7 @@ final class PreviewAgents: AgentsService {
     }
 
     func loadOlderMessages(_: UUID) async {}
-    func editMessage(_: Int64, in _: UUID, content _: String, modelConfigID _: UUID?) async -> Bool {
+    func editMessage(_: Int64, in _: UUID, content _: [ChatInputPart], options _: SendOptions) async -> Bool {
         true
     }
 
@@ -175,6 +176,11 @@ final class PreviewAgents: AgentsService {
     func interrupt(_: UUID) async {}
     func compact(_: UUID) async {}
     func clear(_: UUID) async {}
+    func attachmentImage(_: UUID) -> NSImage? { nil }
+    func attachmentFailure(_: UUID) -> ChatAttachmentFailure? { nil }
+    func loadAttachment(_: ChatMessagePart) {}
+    func attachmentFileURL(_: ChatMessagePart) async -> URL? { nil }
+    func saveAttachment(_: ChatMessagePart) async {}
     func workspaceSkillNames(_: UUID) async -> Set<String> { [] }
     func loadWorkspaceSkills(_: UUID) async {}
     func workspaceSkills(for _: UUID) -> [WorkspaceSkill]? { [] }
@@ -195,6 +201,7 @@ final class PreviewAgents: AgentsService {
     func uploadData(_: Data, filename _: String, contentType _: String) async -> UUID? { nil }
 
     func refreshChatContext(_: UUID) async {}
+    func refreshCapacityQueue(_: UUID) async {}
     func deleteWorkspace(_: UUID) async -> Bool { true }
 
     @Published var userPrompt: String = ""

@@ -129,6 +129,9 @@ extension CoderAgentsService {
             row.status = chat.status
             row.last_error = chat.last_error
             row.updated_at = chat.updated_at
+            // The flag is only ever SET by the single-chat GET poll; a status event can
+            // only clear it (web parity — watch payloads never carry it).
+            if chat.status != .running { row.queued_for_capacity = false }
         case .summaryChange:
             row.last_turn_summary = chat.last_turn_summary
             row.has_unread = chat.has_unread

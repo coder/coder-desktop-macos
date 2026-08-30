@@ -26,6 +26,9 @@ struct StreamingTailView<Agents: AgentsService>: View {
     let maxWidth: CGFloat
     let proxy: ScrollViewProxy
     let bottomAnchorID: String
+    /// False while the user has scrolled up to read history: streamed tokens must not
+    /// yank the view back to the live edge (web parity).
+    var autoScroll = true
 
     @State private var thinkingWord = "Thinking"
 
@@ -63,6 +66,7 @@ struct StreamingTailView<Agents: AgentsService>: View {
     /// restarts a whole-window animation transaction each time — a continuous relayout storm
     /// that pegged the main thread (62% CPU, beachballs; see the 2026-06-10 cpu_resource.diag).
     private func scrollToBottom() {
+        guard autoScroll else { return }
         proxy.scrollTo(bottomAnchorID, anchor: .bottom)
     }
 }

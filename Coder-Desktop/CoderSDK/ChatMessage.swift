@@ -113,6 +113,13 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
     public let args: JSONValue?
     public let result: JSONValue?
     public let file_name: String?
+    // `file` parts (uploaded attachments, codersdk ChatFilePart): the stored file's id
+    // (fetch via chatFileData), its MIME type, original filename, and — for small inline
+    // attachments — base64 content in place of a file_id.
+    public let file_id: UUID?
+    public let media_type: String?
+    public let name: String?
+    public let data: String?
     public let parsed_commands: [[String]]?
     /// When this part was emitted: for tool-call/result, the call/result time (duration = result − call);
     /// for reasoning parts, when streaming started.
@@ -129,6 +136,10 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
         args: JSONValue? = nil,
         result: JSONValue? = nil,
         file_name: String? = nil,
+        file_id: UUID? = nil,
+        media_type: String? = nil,
+        name: String? = nil,
+        data: String? = nil,
         parsed_commands: [[String]]? = nil,
         created_at: Date? = nil,
         completed_at: Date? = nil
@@ -141,9 +152,34 @@ public struct ChatMessagePart: Codable, Sendable, Equatable {
         self.args = args
         self.result = result
         self.file_name = file_name
+        self.file_id = file_id
+        self.media_type = media_type
+        self.name = name
+        self.data = data
         self.parsed_commands = parsed_commands
         self.created_at = created_at
         self.completed_at = completed_at
+    }
+
+    /// Whether a `file` part is an image (drives thumbnail vs chip rendering).
+    public var isImageAttachment: Bool {
+        type == .file && (media_type?.hasPrefix("image/") ?? false)
+    }
+
+    /// Display name for a `file` part, mirroring the web's fallbacks.
+    public var attachmentDisplayName: String {
+        if let name, !name.isEmpty { return name }
+        let mime = media_type ?? ""
+        if mime.hasPrefix("image/") { return "Attached image" }
+        if mime.hasPrefix("text/") { return "Pasted text" }
+        return "Attached file"
+    }
+
+    /// Base64-decoded bytes of an inline attachment (small uploads are embedded
+    /// as `data` instead of a stored `file_id`).
+    public var inlineAttachmentData: Data? {
+        guard let data, !data.isEmpty else { return nil }
+        return Data(base64Encoded: data)
     }
 
     /// A short human label for a tool-call/result part — the server-provided title if

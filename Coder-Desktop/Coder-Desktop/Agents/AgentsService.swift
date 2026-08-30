@@ -26,9 +26,20 @@ final class CoderAgentsService: AgentsService {
     @Published private(set) var userPrompt = ""
     @Published var mcpIconsByServer: [UUID: NSImage] = [:]
     @Published var workspaceAppIcons: [String: NSImage] = [:] // keyed by icon URL string
+    /// Decoded images for transcript `file` attachments, keyed by file id.
+    @Published var attachmentImages: [UUID: NSImage] = [:]
+    /// Attachments that could not be fetched (expired vs failed), keyed by file id.
+    @Published var attachmentFailures: [UUID: ChatAttachmentFailure] = [:]
+    /// Raw attachment bytes for Quick Look / Save As. Not published: only ever read after
+    /// an image or failure entry has already triggered a render.
+    var attachmentData: [UUID: Data] = [:]
+    var attachmentLoads: Set<UUID> = []
     @Published private(set) var hasLoadedOnce = false
 
     @Published var messagesBySession: [UUID: [ChatMessage]] = [:]
+    /// A chat whose initial history fetch failed with nothing cached to show — drives the
+    /// full-panel "Failed to load chat" state (web parity).
+    @Published var historyLoadErrorBySession: [UUID: String] = [:]
     /// Whether older messages exist before the earliest loaded one (for scroll-back paging).
     @Published var hasOlderBySession: [UUID: Bool] = [:]
     /// Plain `let`, not `@Published`: see StreamingStore — token appends must not fire this
@@ -101,6 +112,7 @@ final class CoderAgentsService: AgentsService {
         streamingStore.removeAll()
         sessions = []
         messagesBySession.removeAll()
+        historyLoadErrorBySession.removeAll()
         hasOlderBySession.removeAll()
         queuedMessagesBySession.removeAll()
         diffBySession.removeAll()
@@ -116,6 +128,10 @@ final class CoderAgentsService: AgentsService {
         userPrompt = ""
         mcpIconsByServer.removeAll()
         workspaceAppIcons.removeAll()
+        attachmentImages.removeAll()
+        attachmentFailures.removeAll()
+        attachmentData.removeAll()
+        attachmentLoads.removeAll()
         recentSessions.removeAll()
         cachedOrgID = nil
         cachedAppHost = nil
@@ -382,6 +398,18 @@ extension CoderAgentsService {
         guard !didEmitViewOpened else { return }
         didEmitViewOpened = true
         telemetry.send(.agentsViewOpened)
+    }
+
+    /// Polls the single-chat GET for `queued_for_capacity` — the server never pushes it
+    /// (watch events only clear it). No-ops when the chat isn't actively running.
+    func refreshCapacityQueue(_ id: UUID) async {
+        guard let client,
+              sessions.first(where: { $0.id == id })?.status.isActive == true,
+              let updated = try? await client.chat(id),
+              let idx = sessions.firstIndex(where: { $0.id == id })
+        else { return }
+        // Narrow write: everything else on the row is owned by the stream/watch merges.
+        sessions[idx].queued_for_capacity = updated.queued_for_capacity
     }
 
     func refreshChatContext(_ id: UUID) async {

@@ -43,6 +43,8 @@ protocol AgentsService: ObservableObject {
     var pendingOpenChatID: UUID? { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
+    /// A chat whose initial history fetch failed with nothing cached to show.
+    var historyLoadErrorBySession: [UUID: String] { get }
 
     /// Emitted once when the Agents window is opened.
     func viewOpened()
@@ -87,7 +89,7 @@ protocol AgentsService: ObservableObject {
     /// Pages in the next batch of older messages (scroll-back history).
     func loadOlderMessages(_ id: UUID) async
     /// Edits a user message, rewinding the chat to that point; returns true on success.
-    func editMessage(_ messageID: Int64, in chatID: UUID, content: String, modelConfigID: UUID?) async -> Bool
+    func editMessage(_ messageID: Int64, in chatID: UUID, content: [ChatInputPart], options: SendOptions) async -> Bool
 
     // Messages queued while the agent is busy.
     func queuedMessages(for id: UUID) -> [ChatQueuedMessage]
@@ -165,8 +167,17 @@ protocol AgentsService: ObservableObject {
     func setPinned(_ id: UUID, pinned: Bool) async
     /// Uploads raw bytes (e.g. a pasted image); returns the file id on success.
     func uploadData(_ data: Data, filename: String, contentType: String) async -> UUID?
+    // Transcript attachments (uploaded files rendered as thumbnails/chips + Quick Look).
+    func attachmentImage(_ fileID: UUID) -> NSImage?
+    func attachmentFailure(_ fileID: UUID) -> ChatAttachmentFailure?
+    func loadAttachment(_ part: ChatMessagePart)
+    func attachmentFileURL(_ part: ChatMessagePart) async -> URL?
+    func saveAttachment(_ part: ChatMessagePart) async
+
     /// Re-pins the chat to the agent's latest context snapshot, clearing the dirty marker.
     func refreshChatContext(_ id: UUID) async
+    /// Polls the single-chat GET for `queued_for_capacity` while the chat runs.
+    func refreshCapacityQueue(_ id: UUID) async
     /// Permanently deletes the underlying Coder workspace (the chat itself is kept).
     /// Deletes the chat's workspace. Returns false (and sets `loadError`) on failure, so callers
     /// don't archive the chat and hide it while its workspace is still around.

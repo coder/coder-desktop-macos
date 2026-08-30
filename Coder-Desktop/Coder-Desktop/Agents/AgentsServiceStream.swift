@@ -36,12 +36,20 @@ extension CoderAgentsService {
         guard let client else { return }
         seedFromCache(id) // render the JSONL cache instantly, then reconcile below
         // The server returns the most recent page; older messages page in on scroll-back.
-        if let resp = try? await client.chatMessages(id) {
+        do {
+            let resp = try await client.chatMessages(id)
+            historyLoadErrorBySession[id] = nil
             mergeMessages(resp.messages, into: id)
             hasOlderBySession[id] = resp.has_more ?? hasOlderBySession[id] ?? false
             // Seed the queue so a reopened chat shows it before the first queue_update.
             if let queued = resp.queued_messages {
                 queuedMessagesBySession[id] = queued
+            }
+        } catch {
+            // Only a chat with nothing to show gets the full error state; with cached
+            // history the stream's own reconnect path is a better recovery.
+            if messagesBySession[id]?.isEmpty != false {
+                historyLoadErrorBySession[id] = error.localizedDescription
             }
         }
         var reconnect = ReconnectState()
