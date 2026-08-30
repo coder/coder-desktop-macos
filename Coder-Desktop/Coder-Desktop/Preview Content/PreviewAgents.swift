@@ -174,6 +174,7 @@ final class PreviewAgents: AgentsService {
 
     func interrupt(_: UUID) async {}
     func compact(_: UUID) async {}
+    func clear(_: UUID) async {}
     func workspaceSkillNames(_: UUID) async -> Set<String> { [] }
     func loadWorkspaceSkills(_: UUID) async {}
     func workspaceSkills(for _: UUID) -> [WorkspaceSkill]? { [] }

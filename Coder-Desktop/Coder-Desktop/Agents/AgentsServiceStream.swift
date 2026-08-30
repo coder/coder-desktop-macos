@@ -39,6 +39,10 @@ extension CoderAgentsService {
         if let resp = try? await client.chatMessages(id) {
             mergeMessages(resp.messages, into: id)
             hasOlderBySession[id] = resp.has_more ?? hasOlderBySession[id] ?? false
+            // Seed the queue so a reopened chat shows it before the first queue_update.
+            if let queued = resp.queued_messages {
+                queuedMessagesBySession[id] = queued
+            }
         }
         var reconnect = ReconnectState()
         while !Task.isCancelled, streamGeneration[id] == generation {

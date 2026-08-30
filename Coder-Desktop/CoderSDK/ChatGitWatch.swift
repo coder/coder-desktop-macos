@@ -40,7 +40,7 @@ public extension Client {
 
     private func chatGitWatchRequest(id: UUID) throws(SDKError) -> URLRequest {
         guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/experimental/chats/\(id.uuidString)/stream/git"),
+            url: url.appendingPathComponent("/api/v2/chats/\(id.uuidString)/stream/git"),
             resolvingAgainstBaseURL: false
         ) else {
             throw .unexpectedResponse("Invalid chat git watch URL")

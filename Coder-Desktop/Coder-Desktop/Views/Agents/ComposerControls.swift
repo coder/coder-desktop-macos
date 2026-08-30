@@ -184,8 +184,10 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
 
     /// Opens the OAuth2 connect flow in the browser (which carries the Coder session).
     private func authenticate(_ server: MCPServer) {
-        guard let base = state.baseAccessURL else { return }
-        let url = base.appending(path: "/api/experimental/mcp/servers/\(server.id.uuidString)/oauth2/connect")
+        guard let base = state.baseAccessURL, let orgID = server.organization_id else { return }
+        let url = base.appending(
+            path: "/api/v2/organizations/\(orgID.uuidString)/mcp-servers/\(server.id.uuidString)/oauth2/connect"
+        )
         NSWorkspace.shared.open(url)
     }
 

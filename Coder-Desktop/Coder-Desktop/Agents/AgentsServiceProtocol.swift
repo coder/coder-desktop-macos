@@ -147,6 +147,8 @@ protocol AgentsService: ObservableObject {
     func interrupt(_ id: UUID) async
     /// Manually compacts the context, summarizing the conversation so far.
     func compact(_ id: UUID) async
+    /// Clears the conversation context; the next message starts fresh.
+    func clear(_ id: UUID) async
     /// Workspace skills pinned to a chat's context; needed to tell whether a skill shadows a
     /// built-in slash command.
     func workspaceSkillNames(_ id: UUID) async -> Set<String>

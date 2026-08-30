@@ -21,7 +21,7 @@ public extension Client {
         headers.append(.init(name: "Content-Disposition", value: disposition))
         let res = try await doRequest(
             baseURL: url,
-            path: "/api/experimental/chats/files?organization=\(organizationID.uuidString)",
+            path: "/api/v2/chats/files?organization=\(organizationID.uuidString)",
             method: .post,
             headers: headers,
             body: data

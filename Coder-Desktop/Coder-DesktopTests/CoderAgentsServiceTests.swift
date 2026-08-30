@@ -37,7 +37,7 @@ struct CoderAgentsServiceTests {
         let active = chat(archived: false)
         let archived = chat(archived: true)
         try Mock(
-            url: url.appending(path: "api/experimental/chats"),
+            url: url.appending(path: "api/v2/chats"),
             ignoreQuery: true,
             contentType: .json,
             statusCode: 200,
@@ -63,7 +63,7 @@ struct CoderAgentsServiceTests {
         ).register()
         let created = chat(status: .pending)
         try Mock(
-            url: url.appending(path: "api/experimental/chats"),
+            url: url.appending(path: "api/v2/chats"),
             contentType: .json,
             statusCode: 201,
             data: [.post: CoderSDK.encoder.encode(created)]
@@ -83,7 +83,7 @@ struct CoderAgentsServiceTests {
         let target = chat()
         let response = CreateChatMessageResponse(message: nil, queued: true)
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(target.id.uuidString)/messages"),
+            url: url.appending(path: "api/v2/chats/\(target.id.uuidString)/messages"),
             contentType: .json,
             statusCode: 200,
             data: [.post: CoderSDK.encoder.encode(response)]
@@ -105,7 +105,7 @@ struct CoderAgentsServiceTests {
         let target = chat()
         // 500 -> send fails; optimistic echo must be rolled back and an error surfaced.
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(target.id.uuidString)/messages"),
+            url: url.appending(path: "api/v2/chats/\(target.id.uuidString)/messages"),
             contentType: .json,
             statusCode: 500,
             data: [.post: Data(#"{"message":"boom"}"#.utf8)]
@@ -123,7 +123,7 @@ struct CoderAgentsServiceTests {
     func mergeMessagesDropsOnlyTheMatchingOptimisticEcho() async throws {
         let target = chat()
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(target.id.uuidString)/messages"),
+            url: url.appending(path: "api/v2/chats/\(target.id.uuidString)/messages"),
             contentType: .json,
             statusCode: 200,
             data: [.post: CoderSDK.encoder.encode(CreateChatMessageResponse(message: nil, queued: true))]
@@ -177,14 +177,14 @@ struct CoderAgentsServiceTests {
     func archiveRemovesSession() async throws {
         let target = chat()
         try Mock(
-            url: url.appending(path: "api/experimental/chats"),
+            url: url.appending(path: "api/v2/chats"),
             ignoreQuery: true,
             contentType: .json,
             statusCode: 200,
             data: [.get: CoderSDK.encoder.encode([target])]
         ).register()
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(target.id.uuidString)"),
+            url: url.appending(path: "api/v2/chats/\(target.id.uuidString)"),
             contentType: .json,
             statusCode: 200,
             data: [.patch: CoderSDK.encoder.encode(target)]

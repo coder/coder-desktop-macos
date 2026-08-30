@@ -11,6 +11,11 @@ extension CoderAgentsService {
         return client
     }
 
+    private func requireOrganizationID() async throws -> UUID {
+        guard let orgID = await organizationID() else { throw SettingsError.signedOut }
+        return orgID
+    }
+
     /// Loads the user's personal skills once (for the composer's "/" trigger menu).
     func loadUserSkills() async {
         guard let client, userSkills.isEmpty else { return }
@@ -179,11 +184,14 @@ extension CoderAgentsService {
     // MARK: Model overrides
 
     func loadModelOverrides() async throws -> ModelOverrides {
-        try await requireClient().modelOverrides()
+        try await requireClient().modelOverrides(organizationID: requireOrganizationID())
     }
 
     func setModelOverride(context: String, mode: String, modelConfigID: String) async throws {
-        try await requireClient().setModelOverride(context: context, mode: mode, modelConfigID: modelConfigID)
+        try await requireClient().setModelOverride(
+            organizationID: requireOrganizationID(),
+            context: context, mode: mode, modelConfigID: modelConfigID
+        )
     }
 
     // MARK: Compaction

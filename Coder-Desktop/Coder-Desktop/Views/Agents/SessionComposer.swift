@@ -259,7 +259,7 @@ struct SessionComposer<Agents: AgentsService>: View {
         let typed = model.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty || !model.attachments.isEmpty || !model.pendingReferences.isEmpty,
               !model.sending else { return }
-        if interceptCompactCommand(typed) { return }
+        if interceptSlashCommand(typed) { return }
         let prompt = model.attachments.folded(into: typed)
         let extraParts = model.attachments.fileIDs.map(ChatInputPart.file) + model.pendingReferences
         let savedAttachments = model.attachments

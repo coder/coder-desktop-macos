@@ -65,10 +65,6 @@ struct AgentsModelSettingsSection<Agents: AgentsService>: View {
                     ForEach(agents.modelConfigs) { Text($0.label).tag($0.id.uuidString) }
                 }
             }
-            if current?.is_malformed == true {
-                Text("The saved override is malformed. Choose a valid value and save to replace it.")
-                    .font(.caption).foregroundStyle(.orange)
-            }
         }
     }
 

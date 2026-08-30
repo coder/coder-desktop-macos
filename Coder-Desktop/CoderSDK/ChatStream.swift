@@ -91,7 +91,7 @@ public extension Client {
 
     private func chatStreamRequest(id: UUID, afterID: Int64?) throws(SDKError) -> URLRequest {
         guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/experimental/chats/\(id.uuidString)/stream"),
+            url: url.appendingPathComponent("/api/v2/chats/\(id.uuidString)/stream"),
             resolvingAgainstBaseURL: false
         ) else {
             throw .unexpectedResponse("Invalid chat stream URL")

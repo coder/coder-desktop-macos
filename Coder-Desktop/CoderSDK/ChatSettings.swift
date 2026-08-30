@@ -20,14 +20,14 @@ public extension Client {
     // MARK: Debug logging
 
     func chatDebugLogging() async throws(SDKError) -> ChatDebugLogging {
-        let res = try await request("/api/experimental/chats/config/user-debug-logging", method: .get)
+        let res = try await request("/api/v2/chats/config/user-debug-logging", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ChatDebugLogging.self, from: res.data)
     }
 
     func setChatDebugLogging(_ enabled: Bool) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/config/user-debug-logging",
+            "/api/v2/chats/config/user-debug-logging",
             method: .put,
             body: ChatDebugLoggingRequest(debug_logging_enabled: enabled)
         )
@@ -37,14 +37,14 @@ public extension Client {
     // MARK: Provider API keys (write-only)
 
     func aiProviderKeys() async throws(SDKError) -> [AIProviderKeyStatus] {
-        let res = try await request("/api/experimental/users/me/ai-provider-keys", method: .get)
+        let res = try await request("/api/v2/users/me/ai-provider-keys", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode([AIProviderKeyStatus].self, from: res.data)
     }
 
     func setAIProviderKey(_ providerID: UUID, apiKey: String) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/users/me/ai-provider-keys/\(providerID.uuidString)",
+            "/api/v2/users/me/ai-provider-keys/\(providerID.uuidString)",
             method: .put,
             body: CreateAIProviderKeyRequest(api_key: apiKey)
         )
@@ -55,7 +55,7 @@ public extension Client {
 
     func deleteAIProviderKey(_ providerID: UUID) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/users/me/ai-provider-keys/\(providerID.uuidString)",
+            "/api/v2/users/me/ai-provider-keys/\(providerID.uuidString)",
             method: .delete
         )
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }

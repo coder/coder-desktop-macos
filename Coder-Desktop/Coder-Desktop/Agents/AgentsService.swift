@@ -163,9 +163,9 @@ final class CoderAgentsService: AgentsService {
     }
 
     func loadMCPServers() async {
-        guard let client else { return }
+        guard let client, let orgID = await organizationID() else { return }
         do {
-            mcpServers = try await client.mcpServers().filter(\.enabled)
+            mcpServers = try await client.mcpServers(organizationID: orgID).filter(\.enabled)
             loadMCPIcons()
         } catch {
             logger.error("failed to load MCP servers: \(error.localizedDescription, privacy: .public)")
@@ -173,9 +173,9 @@ final class CoderAgentsService: AgentsService {
     }
 
     func loadModelConfigs() async {
-        guard let client else { return }
+        guard let client, let orgID = await organizationID() else { return }
         do {
-            modelConfigs = try await client.chatModelConfigs()
+            modelConfigs = try await client.chatModelConfigs(organizationID: orgID)
         } catch {
             logger.error("failed to load model configs: \(error.localizedDescription, privacy: .public)")
         }
@@ -299,8 +299,10 @@ final class CoderAgentsService: AgentsService {
     func regenerateTitle(_ id: UUID) async {
         guard let client else { return }
         do {
-            let updated = try await client.regenerateChatTitle(id)
-            if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = updated.title }
+            // The dedicated regenerate endpoint was removed server-side: propose, then persist.
+            let title = try await client.proposeChatTitle(id)
+            try await client.renameChat(id, title: title)
+            if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = title }
         } catch {
             logger.error("regenerate title failed: \(error.localizedDescription, privacy: .public)")
         }

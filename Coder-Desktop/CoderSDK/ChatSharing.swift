@@ -4,7 +4,7 @@ import Foundation
 /// empty-string role removes them). There is no public-link / visibility model.
 public extension Client {
     func chatACL(_ id: UUID) async throws(SDKError) -> ChatACL {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/acl", method: .get)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/acl", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ChatACL.self, from: res.data)
     }
@@ -14,7 +14,7 @@ public extension Client {
         _ id: UUID, userRoles: [String: String] = [:], groupRoles: [String: String] = [:]
     ) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/\(id.uuidString)/acl",
+            "/api/v2/chats/\(id.uuidString)/acl",
             method: .patch,
             body: UpdateChatACL(user_roles: userRoles, group_roles: groupRoles)
         )

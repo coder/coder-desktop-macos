@@ -28,7 +28,7 @@ struct ChatsTests {
         let client = Client(url: url, token: token)
         var sawToken = false
         var mock = try Mock(
-            url: url.appending(path: "api/experimental/chats"),
+            url: url.appending(path: "api/v2/chats"),
             contentType: .json,
             statusCode: 200,
             data: [.get: CoderSDK.encoder.encode(chats)]
@@ -48,7 +48,7 @@ struct ChatsTests {
         let returned = sampleChat(status: .pending)
         let client = Client(url: url, token: token)
         try Mock(
-            url: url.appending(path: "api/experimental/chats"),
+            url: url.appending(path: "api/v2/chats"),
             contentType: .json,
             statusCode: 201, // create returns 201
             data: [.post: CoderSDK.encoder.encode(returned)]
@@ -86,12 +86,13 @@ struct ChatsTests {
     func chatMessagesWithCursor() async throws {
         let messages = ChatMessagesResponse(
             messages: [ChatMessage(id: 7, role: .assistant, content: [.init(type: .text, text: "hi")])],
+            queued_messages: nil,
             has_more: false
         )
         let chatID = UUID()
         let client = Client(url: url, token: token)
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(chatID.uuidString)/messages")
+            url: url.appending(path: "api/v2/chats/\(chatID.uuidString)/messages")
                 .appending(queryItems: [.init(name: "after_id", value: "5")]),
             contentType: .json,
             statusCode: 200,
@@ -108,7 +109,7 @@ struct ChatsTests {
         let chatID = UUID()
         let client = Client(url: url, token: token)
         try Mock(
-            url: url.appending(path: "api/experimental/chats/\(chatID.uuidString)/interrupt"),
+            url: url.appending(path: "api/v2/chats/\(chatID.uuidString)/interrupt"),
             contentType: .json,
             statusCode: 204,
             data: [.post: Data()]
@@ -149,6 +150,7 @@ struct ChatsTests {
 
     @Test
     func mcpServersDecodeWithAvailability() async throws {
+        let orgID = UUID()
         let servers = [
             MCPServer(id: UUID(), display_name: "GitHub", enabled: true, availability: .defaultOn),
             MCPServer(id: UUID(), display_name: "Linear", enabled: true, availability: .defaultOff),
@@ -156,12 +158,12 @@ struct ChatsTests {
         ]
         let client = Client(url: url, token: token)
         try Mock(
-            url: url.appending(path: "api/experimental/mcp/servers"),
+            url: url.appending(path: "api/v2/organizations/\(orgID.uuidString)/mcp-servers"),
             contentType: .json, statusCode: 200,
             data: [.get: CoderSDK.encoder.encode(servers)]
         ).register()
 
-        let result = try await client.mcpServers()
+        let result = try await client.mcpServers(organizationID: orgID)
         #expect(result.count == 3)
         #expect(result[0].defaultsOn) // default_on
         #expect(!result[1].defaultsOn) // default_off

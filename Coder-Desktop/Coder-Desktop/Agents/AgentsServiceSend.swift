@@ -47,6 +47,16 @@ extension CoderAgentsService {
         }
     }
 
+    /// Clears the conversation context; the next message starts fresh (web's `/clear`).
+    func clear(_ id: UUID) async {
+        guard let client else { return }
+        do {
+            try await client.clearChat(id)
+        } catch {
+            logger.error("failed to clear context: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     /// Uploads a picked file's raw bytes and returns its id (referenced as a `file` part).
     func uploadFile(_ url: URL) async -> UUID? {
         guard let client, let orgID = await organizationID() else { return nil }

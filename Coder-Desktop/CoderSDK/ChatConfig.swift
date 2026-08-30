@@ -6,16 +6,23 @@ import Foundation
 public extension Client {
     // MARK: Personal model overrides
 
-    func modelOverrides() async throws(SDKError) -> ModelOverrides {
-        let res = try await request("/api/experimental/chats/config/user-personal-model-overrides", method: .get)
+    /// Personal model overrides are org-member-scoped since coder/coder #27955
+    /// (`/organizations/{org}/members/me/chats/model-overrides`).
+    func modelOverrides(organizationID: UUID) async throws(SDKError) -> ModelOverrides {
+        let res = try await request(
+            "/api/v2/organizations/\(organizationID.uuidString)/members/me/chats/model-overrides",
+            method: .get
+        )
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ModelOverrides.self, from: res.data)
     }
 
     /// Sets the override for one context (`root` / `general` / `explore`).
-    func setModelOverride(context: String, mode: String, modelConfigID: String) async throws(SDKError) {
+    func setModelOverride(
+        organizationID: UUID, context: String, mode: String, modelConfigID: String
+    ) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/config/user-personal-model-overrides/\(context)",
+            "/api/v2/organizations/\(organizationID.uuidString)/members/me/chats/model-overrides/\(context)",
             method: .put,
             body: SetModelOverrideRequest(mode: mode, model_config_id: modelConfigID)
         )
@@ -25,14 +32,14 @@ public extension Client {
     // MARK: Compaction thresholds
 
     func compactionThresholds() async throws(SDKError) -> [CompactionThreshold] {
-        let res = try await request("/api/experimental/chats/config/user-compaction-thresholds", method: .get)
+        let res = try await request("/api/v2/chats/config/user-compaction-thresholds", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(CompactionThresholds.self, from: res.data).thresholds
     }
 
     func setCompactionThreshold(modelConfigID: String, percent: Int) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/config/user-compaction-thresholds/\(modelConfigID)",
+            "/api/v2/chats/config/user-compaction-thresholds/\(modelConfigID)",
             method: .put,
             body: SetCompactionThresholdRequest(threshold_percent: percent)
         )
@@ -41,7 +48,7 @@ public extension Client {
 
     func deleteCompactionThreshold(modelConfigID: String) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/config/user-compaction-thresholds/\(modelConfigID)",
+            "/api/v2/chats/config/user-compaction-thresholds/\(modelConfigID)",
             method: .delete
         )
         guard (200 ... 204).contains(res.resp.statusCode) else { throw responseAsError(res) }
@@ -115,16 +122,12 @@ public struct ModelOverride: Codable, Sendable, Equatable {
     public var mode: String // chat_default | deployment_default | model
     public var model_config_id: String
     public let is_set: Bool?
-    public let is_malformed: Bool?
 
-    public init(
-        context: String, mode: String, model_config_id: String, is_set: Bool? = nil, is_malformed: Bool? = nil
-    ) {
+    public init(context: String, mode: String, model_config_id: String, is_set: Bool? = nil) {
         self.context = context
         self.mode = mode
         self.model_config_id = model_config_id
         self.is_set = is_set
-        self.is_malformed = is_malformed
     }
 }
 
@@ -234,7 +237,7 @@ public struct ChatContextResource: Codable, Sendable, Equatable {
 public extension Client {
     /// Re-pins a chat to its agent's latest context snapshot and clears the dirty marker.
     func refreshChatContext(_ chatID: UUID) async throws(SDKError) -> Chat {
-        let res = try await request("/api/experimental/chats/\(chatID)/context", method: .put)
+        let res = try await request("/api/v2/chats/\(chatID)/context", method: .put)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(Chat.self, from: res.data)
     }

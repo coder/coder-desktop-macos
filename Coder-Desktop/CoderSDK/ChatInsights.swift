@@ -19,7 +19,7 @@ public extension Client {
     /// Cost accrued by a single chat. Follows AI Gateway retention, so this reports zero once
     /// the underlying requests have been purged.
     func chatCost(chatID: UUID) async throws(SDKError) -> ChatCost {
-        let res = try await request("/api/experimental/chats/\(chatID.uuidString)/cost", method: .get)
+        let res = try await request("/api/v2/chats/\(chatID.uuidString)/cost", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ChatCost.self, from: res.data)
     }

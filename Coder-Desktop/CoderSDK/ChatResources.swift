@@ -3,6 +3,12 @@ import Foundation
 // Supporting resources for the Coder Agents Chats API: selectable models, MCP servers,
 // and diff contents. Kept separate from Chats.swift (the client + core chat/message types).
 
+/// Envelope of the org models listing (codersdk `OrganizationChatModelsResponse`).
+/// Only `models` is read; provider descriptors are for the admin authoring page.
+struct OrganizationChatModelsResponse: Decodable {
+    let models: [ChatModelConfig]
+}
+
 public struct ChatModelConfig: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
     /// Dropped from the server in coder/coder #26877 — optional so decoding doesn't fail against
@@ -180,6 +186,8 @@ public struct MCPOAuthDisconnect: Codable, Sendable, Equatable {
 
 public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     public let id: UUID
+    /// The owning org — needed to build the org-scoped OAuth2 connect URL.
+    public let organization_id: UUID?
     public let display_name: String
     public let enabled: Bool
     public let availability: MCPAvailability?
@@ -189,11 +197,12 @@ public struct MCPServer: Codable, Identifiable, Sendable, Equatable {
     public let auth_connected: Bool? // whether the user has connected (OAuth2)
 
     public init(
-        id: UUID, display_name: String, enabled: Bool,
+        id: UUID, organization_id: UUID? = nil, display_name: String, enabled: Bool,
         availability: MCPAvailability? = nil, icon_url: String? = nil,
         description: String? = nil, auth_type: String? = nil, auth_connected: Bool? = nil
     ) {
         self.id = id
+        self.organization_id = organization_id
         self.display_name = display_name
         self.enabled = enabled
         self.availability = availability

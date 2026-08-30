@@ -2,6 +2,9 @@ import Foundation
 
 public struct ChatMessagesResponse: Codable, Sendable {
     public let messages: [ChatMessage]
+    /// Messages waiting in the queue, so a freshly opened chat shows them without
+    /// waiting for the stream's first `queue_update`.
+    public let queued_messages: [ChatQueuedMessage]?
     public let has_more: Bool?
 }
 

@@ -1,11 +1,12 @@
 import Foundation
 
-/// Client extensions for the Coder Agents "Chats" API (`/api/experimental/chats`).
+/// Client extensions for the Coder Agents "Chats" API (`/api/v2/chats`, promoted from
+/// `/api/experimental` for GA in coder/coder #28496).
 public extension Client {
     /// Lists the current user's chat sessions. `query` uses Coder's filter syntax,
     /// e.g. `status:running`. (The endpoint is already owner-scoped; an `owner:` filter 400s.)
     func chats(query: String? = nil) async throws(SDKError) -> [Chat] {
-        var path = "/api/experimental/chats"
+        var path = "/api/v2/chats"
         if let query, !query.isEmpty {
             // `.urlQueryAllowed` leaves `& = + ?` unescaped, so a filter value containing them
             // would inject/break query parameters. Exclude the sub-delimiters from the value.
@@ -24,7 +25,7 @@ public extension Client {
     /// Launches a new chat session. The agent runs in the control plane / selected
     /// workspace, never locally.
     func createChat(_ req: CreateChatRequest) async throws(SDKError) -> Chat {
-        let res = try await request("/api/experimental/chats", method: .post, body: req)
+        let res = try await request("/api/v2/chats", method: .post, body: req)
         guard res.resp.statusCode == 201 else {
             throw responseAsError(res)
         }
@@ -32,7 +33,7 @@ public extension Client {
     }
 
     func chat(_ id: UUID) async throws(SDKError) -> Chat {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)", method: .get)
+        let res = try await request("/api/v2/chats/\(id.uuidString)", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
@@ -50,7 +51,7 @@ public extension Client {
         if let afterID { items.append("after_id=\(afterID)") }
         if let beforeID { items.append("before_id=\(beforeID)") }
         if let limit { items.append("limit=\(limit)") }
-        var path = "/api/experimental/chats/\(id.uuidString)/messages"
+        var path = "/api/v2/chats/\(id.uuidString)/messages"
         if !items.isEmpty { path += "?" + items.joined(separator: "&") }
         let res = try await request(path, method: .get)
         guard res.resp.statusCode == 200 else {
@@ -66,7 +67,7 @@ public extension Client {
         _ req: CreateChatMessageRequest
     ) async throws(SDKError) -> CreateChatMessageResponse {
         let res = try await request(
-            "/api/experimental/chats/\(id.uuidString)/messages",
+            "/api/v2/chats/\(id.uuidString)/messages",
             method: .post,
             body: req
         )
@@ -79,14 +80,14 @@ public extension Client {
     /// Fetches an uploaded chat file's contents as text (e.g. a proposed plan's markdown,
     /// referenced by `file_id` in a `propose_plan` tool result). Returns raw text, not JSON.
     func chatFileText(_ fileID: UUID) async throws(SDKError) -> String {
-        let res = try await request("/api/experimental/chats/files/\(fileID.uuidString)", method: .get)
+        let res = try await request("/api/v2/chats/files/\(fileID.uuidString)", method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return String(data: res.data, encoding: .utf8) ?? ""
     }
 
     /// Stops / interrupts an in-progress run.
     func interruptChat(_ id: UUID) async throws(SDKError) {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/interrupt", method: .post)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/interrupt", method: .post)
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
             throw responseAsError(res)
         }
@@ -95,7 +96,16 @@ public extension Client {
     /// Requests a manual context compaction. The chat transitions to running and the summary
     /// streams in like any other turn.
     func compactChat(_ id: UUID) async throws(SDKError) {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/compact", method: .post)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/compact", method: .post)
+        guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
+            throw responseAsError(res)
+        }
+    }
+
+    /// Clears the conversation context: the next message starts a fresh context window
+    /// (the transcript itself is kept). Mirrors the web's `/clear` command.
+    func clearChat(_ id: UUID) async throws(SDKError) {
+        let res = try await request("/api/v2/chats/\(id.uuidString)/clear", method: .post)
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
             throw responseAsError(res)
         }
@@ -104,7 +114,7 @@ public extension Client {
     /// Archives a chat (the API has no hard delete).
     func archiveChat(_ id: UUID) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/\(id.uuidString)",
+            "/api/v2/chats/\(id.uuidString)",
             method: .patch,
             body: UpdateChatRequest(archived: true)
         )
@@ -117,7 +127,7 @@ public extension Client {
     /// Restores an archived chat. Archive state is root-only, so this is rejected for children.
     func unarchiveChat(_ id: UUID) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/\(id.uuidString)",
+            "/api/v2/chats/\(id.uuidString)",
             method: .patch,
             body: UpdateChatRequest(archived: false)
         )
@@ -135,7 +145,7 @@ public extension Client {
         modelConfigID: UUID? = nil
     ) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/\(chatID.uuidString)/messages/\(messageID)",
+            "/api/v2/chats/\(chatID.uuidString)/messages/\(messageID)",
             method: .patch,
             body: EditChatMessageRequest(content: content, model_config_id: modelConfigID)
         )
@@ -144,14 +154,14 @@ public extension Client {
 
     /// Removes a queued message ("Remove from queue").
     func deleteChatQueuedMessage(_ chatID: UUID, queuedID: Int64) async throws(SDKError) {
-        let res = try await request("/api/experimental/chats/\(chatID.uuidString)/queue/\(queuedID)", method: .delete)
+        let res = try await request("/api/v2/chats/\(chatID.uuidString)/queue/\(queuedID)", method: .delete)
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
     }
 
     /// Promotes a queued message to run immediately, interrupting the current turn ("Send now").
     func promoteChatQueuedMessage(_ chatID: UUID, queuedID: Int64) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/\(chatID.uuidString)/queue/\(queuedID)/promote",
+            "/api/v2/chats/\(chatID.uuidString)/queue/\(queuedID)/promote",
             method: .post
         )
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else { throw responseAsError(res) }
@@ -159,8 +169,11 @@ public extension Client {
 
     /// Lists the MCP servers available to attach to a new chat (Coder, GitHub, Linear, …).
     /// The server connects to these; the client only passes the selected ids on create.
-    func mcpServers() async throws(SDKError) -> [MCPServer] {
-        let res = try await request("/api/experimental/mcp/servers", method: .get)
+    /// Org-scoped since coder/coder removed the flat `/mcp/servers` listing.
+    func mcpServers(organizationID: UUID) async throws(SDKError) -> [MCPServer] {
+        let res = try await request(
+            "/api/v2/organizations/\(organizationID.uuidString)/mcp-servers", method: .get
+        )
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
@@ -172,25 +185,28 @@ public extension Client {
     /// `token_revocation_error`.
     func disconnectMCPOAuth(_ id: UUID) async throws(SDKError) -> MCPOAuthDisconnect {
         let res = try await request(
-            "/api/experimental/mcp/servers/\(id.uuidString)/oauth2/disconnect", method: .delete
+            "/api/v2/mcp/servers/\(id.uuidString)/oauth2/disconnect", method: .delete
         )
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(MCPOAuthDisconnect.self, from: res.data)
     }
 
     /// Lists the selectable model configurations. Each has a UUID `id` used as
-    /// `model_config_id` when creating a chat.
-    func chatModelConfigs() async throws(SDKError) -> [ChatModelConfig] {
-        let res = try await request("/api/experimental/chats/model-configs", method: .get)
+    /// `model_config_id` when creating a chat. Org-scoped since coder/coder #27955
+    /// removed the flat `/chats/model-configs` collection.
+    func chatModelConfigs(organizationID: UUID) async throws(SDKError) -> [ChatModelConfig] {
+        let res = try await request(
+            "/api/v2/organizations/\(organizationID.uuidString)/chats/models", method: .get
+        )
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
-        return try decode([ChatModelConfig].self, from: res.data)
+        return try decode(OrganizationChatModelsResponse.self, from: res.data).models
     }
 
     /// Fetches the read-only diff (remote/PR working tree) for a chat's session.
     func chatDiff(_ id: UUID) async throws(SDKError) -> ChatDiffContents {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/diff", method: .get)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/diff", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
@@ -207,7 +223,7 @@ public extension Client {
     }
 
     private func updateChat(_ id: UUID, _ req: UpdateChatRequest) async throws(SDKError) {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)", method: .patch, body: req)
+        let res = try await request("/api/v2/chats/\(id.uuidString)", method: .patch, body: req)
         // The endpoint returns 204 No Content on success.
         guard res.resp.statusCode == 200 || res.resp.statusCode == 204 else {
             throw responseAsError(res)
@@ -216,7 +232,7 @@ public extension Client {
 
     /// The user's "Personal instructions" applied to all their chats.
     func userChatPrompt() async throws(SDKError) -> String {
-        let res = try await request("/api/experimental/chats/config/user-prompt", method: .get)
+        let res = try await request("/api/v2/chats/config/user-prompt", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
@@ -227,7 +243,7 @@ public extension Client {
 
     func setUserChatPrompt(_ prompt: String) async throws(SDKError) {
         let res = try await request(
-            "/api/experimental/chats/config/user-prompt",
+            "/api/v2/chats/config/user-prompt",
             method: .put,
             body: UserChatPrompt(custom_prompt: prompt)
         )
@@ -238,30 +254,24 @@ public extension Client {
 
     /// The user's past prompts in this chat, newest-first (for composer history cycling).
     func chatPrompts(_ id: UUID, limit: Int? = nil) async throws(SDKError) -> ChatPromptsResponse {
-        var path = "/api/experimental/chats/\(id.uuidString)/prompts"
+        var path = "/api/v2/chats/\(id.uuidString)/prompts"
         if let limit, limit > 0 { path += "?limit=\(limit)" }
         let res = try await request(path, method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ChatPromptsResponse.self, from: res.data)
     }
 
-    /// Regenerates the chat's title from the transcript and persists it; returns the updated Chat.
-    func regenerateChatTitle(_ id: UUID) async throws(SDKError) -> Chat {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/title/regenerate", method: .post)
-        guard res.resp.statusCode == 200 else { throw responseAsError(res) }
-        return try decode(Chat.self, from: res.data)
-    }
-
     /// Proposes a title without persisting it; returns the suggested title string.
+    /// (`title/regenerate` was removed server-side; regenerate = propose + rename.)
     func proposeChatTitle(_ id: UUID) async throws(SDKError) -> String {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/title/propose", method: .post)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/title/propose", method: .post)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(ProposeChatTitleResponse.self, from: res.data).title
     }
 
     /// Recovers a chat stuck in an invalid state; returns the updated Chat.
     func reconcileInvalidChat(_ id: UUID) async throws(SDKError) -> Chat {
-        let res = try await request("/api/experimental/chats/\(id.uuidString)/reconcile-invalid", method: .post)
+        let res = try await request("/api/v2/chats/\(id.uuidString)/reconcile-invalid", method: .post)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(Chat.self, from: res.data)
     }

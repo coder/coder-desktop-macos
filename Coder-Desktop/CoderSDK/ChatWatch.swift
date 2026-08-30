@@ -5,7 +5,7 @@ public extension Client {
     /// web UI's "Agent" badge on workspace lists. Workspaces without a chat are omitted.
     func chatsByWorkspace(workspaceIDs: [UUID]) async throws(SDKError) -> [String: String] {
         let ids = workspaceIDs.map(\.uuidString).joined(separator: ",")
-        let res = try await request("/api/experimental/chats/by-workspace?workspace_ids=\(ids)", method: .get)
+        let res = try await request("/api/v2/chats/by-workspace?workspace_ids=\(ids)", method: .get)
         guard res.resp.statusCode == 200 else {
             throw responseAsError(res)
         }
@@ -50,7 +50,7 @@ public extension Client {
 
     private func chatWatchRequest() throws(SDKError) -> URLRequest {
         guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/experimental/chats/watch"),
+            url: url.appendingPathComponent("/api/v2/chats/watch"),
             resolvingAgainstBaseURL: false
         ) else {
             throw .unexpectedResponse("Invalid chat watch URL")
