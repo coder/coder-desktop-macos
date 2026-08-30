@@ -13,7 +13,7 @@ struct SessionGroup {
 
         let calendar = Calendar.current
         let now = Date()
-        var buckets: [(String, [Chat])] = [("Today", []), ("Yesterday", []), ("This Week", []), ("Older", [])]
+        var buckets: [(String, [Chat])] = [("Today", []), ("Yesterday", []), ("Past 7 days", []), ("Older", [])]
         for session in rest {
             let days = calendar.dateComponents([.day], from: session.updated_at, to: now).day ?? 0
             if calendar.isDateInToday(session.updated_at) {
@@ -40,6 +40,8 @@ struct SessionRow: View {
     var isChild = false
     var childCount = 0
     var isExpanded = false
+    /// The open chat's row: title at full strength and kebab pinned visible (web parity).
+    var isSelected = false
     var onToggleExpand: () -> Void = {}
     var onOpen: () -> Void = {}
     var onRename: () -> Void = {}
@@ -68,9 +70,11 @@ struct SessionRow: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(isExpanded ? "Collapse sub-agents" : "Expand \(childCount) sub-agents")
             }
-            Image(systemName: isPR ? "arrow.triangle.branch" : session.status.systemImage)
+            // The status glyph always reflects status; a linked PR gets its own icon on the
+            // metadata line instead of hijacking this slot (web parity, coder/coder #28326).
+            Image(systemName: session.status.systemImage)
                 .font(.caption)
-                .foregroundStyle(isPR ? .secondary : session.status.color)
+                .foregroundStyle(session.status.color)
                 .accessibilityLabel(session.status.accessibilityLabel)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
@@ -80,6 +84,9 @@ struct SessionRow: View {
                     }
                     Text(session.title?.isEmpty == false ? session.title! : "Untitled session")
                         .lineLimit(1)
+                        // Unselected titles recede slightly so the open chat reads at a
+                        // glance (web parity); hover restores full strength.
+                        .opacity(isSelected || hovering ? 1 : 0.85)
                     if session.has_unread == true {
                         Circle().fill(.blue).frame(width: 6, height: 6)
                             .accessibilityLabel("Unread")
@@ -88,22 +95,24 @@ struct SessionRow: View {
                     // Swapped via opacity, not removal, so the kebab stays reachable by
                     // keyboard/VoiceOver; hit-testing gated so the invisible menu can't
                     // swallow row-selection clicks.
+                    // The kebab stays pinned visible on the open chat (web parity), where it
+                    // permanently replaces the timestamp.
                     ZStack(alignment: .trailing) {
                         TimelineView(.everyMinute) { _ in
                             Text(Self.relativeShort(session.updated_at))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
-                        .opacity(hovering ? 0 : 1)
-                        .accessibilityHidden(hovering)
+                        .opacity(hovering || isSelected ? 0 : 1)
+                        .accessibilityHidden(hovering || isSelected)
                         Menu { rowMenu } label: {
                             Image(systemName: "ellipsis").foregroundStyle(.secondary)
                         }
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)
                         .fixedSize()
-                        .opacity(hovering ? 1 : 0)
-                        .allowsHitTesting(hovering)
+                        .opacity(hovering || isSelected ? 1 : 0)
+                        .allowsHitTesting(hovering || isSelected)
                         .accessibilityLabel("Chat actions")
                     }
                 }
@@ -119,6 +128,13 @@ struct SessionRow: View {
     /// with the shared marker at the trailing edge.
     private var subtitle: some View {
         HStack(spacing: 4) {
+            if isPR {
+                // PR state icon leads the metadata line, separate from the status glyph
+                // (web parity, #28326).
+                Image(systemName: "arrow.triangle.branch")
+                    .foregroundStyle(prStateColor)
+                    .accessibilityLabel(prStateLabel)
+            }
             if let diff = session.diff_status {
                 if let adds = diff.additions, adds > 0 { Text("+\(adds)").foregroundStyle(.green) }
                 if let dels = diff.deletions, dels > 0 { Text("−\(dels)").foregroundStyle(.red) }
@@ -147,12 +163,26 @@ struct SessionRow: View {
         .lineLimit(1)
     }
 
+    /// Archiving cascades to children server-side, so it's allowed only when the chat AND
+    /// every sub-agent is idle (web parity, coder/coder #28264). Unknown fails open.
+    private var canArchiveFamily: Bool {
+        session.status.canArchive && (session.children ?? []).allSatisfy(\.status.canArchive)
+    }
+
     @ViewBuilder
     private var rowMenu: some View {
         Button(action: onOpen) { Label("Open in browser", systemImage: "safari") }
         if !isChild {
             Button(action: onRename) { Label("Rename", systemImage: "pencil") }
             Button(action: onGenerateTitle) { Label("Generate title", systemImage: "sparkles") }
+            if childCount > 0 {
+                Button(action: onToggleExpand) {
+                    Label(
+                        isExpanded ? "Hide subagents" : "Show subagents (\(childCount))",
+                        systemImage: "brain"
+                    )
+                }
+            }
             Button(action: onTogglePin) {
                 Label(session.isPinned ? "Unpin" : "Pin", systemImage: session.isPinned ? "pin.slash" : "pin")
             }
@@ -162,13 +192,38 @@ struct SessionRow: View {
         if !isChild {
             Divider()
             Button(role: .destructive) { onArchive() } label: { Label("Archive chat", systemImage: "archivebox") }
-                .disabled(!session.status.canArchive)
+                .disabled(!canArchiveFamily)
             if session.workspace_id != nil {
                 Button(role: .destructive) { onDeleteWorkspace() } label: {
                     Label("Archive chat & delete workspace", systemImage: "trash")
                 }
-                .disabled(!session.status.canArchive)
+                .disabled(!canArchiveFamily)
             }
+            if !canArchiveFamily {
+                // Why the archive actions are disabled (web parity, #28264).
+                Text("Interrupt or wait for the agent to finish first.")
+            }
+        }
+    }
+
+    /// PR-state color for the metadata-line icon (web statusConfig tokens).
+    private var prStateColor: Color {
+        if session.diff_status?.pull_request_draft == true { return .secondary }
+        return switch session.diff_status?.pull_request_state {
+        case "merged": .purple
+        case "closed": .red
+        case "open": .green
+        default: .secondary
+        }
+    }
+
+    /// VoiceOver label for the PR-state icon (web parity strings).
+    private var prStateLabel: String {
+        if session.diff_status?.pull_request_draft == true { return "Draft pull request" }
+        return switch session.diff_status?.pull_request_state {
+        case "merged": "Pull request merged"
+        case "closed": "Pull request closed"
+        default: "Pull request open"
         }
     }
 

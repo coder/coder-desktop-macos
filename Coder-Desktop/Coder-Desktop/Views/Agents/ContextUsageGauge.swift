@@ -10,9 +10,10 @@ struct ContextUsageGauge: View {
     }
 
     private var color: Color {
+        // Web thresholds (#28719): destructive ≥95%, warning ≥85%.
         switch clamped {
-        case 0.9...: .red
-        case 0.7...: .orange
+        case 0.95...: .red
+        case 0.85...: .orange
         default: .secondary
         }
     }

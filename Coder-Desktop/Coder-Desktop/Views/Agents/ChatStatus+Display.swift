@@ -85,8 +85,16 @@ extension ChatStatus {
         }
     }
 
-    /// VoiceOver description for the status dot.
+    /// VoiceOver description for the status glyph (web parity strings: "Idle" for waiting,
+    /// "Working" for running).
     var accessibilityLabel: String {
-        "Status: \(label)"
+        switch self {
+        case .waiting, .completed: "Idle"
+        case .running, .pending: "Working"
+        case .interrupting: "Interrupting"
+        case .requiresAction, .paused: "Requires action"
+        case .error: "Error"
+        case .unknown: "Status unknown"
+        }
     }
 }

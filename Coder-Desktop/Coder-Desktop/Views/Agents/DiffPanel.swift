@@ -66,14 +66,15 @@ struct DiffPanel<Agents: AgentsService>: View {
                     Text("Diff").font(.caption).foregroundStyle(.secondary)
                 }
             } else {
-                // Source picker, like the web's Remote/local tabs.
+                // Source picker, like the web's view-switcher dropdown (#27012): the remote
+                // row names the PR when there is one, local rows read "Working — repo".
                 Menu {
                     Button { selectedRepo = "" } label: {
-                        sourceLabel("Remote branch", checked: activeRepo == nil)
+                        sourceLabel(status?.label ?? "Remote branch", checked: activeRepo == nil)
                     }
                     ForEach(repos) { repo in
                         Button { selectedRepo = repo.repo_root } label: {
-                            sourceLabel(repoName(repo), checked: activeRepo?.id == repo.id)
+                            sourceLabel("Working — \(repoName(repo))", checked: activeRepo?.id == repo.id)
                         }
                     }
                 } label: {
@@ -82,6 +83,11 @@ struct DiffPanel<Agents: AgentsService>: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .accessibilityLabel("Diff source")
+            }
+            // PR title on its own truncated row while the remote view is active (web #28038).
+            if activeRepo == nil, let title = status?.pull_request_title, !title.isEmpty {
+                Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .help(title)
             }
             Spacer()
             Button { Task { await agents.loadDiff(session.id) } } label: {

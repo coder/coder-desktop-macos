@@ -97,15 +97,17 @@ struct SkillsSettingsSection<Agents: AgentsService>: View {
                             }
                         }
                         Spacer()
-                        Button("Edit") { editor = SkillEditorTarget(id: skill.name, name: skill.name) }
-                            .buttonStyle(.borderless)
-                        Button(role: .destructive) {
-                            confirmingDelete = skill.name
+                        // Row actions collapse into one kebab (web #28560).
+                        Menu {
+                            Button("Edit") { editor = SkillEditorTarget(id: skill.name, name: skill.name) }
+                            Button("Delete", role: .destructive) { confirmingDelete = skill.name }
                         } label: {
-                            Image(systemName: "trash")
+                            Image(systemName: "ellipsis").foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Delete \(skill.name)")
+                        .menuStyle(.borderlessButton)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .accessibilityLabel("Actions for \(skill.name)")
                     }
                 }
             }

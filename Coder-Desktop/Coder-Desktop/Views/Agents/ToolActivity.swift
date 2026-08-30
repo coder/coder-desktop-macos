@@ -67,7 +67,18 @@ struct ToolStep: Identifiable {
         // Prefer the model's own intent for generic tools (MCP servers, search, unrecognized).
         let intent = source.modelIntent
         switch kind {
-        case .execute: return "Ran \(source.commandPrograms ?? "command")"
+        case .execute:
+            let cmd = source.commandPrograms ?? "command"
+            // process_output checks on a background process rather than running one, and a
+            // detached launch says so in the label instead of a badge (web #28300).
+            if source.tool_name == "process_output" {
+                return isRunning ? "Checking \(cmd)" : "Checked \(cmd)"
+            }
+            if source.isBackgroundExecute {
+                if let intent { return "\(intent) in the background using \(cmd)" }
+                return "Started \(cmd) in the background"
+            }
+            return "Ran \(cmd)"
         case .readFile: return "Read \(source.fileBasename ?? "file")"
         case .editFile: return "Edited \(source.fileBasename ?? "file")"
         case .search:
@@ -106,7 +117,8 @@ struct ToolStep: Identifiable {
     }
 
     var duration: String? {
-        guard let ms = result?.durationMs else { return nil }
+        // A detached launch returns immediately; its wall time is meaningless (web #28300).
+        guard let ms = result?.durationMs, source?.isBackgroundExecute != true else { return nil }
         if ms < 1000 { return "\(ms)ms" }
         return String(format: "%.1fs", Double(ms) / 1000)
     }
@@ -342,6 +354,7 @@ struct ToolOutputView: View {
             .frame(maxHeight: 320)
             .background(Color.secondary.opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius))
+            .accessibilityLabel("Command output")
             .overlay(alignment: .topTrailing) {
                 Button { copyToPasteboard(text) } label: { Image(systemName: "doc.on.doc").font(.caption2) }
                     .buttonStyle(.borderless).padding(4).help("Copy").accessibilityLabel("Copy output")

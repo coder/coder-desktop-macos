@@ -162,6 +162,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                 workspaceName: workspaceName(session.workspace_id),
                                 childCount: session.children?.count ?? 0,
                                 isExpanded: expandedRoots.contains(session.id),
+                                isSelected: route == .session(session.id),
                                 onToggleExpand: { toggleExpanded(session.id) },
                                 onOpen: { openInBrowser(session) },
                                 onRename: { renameText = session.title ?? ""; renaming = session },
@@ -177,10 +178,11 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                         session: child,
                                         workspaceName: nil,
                                         isChild: true,
+                                        isSelected: route == .session(child.id),
                                         onOpen: { openInBrowser(child) },
                                         onArchive: { Task { await agents.archive(child.id) } }
                                     )
-                                    .padding(.leading, 18)
+                                    .padding(.leading, 26) // flat indentation, no rails (web #28326)
                                     .tag(AgentsRoute.session(child.id))
                                 }
                             }

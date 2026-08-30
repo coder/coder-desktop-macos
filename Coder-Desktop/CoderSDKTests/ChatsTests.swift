@@ -170,6 +170,52 @@ struct ChatsTests {
         #expect(result[2].locked) // force_on is always on
     }
 
+    /// `file` parts carry the attachment metadata the transcript renders (codersdk
+    /// ChatFilePart); small uploads arrive inline as base64 `data` with no file id.
+    @Test
+    func filePartDecodesAttachmentFields() throws {
+        let json = Data("""
+        {"type":"file","file_id":"38AFEC34-7984-4992-85EB-3CD2A75CC7CF",
+         "media_type":"image/png","name":"screenshot.png"}
+        """.utf8)
+        let part = try CoderSDK.decoder.decode(ChatMessagePart.self, from: json)
+        #expect(part.isImageAttachment)
+        #expect(part.attachmentDisplayName == "screenshot.png")
+        #expect(part.file_id != nil)
+        #expect(part.inlineAttachmentData == nil)
+
+        let inline = try CoderSDK.decoder.decode(
+            ChatMessagePart.self,
+            from: Data(#"{"type":"file","media_type":"text/plain","data":"aGk="}"#.utf8)
+        )
+        #expect(inline.inlineAttachmentData == Data("hi".utf8))
+        #expect(inline.attachmentDisplayName == "Pasted text")
+        #expect(!inline.isImageAttachment)
+    }
+
+    /// Edit requests omit effort unless the user touched it mid-edit, while the MCP set is
+    /// always the current selection (web #28471 semantics — encoded here, decided in the UI).
+    @Test
+    func editRequestEncodesOnlyProvidedFields() throws {
+        let bare = EditChatMessageRequest(
+            content: [.text("hi")], model_config_id: nil, reasoning_effort: nil, mcp_server_ids: nil
+        )
+        let bareJSON = try #require(
+            try JSONSerialization.jsonObject(with: CoderSDK.encoder.encode(bare)) as? [String: Any]
+        )
+        #expect(bareJSON["reasoning_effort"] == nil)
+        #expect(bareJSON["mcp_server_ids"] == nil)
+
+        let full = EditChatMessageRequest(
+            content: [.text("hi")], model_config_id: nil, reasoning_effort: "high", mcp_server_ids: []
+        )
+        let fullJSON = try #require(
+            try JSONSerialization.jsonObject(with: CoderSDK.encoder.encode(full)) as? [String: Any]
+        )
+        #expect(fullJSON["reasoning_effort"] as? String == "high")
+        #expect((fullJSON["mcp_server_ids"] as? [Any])?.isEmpty == true)
+    }
+
     @Test
     func chatStatusDecodesUnknownDefensively() throws {
         let json = Data(#"{"status":"some_new_status"}"#.utf8)

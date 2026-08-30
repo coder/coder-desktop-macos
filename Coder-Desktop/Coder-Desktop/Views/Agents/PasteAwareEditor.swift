@@ -208,7 +208,7 @@ struct PasteAwareEditor: NSViewRepresentable {
             skillTokenRange = range
             skillModel.skills = filtered
             if skillModel.highlighted >= filtered.count { skillModel.highlighted = 0 }
-            if let rect = caretRect(at: range.location) { showSkillMenu(rect: rect, in: tv) }
+            showSkillMenu(in: tv)
         }
 
         private func handleSkillMenuKey(_ selector: Selector) -> Bool {
@@ -223,8 +223,13 @@ struct PasteAwareEditor: NSViewRepresentable {
             case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
                 if skillModel.skills.indices.contains(skillModel.highlighted) {
                     insertSkill(skillModel.skills[skillModel.highlighted])
+                    return true
                 }
-                return true
+                // Nothing selectable (the token is a filesystem path, not a skill): dismiss
+                // and let this same Enter fall through to submit (web #28411).
+                dismissedRange = skillTokenRange
+                hideSkillMenu()
+                return false
             case #selector(NSResponder.cancelOperation(_:)):
                 dismissedRange = skillTokenRange
                 hideSkillMenu()
@@ -247,13 +252,10 @@ struct PasteAwareEditor: NSViewRepresentable {
             hideSkillMenu()
         }
 
-        private func caretRect(at loc: Int) -> NSRect? {
-            guard let tv = textView, let window = tv.window else { return nil }
-            let screen = tv.firstRect(forCharacterRange: NSRange(location: loc, length: 0), actualRange: nil)
-            return tv.convert(window.convertFromScreen(screen), from: nil)
-        }
-
-        private func showSkillMenu(rect: NSRect, in tv: NSTextView) {
+        /// Anchored to the whole editor and spanning its width, presented above it — not at
+        /// the caret (web #28411: stable placement, no per-keystroke re-anchoring).
+        private func showSkillMenu(in tv: NSTextView) {
+            skillModel.menuWidth = max(280, tv.bounds.width)
             if skillPopover == nil {
                 let popover = NSPopover()
                 popover.behavior = .applicationDefined // we control dismissal (typing won't close it)
@@ -261,7 +263,8 @@ struct PasteAwareEditor: NSViewRepresentable {
                 skillPopover = popover
             }
             guard skillPopover?.isShown != true else { return }
-            skillPopover?.show(relativeTo: rect, of: tv, preferredEdge: .maxY)
+            // NSTextView is flipped, so .minY is its TOP edge.
+            skillPopover?.show(relativeTo: tv.bounds, of: tv, preferredEdge: .minY)
             // Keep typing in the editor rather than the popover.
             tv.window?.makeFirstResponder(tv)
         }

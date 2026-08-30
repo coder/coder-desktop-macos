@@ -33,7 +33,7 @@ struct AgentsUIHelpersTests {
         let old = try chat(#require(cal.date(byAdding: .day, value: -30, to: now)))
 
         let groups = SessionGroup.grouped([today, yesterday, thisWeek, old])
-        #expect(groups.map(\.title) == ["Today", "Yesterday", "This Week", "Older"])
+        #expect(groups.map(\.title) == ["Today", "Yesterday", "Past 7 days", "Older"])
         #expect(groups.first?.sessions.first?.id == today.id)
         // Empty buckets are omitted.
         #expect(SessionGroup.grouped([today]).map(\.title) == ["Today"])

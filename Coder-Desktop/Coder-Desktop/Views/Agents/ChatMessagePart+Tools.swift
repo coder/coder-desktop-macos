@@ -83,6 +83,15 @@ extension ChatMessagePart {
         args?["command"]?.stringValue
     }
 
+    /// An `execute` launched detached: the command ends in `&` (not `&&`/`|&`) and the
+    /// result reports a background process id (web's tightened detection, #28300).
+    var isBackgroundExecute: Bool {
+        guard let cmd = fullCommand?.trimmingCharacters(in: .whitespacesAndNewlines),
+              cmd.hasSuffix("&"), !cmd.hasSuffix("&&"), !cmd.hasSuffix("|&")
+        else { return false }
+        return result?["pid"]?.intValue != nil || result?["process_id"]?.intValue != nil
+    }
+
     var filePath: String? {
         if let name = file_name, !name.isEmpty { return name }
         return args?["path"]?.stringValue

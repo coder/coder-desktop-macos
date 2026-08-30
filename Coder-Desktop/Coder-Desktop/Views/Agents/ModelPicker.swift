@@ -62,6 +62,7 @@ struct ModelPicker<Agents: AgentsService>: View {
         Button { show.toggle() } label: {
             HStack(spacing: 4) {
                 Text(label).lineLimit(1).foregroundStyle(.primary)
+                    .layoutPriority(1) // shrink the pill's chrome before the label (web #28691)
                 if let effort, let efforts = selected?.selectableEfforts, !efforts.isEmpty {
                     // Sized to the longest label so changing effort doesn't shift the controls
                     // either side of the picker.
@@ -75,13 +76,19 @@ struct ModelPicker<Agents: AgentsService>: View {
                     .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
                     .foregroundStyle(.secondary)
                 }
-                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(.secondary)
+                Image(systemName: "chevron.up.chevron.down").font(.caption2)
             }
-            .font(.callout)
-            .contentShape(Rectangle())
+            // Pill chrome matching the workspace pill (web #28230/#28691: identical chrome
+            // on both selectors). The label keeps an ~8-character floor before truncating.
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.secondary.opacity(0.15))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .fixedSize()
         .onHoverWithPointingHand { _ in }
         .help("Model")
         .accessibilityLabel(accessibilityLabel)

@@ -91,6 +91,8 @@ func filterSkills(_ items: [SkillMenuItem], query: String) -> [SkillMenuItem] {
 final class SkillMenuModel: ObservableObject {
     @Published var skills: [SkillMenuItem] = []
     @Published var highlighted = 0
+    /// Matches the composer's width (web #28411: the menu spans the composer box).
+    @Published var menuWidth: CGFloat = 280
     var onSelect: (SkillMenuItem) -> Void = { _ in }
 }
 
@@ -138,7 +140,7 @@ struct SkillsMenuView: View {
                 }
             }
         }
-        .frame(width: 280)
+        .frame(width: model.menuWidth)
         .frame(maxHeight: 220)
     }
 }

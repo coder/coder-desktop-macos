@@ -258,6 +258,7 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 .padding(Theme.Size.trayInset)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .accessibilityLabel("Messages")
             .overlay(alignment: .bottom) {
                 if !atBottom {
                     scrollToBottomButton(proxy)
