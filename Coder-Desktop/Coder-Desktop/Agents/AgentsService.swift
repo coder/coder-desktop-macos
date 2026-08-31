@@ -370,9 +370,28 @@ extension CoderAgentsService {
     func organizationID() async -> UUID? {
         if let cachedOrgID { return cachedOrgID }
         guard let client else { return nil }
-        // Multi-org users: EA picks the first org. Surface a picker if this proves wrong.
-        let me = try? await client.user("me")
-        cachedOrgID = me?.organization_ids?.first
+        // Multi-org users: models/MCP servers are org-scoped since the /api/v2 migration, so
+        // "first org" can silently land in one with nothing configured (which hides the model
+        // and connector pickers). Prefer the org the user's most recent chat lives in
+        // (upstream #28543's recent-usage heuristic), then the first org that actually has
+        // chat models, then the first org.
+        if let recent = sessions.first(where: { $0.organization_id != nil })?.organization_id {
+            cachedOrgID = recent
+            return recent
+        }
+        guard let me = try? await client.user("me"),
+              let orgs = me.organization_ids, !orgs.isEmpty else { return nil }
+        if orgs.count > 1 {
+            for org in orgs {
+                if let models = try? await client.chatModelConfigs(organizationID: org),
+                   !models.isEmpty
+                {
+                    cachedOrgID = org
+                    return org
+                }
+            }
+        }
+        cachedOrgID = orgs.first
         return cachedOrgID
     }
 }
