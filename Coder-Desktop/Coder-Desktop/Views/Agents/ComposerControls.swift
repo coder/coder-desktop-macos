@@ -32,6 +32,21 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         .accessibilityLabel("Attach files, workspace, and connectors")
         .popover(isPresented: $showMenu, arrowEdge: .bottom) { menuContent }
         .task(id: showMenu) { if showMenu { await agents.loadMCPServers() } }
+        // Returning from the browser after an OAuth consent: refresh the connectors, and
+        // auto-select the one the user just authorized instead of making them reopen the
+        // menu and flip it on themselves (web parity, coder/coder #28155).
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard agents.pendingMCPAuthServerID != nil else { return }
+            Task { await agents.loadMCPServers() }
+        }
+        .onChange(of: agents.mcpServers) { _, servers in
+            guard let pending = agents.pendingMCPAuthServerID,
+                  let server = servers.first(where: { $0.id == pending }),
+                  server.auth_connected == true
+            else { return }
+            agents.pendingMCPAuthServerID = nil
+            selectedMCP.insert(pending)
+        }
         .alert("Upload failed", isPresented: .init(
             get: { uploadError != nil },
             set: { if !$0 { uploadError = nil } }
@@ -182,12 +197,14 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
         if checked { Label(text, systemImage: "checkmark") } else { Text(text) }
     }
 
-    /// Opens the OAuth2 connect flow in the browser (which carries the Coder session).
+    /// Opens the OAuth2 connect flow in the browser (which carries the Coder session) and
+    /// marks the server pending so it auto-selects once connected.
     private func authenticate(_ server: MCPServer) {
         guard let base = state.baseAccessURL, let orgID = server.organization_id else { return }
         let url = base.appending(
             path: "/api/v2/organizations/\(orgID.uuidString)/mcp-servers/\(server.id.uuidString)/oauth2/connect"
         )
+        agents.pendingMCPAuthServerID = server.id
         NSWorkspace.shared.open(url)
     }
 

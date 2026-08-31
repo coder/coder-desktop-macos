@@ -45,6 +45,8 @@ protocol AgentsService: ObservableObject {
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.
     var historyLoadErrorBySession: [UUID: String] { get }
+    /// Connector whose OAuth flow is in the browser; auto-selected once connected (#28155).
+    var pendingMCPAuthServerID: UUID? { get set }
 
     /// Emitted once when the Agents window is opened.
     func viewOpened()

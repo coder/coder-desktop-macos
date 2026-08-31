@@ -15,6 +15,7 @@ final class PreviewAgents: AgentsService {
     @Published var pendingOpenChatID: UUID?
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
     @Published var historyLoadErrorBySession: [UUID: String] = [:]
+    @Published var pendingMCPAuthServerID: UUID?
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
 

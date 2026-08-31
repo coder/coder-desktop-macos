@@ -15,6 +15,10 @@ final class CoderAgentsService: AgentsService {
     @Published var loadError: String?
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
+    /// Connector whose OAuth flow was just opened in the browser. When it comes back
+    /// `auth_connected`, the composer auto-selects it (web parity, coder/coder #28155 —
+    /// making the user reopen the menu to enable what they just authorized is bad UX).
+    @Published var pendingMCPAuthServerID: UUID?
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
     /// AI providers keyed by id, for grouping and labelling models in the picker. Loaded lazily
     /// the first time the picker opens. Setter is internal so the settings extension can fill it.
@@ -121,6 +125,7 @@ final class CoderAgentsService: AgentsService {
         retryBySession.removeAll()
         workspaces = []
         mcpServers = []
+        pendingMCPAuthServerID = nil
         modelConfigs = []
         aiProviders.removeAll()
         userSkills = []
