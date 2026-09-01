@@ -18,6 +18,7 @@ final class PreviewAgents: AgentsService {
     @Published var pendingFocusSearch = false
     @Published var pendingOpenSettings = false
     @Published var pendingOpenArchived = false
+    @Published var pendingConfirmClear = false
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
     @Published var historyLoadErrorBySession: [UUID: String] = [:]
     @Published var pendingMCPAuthServerID: UUID?
@@ -57,7 +58,7 @@ final class PreviewAgents: AgentsService {
     @Published var aiProviders: [UUID: AIProvider] = [:]
     func loadAIProviders() async {}
     func disconnectMCPOAuth(_: UUID) async -> MCPOAuthDisconnect? { nil }
-    func loadArchivedSessions() async -> [Chat] { [] }
+    func loadArchivedSessions() async -> [Chat]? { [] }
     func unarchive(_: UUID) async -> Bool { true }
     func mcpIcon(_: UUID) -> NSImage? {
         nil

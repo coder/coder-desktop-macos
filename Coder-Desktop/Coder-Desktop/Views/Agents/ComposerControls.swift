@@ -99,6 +99,11 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                 if allowsWorkspacePick {
                     Menu {
                         Button { workspaceID = nil } label: { check("No workspace", workspaceID == nil) }
+                        if agents.workspaces.isEmpty {
+                            // The third picker in this menu; the other two explain themselves
+                            // when empty and this one silently offered nothing.
+                            Text("No running workspaces").foregroundStyle(.secondary)
+                        }
                         ForEach(agents.workspaces) { ws in
                             Button { workspaceID = ws.id } label: { check(ws.name, workspaceID == ws.id) }
                         }

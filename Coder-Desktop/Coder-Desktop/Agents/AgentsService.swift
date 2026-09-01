@@ -92,6 +92,8 @@ final class CoderAgentsService: AgentsService {
     /// per-chat window that has no sidebar.
     @Published var pendingOpenSettings = false
     @Published var pendingOpenArchived = false
+    /// Set by Chat ▸ Clear Context…; the open chat's view raises the confirmation.
+    @Published var pendingConfirmClear = false
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
@@ -145,6 +147,7 @@ final class CoderAgentsService: AgentsService {
         pendingFocusSearch = false
         pendingOpenSettings = false
         pendingOpenArchived = false
+        pendingConfirmClear = false
         localReposBySession.removeAll()
         streamGeneration.removeAll()
         streamingStore.removeAll()

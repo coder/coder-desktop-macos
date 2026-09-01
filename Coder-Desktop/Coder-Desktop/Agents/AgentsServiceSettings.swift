@@ -79,15 +79,18 @@ extension CoderAgentsService {
 
     /// Loads the archived chats, which the default listing hides. Kept separate from `sessions`
     /// so the normal sidebar never has to filter them back out.
-    func loadArchivedSessions() async -> [Chat] {
-        guard let client else { return [] }
+    /// Nil distinguishes a FAILED load from an empty one — returning [] for both rendered a
+    /// server error as the reassuring "No archived chats."
+    func loadArchivedSessions() async -> [Chat]? {
+        guard let client else { return nil }
         do {
-            return try await client.chats(query: "archived:true")
+            let chats = try await client.chats(query: "archived:true")
                 .sorted { $0.updated_at > $1.updated_at }
+            loadError = nil
+            return chats
         } catch {
-            loadError = error.localizedDescription
-            logger.error("failed to load archived chats: \(error.localizedDescription, privacy: .public)")
-            return []
+            reportFailure(error, action: "load archived chats")
+            return nil
         }
     }
 

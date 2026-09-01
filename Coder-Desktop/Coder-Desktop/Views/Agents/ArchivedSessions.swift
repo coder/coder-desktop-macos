@@ -9,6 +9,8 @@ import SwiftUI
 /// archived rows back out.
 struct ArchivedSessions<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
+    @EnvironmentObject var state: AppState
+    @Environment(\.openWindow) private var openWindow
     var onBack: () -> Void
     /// The sidebar's live search text and the server's message matches. Archived mode kept a
     /// visible search field that did nothing; these make it real.
@@ -16,6 +18,8 @@ struct ArchivedSessions<Agents: AgentsService>: View {
     var matches: [Chat] = []
 
     @State private var chats: [Chat]?
+    /// The load finished but failed — distinct from "finished and found nothing".
+    @State private var loadFailed = false
     @State private var unarchiving: Set<UUID> = []
 
     var body: some View {
@@ -35,7 +39,11 @@ struct ArchivedSessions<Agents: AgentsService>: View {
             Divider()
             content
         }
-        .task { chats = await agents.loadArchivedSessions() }
+        .task {
+            let loaded = await agents.loadArchivedSessions()
+            loadFailed = loaded == nil
+            chats = loaded ?? []
+        }
     }
 
     /// Archived chats matching the query — by title locally, plus the server's message
@@ -52,14 +60,27 @@ struct ArchivedSessions<Agents: AgentsService>: View {
     @ViewBuilder
     private var content: some View {
         if chats != nil {
-            let chats = visible
-            if chats.isEmpty {
-                Text(searchQuery.isEmpty ? "No archived chats." : "No archived chats match.")
-                    .font(.callout).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            let shown = visible
+            if shown.isEmpty {
+                VStack(spacing: 8) {
+                    if loadFailed {
+                        Text("Couldn't load archived chats.").font(.callout)
+                        Button("Try Again") {
+                            Task {
+                                let loaded = await agents.loadArchivedSessions()
+                                loadFailed = loaded == nil
+                                chats = loaded ?? []
+                            }
+                        }
+                    } else {
+                        Text(searchQuery.isEmpty ? "No archived chats." : "No archived chats match.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(chats) { chat in
+                    ForEach(shown) { chat in
                         row(chat)
                     }
                 }
@@ -71,6 +92,30 @@ struct ArchivedSessions<Agents: AgentsService>: View {
     }
 
     private func row(_ chat: Chat) -> some View {
+        rowBody(chat)
+            // Live rows carry a 7-item menu; archived rows had none, so the only way to look
+            // at one was to restore it first.
+            .contextMenu {
+                Button {
+                    openWindow(id: Windows.chat.rawValue, value: chat.id)
+                } label: {
+                    Label("Open in New Window", systemImage: "macwindow")
+                }
+                if let url = state.baseAccessURL?
+                    .appending(path: "agents/\(chat.id.uuidString.lowercased())")
+                {
+                    Button { NSWorkspace.shared.open(url) } label: {
+                        Label("Open in browser", systemImage: "safari")
+                    }
+                }
+                Divider()
+                Button { restore(chat) } label: {
+                    Label("Unarchive", systemImage: "arrow.uturn.backward")
+                }
+            }
+    }
+
+    private func rowBody(_ chat: Chat) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(chat.title?.isEmpty == false ? chat.title! : "Untitled chat").lineLimit(1)

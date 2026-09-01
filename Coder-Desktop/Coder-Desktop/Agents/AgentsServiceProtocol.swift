@@ -51,6 +51,8 @@ protocol AgentsService: ObservableObject {
     /// Set by the Agents Settings… / Archived Chats menu items.
     var pendingOpenSettings: Bool { get set }
     var pendingOpenArchived: Bool { get set }
+    /// Set by Chat ▸ Clear Context…; the open chat's view raises the confirmation.
+    var pendingConfirmClear: Bool { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.
@@ -75,7 +77,8 @@ protocol AgentsService: ObservableObject {
     var aiProviders: [UUID: AIProvider] { get }
     func loadAIProviders() async
     /// The archived chats, which the normal listing hides.
-    func loadArchivedSessions() async -> [Chat]
+    /// Nil means the load failed, as distinct from an empty archive.
+    func loadArchivedSessions() async -> [Chat]?
     /// Restores an archived chat to the sidebar.
     func unarchive(_ id: UUID) async -> Bool
     /// Disconnects a connector's OAuth2 credentials. Nil means the request failed; a result may

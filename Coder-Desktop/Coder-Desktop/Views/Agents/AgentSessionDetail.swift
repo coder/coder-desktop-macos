@@ -69,6 +69,22 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             save: { part in Task { await agents.saveAttachment(part) } }
         ))
         .quickLookPreview($attachmentPreviewURL)
+        .confirmationDialog(
+            "Clear this conversation's context?",
+            isPresented: Binding(
+                get: { agents.pendingConfirmClear && agents.activeSessionID == session.id },
+                set: { if !$0 { agents.pendingConfirmClear = false } }
+            )
+        ) {
+            Button("Clear Context", role: .destructive) {
+                agents.pendingConfirmClear = false
+                Task { await agents.clear(session.id) }
+            }
+            Button("Cancel", role: .cancel) { agents.pendingConfirmClear = false }
+        } message: {
+            Text("The transcript is kept, but the agent starts the next message with no memory "
+                + "of what came before.")
+        }
         .task(id: session.id) {
             // Chime/notification for the visible chat is suppressed at the service level.
             agents.activeSessionID = session.id

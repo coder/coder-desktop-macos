@@ -64,10 +64,11 @@ struct AgentsCommands<Agents: AgentsService>: Commands {
             }
             .disabled(active == nil)
 
-            Button("Clear Context") {
-                if let id = active?.id { Task { await agents.clear(id) } }
-            }
-            .disabled(active == nil)
+            // Discards the conversation's context, so it asks first — unlike Stop, which
+            // maps to the conventional ⌘. and is trivially recoverable.
+            // A Commands struct can't host a dialog, so the open chat's view shows it.
+            Button("Clear Context…") { agents.pendingConfirmClear = true }
+                .disabled(active == nil)
 
             Divider()
 
@@ -79,6 +80,15 @@ struct AgentsCommands<Agents: AgentsService>: Commands {
             .disabled(!(active.map { chat in
                 chat.status.canArchive && (chat.children ?? []).allSatisfy(\.status.canArchive)
             } ?? false))
+        }
+        // Commands can't host a dialog, so the confirmation rides an invisible companion
+        // in the main window's toolbar area via the shared flag.
+        CommandGroup(replacing: .help) {
+            Button("Coder Desktop Help") {
+                if let url = URL(string: "https://coder.com/docs/ai-coder/agents") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
         }
     }
 }
