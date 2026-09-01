@@ -8,11 +8,6 @@ extension CoderAgentsService {
         queuedMessagesBySession[id] ?? []
     }
 
-    /// A WebSocket request for the agent's reconnecting PTY (terminal), or nil if signed out.
-    func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest? {
-        client?.agentPTYRequest(agentID: agentID, reconnect: UUID(), cols: cols, rows: rows)
-    }
-
     /// The ports a workspace agent is currently listening on (for the workspace pill).
     func listeningPorts(agentID: UUID) async -> [WorkspaceAgentListeningPort] {
         guard let client else { return [] }

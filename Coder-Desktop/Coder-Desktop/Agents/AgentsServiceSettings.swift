@@ -29,20 +29,6 @@ extension CoderAgentsService {
         return try? await client.chatACL(id)
     }
 
-    /// Shares the chat with a user by username; returns nil on success or an error message.
-    func shareChat(_ id: UUID, username: String) async -> String? {
-        guard let client else { return "Signed out." }
-        let trimmed = username.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return nil }
-        do {
-            let user = try await client.user(trimmed)
-            try await client.updateChatACL(id, userRoles: [user.id.uuidString: chatRoleRead])
-            return nil
-        } catch {
-            return "Couldn't share with \"\(trimmed)\". Check the username."
-        }
-    }
-
     func unshareUser(_ id: UUID, userID: UUID) async {
         try? await client?.updateChatACL(id, userRoles: [userID.uuidString: ""])
     }

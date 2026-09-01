@@ -115,8 +115,6 @@ protocol AgentsService: ObservableObject {
     func diff(for id: UUID) -> ChatDiffContents?
     func loadDiff(_ id: UUID) async
 
-    /// A WebSocket request for the agent's reconnecting PTY (terminal), or nil if signed out.
-    func ptyRequest(agentID: UUID, cols: Int, rows: Int) -> URLRequest?
     /// Live uncommitted changes from the agent's git watcher (the web's "local" diff source).
     func localRepos(for id: UUID) -> [WorkspaceAgentRepoChanges]
     /// Subscribe/unsubscribe the git watcher while the Git panel is open.
@@ -145,7 +143,6 @@ protocol AgentsService: ObservableObject {
 
     // Chat sharing (ACL).
     func chatACL(_ id: UUID) async -> ChatACL?
-    func shareChat(_ id: UUID, username: String) async -> String?
     func unshareUser(_ id: UUID, userID: UUID) async
     func unshareGroup(_ id: UUID, groupID: UUID) async
     func shareWithUser(_ id: UUID, userID: UUID) async

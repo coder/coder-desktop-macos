@@ -7,8 +7,6 @@ import Foundation
 extension CoderAgentsService {
     /// Domain for the app's Spotlight items, so sign-out can drop exactly ours.
     static let spotlightDomain = "com.coder.Coder-Desktop.chats"
-    /// The activity type that carries a chat id back when a Spotlight hit is opened.
-    static let chatActivityType = "com.coder.Coder-Desktop.openChat"
 
     /// Indexes the current chats. Cheap to re-run: Core Spotlight upserts by identifier,
     /// and a chat's searchable text only changes when its title or summary does.

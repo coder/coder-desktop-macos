@@ -69,10 +69,6 @@ final class PreviewAgents: AgentsService {
     }
 
     func loadDiff(_: UUID) async {}
-    func ptyRequest(agentID _: UUID, cols _: Int, rows _: Int) -> URLRequest? {
-        nil
-    }
-
     func uploadFile(_: URL) async -> UUID? {
         UUID()
     }
@@ -142,10 +138,6 @@ final class PreviewAgents: AgentsService {
         ChatACL(users: [ChatACLUser(
             id: UUID(), username: "teammate", name: "Team Mate", avatar_url: nil, role: "read"
         )], groups: [])
-    }
-
-    func shareChat(_: UUID, username _: String) async -> String? {
-        nil
     }
 
     func unshareUser(_: UUID, userID _: UUID) async {}

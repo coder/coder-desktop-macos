@@ -1,12 +1,8 @@
 import Foundation
 
-/// Shared UserDefaults keys for the Agents feature. Agents is GA server-side; the desktop
-/// view still ships behind an opt-in flag (OFF by default) because the client has no
-/// entitlement check to know whether a deployment licenses Agents. Both the menu entry and
-/// the settings toggle read this key.
-/// The remaining keys are client-local Agents preferences (mirroring the web's settings).
+/// Client-local Agents preferences, mirroring the web's settings. The feature itself is GA
+/// and ungated — the old `agentsEnabled` opt-in is gone.
 enum Defaults {
-    static let agentsEnabled = "agentsEnabled"
     static let chatFullWidth = "agentsChatFullWidth"
     static let thinkingDisplay = "agentsThinkingDisplay"
     static let requireModifierToSend = "agentsRequireModifierToSend"

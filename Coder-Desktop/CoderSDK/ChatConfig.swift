@@ -64,8 +64,7 @@ public extension Client {
 
     /// Fetches a single skill including its raw markdown `content` (the list omits it).
     func userSkill(name: String) async throws(SDKError) -> UserSkill {
-        let escaped = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-        let res = try await request("/api/experimental/users/me/skills/\(escaped)", method: .get)
+        let res = try await request(skillPath(name), method: .get)
         guard res.resp.statusCode == 200 else { throw responseAsError(res) }
         return try decode(UserSkill.self, from: res.data)
     }
@@ -80,9 +79,8 @@ public extension Client {
     }
 
     func updateUserSkill(name: String, content: String) async throws(SDKError) {
-        let escaped = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let res = try await request(
-            "/api/experimental/users/me/skills/\(escaped)",
+            skillPath(name),
             method: .patch,
             body: UserSkillContentRequest(content: content)
         )
@@ -90,9 +88,14 @@ public extension Client {
     }
 
     func deleteUserSkill(name: String) async throws(SDKError) {
-        let escaped = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-        let res = try await request("/api/experimental/users/me/skills/\(escaped)", method: .delete)
+        let res = try await request(skillPath(name), method: .delete)
         guard (200 ... 204).contains(res.resp.statusCode) else { throw responseAsError(res) }
+    }
+
+    /// Skills stayed on `/api/experimental` — they were not promoted with the chat routes.
+    private func skillPath(_ name: String) -> String {
+        let escaped = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        return "/api/experimental/users/me/skills/\(escaped)"
     }
 }
 
@@ -103,17 +106,14 @@ public struct ModelOverrides: Codable, Sendable, Equatable {
     public var root: ModelOverride
     public var general: ModelOverride
     public var explore: ModelOverride
-    public let deployment_defaults: ModelOverrideDeploymentDefaults?
 
     public init(
-        enabled: Bool? = nil, root: ModelOverride, general: ModelOverride, explore: ModelOverride,
-        deployment_defaults: ModelOverrideDeploymentDefaults? = nil
+        enabled: Bool? = nil, root: ModelOverride, general: ModelOverride, explore: ModelOverride
     ) {
         self.enabled = enabled
         self.root = root
         self.general = general
         self.explore = explore
-        self.deployment_defaults = deployment_defaults
     }
 }
 
@@ -129,16 +129,6 @@ public struct ModelOverride: Codable, Sendable, Equatable {
         self.model_config_id = model_config_id
         self.is_set = is_set
     }
-}
-
-public struct ModelOverrideDeploymentDefaults: Codable, Sendable, Equatable {
-    public let general: ModelOverrideDeploymentDefault?
-    public let explore: ModelOverrideDeploymentDefault?
-}
-
-public struct ModelOverrideDeploymentDefault: Codable, Sendable, Equatable {
-    public let context: String?
-    public let model_config_id: String?
 }
 
 struct SetModelOverrideRequest: Encodable {

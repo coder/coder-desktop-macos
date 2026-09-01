@@ -46,10 +46,6 @@ final class SmoothTextEngine {
         budget -= Double(reveal)
         return visibleCount
     }
-
-    func isCaughtUp(_ fullCount: Int) -> Bool {
-        visibleCount >= fullCount
-    }
 }
 
 /// Renders streaming markdown text with a smooth character reveal; once `isStreaming` is

@@ -63,32 +63,6 @@ public extension Client {
         }
     }
 
-    /// Builds the WebSocket request for a workspace agent's reconnecting PTY. Served by
-    /// the control plane (no Coder Connect tunnel needed). Client→server frames are
-    /// JSON-encoded bytes (`{"data":...}` for input, `{"height","width"}` for resize);
-    /// server→client frames are raw terminal output.
-    func agentPTYRequest(agentID: UUID, reconnect: UUID, cols: Int, rows: Int) -> URLRequest? {
-        guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/v2/workspaceagents/\(agentID.uuidString)/pty"),
-            resolvingAgainstBaseURL: false
-        ) else { return nil }
-        components.scheme = url.scheme == "http" ? "ws" : "wss"
-        components.queryItems = [
-            URLQueryItem(name: "reconnect", value: reconnect.uuidString),
-            URLQueryItem(name: "height", value: "\(rows)"),
-            URLQueryItem(name: "width", value: "\(cols)"),
-        ]
-        guard let wsURL = components.url else { return nil }
-        var req = URLRequest(url: wsURL)
-        for header in headers {
-            req.addValue(header.value, forHTTPHeaderField: header.name)
-        }
-        if let token {
-            req.addValue(token, forHTTPHeaderField: Headers.sessionToken)
-        }
-        return req
-    }
-
     private func chatStreamRequest(id: UUID, afterID: Int64?) throws(SDKError) -> URLRequest {
         guard var components = URLComponents(
             url: url.appendingPathComponent("/api/v2/chats/\(id.uuidString)/stream"),
@@ -165,9 +139,6 @@ public struct ChatStreamEvent: Codable, Sendable {
     /// Present on `retry` events: the server is backing off before retrying a failed
     /// LLM call (codersdk `ChatStreamRetry`).
     public let retry: ChatStreamRetry?
-    /// Present on `action_required` events: dynamic tool calls the client must execute
-    /// and submit back via the tool-response endpoint.
-    public let action_required: ChatStreamActionRequired?
 
     public init(
         type: ChatStreamEventType,
@@ -177,8 +148,7 @@ public struct ChatStreamEvent: Codable, Sendable {
         status: ChatStreamStatus? = nil,
         error: ChatError? = nil,
         queued_messages: [ChatQueuedMessage]? = nil,
-        retry: ChatStreamRetry? = nil,
-        action_required: ChatStreamActionRequired? = nil
+        retry: ChatStreamRetry? = nil
     ) {
         self.type = type
         self.chat_id = chat_id
@@ -188,20 +158,7 @@ public struct ChatStreamEvent: Codable, Sendable {
         self.error = error
         self.queued_messages = queued_messages
         self.retry = retry
-        self.action_required = action_required
     }
-}
-
-/// Payload of an `action_required` event: dynamic tool calls the client must execute.
-public struct ChatStreamActionRequired: Codable, Sendable {
-    public let tool_calls: [ChatStreamToolCall]
-}
-
-/// A single pending dynamic tool invocation the client must execute and submit back.
-public struct ChatStreamToolCall: Codable, Sendable {
-    public let tool_call_id: String
-    public let tool_name: String
-    public let args: String
 }
 
 /// An auto-retry status event: attempt number, backoff delay, and the failure being retried.
@@ -220,7 +177,6 @@ public enum ChatStreamEventType: String, Codable, Sendable {
     case error
     case queueUpdate = "queue_update"
     case retry
-    case actionRequired = "action_required"
     /// History was rewound (e.g. a message edit); subsequent `message` events are the FULL
     /// replacement transcript, emitted contiguously and terminated by the next non-message
     /// event (the server always emits `preview_reset` in the same sync).
@@ -238,25 +194,10 @@ public enum ChatStreamEventType: String, Codable, Sendable {
 public struct ChatStreamMessagePart: Codable, Sendable {
     public let part: ChatMessagePart
     public let role: ChatMessageRole?
-    // Ordering metadata (chatd stabilization): which history rewind / retry attempt this
-    // part belongs to, and its sequence within the attempt. The stream endpoint already
-    // filters stale/out-of-order parts server-side; these are informational for clients.
-    public let history_version: Int64?
-    public let generation_attempt: Int64?
-    public let seq: Int64?
 
-    public init(
-        part: ChatMessagePart,
-        role: ChatMessageRole? = nil,
-        history_version: Int64? = nil,
-        generation_attempt: Int64? = nil,
-        seq: Int64? = nil
-    ) {
+    public init(part: ChatMessagePart, role: ChatMessageRole? = nil) {
         self.part = part
         self.role = role
-        self.history_version = history_version
-        self.generation_attempt = generation_attempt
-        self.seq = seq
     }
 }
 

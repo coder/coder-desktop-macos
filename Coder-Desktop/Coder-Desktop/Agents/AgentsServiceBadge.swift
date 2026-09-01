@@ -21,9 +21,4 @@ extension CoderAgentsService {
             .debounce(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.donateToSpotlight() }
     }
-
-    func clearBadge() {
-        badgeCancellable = nil
-        NSApp.dockTile.badgeLabel = nil
-    }
 }
