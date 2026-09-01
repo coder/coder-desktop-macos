@@ -11,43 +11,11 @@ public extension Client {
     // occurs. Callers that need uninterrupted output should fall back to polling
     // `chatMessages(_:afterID:)` while reconnecting.
     func chatEvents(id: UUID, afterID: Int64? = nil) -> AsyncThrowingStream<ChatStreamEvent, Error> {
-        AsyncThrowingStream { continuation in
-            // `URLSessionWebSocketTask.receive()` does not observe Swift task cancellation, so
-            // cancelling the Task alone leaves an idle-but-open socket blocked forever. Hold the
-            // socket in a box so `onTermination` can cancel it for real.
-            let box = WebSocketBox()
-            let streamTask = Task {
-                do {
-                    let req = try chatStreamRequest(id: id, afterID: afterID)
-                    let ws = URLSession.shared.webSocketTask(with: req)
-                    box.setTask(ws)
-                    ws.resume()
-                    while !Task.isCancelled {
-                        // The server batches events into a JSON array per frame. Decode
-                        // resiliently so one malformed event can't discard the whole frame
-                        // (which would otherwise feed an endless reconnect loop).
-                        let frame = try await ws.receive()
-                        for event in Self.decodeEvents(from: frame.data) {
-                            continuation.yield(event)
-                        }
-                    }
-                    continuation.finish()
-                } catch {
-                    // A server-initiated close surfaces here as a throw. Treat a normal
-                    // closure (run finished) as a clean finish so the caller stops instead
-                    // of reconnecting; only real drops propagate as errors.
-                    if Task.isCancelled || box.isCleanClose {
-                        continuation.finish()
-                    } else {
-                        continuation.finish(throwing: error)
-                    }
-                }
-                box.cancel()
-            }
-            continuation.onTermination = { _ in
-                box.cancel()
-                streamTask.cancel()
-            }
+        let query = afterID.map { [URLQueryItem(name: "after_id", value: "\($0)")] } ?? []
+        // The server batches events into a JSON array per frame; decoded resiliently so one
+        // malformed event can't discard the whole frame (which would feed a reconnect loop).
+        return wsStream(path: "/api/v2/chats/\(id.uuidString)/stream", query: query) {
+            Self.decodeEvents(from: $0)
         }
     }
 
@@ -63,19 +31,60 @@ public extension Client {
         }
     }
 
-    private func chatStreamRequest(id: UUID, afterID: Int64?) throws(SDKError) -> URLRequest {
+    /// Opens a WebSocket to `path` and yields each frame's decoded values until the task is
+    /// cancelled or the socket closes. Shared by the chat, watch, and git streams.
+    ///
+    /// A server-initiated close surfaces as a throw: a NORMAL closure (the run finished) is a
+    /// clean finish so the caller stops, while a real drop propagates so it can reconnect.
+    internal func wsStream<T: Sendable>(
+        path: String,
+        query: [URLQueryItem] = [],
+        decode: @escaping @Sendable (Data) -> [T]
+    ) -> AsyncThrowingStream<T, Error> {
+        AsyncThrowingStream { continuation in
+            // `URLSessionWebSocketTask.receive()` does not observe Swift task cancellation, so
+            // cancelling the Task alone leaves an idle-but-open socket blocked forever. Hold the
+            // socket in a box so `onTermination` can cancel it for real.
+            let box = WebSocketBox()
+            let streamTask = Task {
+                do {
+                    let ws = try URLSession.shared.webSocketTask(with: wsRequest(path, query: query))
+                    box.setTask(ws)
+                    ws.resume()
+                    while !Task.isCancelled {
+                        let frame = try await ws.receive()
+                        for value in decode(frame.data) {
+                            continuation.yield(value)
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    if Task.isCancelled || box.isCleanClose {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: error)
+                    }
+                }
+                box.cancel()
+            }
+            continuation.onTermination = { _ in
+                box.cancel()
+                streamTask.cancel()
+            }
+        }
+    }
+
+    /// A `ws(s)://` request for `path`, carrying the client's headers and session token.
+    internal func wsRequest(_ path: String, query: [URLQueryItem] = []) throws(SDKError) -> URLRequest {
         guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/v2/chats/\(id.uuidString)/stream"),
-            resolvingAgainstBaseURL: false
+            url: url.appendingPathComponent(path), resolvingAgainstBaseURL: false
         ) else {
-            throw .unexpectedResponse("Invalid chat stream URL")
+            throw .unexpectedResponse("Invalid WebSocket URL for \(path)")
         }
         components.scheme = url.scheme == "http" ? "ws" : "wss"
-        if let afterID {
-            components.queryItems = [URLQueryItem(name: "after_id", value: "\(afterID)")]
-        }
+        if !query.isEmpty { components.queryItems = query }
         guard let wsURL = components.url else {
-            throw .unexpectedResponse("Invalid chat stream URL")
+            throw .unexpectedResponse("Invalid WebSocket URL for \(path)")
         }
         var req = URLRequest(url: wsURL)
         for header in headers {

@@ -6,57 +6,9 @@ public extension Client {
     /// message carries a full snapshot of every watched repo (branch + uncommitted
     /// unified diff), so the latest message always supersedes earlier ones.
     func chatGitEvents(id: UUID) -> AsyncThrowingStream<ChatGitMessage, Error> {
-        AsyncThrowingStream { continuation in
-            // Same socket-lifetime handling as `chatEvents` (see WebSocketBox).
-            let box = WebSocketBox()
-            let streamTask = Task {
-                do {
-                    let req = try chatGitWatchRequest(id: id)
-                    let ws = URLSession.shared.webSocketTask(with: req)
-                    box.setTask(ws)
-                    ws.resume()
-                    while !Task.isCancelled {
-                        let frame = try await ws.receive()
-                        if let message = try? decoder.decode(ChatGitMessage.self, from: frame.data) {
-                            continuation.yield(message)
-                        }
-                    }
-                    continuation.finish()
-                } catch {
-                    if Task.isCancelled || box.isCleanClose {
-                        continuation.finish()
-                    } else {
-                        continuation.finish(throwing: error)
-                    }
-                }
-                box.cancel()
-            }
-            continuation.onTermination = { _ in
-                box.cancel()
-                streamTask.cancel()
-            }
+        wsStream(path: "/api/v2/chats/\(id.uuidString)/stream/git") { data in
+            (try? decoder.decode(ChatGitMessage.self, from: data)).map { [$0] } ?? []
         }
-    }
-
-    private func chatGitWatchRequest(id: UUID) throws(SDKError) -> URLRequest {
-        guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/v2/chats/\(id.uuidString)/stream/git"),
-            resolvingAgainstBaseURL: false
-        ) else {
-            throw .unexpectedResponse("Invalid chat git watch URL")
-        }
-        components.scheme = url.scheme == "http" ? "ws" : "wss"
-        guard let wsURL = components.url else {
-            throw .unexpectedResponse("Invalid chat git watch URL")
-        }
-        var req = URLRequest(url: wsURL)
-        for header in headers {
-            req.addValue(header.value, forHTTPHeaderField: header.name)
-        }
-        if let token {
-            req.addValue(token, forHTTPHeaderField: Headers.sessionToken)
-        }
-        return req
     }
 }
 

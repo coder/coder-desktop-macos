@@ -16,57 +16,10 @@ public extension Client {
     /// `/chats/watch` WebSocket — the web sidebar's live source for status changes, titles,
     /// turn summaries, unread state, and chime/notification triggers.
     func chatWatchEvents() -> AsyncThrowingStream<ChatWatchEvent, Error> {
-        AsyncThrowingStream { continuation in
-            // Same socket-lifetime handling as `chatEvents` (see WebSocketBox).
-            let box = WebSocketBox()
-            let streamTask = Task {
-                do {
-                    let req = try chatWatchRequest()
-                    let ws = URLSession.shared.webSocketTask(with: req)
-                    box.setTask(ws)
-                    ws.resume()
-                    while !Task.isCancelled {
-                        let frame = try await ws.receive()
-                        if let event = try? decoder.decode(ChatWatchEvent.self, from: frame.data) {
-                            continuation.yield(event)
-                        }
-                    }
-                    continuation.finish()
-                } catch {
-                    if Task.isCancelled || box.isCleanClose {
-                        continuation.finish()
-                    } else {
-                        continuation.finish(throwing: error)
-                    }
-                }
-                box.cancel()
-            }
-            continuation.onTermination = { _ in
-                box.cancel()
-                streamTask.cancel()
-            }
+        wsStream(path: "/api/v2/chats/watch") { data in
+            // One event per frame; a frame that won't decode is skipped, not fatal.
+            (try? decoder.decode(ChatWatchEvent.self, from: data)).map { [$0] } ?? []
         }
-    }
-
-    private func chatWatchRequest() throws(SDKError) -> URLRequest {
-        guard var components = URLComponents(
-            url: url.appendingPathComponent("/api/v2/chats/watch"),
-            resolvingAgainstBaseURL: false
-        ) else {
-            throw .unexpectedResponse("Invalid chat watch URL")
-        }
-        components.scheme = url.scheme == "http" ? "ws" : "wss"
-        guard let wsURL = components.url else {
-            throw .unexpectedResponse("Invalid chat watch URL")
-        }
-        var req = URLRequest(url: wsURL)
-        for header in headers {
-            req.addValue(header.value, forHTTPHeaderField: header.name)
-        }
-        if let token {
-            req.addValue(token, forHTTPHeaderField: Headers.sessionToken)
-        }
-        return req
     }
 }
 
