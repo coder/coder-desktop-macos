@@ -41,7 +41,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 340)
                 .searchable(text: $search, placement: .sidebar, prompt: "Search chats and messages")
                 // Debounced so a fast typist sends one request, not one per keystroke.
-                .task(id: search) {
+                // Keyed on the mode too: toggling archived with a live query must re-run
+                // rather than leave stale results from the other mode.
+                .task(id: "\(search)|\(showingArchived)") {
                     let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard query.count >= 2 else { messageMatches = []; searching = false; return }
                     searching = true
@@ -64,6 +66,16 @@ struct AgentsWindow<Agents: AgentsService>: View {
             // SwiftUI's .searchFocused is macOS 15+; the app targets 14, so reach the
             // sidebar's search field through the responder chain instead.
             focusSidebarSearchField()
+        }
+        .onChange(of: agents.pendingOpenSettings, initial: true) { _, pending in
+            guard pending else { return }
+            agents.pendingOpenSettings = false
+            showingSettings = true
+        }
+        .onChange(of: agents.pendingOpenArchived, initial: true) { _, pending in
+            guard pending else { return }
+            agents.pendingOpenArchived = false
+            showingArchived = true
         }
         .onChange(of: agents.pendingOpenChatID, initial: true) { _, pending in
             // Notification click: route to the chat once the window is up (or immediately).
@@ -135,7 +147,16 @@ struct AgentsWindow<Agents: AgentsService>: View {
 
             Divider()
 
-            if showingArchived { ArchivedSessions<Agents>(onBack: { showingArchived = false }) } else { sessionList }
+            if showingArchived {
+                ArchivedSessions<Agents>(
+                    onBack: { showingArchived = false },
+                    // Archived mode kept a live search field whose results were thrown away.
+                    searchQuery: search,
+                    matches: messageMatches
+                )
+            } else {
+                sessionList
+            }
 
             Divider()
             HStack {

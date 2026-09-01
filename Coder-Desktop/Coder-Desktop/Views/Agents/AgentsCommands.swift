@@ -32,6 +32,20 @@ struct AgentsCommands<Agents: AgentsService>: Commands {
             }
             .keyboardShortcut("f", modifiers: [.command])
 
+            // Reachable from a per-chat window, which has no sidebar to host them.
+            Button("Agents Settings…") {
+                openWindow(id: Windows.agents.rawValue)
+                agents.pendingOpenSettings = true
+            }
+            .keyboardShortcut(",", modifiers: [.command, .shift])
+
+            Button("Archived Chats") {
+                openWindow(id: Windows.agents.rawValue)
+                agents.pendingOpenArchived = true
+            }
+
+            Divider()
+
             Button("Open Chat in New Window") {
                 if let id = active?.id { openWindow(id: Windows.chat.rawValue, value: id) }
             }

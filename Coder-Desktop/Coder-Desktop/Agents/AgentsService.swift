@@ -88,6 +88,10 @@ final class CoderAgentsService: AgentsService {
     @Published var pendingNewSession = false
     /// Set by Chat ▸ Find Chat…; the window consumes it and focuses the search field.
     @Published var pendingFocusSearch = false
+    /// Set by the Agents Settings… / Archived Chats menu items, so both are reachable from a
+    /// per-chat window that has no sidebar.
+    @Published var pendingOpenSettings = false
+    @Published var pendingOpenArchived = false
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
@@ -139,6 +143,8 @@ final class CoderAgentsService: AgentsService {
         pendingOpenChatID = nil
         pendingNewSession = false
         pendingFocusSearch = false
+        pendingOpenSettings = false
+        pendingOpenArchived = false
         localReposBySession.removeAll()
         streamGeneration.removeAll()
         streamingStore.removeAll()

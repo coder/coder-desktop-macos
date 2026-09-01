@@ -19,6 +19,9 @@ struct NewAgentSession<Agents: AgentsService>: View {
     @State private var didSeedMCP = false
     @State private var didSeedModel = false
     @State private var launching = false
+    @State private var dropTargeted = false
+    @State private var uploadError: String?
+    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
@@ -28,10 +31,25 @@ struct NewAgentSession<Agents: AgentsService>: View {
                 .frame(maxWidth: .infinity, alignment: .center)
 
             VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {
-                TextField("Ask Coder to build, fix bugs, or explore your project…", text: $prompt, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.body)
-                    .lineLimit(3 ... 10)
+                // The same editor the chat composer uses, so the FIRST screen a user meets
+                // isn't the one missing large-paste, image paste and the "/" menu.
+                PasteAwareEditor(
+                    text: $prompt,
+                    placeholder: "Ask Coder to build, fix bugs, or explore your project…",
+                    submitOnReturn: !requireModifierToSend,
+                    onSubmit: launch,
+                    onLargePaste: { attachments.append(PastedAttachment(text: $0)) },
+                    onImagePaste: { data, name in
+                        let pending = PastedAttachment(name: name, uploading: true)
+                        attachments.append(pending)
+                        Task { await upload(pending) { await agents.uploadData(data, filename: name, contentType: "image/png") } }
+                    },
+                    skills: agents.userSkills.map {
+                        SkillMenuItem(name: $0.name, description: $0.description, source: .personal, qualified: false)
+                    },
+                    onSkillTrigger: { Task { await agents.loadUserSkills() } }
+                )
+                .frame(minHeight: 48, maxHeight: 140)
 
                 if !attachments.isEmpty {
                     AttachmentChipsView(attachments: $attachments)
@@ -45,9 +63,9 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     )
                     ComposerSelectionPills<Agents>(planMode: $planMode, selectedMCP: $selectedMCP, collapses: false)
                     Spacer()
-                    if !agents.modelConfigs.isEmpty {
-                        ModelPicker<Agents>(selectedID: $modelConfigID, effort: $reasoningEffort)
-                    }
+                    // Unconditional: the picker shows a disabled, self-explaining pill when
+                    // the org has no models. Gating it here was the one place the fix missed.
+                    ModelPicker<Agents>(selectedID: $modelConfigID, effort: $reasoningEffort)
                     VoiceInputButton(draft: $prompt, voice: voice)
                     Button(action: launch) {
                         if launching {
@@ -66,6 +84,28 @@ struct NewAgentSession<Agents: AgentsService>: View {
             .padding(Theme.Size.trayInset)
             .background(Color.secondary.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
+            // Dropping a file works here too — it was only wired on the chat composer.
+            .overlay {
+                if dropTargeted {
+                    RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2)
+                        .strokeBorder(Color.accentColor, lineWidth: 2)
+                }
+            }
+            .dropDestination(for: URL.self) { urls, _ in
+                for url in urls {
+                    let pending = PastedAttachment(name: url.lastPathComponent, uploading: true)
+                    attachments.append(pending)
+                    Task { await upload(pending) { await agents.uploadFile(url) } }
+                }
+                return !urls.isEmpty
+            } isTargeted: { dropTargeted = $0 }
+            .alert("Upload failed", isPresented: Binding(
+                get: { uploadError != nil }, set: { if !$0 { uploadError = nil } }
+            )) {
+                Button("OK") { uploadError = nil }
+            } message: {
+                Text(uploadError ?? "")
+            }
             .frame(maxWidth: 620)
             .frame(maxWidth: .infinity, alignment: .center)
 
@@ -112,6 +152,20 @@ struct NewAgentSession<Agents: AgentsService>: View {
             return
         }
         reasoningEffort = config.pickEffort(EffortMemory.stored(for: id))
+    }
+
+    /// One upload path for the picker, drops and pastes: the chip is removed AND the failure
+    /// is reported, rather than the chip silently vanishing (the drag-drop/paste bug).
+    private func upload(_ pending: PastedAttachment, _ perform: () async -> UUID?) async {
+        let fileID = await perform()
+        guard let idx = attachments.firstIndex(where: { $0.id == pending.id }) else { return }
+        if let fileID {
+            attachments[idx].fileID = fileID
+            attachments[idx].uploading = false
+        } else {
+            attachments.remove(at: idx)
+            uploadError = "Couldn't upload \(pending.name). Try again."
+        }
     }
 
     private func launch() {

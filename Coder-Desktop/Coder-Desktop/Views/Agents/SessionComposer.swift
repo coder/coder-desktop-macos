@@ -84,6 +84,8 @@ struct SessionComposer<Agents: AgentsService>: View {
     @State private var showContextInfo = false
     /// A file is hovering over the composer (drop highlight).
     @State private var dropTargeted = false
+    /// Upload failures from drops and pastes, which used to vanish silently.
+    @State private var uploadError: String?
     // Owned here (plain @State, not observed) so send() can stop dictation SYNCHRONOUSLY
     // before clearing the draft — an in-flight partial would otherwise repopulate the box.
     @State private var voice = VoiceInput()
@@ -118,6 +120,7 @@ struct SessionComposer<Agents: AgentsService>: View {
                             model.attachments[idx].uploading = false
                         } else {
                             model.attachments.remove(at: idx)
+                            uploadError = "Couldn't upload \(name). Try again."
                         }
                     }
                 },
@@ -149,6 +152,13 @@ struct SessionComposer<Agents: AgentsService>: View {
             for url in urls { attach(url) }
             return !urls.isEmpty
         } isTargeted: { dropTargeted = $0 }
+        .alert("Upload failed", isPresented: Binding(
+            get: { uploadError != nil }, set: { if !$0 { uploadError = nil } }
+        )) {
+            Button("OK") { uploadError = nil }
+        } message: {
+            Text(uploadError ?? "")
+        }
         .padding(Theme.Size.trayInset)
         .task(id: session.id) {
             // Reflect this chat's actually-attached connectors so switching chats shows each
@@ -407,6 +417,7 @@ extension SessionComposer {
                 model.attachments[idx].uploading = false
             } else {
                 model.attachments.remove(at: idx)
+                uploadError = "Couldn't upload \(pending.name). Try again."
             }
         }
     }

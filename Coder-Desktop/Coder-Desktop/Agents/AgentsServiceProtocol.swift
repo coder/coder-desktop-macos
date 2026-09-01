@@ -48,6 +48,9 @@ protocol AgentsService: ObservableObject {
     var pendingNewSession: Bool { get set }
     /// Set by Chat ▸ Find Chat…; the window consumes it and focuses the search field.
     var pendingFocusSearch: Bool { get set }
+    /// Set by the Agents Settings… / Archived Chats menu items.
+    var pendingOpenSettings: Bool { get set }
+    var pendingOpenArchived: Bool { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.

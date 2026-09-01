@@ -10,6 +10,10 @@ import SwiftUI
 struct ArchivedSessions<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     var onBack: () -> Void
+    /// The sidebar's live search text and the server's message matches. Archived mode kept a
+    /// visible search field that did nothing; these make it real.
+    var searchQuery: String = ""
+    var matches: [Chat] = []
 
     @State private var chats: [Chat]?
     @State private var unarchiving: Set<UUID> = []
@@ -34,11 +38,23 @@ struct ArchivedSessions<Agents: AgentsService>: View {
         .task { chats = await agents.loadArchivedSessions() }
     }
 
+    /// Archived chats matching the query — by title locally, plus the server's message
+    /// matches (which the caller already fetched with `archived:true`).
+    private var visible: [Chat] {
+        guard let chats else { return [] }
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return chats }
+        let byTitle = chats.filter { ($0.title ?? "").lowercased().contains(query) }
+        let ids = Set(byTitle.map(\.id))
+        return byTitle + matches.filter { !ids.contains($0.id) }
+    }
+
     @ViewBuilder
     private var content: some View {
-        if let chats {
+        if chats != nil {
+            let chats = visible
             if chats.isEmpty {
-                Text("No archived chats.")
+                Text(searchQuery.isEmpty ? "No archived chats." : "No archived chats match.")
                     .font(.callout).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
