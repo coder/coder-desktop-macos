@@ -16,11 +16,19 @@ struct BrowserTabData: Identifiable {
 final class WebViewStore: ObservableObject {
     @Published var canGoBack = false
     @Published var canGoForward = false
+    /// A navigation is in flight. Without this a slow workspace app is indistinguishable
+    /// from a broken one — both were a blank pane.
+    @Published var isLoading = false
+    /// The last navigation failure, cleared when a new one starts or succeeds.
+    @Published var failure: String?
     weak var webView: WKWebView?
 
     func goBack() { webView?.goBack() }
     func goForward() { webView?.goForward() }
-    func reload() { webView?.reload() }
+    func reload() {
+        failure = nil
+        webView?.reload()
+    }
 }
 
 struct BrowserPanel: View {
@@ -33,9 +41,33 @@ struct BrowserPanel: View {
             addressBar
             Divider()
             if let u = url {
-                AgentWebView(url: u, store: store) { navigated in
-                    url = navigated
-                    addressText = navigated.absoluteString
+                ZStack {
+                    AgentWebView(url: u, store: store) { navigated in
+                        url = navigated
+                        addressText = navigated.absoluteString
+                    }
+                    if let failure = store.failure {
+                        // A port that isn't listening yet is the common case here, so say so
+                        // rather than showing a white pane.
+                        VStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle").font(.largeTitle)
+                                .foregroundStyle(.secondary).accessibilityHidden(true)
+                            Text("Couldn't load this page").font(.callout)
+                            Text(failure).font(.caption).foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                            Text("The app may still be starting up.")
+                                .font(.caption).foregroundStyle(.tertiary)
+                            Button("Try Again") { store.reload() }.padding(.top, 4)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.background)
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if store.isLoading {
+                        ProgressView().controlSize(.small).padding(6)
+                    }
                 }
             } else {
                 VStack(spacing: 8) {
@@ -139,7 +171,40 @@ private struct AgentWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didCommit _: WKNavigation!) {
             guard let url = webView.url else { return }
             lastLoadedURL = url
-            DispatchQueue.main.async { [weak self] in self?.onNavigate(url) }
+            DispatchQueue.main.async { [weak self] in
+                self?.store.failure = nil
+                self?.onNavigate(url)
+            }
+        }
+
+        func webView(_: WKWebView, didStartProvisionalNavigation _: WKNavigation!) {
+            DispatchQueue.main.async { [weak self] in
+                self?.store.isLoading = true
+                self?.store.failure = nil
+            }
+        }
+
+        func webView(_: WKWebView, didFinish _: WKNavigation!) {
+            DispatchQueue.main.async { [weak self] in self?.store.isLoading = false }
+        }
+
+        /// A server that refused the connection (a port not up yet) fails provisionally;
+        /// a page that started and then broke fails here. Both were silent.
+        func webView(_: WKWebView, didFail _: WKNavigation!, withError error: Error) {
+            report(error)
+        }
+
+        func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError error: Error) {
+            report(error)
+        }
+
+        private func report(_ error: Error) {
+            // A navigation the user themselves replaced isn't a failure worth showing.
+            guard (error as NSError).code != NSURLErrorCancelled else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.store.isLoading = false
+                self?.store.failure = error.localizedDescription
+            }
         }
     }
 }

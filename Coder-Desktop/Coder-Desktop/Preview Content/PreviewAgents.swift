@@ -47,6 +47,7 @@ final class PreviewAgents: AgentsService {
         ]
     }
 
+    func syncSendShortcut() async {}
     func viewOpened() {}
     func dismissError(_: UUID) {}
     func reloadSessions() async {}

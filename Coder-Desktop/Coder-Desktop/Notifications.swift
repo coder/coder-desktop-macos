@@ -79,6 +79,13 @@ enum ChatNotification {
     }
 }
 
+/// Whether macOS will actually deliver our notifications. The settings toggle needs this:
+/// with permission denied it would otherwise sit on forever, delivering nothing.
+func notificationsAllowed() async -> Bool {
+    let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    return status == .authorized || status == .provisional || status == .notDetermined
+}
+
 func sendNotification(title: String, body: String, chatID: UUID? = nil) async throws {
     let nc = UNUserNotificationCenter.current()
     let granted = try await nc.requestAuthorization(options: [.alert, .badge])

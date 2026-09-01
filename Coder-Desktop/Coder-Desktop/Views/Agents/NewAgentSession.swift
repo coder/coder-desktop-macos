@@ -21,7 +21,9 @@ struct NewAgentSession<Agents: AgentsService>: View {
     @State private var launching = false
     @State private var dropTargeted = false
     @State private var uploadError: String?
-    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
+    // Defaults to false to match the server's own default ("enter"); a mismatch made
+    // Enter silently change meaning the first time the user opened Settings.
+    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Size.trayPadding) {

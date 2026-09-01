@@ -85,6 +85,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
         }
         .task {
             agents.viewOpened()
+            // The send-shortcut mirror is server-owned; seed it here so it can't first
+            // reconcile (and silently change what Enter does) on a later Settings visit.
+            await agents.syncSendShortcut()
             await agents.reloadSessions()
             // Pickers for the composer; not needed before the session list shows.
             await agents.loadWorkspaces()

@@ -18,7 +18,13 @@ struct VNCPanel: View {
             case .connecting:
                 overlay("Connecting to desktop…", systemImage: "display", spinner: true)
             case let .failed(message):
-                overlay(message, systemImage: "bolt.horizontal.circle", spinner: false)
+                overlay(message, systemImage: "bolt.horizontal.circle", spinner: false) {
+                    // start() guards on .idle, so reset before retrying.
+                    Button("Try Again") {
+                        model.stop()
+                        Task { await model.start(host: host) }
+                    }
+                }
             case .idle, .connected:
                 EmptyView()
             }
@@ -28,7 +34,10 @@ struct VNCPanel: View {
         .id(host)
     }
 
-    private func overlay(_ text: String, systemImage: String, spinner: Bool) -> some View {
+    private func overlay(
+        _ text: String, systemImage: String, spinner: Bool,
+        @ViewBuilder action: () -> some View = { EmptyView() }
+    ) -> some View {
         VStack(spacing: 8) {
             if spinner {
                 ProgressView().controlSize(.large)
@@ -36,6 +45,7 @@ struct VNCPanel: View {
                 Image(systemName: systemImage).font(.largeTitle).foregroundStyle(.secondary)
             }
             Text(text).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            action()
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

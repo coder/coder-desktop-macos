@@ -153,6 +153,16 @@ extension CoderAgentsService {
         return try? await client.workspaceQuota(organizationID: orgID, username: username)
     }
 
+    /// Mirrors the server's send-shortcut preference into local storage, so the composer
+    /// agrees with Settings from the first launch rather than from the first visit.
+    func syncSendShortcut() async {
+        guard let prefs = try? await loadPreferences() else { return }
+        UserDefaults.standard.set(
+            (prefs.agent_chat_send_shortcut ?? "enter") == "modifier_enter",
+            forKey: Defaults.requireModifierToSend
+        )
+    }
+
     func loadPreferences() async throws -> UserPreferences {
         try await requireClient().userPreferences()
     }

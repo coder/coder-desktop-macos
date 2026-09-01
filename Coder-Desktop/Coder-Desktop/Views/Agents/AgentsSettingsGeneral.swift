@@ -17,7 +17,9 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
     @AppStorage(Defaults.showToolActivity) private var showToolActivity = true
     // Mirrors of server preferences the live renderer reads directly.
     @AppStorage(Defaults.thinkingDisplay) private var thinkingDisplay = ThinkingDisplay.auto.rawValue
-    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
+    // Defaults to false to match the server's own default ("enter"); a mismatch made
+    // Enter silently change meaning the first time the user opened Settings.
+    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = false
 
     @State private var instructions = ""
     @State private var savingInstructions = false
@@ -25,6 +27,8 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
     @State private var prefs: UserPreferences?
     @State private var debugLogging: ChatDebugLogging?
     @State private var loadingPrefs = true
+    /// macOS-level permission, so the toggle can admit when the OS is the blocker.
+    @State private var notificationsBlocked = false
     @State private var error: String?
     /// Serializes preference writes so a slow full-replace PUT can't land after a newer one.
     @State private var saveTask: Task<Void, Never>?
@@ -168,6 +172,24 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
                 in a chat you aren't viewing. Click it to jump to the chat.
                 """
             )
+            // The toggle alone can lie: with permission denied it stays on and delivers
+            // nothing, with no hint that the OS is the blocker.
+            if completionNotification, notificationsBlocked {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange).accessibilityHidden(true)
+                    Text("macOS is blocking notifications for Coder Desktop.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Open System Settings") {
+                        if let url = URL(
+                            string: "x-apple.systempreferences:com.apple.preference.notifications"
+                        ) {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .font(.caption).buttonStyle(.link)
+                }
+            }
         }
     }
 
@@ -288,6 +310,7 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
         }
         loadingPrefs = false
         debugLogging = try? await agents.loadDebugLogging()
+        notificationsBlocked = await !notificationsAllowed()
     }
 }
 

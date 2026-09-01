@@ -12,10 +12,13 @@ struct TerminalPanel: View {
     /// The workspace's Coder Connect hostname, e.g. `my-workspace.coder`.
     let host: String
     @StateObject private var signal = TerminalSignal()
+    /// Bumped by Reconnect to rebuild the terminal view, which starts a new ssh session.
+    @State private var attempt = 0
 
     var body: some View {
         ZStack {
             SSHTerminalView(host: host, signal: signal)
+                .id("\(host)#\(attempt)")
             if signal.terminated {
                 disconnected
             }
@@ -29,10 +32,16 @@ struct TerminalPanel: View {
             Image(systemName: "bolt.horizontal.circle").font(.largeTitle).foregroundStyle(.secondary)
             Text("Terminal disconnected").font(.headline)
             Text("""
-            Couldn't reach \(host). Make sure Coder Connect is connected (menu bar → \
-            Coder Connect), then reopen this tab.
+            Couldn't reach \(host). Make sure Coder Connect is connected \
+            (menu bar → Coder Connect).
             """)
             .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            // Was an instruction to reopen the tab; a button does the same thing here.
+            Button("Reconnect") {
+                signal.terminated = false
+                attempt += 1
+            }
+            .padding(.top, 4)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

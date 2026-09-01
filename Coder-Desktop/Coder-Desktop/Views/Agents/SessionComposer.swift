@@ -89,7 +89,9 @@ struct SessionComposer<Agents: AgentsService>: View {
     // Owned here (plain @State, not observed) so send() can stop dictation SYNCHRONOUSLY
     // before clearing the draft — an in-flight partial would otherwise repopulate the box.
     @State private var voice = VoiceInput()
-    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = true
+    // Defaults to false to match the server's own default ("enter"); a mismatch made
+    // Enter silently change meaning the first time the user opened Settings.
+    @AppStorage(Defaults.requireModifierToSend) private var requireModifierToSend = false
     @AppStorage(Defaults.preferredModel) private var preferredModelID = ""
 
     var body: some View {

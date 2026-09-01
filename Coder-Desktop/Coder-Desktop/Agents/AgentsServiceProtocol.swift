@@ -208,6 +208,7 @@ protocol AgentsService: ObservableObject {
     func saveUserPrompt(_ prompt: String) async
 
     // Settings: server-backed display/behaviour preferences.
+    func syncSendShortcut() async
     func loadPreferences() async throws -> UserPreferences
     func savePreferences(_ prefs: UserPreferences) async throws
 
