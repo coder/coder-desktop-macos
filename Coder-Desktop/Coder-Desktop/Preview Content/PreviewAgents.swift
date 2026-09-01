@@ -6,6 +6,7 @@ import SwiftUI
 final class PreviewAgents: AgentsService {
     @Published var sessions: [Chat]
     @Published var loadError: String?
+    @Published var chatErrors: [UUID: String] = [:]
     @Published var workspaces: [CoderSDK.Workspace] = []
     @Published var mcpServers: [MCPServer] = []
     @Published var modelConfigs: [ChatModelConfig] = []
@@ -45,6 +46,7 @@ final class PreviewAgents: AgentsService {
     }
 
     func viewOpened() {}
+    func dismissError(_: UUID) {}
     func reloadSessions() async {}
     func loadWorkspaces() async {}
     func loadMCPServers() async {}

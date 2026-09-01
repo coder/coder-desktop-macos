@@ -29,20 +29,34 @@ extension CoderAgentsService {
         return try? await client.chatACL(id)
     }
 
+    // A rejected grant used to be indistinguishable from a slow one: these were `try?`, so a
+    // 403 left the row simply never appearing. Each now reports what failed.
     func unshareUser(_ id: UUID, userID: UUID) async {
-        try? await client?.updateChatACL(id, userRoles: [userID.uuidString: ""])
+        await updateACL(id, action: "remove that person", userRoles: [userID.uuidString: ""])
     }
 
     func unshareGroup(_ id: UUID, groupID: UUID) async {
-        try? await client?.updateChatACL(id, groupRoles: [groupID.uuidString: ""])
+        await updateACL(id, action: "remove that group", groupRoles: [groupID.uuidString: ""])
     }
 
     func shareWithUser(_ id: UUID, userID: UUID) async {
-        try? await client?.updateChatACL(id, userRoles: [userID.uuidString: chatRoleRead])
+        await updateACL(id, action: "share with that person", userRoles: [userID.uuidString: chatRoleRead])
     }
 
     func shareWithGroup(_ id: UUID, groupID: UUID) async {
-        try? await client?.updateChatACL(id, groupRoles: [groupID.uuidString: chatRoleRead])
+        await updateACL(id, action: "share with that group", groupRoles: [groupID.uuidString: chatRoleRead])
+    }
+
+    private func updateACL(
+        _ id: UUID, action: String, userRoles: [String: String] = [:], groupRoles: [String: String] = [:]
+    ) async {
+        guard let client else { return }
+        do {
+            try await client.updateChatACL(id, userRoles: userRoles, groupRoles: groupRoles)
+            clearFailure(id)
+        } catch {
+            reportFailure(error, action: action, chatID: id)
+        }
     }
 
     /// Org members + groups to pick from in the share search.

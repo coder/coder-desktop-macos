@@ -16,6 +16,9 @@ struct SessionNotice: Identifiable, Equatable {
     /// Label for the inline action, if this notice has one. A notice with no next step is a
     /// log line, not UI — the only exception is `retrying`, which resolves itself.
     var actionLabel: String?
+    /// When the condition resolves itself, rendered as a live countdown. Retry uses this;
+    /// it's why retry can share the strip instead of owning a second band.
+    var countdownTo: Date?
     var id: Int { kind.rawValue }
 
     var systemImage: String {
@@ -74,6 +77,20 @@ struct SessionStatusStrip: View {
                 }
             }
             Spacer(minLength: 8)
+            if let deadline = notice.countdownTo {
+                // TimelineView so the branch re-evaluates at the deadline — a one-shot Date()
+                // check would let the timer roll past zero and count up.
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    if deadline > context.date {
+                        (Text("Retrying in ") + Text(deadline, style: .timer))
+                            .monospacedDigit()
+                    } else {
+                        Text("Retrying…")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
             if let label = notice.actionLabel {
                 Button(label) { onAction(notice) }
                     .font(.caption)

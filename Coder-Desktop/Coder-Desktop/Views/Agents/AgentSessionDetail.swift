@@ -50,9 +50,6 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                     } else {
                         transcript
                     }
-                    if let retry = agents.retryBySession[session.id] {
-                        RetryCallout(info: retry)
-                    }
                     Divider()
                     QueuedMessagesList<Agents>(session: session) { composer.appendToDraft($0) }
                     SessionComposer<Agents>(session: session, model: composer)
@@ -126,8 +123,17 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     /// Every persistent condition worth surfacing, for the status strip.
     private var notices: [SessionNotice] {
         var result: [SessionNotice] = []
-        if let error = agents.loadError {
-            result.append(.init(kind: .failed, message: error))
+        if let error = agents.chatErrors[session.id] {
+            result.append(.init(kind: .failed, message: error, actionLabel: "Dismiss"))
+        }
+        if let retry = agents.retryBySession[session.id] {
+            // Folded in rather than owning a second band below the transcript — the strip
+            // declared this case from the start and never received it.
+            result.append(.init(
+                kind: .retrying,
+                message: "\(retry.retry.error) · Attempt \(retry.retry.attempt)",
+                countdownTo: retry.retryingAt
+            ))
         }
         if let ctx = session.context, ctx.dirty {
             let message: String = if let err = ctx.error, !err.isEmpty {
@@ -158,8 +164,10 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
             ) {
                 NSWorkspace.shared.open(url)
             }
-        case .failed, .retrying:
-            break // no inline action
+        case .failed:
+            agents.dismissError(session.id)
+        case .retrying:
+            break // resolves itself
         }
     }
 
@@ -387,38 +395,5 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         }) else { return nil }
         let userAnsweredAfter = items[items.index(after: idx)...].contains { $0.isUserBubble }
         return userAnsweredAfter ? nil : items[idx].id
-    }
-}
-
-/// The web's auto-retry alert: the failure message with a live "Retrying in Xs · Attempt N"
-/// countdown, shown between the transcript and composer until output resumes.
-private struct RetryCallout: View {
-    let info: ChatRetryInfo
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.trianglehead.2.clockwise")
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-            Text(info.retry.error).lineLimit(2)
-            Spacer()
-            // TimelineView so the branch re-evaluates at the deadline — a one-shot Date()
-            // check would let the timer roll past zero and count up.
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                if info.retryingAt > context.date {
-                    (Text("Retrying in ") + Text(info.retryingAt, style: .timer))
-                        .monospacedDigit()
-                } else {
-                    Text("Retrying…")
-                }
-            }
-            Text("Attempt \(info.retry.attempt)")
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, Theme.Size.trayInset)
-        .padding(.vertical, 6)
-        .background(.orange.opacity(0.08))
-        .accessibilityElement(children: .combine)
     }
 }

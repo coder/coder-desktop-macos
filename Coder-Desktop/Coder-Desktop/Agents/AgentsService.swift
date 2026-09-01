@@ -12,7 +12,11 @@ final class CoderAgentsService: AgentsService {
 
     // Setter is internal (not private) so the watch extension can merge live row updates.
     @Published var sessions: [Chat] = []
+    /// List-level failures only (loading the session list, creating a chat). Per-chat
+    /// failures go to `chatErrors` so one chat's problem can't banner every other one.
     @Published var loadError: String?
+    /// The last failed action per chat, shown in that chat's status strip until dismissed.
+    @Published var chatErrors: [UUID: String] = [:]
     @Published private(set) var workspaces: [CoderSDK.Workspace] = []
     @Published private(set) var mcpServers: [MCPServer] = []
     /// Connector whose OAuth flow was just opened in the browser. When it comes back
@@ -140,6 +144,7 @@ final class CoderAgentsService: AgentsService {
         streamingStore.removeAll()
         sessions = []
         messagesBySession.removeAll()
+        chatErrors.removeAll()
         historyLoadErrorBySession.removeAll()
         hasOlderBySession.removeAll()
         queuedMessagesBySession.removeAll()
@@ -312,22 +317,25 @@ final class CoderAgentsService: AgentsService {
         guard let client else { return }
         do {
             try await client.interruptChat(id)
+            clearFailure(id)
         } catch {
-            logger.error("failed to interrupt: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "stop the agent", chatID: id)
         }
     }
 
     func archive(_ id: UUID) async {
         guard let client else { return }
-        stopStreaming(id)
         do {
+            // The stream is torn down only AFTER the server accepts: stopping first left a
+            // rejected archive with a live-looking chat whose transcript had gone dead.
             try await client.archiveChat(id)
+            stopStreaming(id)
             sessions.removeAll { $0.id == id }
             evictSessionState(id)
             recentSessions.removeAll { $0 == id }
             messageStore.removeCache(id) // archived chats shouldn't keep transcripts on disk
         } catch {
-            logger.error("failed to archive: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "archive this chat", chatID: id)
         }
     }
 
@@ -339,8 +347,8 @@ final class CoderAgentsService: AgentsService {
         do {
             try await client.renameChat(id, title: trimmed)
         } catch {
-            logger.error("failed to rename: \(error.localizedDescription, privacy: .public)")
-            await reloadSessions()
+            reportFailure(error, action: "rename this chat", chatID: id)
+            await reloadSessions() // drop the optimistic title
         }
     }
 
@@ -351,8 +359,8 @@ final class CoderAgentsService: AgentsService {
         do {
             try await client.setChatPinOrder(id, order: order)
         } catch {
-            logger.error("failed to (un)pin: \(error.localizedDescription, privacy: .public)")
-            await reloadSessions()
+            reportFailure(error, action: pinned ? "pin this chat" : "unpin this chat", chatID: id)
+            await reloadSessions() // drop the optimistic order
         }
     }
 
@@ -364,7 +372,7 @@ final class CoderAgentsService: AgentsService {
             try await client.renameChat(id, title: title)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = title }
         } catch {
-            logger.error("regenerate title failed: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "generate a title", chatID: id)
         }
     }
 
@@ -374,8 +382,7 @@ final class CoderAgentsService: AgentsService {
             let updated = try await client.reconcileInvalidChat(id)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx] = updated }
         } catch {
-            logger.error("reconcile-invalid failed: \(error.localizedDescription, privacy: .public)")
-            loadError = error.localizedDescription
+            reportFailure(error, action: "recover this chat", chatID: id)
         }
     }
 
@@ -481,7 +488,7 @@ extension CoderAgentsService {
             let updated = try await client.refreshChatContext(id)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].context = updated.context }
         } catch {
-            logger.error("failed to refresh context: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "refresh the workspace context", chatID: id)
         }
     }
 }

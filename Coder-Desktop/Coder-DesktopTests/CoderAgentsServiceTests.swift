@@ -116,7 +116,14 @@ struct CoderAgentsServiceTests {
 
         #expect(!ok)
         #expect(service.messages(for: target.id).isEmpty)
-        #expect(service.loadError != nil)
+        // Scoped to the chat that failed: a send failure here must not banner every other
+        // open chat, which is what the service-wide `loadError` used to do.
+        #expect(service.chatErrors[target.id] != nil)
+        #expect(service.loadError == nil)
+
+        // A later success on the same chat clears the stale banner.
+        service.dismissError(target.id)
+        #expect(service.chatErrors[target.id] == nil)
     }
 
     @Test

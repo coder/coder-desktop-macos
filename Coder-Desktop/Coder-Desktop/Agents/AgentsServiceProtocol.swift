@@ -32,6 +32,9 @@ struct SendOptions {
 protocol AgentsService: ObservableObject {
     var sessions: [Chat] { get }
     var loadError: String? { get }
+    /// The last failed action per chat, shown in that chat's status strip until dismissed.
+    var chatErrors: [UUID: String] { get }
+    func dismissError(_ chatID: UUID)
     var workspaces: [CoderSDK.Workspace] { get }
     var mcpServers: [MCPServer] { get }
     var modelConfigs: [ChatModelConfig] { get }

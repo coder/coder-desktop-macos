@@ -42,8 +42,9 @@ extension CoderAgentsService {
         guard let client else { return }
         do {
             try await client.compactChat(id)
+            clearFailure(id)
         } catch {
-            logger.error("failed to compact: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "compact the conversation", chatID: id)
         }
     }
 
@@ -60,8 +61,9 @@ extension CoderAgentsService {
         guard let client else { return }
         do {
             try await client.clearChat(id)
+            clearFailure(id)
         } catch {
-            logger.error("failed to clear context: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "clear the context", chatID: id)
         }
     }
 
@@ -126,8 +128,7 @@ extension CoderAgentsService {
             return true
         } catch {
             pendingSendsBySession[id]?.removeAll { $0.id == optimistic.id }
-            loadError = error.localizedDescription
-            logger.error("failed to send message: \(error.localizedDescription, privacy: .public)")
+            reportFailure(error, action: "send this message", chatID: id)
             return false
         }
     }
