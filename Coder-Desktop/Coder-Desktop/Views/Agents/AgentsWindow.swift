@@ -18,6 +18,10 @@ struct AgentsWindow<Agents: AgentsService>: View {
 
     @State private var route: AgentsRoute?
     @State private var search = ""
+    /// Chats matched by the server's full-text search over MESSAGE content — the local
+    /// filter above only sees titles. Empty until a query runs.
+    @State private var messageMatches: [Chat] = []
+    @State private var searching = false
     @State private var renaming: Chat?
     @State private var renameText = ""
     @State private var deletingWorkspace: Chat?
@@ -53,7 +57,17 @@ struct AgentsWindow<Agents: AgentsService>: View {
         NavigationSplitView {
             sidebar
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 340)
-                .searchable(text: $search, placement: .sidebar, prompt: "Search")
+                .searchable(text: $search, placement: .sidebar, prompt: "Search chats and messages")
+                // Debounced so a fast typist sends one request, not one per keystroke.
+                .task(id: search) {
+                    let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard query.count >= 2 else { messageMatches = []; searching = false; return }
+                    searching = true
+                    try? await Task.sleep(for: .milliseconds(250))
+                    guard !Task.isCancelled else { return } // superseded by the next keystroke
+                    messageMatches = await agents.searchChats(query, archived: showingArchived)
+                    searching = false
+                }
         } detail: {
             detail
         }
@@ -61,6 +75,13 @@ struct AgentsWindow<Agents: AgentsService>: View {
             guard pending else { return }
             agents.pendingNewSession = false
             route = .newSession
+        }
+        .onChange(of: agents.pendingFocusSearch, initial: true) { _, pending in
+            guard pending else { return }
+            agents.pendingFocusSearch = false
+            // SwiftUI's .searchFocused is macOS 15+; the app targets 14, so reach the
+            // sidebar's search field through the responder chain instead.
+            focusSidebarSearchField()
         }
         .onChange(of: agents.pendingOpenChatID, initial: true) { _, pending in
             // Notification click: route to the chat once the window is up (or immediately).
@@ -78,6 +99,32 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 route = agents.sessions.isEmpty ? .newSession : .session(agents.sessions[0].id)
             }
         }
+    }
+
+    /// Makes the sidebar's search field first responder. `.searchable` renders an
+    /// `NSSearchField` that SwiftUI gives no focus binding before macOS 15, so find it.
+    private func focusSidebarSearchField() {
+        guard let window = NSApp.windows.first(where: { $0.isKeyWindow })
+            ?? NSApp.windows.first(where: { $0.title == "Agents" }),
+            let field = Self.findSearchField(in: window.contentView)
+        else { return }
+        window.makeFirstResponder(field)
+    }
+
+    private static func findSearchField(in view: NSView?) -> NSSearchField? {
+        guard let view else { return nil }
+        if let field = view as? NSSearchField { return field }
+        for subview in view.subviews {
+            if let found = findSearchField(in: subview) { return found }
+        }
+        return nil
+    }
+
+    /// Server matches that the local title filter didn't already show, so a chat never
+    /// appears in both groups.
+    private var messageOnlyMatches: [Chat] {
+        let shown = Set(filteredSessions.map(\.id))
+        return messageMatches.filter { !shown.contains($0.id) }
     }
 
     private var filteredSessions: [Chat] {
@@ -154,11 +201,37 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 Button("New chat") { route = .newSession }.buttonStyle(.link)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if filteredSessions.isEmpty {
-            ContentUnavailableView.search(text: search)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if filteredSessions.isEmpty, messageMatches.isEmpty, !searching {
+            // The server indexes message content on a delay, so "nothing found" can mean
+            // "not indexed yet" — say so rather than implying the chat doesn't exist.
+            ContentUnavailableView {
+                Label("No matching chats", systemImage: "magnifyingglass")
+            } description: {
+                Text("Message content is indexed periodically, so very recent messages may "
+                    + "not be searchable yet.")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(selection: $route) {
+                if !messageOnlyMatches.isEmpty || searching {
+                    Section("In messages") {
+                        if searching, messageOnlyMatches.isEmpty {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Searching messages…").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        ForEach(messageOnlyMatches) { session in
+                            SessionRow(
+                                session: session,
+                                workspaceName: workspaceName(session.workspace_id),
+                                isSelected: route == .session(session.id),
+                                onOpen: { openInBrowser(session) }
+                            )
+                            .tag(AgentsRoute.session(session.id))
+                        }
+                    }
+                }
                 ForEach(SessionGroup.grouped(filteredSessions), id: \.title) { group in
                     Section(group.title) {
                         ForEach(group.sessions) { session in

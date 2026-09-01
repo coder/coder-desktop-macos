@@ -82,6 +82,8 @@ struct SessionComposer<Agents: AgentsService>: View {
     @ObservedObject var model: ComposerModel
 
     @State private var showContextInfo = false
+    /// A file is hovering over the composer (drop highlight).
+    @State private var dropTargeted = false
     // Owned here (plain @State, not observed) so send() can stop dictation SYNCHRONOUSLY
     // before clearing the draft — an in-flight partial would otherwise repopulate the box.
     @State private var voice = VoiceInput()
@@ -135,6 +137,18 @@ struct SessionComposer<Agents: AgentsService>: View {
         .padding(10)
         .background(Color.secondary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2))
+        // Dragging a file in from Finder is what a Mac user reaches for first; paste was
+        // already handled, drop was not.
+        .overlay {
+            if dropTargeted {
+                RoundedRectangle(cornerRadius: Theme.Size.rectCornerRadius * 2)
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+            }
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            for url in urls { attach(url) }
+            return !urls.isEmpty
+        } isTargeted: { dropTargeted = $0 }
         .padding(Theme.Size.trayInset)
         .task(id: session.id) {
             // Reflect this chat's actually-attached connectors so switching chats shows each
@@ -370,6 +384,30 @@ struct SessionComposer<Agents: AgentsService>: View {
             )
             model.sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text
+        }
+    }
+}
+
+// MARK: - Attachments
+
+extension SessionComposer {
+    /// Uploads a dropped file and shows it as an attachment chip, mirroring the "+" menu's
+    /// picker path. Directories are skipped — the API takes files.
+    func attach(_ url: URL) {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+              !isDirectory.boolValue else { return }
+        let pending = PastedAttachment(name: url.lastPathComponent, uploading: true)
+        model.attachments.append(pending)
+        Task {
+            let fileID = await agents.uploadFile(url)
+            guard let idx = model.attachments.firstIndex(where: { $0.id == pending.id }) else { return }
+            if let fileID {
+                model.attachments[idx].fileID = fileID
+                model.attachments[idx].uploading = false
+            } else {
+                model.attachments.remove(at: idx)
+            }
         }
     }
 }

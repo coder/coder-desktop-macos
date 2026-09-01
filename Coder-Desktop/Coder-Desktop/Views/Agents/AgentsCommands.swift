@@ -26,6 +26,12 @@ struct AgentsCommands<Agents: AgentsService>: Commands {
             }
             .keyboardShortcut("n", modifiers: [.command])
 
+            Button("Find Chat…") {
+                openWindow(id: Windows.agents.rawValue)
+                agents.pendingFocusSearch = true
+            }
+            .keyboardShortcut("f", modifiers: [.command])
+
             Divider()
 
             Button("Stop Agent") {

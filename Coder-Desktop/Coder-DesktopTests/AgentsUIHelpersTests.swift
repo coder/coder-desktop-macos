@@ -79,6 +79,21 @@ struct AgentsUIHelpersTests {
 }
 
 @Suite(.timeLimit(.minutes(1)))
+struct ChatSearchQueryTests {
+    /// The server tokenizes `q` on spaces and colons, so an unquoted multi-word query would
+    /// parse as separate filter terms and 400 the whole request.
+    @Test
+    func quotesOnlyWhenTheGrammarNeedsIt() {
+        #expect(CoderAgentsService.quoteSearchTerm("flake") == "flake")
+        #expect(CoderAgentsService.quoteSearchTerm("flaky auth test") == "\"flaky auth test\"")
+        // A colon would otherwise read as a key:value filter.
+        #expect(CoderAgentsService.quoteSearchTerm("error: nil map") == "\"error: nil map\"")
+        // The grammar has no escape for an inner quote, so it's dropped rather than sent.
+        #expect(CoderAgentsService.quoteSearchTerm("say \"hi\" twice") == "\"say hi twice\"")
+    }
+}
+
+@Suite(.timeLimit(.minutes(1)))
 @MainActor
 struct PromptRecallTests {
     private func model(_ history: [String]) -> ComposerModel {

@@ -14,6 +14,7 @@ final class PreviewAgents: AgentsService {
     @Published var activeSessionID: UUID?
     @Published var pendingOpenChatID: UUID?
     @Published var pendingNewSession = false
+    @Published var pendingFocusSearch = false
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
     @Published var historyLoadErrorBySession: [UUID: String] = [:]
     @Published var pendingMCPAuthServerID: UUID?
@@ -182,6 +183,7 @@ final class PreviewAgents: AgentsService {
     func compact(_: UUID) async {}
     func clear(_: UUID) async {}
     func promptHistory(_: UUID) async -> [String] { [] }
+    func searchChats(_: String, archived _: Bool) async -> [Chat] { [] }
     func attachmentImage(_: UUID) -> NSImage? { nil }
     func attachmentFailure(_: UUID) -> ChatAttachmentFailure? { nil }
     func loadAttachment(_: ChatMessagePart) {}

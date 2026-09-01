@@ -39,21 +39,16 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
                 VStack(spacing: 0) {
                     header
                     Divider()
-                    if let error = agents.loadError {
-                        errorBanner(error)
-                    }
-                    if let ctx = session.context, ctx.dirty {
-                        contextDirtyBanner(ctx)
-                    }
+                    // One strip for every persistent condition: the most severe shows with
+                    // its action inline, the rest are counted and expandable. Previously
+                    // three separate full-width bands could stack above the transcript.
+                    SessionStatusStrip(notices: notices, onAction: runNoticeAction)
                     if let loadFailure = agents.historyLoadErrorBySession[session.id],
                        agents.messages(for: session.id).isEmpty
                     {
                         chatLoadErrorView(loadFailure)
                     } else {
                         transcript
-                    }
-                    if session.queued_for_capacity == true {
-                        queuedForCapacityBanner
                     }
                     if let retry = agents.retryBySession[session.id] {
                         RetryCallout(info: retry)
@@ -128,63 +123,44 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
         .padding(Theme.Size.trayInset)
     }
 
-    private func errorBanner(_ text: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
-            Text(text).font(.caption).lineLimit(2)
-            Spacer()
+    /// Every persistent condition worth surfacing, for the status strip.
+    private var notices: [SessionNotice] {
+        var result: [SessionNotice] = []
+        if let error = agents.loadError {
+            result.append(.init(kind: .failed, message: error))
         }
-        .padding(.horizontal, Theme.Size.trayInset)
-        .padding(.vertical, 6)
-        .background(Color.orange.opacity(0.1))
-    }
-
-    private func contextDirtyBanner(_ ctx: ChatContext) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary).accessibilityHidden(true)
-            if let err = ctx.error, !err.isEmpty {
-                Text(err).font(.caption).lineLimit(2).foregroundStyle(.secondary)
-            } else if let since = ctx.dirty_since {
-                Text("Context changed \(since, style: .relative) ago.")
-                    .font(.caption).foregroundStyle(.secondary)
+        if let ctx = session.context, ctx.dirty {
+            let message: String = if let err = ctx.error, !err.isEmpty {
+                err
             } else {
-                Text("Workspace context has changed.").font(.caption).foregroundStyle(.secondary)
+                "Workspace context has changed since this chat started."
             }
-            Spacer()
-            Button("Refresh") {
-                Task { await agents.refreshChatContext(session.id) }
-            }
-            .font(.caption)
-            .buttonStyle(.borderless)
+            result.append(.init(kind: .contextDirty, message: message, actionLabel: "Refresh"))
         }
-        .padding(.horizontal, Theme.Size.trayInset)
-        .padding(.vertical, 6)
-        .background(Color.secondary.opacity(0.07))
-        .accessibilityElement(children: .combine)
+        if session.queued_for_capacity == true {
+            result.append(.init(
+                kind: .queued,
+                message: "Queued — your team has reached its limit for active agents. "
+                    + "This agent starts automatically when capacity is available.",
+                actionLabel: "Learn more"
+            ))
+        }
+        return result
     }
 
-    /// Web-parity warning shown while the deployment's concurrent-agent capacity holds this
-    /// chat in a queue. Generic copy only — the web's license-specific variants need
-    /// entitlements/permissions endpoints this client deliberately doesn't call.
-    private var queuedForCapacityBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
-            Text(
-                "Your team has reached its limit for active agents. "
-                    + "This agent is queued and will start automatically when capacity is available."
-            )
-            .font(.caption).lineLimit(3)
-            Link(
-                "Learn more",
-                destination: URL(string: "https://coder.com/docs/ai-coder/agents/platform-controls#concurrent-agents")!
-            )
-            .font(.caption)
-            Spacer()
+    private func runNoticeAction(_ notice: SessionNotice) {
+        switch notice.kind {
+        case .contextDirty:
+            Task { await agents.refreshChatContext(session.id) }
+        case .queued:
+            if let url = URL(
+                string: "https://coder.com/docs/ai-coder/agents/platform-controls#concurrent-agents"
+            ) {
+                NSWorkspace.shared.open(url)
+            }
+        case .failed, .retrying:
+            break // no inline action
         }
-        .padding(.horizontal, Theme.Size.trayInset)
-        .padding(.vertical, 6)
-        .background(Color.orange.opacity(0.1))
-        .accessibilityElement(children: .combine)
     }
 
     private var transcript: some View {

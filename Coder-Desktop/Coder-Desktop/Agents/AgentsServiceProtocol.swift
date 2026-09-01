@@ -43,6 +43,8 @@ protocol AgentsService: ObservableObject {
     var pendingOpenChatID: UUID? { get set }
     /// Set by the Chat ▸ New Chat menu command; the window consumes it and routes.
     var pendingNewSession: Bool { get set }
+    /// Set by Chat ▸ Find Chat…; the window consumes it and focuses the search field.
+    var pendingFocusSearch: Bool { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.
@@ -159,6 +161,8 @@ protocol AgentsService: ObservableObject {
     func interrupt(_ id: UUID) async
     /// This chat's past prompts, newest first, for composer ↑/↓ recall.
     func promptHistory(_ id: UUID) async -> [String]
+    /// Chats whose MESSAGE content matches the query (the sidebar filter only sees titles).
+    func searchChats(_ query: String, archived: Bool) async -> [Chat]
     /// Manually compacts the context, summarizing the conversation so far.
     func compact(_ id: UUID) async
     /// Clears the conversation context; the next message starts fresh.
