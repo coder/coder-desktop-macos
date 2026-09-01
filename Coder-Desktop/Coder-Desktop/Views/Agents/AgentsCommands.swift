@@ -32,6 +32,11 @@ struct AgentsCommands<Agents: AgentsService>: Commands {
             }
             .keyboardShortcut("f", modifiers: [.command])
 
+            Button("Open Chat in New Window") {
+                if let id = active?.id { openWindow(id: Windows.chat.rawValue, value: id) }
+            }
+            .disabled(active == nil)
+
             Divider()
 
             Button("Stop Agent") {

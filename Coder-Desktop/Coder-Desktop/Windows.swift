@@ -5,6 +5,8 @@ enum Windows: String {
     case login
     case fileSync
     case agents
+    /// One window per chat (WindowGroup keyed by chat id).
+    case chat
 }
 
 extension OpenWindowAction {

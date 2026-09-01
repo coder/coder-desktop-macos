@@ -47,6 +47,15 @@ struct DesktopApp: App {
                 .showDockIconWhenOpen()
         }.handlesExternalEvents(matching: Set()) // Don't handle deep links
             .commands { AgentsCommands(agents: appDelegate.agents) }
+        // One window per chat, so several agents can be watched at once. Same tabbing
+        // identifier on each (ChatWindow), so macOS groups them into tabs.
+        WindowGroup(id: Windows.chat.rawValue, for: UUID.self) { $chatID in
+            ChatWindow<CoderAgentsService>(chatID: chatID)
+                .environmentObject(appDelegate.state)
+                .environmentObject(appDelegate.agents)
+                .environmentObject(appDelegate.vpn)
+                .showDockIconWhenOpen()
+        }.handlesExternalEvents(matching: Set())
     }
 }
 

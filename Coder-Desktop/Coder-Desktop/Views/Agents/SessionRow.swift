@@ -44,6 +44,7 @@ struct SessionRow: View {
     var isSelected = false
     var onToggleExpand: () -> Void = {}
     var onOpen: () -> Void = {}
+    var onOpenInWindow: () -> Void = {}
     var onRename: () -> Void = {}
     var onGenerateTitle: () -> Void = {}
     var onTogglePin: () -> Void = {}
@@ -171,6 +172,7 @@ struct SessionRow: View {
 
     @ViewBuilder
     private var rowMenu: some View {
+        Button(action: onOpenInWindow) { Label("Open in New Window", systemImage: "macwindow") }
         Button(action: onOpen) { Label("Open in browser", systemImage: "safari") }
         if !isChild {
             Button(action: onRename) { Label("Rename", systemImage: "pencil") }

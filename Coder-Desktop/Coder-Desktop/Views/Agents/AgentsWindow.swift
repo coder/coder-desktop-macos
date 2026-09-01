@@ -12,6 +12,7 @@ enum AgentsRoute: Hashable {
 struct AgentsWindow<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     @EnvironmentObject var state: AppState
+    @Environment(\.openWindow) private var openWindow
 
     @State private var route: AgentsRoute?
     @State private var search = ""
@@ -224,6 +225,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                 isSelected: route == .session(session.id),
                                 onToggleExpand: { toggleExpanded(session.id) },
                                 onOpen: { openInBrowser(session) },
+                                onOpenInWindow: { openWindow(id: Windows.chat.rawValue, value: session.id) },
                                 onRename: { renameText = session.title ?? ""; renaming = session },
                                 onGenerateTitle: { Task { await agents.regenerateTitle(session.id) } },
                                 onTogglePin: { Task { await agents.setPinned(session.id, pinned: !session.isPinned) } },
@@ -239,6 +241,9 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                         isChild: true,
                                         isSelected: route == .session(child.id),
                                         onOpen: { openInBrowser(child) },
+                                        onOpenInWindow: {
+                                            openWindow(id: Windows.chat.rawValue, value: child.id)
+                                        },
                                         onArchive: { Task { await agents.archive(child.id) } }
                                     )
                                     .padding(.leading, 26) // flat indentation, no rails (web #28326)
