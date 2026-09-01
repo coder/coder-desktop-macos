@@ -17,38 +17,26 @@ struct WorkspaceSidebarSection<Agents: AgentsService>: View {
     @State private var appHost = ""
     @State private var portsLoaded = false
 
-    private var workspace: CoderSDK.Workspace? {
-        agents.workspaces.first { $0.id == workspaceID }
+    /// Derived workspace state (agent, apps, ports, URLs), shared with the other
+    /// workspace surface — see WorkspaceApps.
+    private var apps: WorkspaceApps {
+        WorkspaceApps(
+            workspaceID: workspaceID, workspaces: agents.workspaces, state: state,
+            ports: ports, shares: shares, appHost: appHost
+        )
     }
 
-    private var agent: WorkspaceAgent? {
-        for resource in workspace?.latest_build.resources ?? [] {
-            if let a = resource.agents?.first { return a }
-        }
-        return nil
-    }
+    private var workspace: CoderSDK.Workspace? { apps.workspace }
+    private var agent: WorkspaceAgent? { apps.agent }
+    private var sshHost: String? { apps.sshHost }
+    private var status: String { apps.status }
+    private var isStarting: Bool { apps.isStarting }
+    private var dashboardURL: URL? { apps.dashboardURL }
+    private var entries: [AppEntry] { apps.entries }
+    private var privatePorts: [WorkspaceAgentListeningPort] { apps.privatePorts }
 
-    private var sshHost: String? {
-        guard let name = workspace?.name else { return nil }
-        return "\(name).\(state.hostnameSuffix)"
-    }
-
-    private var status: String { workspace?.latest_build.status ?? "" }
-    private var isStarting: Bool { ["starting", "pending"].contains(status) }
-
-    private var dashboardURL: URL? {
-        guard let base = state.baseAccessURL, let name = workspace?.name else { return nil }
-        return base.appending(path: "@me/\(name)")
-    }
-
-    private var entries: [AppEntry] {
-        guard let workspace else { return [] }
-        return workspaceAppEntries(workspace: workspace, state: state, sshHost: sshHost)
-    }
-
-    private var privatePorts: [WorkspaceAgentListeningPort] {
-        let shared = Set(shares.map(\.port))
-        return ports.filter { !shared.contains($0.port) }
+    private func portURL(_ port: Int, proto: String) -> URL? {
+        apps.portURL(port, proto: proto)
     }
 
     var body: some View {
@@ -226,18 +214,6 @@ struct WorkspaceSidebarSection<Agents: AgentsService>: View {
         }
         .padding(.horizontal, Theme.Size.trayInset)
         .padding(.vertical, 5)
-    }
-
-    private func portURL(_ port: Int, proto: String) -> URL? {
-        if let host = sshHost {
-            return URL(string: "\(proto)://\(host):\(port)")
-        }
-        guard !appHost.isEmpty, let agentName = agent?.name, let workspace,
-              let owner = workspace.owner_name, let scheme = state.baseAccessURL?.scheme
-        else { return nil }
-        let suffix = proto == "https" ? "s" : ""
-        let subdomain = "\(port)\(suffix)--\(agentName)--\(workspace.name)--\(owner)"
-        return URL(string: "\(scheme)://\(appHost.replacingOccurrences(of: "*", with: subdomain))")
     }
 
     private func reloadPorts() async {
