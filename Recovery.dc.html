@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    a { color: #2563a8; } a:hover { color: #1b4a7d; }
+  </style>
+</helmet>
+<div style="width: 900px; box-sizing: border-box; padding: 44px 48px 52px; background: #fbfaf8; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #1a1a18;">
+
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3801e;"></span>
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #6b6862;">Flow 4 &middot; Costly</div>
+  </div>
+  <div style="font-size: 27px; font-weight: 700; letter-spacing: -0.4px; margin-top: 8px;">When things go wrong</div>
+  <div style="font-size: 14px; line-height: 1.55; color: #46433d; margin-top: 10px; max-width: 660px;">
+    Four conditions can be true at once, and each one currently owns a full-width band above the
+    transcript. Two together push the conversation off screen.
+  </div>
+
+  <div style="margin-top: 24px; border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; overflow: hidden;">
+    <div style="padding: 11px 16px; background: #f4f2ee; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #6b6862;">Today &mdash; a bad afternoon, stacked</div>
+    <div style="padding: 10px 16px; background: #fdf3ea; border-bottom: 1px solid #f2e6d8; display: flex; align-items: center; gap: 9px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b3801e" stroke-width="2" stroke-linecap="round"><path d="M12 3l9 17H3z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg>
+      <div style="font-size: 12.5px; color: #46433d;">Couldn&rsquo;t reach the agent stream. Reopen the session to retry.</div>
+    </div>
+    <div style="padding: 10px 16px; background: #f4f2ee; border-bottom: 1px solid #ebe8e2; display: flex; align-items: center; gap: 9px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b6862" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 10-2.5 5.8"></path><path d="M20 6v6h-6"></path></svg>
+      <div style="font-size: 12.5px; color: #46433d; flex-grow: 1;">Context changed 4 minutes ago.</div>
+      <div style="font-size: 12.5px; color: #2563a8;">Refresh</div>
+    </div>
+    <div style="padding: 10px 16px; background: #fdf3ea; border-bottom: 1px solid #f2e6d8; display: flex; align-items: center; gap: 9px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b3801e" stroke-width="2" stroke-linecap="round"><path d="M12 3l9 17H3z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg>
+      <div style="font-size: 12.5px; color: #46433d;">Your team has reached its limit for active agents. This agent is queued&hellip;</div>
+    </div>
+    <div style="padding: 26px 16px; text-align: center; font-size: 12px; color: #a8a49c;">what&rsquo;s left of the transcript</div>
+  </div>
+
+  <div style="margin-top: 20px; border: 1px solid #cddcec; border-radius: 4px; background: #ffffff; overflow: hidden;">
+    <div style="padding: 11px 16px; background: #f2f6fa; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #2563a8;">Proposed &mdash; one status strip, highest severity wins</div>
+    <div style="padding: 11px 16px; background: #fdf3ea; border-bottom: 1px solid #f2e6d8; display: flex; align-items: center; gap: 10px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b3801e" stroke-width="2" stroke-linecap="round"><path d="M12 3l9 17H3z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg>
+      <div style="flex-grow: 1; min-width: 0;">
+        <div style="font-size: 13px; color: #1a1a18;">Queued &mdash; your team is at its active-agent limit</div>
+        <div style="font-size: 11.5px; color: #6b6862; margin-top: 2px;">Starts automatically when capacity frees up &middot; 2 more notices</div>
+      </div>
+      <div style="font-size: 12px; color: #2563a8; white-space: nowrap;">Learn more</div>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b6862" stroke-width="2" stroke-linecap="round"><path d="M7 10l5 5 5-5"></path></svg>
+    </div>
+    <div style="padding: 26px 16px; text-align: center; font-size: 12px; color: #a8a49c;">the transcript, where it belongs</div>
+  </div>
+
+  <div style="margin-top: 26px; display: flex; flex-direction: column; gap: 9px;">
+    <div style="font-size: 15px; font-weight: 650;">Rules for the strip</div>
+    <div style="display: flex; gap: 10px; align-items: flex-start;">
+      <div style="font-size: 12px; font-weight: 650; color: #2563a8; min-width: 16px;">1</div>
+      <div style="font-size: 13px; line-height: 1.55; color: #46433d;">One row, always. Show the highest-severity live condition &mdash; blocked &gt; queued &gt; stale context &gt; retrying &mdash; and count the rest; the disclosure expands to the full list.</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: flex-start;">
+      <div style="font-size: 12px; font-weight: 650; color: #2563a8; min-width: 16px;">2</div>
+      <div style="font-size: 13px; line-height: 1.55; color: #46433d;">Every row carries its action inline (Refresh, Retry, Learn more) or it doesn&rsquo;t belong in the strip. A notice with no next step is a log line, not UI.</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: flex-start;">
+      <div style="font-size: 12px; font-weight: 650; color: #2563a8; min-width: 16px;">3</div>
+      <div style="font-size: 13px; line-height: 1.55; color: #46433d;">Transient conditions (retry backoff) auto-clear; sticky ones (capacity, stale context) persist until resolved. Never animate the strip&rsquo;s height while the transcript is streaming.</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: flex-start;">
+      <div style="font-size: 12px; font-weight: 650; color: #2563a8; min-width: 16px;">4</div>
+      <div style="font-size: 13px; line-height: 1.55; color: #46433d;"><strong>Native:</strong> mirror a blocked or queued state onto the menu-bar item and the Dock badge, so someone who walked away learns their agent is stuck without checking the window.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

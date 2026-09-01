@@ -1,0 +1,19 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1100, "h": 1560 },
+    { "file": "Native.dc.html", "x": 1180, "y": 0, "w": 1100, "h": 1180 },
+    { "file": "Triage.dc.html", "x": 2360, "y": 0, "w": 900, "h": 1080 },
+    { "file": "Compose.dc.html", "x": 1180, "y": 1300, "w": 900, "h": 1080 },
+    { "file": "Recovery.dc.html", "x": 2360, "y": 1300, "w": 900, "h": 1020 }
+  ],
+  "annotations": [
+    {
+      "id": "read-order",
+      "x": 0,
+      "y": -150,
+      "w": 420,
+      "text": "Start at the audit map, then the platform board.\nThe three flow boards detail the blocking findings."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

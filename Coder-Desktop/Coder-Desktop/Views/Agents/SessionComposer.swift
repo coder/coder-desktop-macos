@@ -21,6 +21,10 @@ final class ComposerModel: ObservableObject {
     /// Whether the user touched the effort slider during this edit. Web parity: an edit sends
     /// `reasoning_effort` only when dirty, so an untouched edit preserves the original turn's.
     var editEffortDirty = false
+    /// This chat's past prompts (newest first) and how far back ↑ has walked. nil = not
+    /// cycling, so ↑ only starts from an empty box and ↓ ends by restoring it.
+    var promptHistory: [String] = []
+    var historyIndex: Int?
 
     func startEditing(_ messageID: Int64, _ text: String) {
         editingMessageID = messageID
@@ -32,6 +36,31 @@ final class ComposerModel: ObservableObject {
         editingMessageID = nil
         editEffortDirty = false
         draft = ""
+    }
+
+    /// ↑: step further back through this chat's prompts. Only starts from an empty box, so
+    /// arrows keep navigating text the user is actually writing. Nil = let the arrow through.
+    func recallPrevious() -> String? {
+        guard editingMessageID == nil, !promptHistory.isEmpty else { return nil }
+        if let index = historyIndex {
+            guard index + 1 < promptHistory.count else { return nil }
+            historyIndex = index + 1
+            return promptHistory[index + 1]
+        }
+        guard draft.isEmpty else { return nil }
+        historyIndex = 0
+        return promptHistory[0]
+    }
+
+    /// ↓: step back toward the present, ending by restoring the empty box.
+    func recallNext() -> String? {
+        guard let index = historyIndex else { return nil }
+        if index == 0 {
+            historyIndex = nil
+            return ""
+        }
+        historyIndex = index - 1
+        return promptHistory[index - 1]
     }
 
     func appendToDraft(_ text: String) {
@@ -90,6 +119,8 @@ struct SessionComposer<Agents: AgentsService>: View {
                         }
                     }
                 },
+                onRecallPrevious: model.recallPrevious,
+                onRecallNext: model.recallNext,
                 skills: menuSkills,
                 onSkillTrigger: {
                     Task {
@@ -113,6 +144,8 @@ struct SessionComposer<Agents: AgentsService>: View {
             if agents.workspaces.isEmpty { await agents.loadWorkspaces() }
             if agents.mcpServers.isEmpty { await agents.loadMCPServers() }
             seed()
+            model.historyIndex = nil
+            await loadPromptHistory()
             await loadCompactionThreshold()
         }
         .onChange(of: agents.modelConfigs.map(\.id)) { seed() }
@@ -158,20 +191,20 @@ struct SessionComposer<Agents: AgentsService>: View {
                     )
                 }
             }
-            if !agents.modelConfigs.isEmpty {
-                ModelPicker<Agents>(
-                    selectedID: $model.selectedModelConfigID,
-                    // Marks the effort dirty when touched mid-edit; programmatic seeds
-                    // (seedEffort) write model.reasoningEffort directly and stay clean.
-                    effort: Binding(
-                        get: { model.reasoningEffort },
-                        set: {
-                            model.reasoningEffort = $0
-                            if model.editingMessageID != nil { model.editEffortDirty = true }
-                        }
-                    )
+            // Rendered unconditionally: ModelPicker shows a disabled, self-explaining pill
+            // when the org has no models, instead of the control silently vanishing.
+            ModelPicker<Agents>(
+                selectedID: $model.selectedModelConfigID,
+                // Marks the effort dirty when touched mid-edit; programmatic seeds
+                // (seedEffort) write model.reasoningEffort directly and stay clean.
+                effort: Binding(
+                    get: { model.reasoningEffort },
+                    set: {
+                        model.reasoningEffort = $0
+                        if model.editingMessageID != nil { model.editEffortDirty = true }
+                    }
                 )
-            }
+            )
             VoiceInputButton(draft: $model.draft, voice: voice)
             sendButton
         }
@@ -288,6 +321,10 @@ struct SessionComposer<Agents: AgentsService>: View {
         model.draft = ""
         model.attachments = []
         model.pendingReferences = []
+        // The just-sent prompt heads the recall list immediately; the server's copy lands on
+        // the next load.
+        model.historyIndex = nil
+        if !typed.isEmpty { model.promptHistory.insert(typed, at: 0) }
         if let editingMessageID = model.editingMessageID {
             model.editingMessageID = nil
             // Carry the edited message's own attachments through (the server replaces the
@@ -334,6 +371,14 @@ struct SessionComposer<Agents: AgentsService>: View {
             model.sending = false
             if !ok { restore() } // restore on failure so the user doesn't lose their text
         }
+    }
+}
+
+// MARK: - Prompt recall
+
+extension SessionComposer {
+    func loadPromptHistory() async {
+        model.promptHistory = await agents.promptHistory(session.id)
     }
 }
 

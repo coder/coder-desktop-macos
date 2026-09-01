@@ -57,6 +57,11 @@ struct AgentsWindow<Agents: AgentsService>: View {
         } detail: {
             detail
         }
+        .onChange(of: agents.pendingNewSession, initial: true) { _, pending in
+            guard pending else { return }
+            agents.pendingNewSession = false
+            route = .newSession
+        }
         .onChange(of: agents.pendingOpenChatID, initial: true) { _, pending in
             // Notification click: route to the chat once the window is up (or immediately).
             guard let pending else { return }

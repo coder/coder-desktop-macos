@@ -13,9 +13,13 @@ final class PreviewAgents: AgentsService {
     @Published var hasLoadedOnce = true
     @Published var activeSessionID: UUID?
     @Published var pendingOpenChatID: UUID?
+    @Published var pendingNewSession = false
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
     @Published var historyLoadErrorBySession: [UUID: String] = [:]
     @Published var pendingMCPAuthServerID: UUID?
+    @Published var didLoadModelConfigs = true
+    @Published var didLoadMCPServers = true
+    @Published var loadedOrgName: String? = "Coder"
 
     private var messagesBySession: [UUID: [ChatMessage]] = [:]
 
@@ -177,6 +181,7 @@ final class PreviewAgents: AgentsService {
     func interrupt(_: UUID) async {}
     func compact(_: UUID) async {}
     func clear(_: UUID) async {}
+    func promptHistory(_: UUID) async -> [String] { [] }
     func attachmentImage(_: UUID) -> NSImage? { nil }
     func attachmentFailure(_: UUID) -> ChatAttachmentFailure? { nil }
     func loadAttachment(_: ChatMessagePart) {}

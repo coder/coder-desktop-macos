@@ -41,12 +41,20 @@ protocol AgentsService: ObservableObject {
     var activeSessionID: UUID? { get set }
     /// Set when a chat notification is clicked; the window consumes it to route there.
     var pendingOpenChatID: UUID? { get set }
+    /// Set by the Chat ▸ New Chat menu command; the window consumes it and routes.
+    var pendingNewSession: Bool { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.
     var historyLoadErrorBySession: [UUID: String] { get }
     /// Connector whose OAuth flow is in the browser; auto-selected once connected (#28155).
     var pendingMCPAuthServerID: UUID? { get set }
+    /// Whether the model/connector loads have completed once, so an empty list can be
+    /// reported as "none configured" rather than "still loading".
+    var didLoadModelConfigs: Bool { get }
+    var didLoadMCPServers: Bool { get }
+    /// The organization the pickers loaded from, named in their empty states.
+    var loadedOrgName: String? { get }
 
     /// Emitted once when the Agents window is opened.
     func viewOpened()
@@ -149,6 +157,8 @@ protocol AgentsService: ObservableObject {
     func chatCost(_ id: UUID) async -> ChatCost?
     func workspaceQuota() async -> WorkspaceQuota?
     func interrupt(_ id: UUID) async
+    /// This chat's past prompts, newest first, for composer ↑/↓ recall.
+    func promptHistory(_ id: UUID) async -> [String]
     /// Manually compacts the context, summarizing the conversation so far.
     func compact(_ id: UUID) async
     /// Clears the conversation context; the next message starts fresh.

@@ -94,6 +94,10 @@ struct PasteAwareEditor: NSViewRepresentable {
     /// Called when the user pastes an image from the clipboard. Receives PNG data + suggested filename.
     var onImagePaste: (Data, String) -> Void = { _, _ in }
     var largePasteThreshold = 2000
+    /// Prompt recall on ↑/↓. Each returns the text to put in the box, or nil to let the
+    /// arrow do its normal text navigation.
+    var onRecallPrevious: () -> String? = { nil }
+    var onRecallNext: () -> String? = { nil }
     /// Entries for the "/" trigger menu (commands + personal/workspace skills), and a hook to
     /// lazy-load them on first use.
     var skills: [SkillMenuItem] = []
@@ -176,6 +180,16 @@ struct PasteAwareEditor: NSViewRepresentable {
         func textView(_: NSTextView, doCommandBy selector: Selector) -> Bool {
             // While the skills menu is open, arrows/enter/tab/esc drive it.
             if skillPopover?.isShown == true, handleSkillMenuKey(selector) { return true }
+            // Shell-style prompt recall: only from an empty composer (↑) or while already
+            // cycling (↓), so arrows still navigate text the user is writing.
+            if selector == #selector(NSResponder.moveUp(_:)), let recalled = parent.onRecallPrevious() {
+                replaceAll(with: recalled)
+                return true
+            }
+            if selector == #selector(NSResponder.moveDown(_:)), let recalled = parent.onRecallNext() {
+                replaceAll(with: recalled)
+                return true
+            }
             // Return sends (when enabled); Shift/Option+Return falls through to a newline.
             if selector == #selector(NSResponder.insertNewline(_:)), parent.submitOnReturn {
                 let flags = NSApp.currentEvent?.modifierFlags ?? []
@@ -185,6 +199,18 @@ struct PasteAwareEditor: NSViewRepresentable {
                 }
             }
             return false
+        }
+
+        /// Swaps the whole draft for a recalled prompt, leaving the caret at the end.
+        private func replaceAll(with text: String) {
+            guard let tv = textView else { return }
+            let all = NSRange(location: 0, length: (tv.string as NSString).length)
+            if tv.shouldChangeText(in: all, replacementString: text) {
+                tv.textStorage?.replaceCharacters(in: all, with: text)
+                tv.didChangeText()
+                tv.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
+            }
+            parent.text = tv.string
         }
 
         // MARK: Skills "/" menu

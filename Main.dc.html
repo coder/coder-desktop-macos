@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    a { color: #2563a8; } a:hover { color: #1b4a7d; }
+  </style>
+</helmet>
+<div style="width: 1100px; box-sizing: border-box; padding: 56px 60px 64px; background: #fbfaf8; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #1a1a18;">
+
+  <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #e3e0da; padding-bottom: 20px;">
+    <div style="font-size: 32px; font-weight: 700; letter-spacing: -0.6px;">Agents UX flow audit</div>
+    <div style="font-size: 13px; color: #6b6862;">Coder Desktop for macOS &middot; branch feat/agents-view</div>
+  </div>
+
+  <div style="margin-top: 22px; font-size: 15px; line-height: 1.55; color: #46433d; max-width: 780px;">
+    Eight flows walked end to end against the code on this branch. Four are solid. The four
+    below carry findings that cost a user real time or leave them stuck with nothing on screen
+    to act on. Severity is about <em>how stuck the user gets</em>, not implementation size.
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-top: 26px; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6862;">
+      <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3261e;"></span>Blocking
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6862;">
+      <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3801e;"></span>Costly
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6862;">
+      <span style="width: 10px; height: 10px; border-radius: 5px; background: #2e6b3e;"></span>Healthy
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px;">
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3261e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">1 &middot; Discovery &amp; first run</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Agents is GA server-side, but Desktop hides it behind an off-by-default toggle in Settings &rsaquo; General. Nothing in the tray hints it exists.</div>
+      <div style="font-size: 12px; color: #6b6862; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">GeneralTab.swift &middot; AgentsFeatureFlag.swift</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3261e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">2 &middot; Find &amp; triage a chat</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Sidebar search filters <em>titles only</em>, client-side, over loaded rows. The server already does full-text search across message content.</div>
+      <div style="font-size: 12px; color: #6b6862; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">AgentsWindow.swift:79 filteredSessions</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3801e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">3 &middot; Compose &amp; send</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Every control is present and correct &mdash; but an empty model or connector list makes the control <em>vanish</em> with no explanation, and past prompts can&rsquo;t be recalled.</div>
+      <div style="font-size: 12px; color: #6b6862; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">SessionComposer.swift:156 &middot; Chats.swift chatPrompts (0 callers)</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #b3801e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">4 &middot; When things go wrong</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Error, retry, capacity and stale-context states all render &mdash; but they stack as four separate bands above one transcript, and none says what to do next.</div>
+      <div style="font-size: 12px; color: #6b6862; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">AgentSessionDetail.swift banners</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #2e6b3e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">5 &middot; Watch a run</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Streaming, tool rows, thinking blocks, scroll anchoring and the stop/draining state all behave. No findings.</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #2e6b3e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">6 &middot; Review the work</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Diff panel, range-select, comment-to-chat and the PR/working switcher are all in place. No findings.</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #2e6b3e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">7 &middot; Attachments</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Upload, thumbnail, Quick Look, Save As, and honest expired/failed tiles. Shipped this week. No findings.</div>
+    </div>
+
+    <div style="border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #2e6b3e;"></span>
+        <div style="font-size: 15px; font-weight: 650;">8 &middot; Connectors &amp; auth</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Authenticate &rarr; browser &rarr; auto-enabled on return. Disconnect confirms and reports revocation honestly. No findings.</div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 40px; font-size: 20px; font-weight: 650; letter-spacing: -0.2px;">Ranked findings</div>
+  <div style="font-size: 13px; color: #6b6862; margin-top: 4px;">Ordered by user cost per week, not by effort to fix.</div>
+
+  <div style="display: flex; flex-direction: column; gap: 0; margin-top: 18px; border: 1px solid #e3e0da; border-radius: 4px; background: #ffffff; overflow: hidden;">
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 14px 20px; background: #f4f2ee; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #6b6862;">
+      <div>#</div><div>Finding &amp; proposed change</div><div>Flow</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3261e;">01</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">Search only matches titles &mdash; use the server&rsquo;s full-text search</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Titles are auto-generated, so the words a user remembers (&ldquo;the flake in the auth test&rdquo;) are in the transcript, not the title. Send the query as <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;">chats?q=search:&hellip;</span> and merge results into the sidebar, keeping the local title filter as the instant first pass.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Triage</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3261e;">02</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">An empty picker is invisible, not explained</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Model picker and connector list render only when non-empty, so a misconfigured org shows a composer with controls simply missing &mdash; the exact failure that hid the pickers this morning. Show the control in a disabled state naming the org and what&rsquo;s missing.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Compose</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3261e;">03</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">Agents is undiscoverable until someone opens Settings</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">The feature is GA, the toggle is off, and the tray gives no hint. Either default it on when the deployment reports Agents available, or put a single dismissible row in the tray that turns it on in place.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Discovery</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3801e;">04</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">Past prompts can&rsquo;t be recalled</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">The SDK already fetches a chat&rsquo;s prompt history; nothing calls it. Bind &uarr;/&darr; on an empty composer to cycle it, as the web does &mdash; re-running a slightly edited prompt is the single most repeated action in this UI.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Compose</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3801e;">05</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">Four banner types stack above one transcript</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">Load error, stale context, retry and capacity each own a band. Two at once pushes the transcript down and none states a next action. Collapse to one status strip that shows the highest-severity condition with its action inline.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Recovery</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 150px; gap: 16px; padding: 16px 20px; border-top: 1px solid #ebe8e2;">
+      <div style="font-size: 15px; font-weight: 650; color: #b3801e;">06</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 14px; font-weight: 600;">No way to jump between chats from the keyboard</div>
+        <div style="font-size: 13px; line-height: 1.5; color: #46433d;">&#8984;N opens a new chat; there is no &#8984;F into search and no jump-to-chat. For a window someone lives in all day, that&rsquo;s the difference between glancing and hunting.</div>
+      </div>
+      <div style="font-size: 12px; color: #6b6862;">Triage</div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 28px; font-size: 12px; color: #6b6862; line-height: 1.6;">
+    Deliberately not proposed: hard delete (the API archives only), a multi-org switcher UI
+    (the org now resolves automatically &mdash; revisit if someone reports the wrong one), and
+    live co-editing affordances.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

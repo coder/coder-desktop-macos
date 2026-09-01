@@ -47,6 +47,14 @@ extension CoderAgentsService {
         }
     }
 
+    /// This chat's past prompts, newest first, for composer history cycling. Fetched once
+    /// per chat and refreshed after a send.
+    func promptHistory(_ id: UUID) async -> [String] {
+        guard let client else { return [] }
+        guard let resp = try? await client.chatPrompts(id, limit: 50) else { return [] }
+        return resp.prompts.map(\.text).filter { !$0.isEmpty }
+    }
+
     /// Clears the conversation context; the next message starts fresh (web's `/clear`).
     func clear(_ id: UUID) async {
         guard let client else { return }

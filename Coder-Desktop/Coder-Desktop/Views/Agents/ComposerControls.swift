@@ -110,7 +110,18 @@ struct ComposerPlusMenu<Agents: AgentsService>: View {
                     .padding(.vertical, 2)
                 }
 
-                if !agents.mcpServers.isEmpty {
+                if agents.mcpServers.isEmpty {
+                    // Say why the section is empty instead of omitting it — an absent
+                    // connector list is indistinguishable from a misconfigured org.
+                    Divider().padding(.vertical, 5)
+                    Text(agents.didLoadMCPServers
+                        ? "No connectors in \(agents.loadedOrgName ?? "this organization")"
+                        : "Loading connectors…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                } else {
                     Divider().padding(.vertical, 5)
                     ForEach(agents.mcpServers) { server in
                         connectorRow(server).padding(.horizontal, 12).padding(.vertical, 5)

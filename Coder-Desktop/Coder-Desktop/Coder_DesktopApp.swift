@@ -45,6 +45,7 @@ struct DesktopApp: App {
                 .environmentObject(appDelegate.vpn) // for the workspace-latency chip
                 .showDockIconWhenOpen()
         }.handlesExternalEvents(matching: Set()) // Don't handle deep links
+            .commands { AgentsCommands(agents: appDelegate.agents) }
     }
 }
 

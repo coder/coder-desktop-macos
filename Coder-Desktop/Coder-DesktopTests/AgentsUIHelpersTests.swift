@@ -79,6 +79,47 @@ struct AgentsUIHelpersTests {
 }
 
 @Suite(.timeLimit(.minutes(1)))
+@MainActor
+struct PromptRecallTests {
+    private func model(_ history: [String]) -> ComposerModel {
+        let model = ComposerModel()
+        model.promptHistory = history
+        return model
+    }
+
+    @Test
+    func upWalksBackAndDownReturnsToTheEmptyBox() {
+        let composer = model(["newest", "older", "oldest"])
+        #expect(composer.recallPrevious() == "newest")
+        #expect(composer.recallPrevious() == "older")
+        #expect(composer.recallPrevious() == "oldest")
+        // Past the end, the arrow falls through to normal text navigation.
+        #expect(composer.recallPrevious() == nil)
+        #expect(composer.recallNext() == "older")
+        #expect(composer.recallNext() == "newest")
+        // Leaving the history restores the empty draft the user started from.
+        #expect(composer.recallNext() == "")
+        #expect(composer.recallNext() == nil)
+    }
+
+    @Test
+    func recallLeavesRealTypingAlone() {
+        // A non-empty draft means the user is writing: ↑ must move the caret, not replace it.
+        let typing = model(["newest"])
+        typing.draft = "half a thought"
+        #expect(typing.recallPrevious() == nil)
+
+        // Editing a past message is its own mode; history would clobber the edit.
+        let editing = model(["newest"])
+        editing.editingMessageID = 7
+        #expect(editing.recallPrevious() == nil)
+
+        // A chat with no prompts yet never intercepts the arrows.
+        #expect(model([]).recallPrevious() == nil)
+    }
+}
+
+@Suite(.timeLimit(.minutes(1)))
 struct SkillMenuItemTests {
     @Test
     func workspaceSkillsAlwaysQualifyAndCommandsNeverDo() {

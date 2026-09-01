@@ -59,6 +59,42 @@ struct ModelPicker<Agents: AgentsService>: View {
     private var label: String { selected?.label ?? "Model" }
 
     var body: some View {
+        // A missing control is undiagnosable: when the org has no models (or they're still
+        // loading), keep the pill in place and say so, rather than rendering nothing.
+        if agents.modelConfigs.isEmpty {
+            unavailablePill
+        } else {
+            trigger
+        }
+    }
+
+    private var unavailablePill: some View {
+        let loading = !agents.didLoadModelConfigs
+        let org = agents.loadedOrgName
+        let label = loading ? "Loading models…" : "No models in \(org ?? "this organization")"
+        let hint = loading
+            ? "Fetching the models available to you."
+            : "An administrator configures chat models per organization"
+            + (org.map { " (\($0))." } ?? ".")
+        return HStack(spacing: 4) {
+            if loading {
+                ProgressView().controlSize(.mini)
+            }
+            Text(label).lineLimit(1)
+            Image(systemName: "chevron.up.chevron.down").font(.caption2)
+        }
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(Capsule())
+        .help(hint)
+        .accessibilityLabel(label)
+        .accessibilityHint(hint)
+    }
+
+    private var trigger: some View {
         Button { show.toggle() } label: {
             HStack(spacing: 4) {
                 Text(label).lineLimit(1).foregroundStyle(.primary)

@@ -20,6 +20,14 @@ final class CoderAgentsService: AgentsService {
     /// making the user reopen the menu to enable what they just authorized is bad UX).
     @Published var pendingMCPAuthServerID: UUID?
     @Published private(set) var modelConfigs: [ChatModelConfig] = []
+    /// Whether the model/connector loads have completed at least once. An empty list means
+    /// "this organization has none configured" only after this flips — before it, the pickers
+    /// show a loading state instead of claiming nothing exists.
+    @Published private(set) var didLoadModelConfigs = false
+    @Published private(set) var didLoadMCPServers = false
+    /// The organization the pickers loaded from, named in their empty states so a
+    /// misconfigured org is self-diagnosing rather than an invisible missing control.
+    @Published private(set) var loadedOrgName: String?
     /// AI providers keyed by id, for grouping and labelling models in the picker. Loaded lazily
     /// the first time the picker opens. Setter is internal so the settings extension can fill it.
     @Published var aiProviders: [UUID: AIProvider] = [:]
@@ -72,6 +80,8 @@ final class CoderAgentsService: AgentsService {
     @Published var activeSessionID: UUID?
     /// Set when a chat notification is clicked; the Agents window consumes it to route.
     @Published var pendingOpenChatID: UUID?
+    /// Set by the Chat ▸ New Chat menu command; the window consumes it and routes.
+    @Published var pendingNewSession = false
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
@@ -84,6 +94,8 @@ final class CoderAgentsService: AgentsService {
     // session retains every visited chat's full transcript (~MBs each).
     private var recentSessions: [UUID] = []
     private var cancellables: Set<AnyCancellable> = []
+    /// Dock-badge subscription (AgentsServiceBadge.swift), dropped on sign-out.
+    var badgeCancellable: AnyCancellable?
 
     init(state: AppState, telemetry: Telemetry = LoggerTelemetry()) {
         self.state = state
@@ -96,10 +108,14 @@ final class CoderAgentsService: AgentsService {
             .filter { !$0 }
             .sink { [weak self] _ in self?.reset() }
             .store(in: &cancellables)
+        startBadgeUpdates()
     }
 
     /// Clears everything tied to the signed-in account.
     private func reset() {
+        // The badge outlives the window, so a sign-out must clear it explicitly — a stale
+        // count on the Dock would advertise another account's unread chats.
+        NSApp.dockTile.badgeLabel = nil
         for (_, task) in streamTasks {
             task.cancel()
         }
@@ -126,6 +142,9 @@ final class CoderAgentsService: AgentsService {
         workspaces = []
         mcpServers = []
         pendingMCPAuthServerID = nil
+        didLoadModelConfigs = false
+        didLoadMCPServers = false
+        loadedOrgName = nil
         modelConfigs = []
         aiProviders.removeAll()
         userSkills = []
@@ -187,6 +206,7 @@ final class CoderAgentsService: AgentsService {
         guard let client, let orgID = await organizationID() else { return }
         do {
             mcpServers = try await client.mcpServers(organizationID: orgID).filter(\.enabled)
+            didLoadMCPServers = true
             loadMCPIcons()
         } catch {
             logger.error("failed to load MCP servers: \(error.localizedDescription, privacy: .public)")
@@ -197,9 +217,20 @@ final class CoderAgentsService: AgentsService {
         guard let client, let orgID = await organizationID() else { return }
         do {
             modelConfigs = try await client.chatModelConfigs(organizationID: orgID)
+            didLoadModelConfigs = true
+            await loadOrgName(orgID)
         } catch {
             logger.error("failed to load model configs: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// Resolves the loaded org's display name for the pickers' empty states. Best-effort:
+    /// the empty state falls back to generic copy when the lookup fails.
+    private func loadOrgName(_ orgID: UUID) async {
+        guard loadedOrgName == nil, let client else { return }
+        guard let orgs = try? await client.organizations(),
+              let org = orgs.first(where: { $0.id == orgID }) else { return }
+        loadedOrgName = org.label
     }
 
     func createSession(_ request: NewSessionRequest) async -> Chat? {
