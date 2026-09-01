@@ -333,11 +333,8 @@ struct AgentsWindow<Agents: AgentsService>: View {
     }
 
     private func toggleExpanded(_ id: UUID) {
-        if expandedRoots.contains(id) {
-            expandedRoots.remove(id)
-        } else {
-            expandedRoots.insert(id)
-        }
+        // `insert` reports whether it actually inserted, so one call both tests and adds.
+        if !expandedRoots.insert(id).inserted { expandedRoots.remove(id) }
     }
 }
 

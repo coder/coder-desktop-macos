@@ -327,13 +327,10 @@ struct AgentSessionDetail<Agents: AgentsService>: View {
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         // Tool-heavy runs commit several messages/sec; animating each scroll stacks eased
         // whole-window transactions (the beachball mechanism fixed in be0d02d). Animate only
-        // when the chat is idle (e.g. jumping after a send into a finished chat).
-        if session.status.isActive {
+        // when the chat is idle (e.g. jumping after a send into a finished chat) — a nil
+        // animation is exactly the unanimated path.
+        withAnimation(session.status.isActive ? nil : .easeOut(duration: Theme.Animation.collapsibleDuration)) {
             proxy.scrollTo(bottomAnchor, anchor: .bottom)
-        } else {
-            withAnimation(.easeOut(duration: Theme.Animation.collapsibleDuration)) {
-                proxy.scrollTo(bottomAnchor, anchor: .bottom)
-            }
         }
     }
 

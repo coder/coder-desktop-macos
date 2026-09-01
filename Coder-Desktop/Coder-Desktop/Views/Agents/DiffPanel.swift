@@ -157,11 +157,7 @@ struct DiffPanel<Agents: AgentsService>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
         } else {
-            VStack(spacing: 6) {
-                Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(.secondary)
-                Text("No changes yet").font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            placeholder(icon: "checkmark.circle", text: "No changes yet")
         }
     }
 }
