@@ -33,6 +33,15 @@ extension UUID {
 }
 
 public extension View {
+    /// The chip/pill chrome shared across the Agents surfaces. Font and foreground colour
+    /// stay with the caller — only the padding, fill and capsule clip are shared.
+    @inlinable nonisolated func pillChrome(vertical: CGFloat = 3, tint: Double = 0.15) -> some View {
+        padding(.horizontal, 8)
+            .padding(.vertical, vertical)
+            .background(Color.secondary.opacity(tint))
+            .clipShape(Capsule())
+    }
+
     @inlinable nonisolated func onHoverWithPointingHand(perform action: @escaping (Bool) -> Void) -> some View {
         onHover { hovering in
             if hovering {

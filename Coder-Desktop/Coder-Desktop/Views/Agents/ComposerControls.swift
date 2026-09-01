@@ -354,10 +354,7 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Color.secondary.opacity(0.15))
-            .clipShape(Capsule())
+            .pillChrome()
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(pills.count) active selections")
@@ -386,9 +383,6 @@ struct ComposerSelectionPills<Agents: AgentsService>: View {
             .accessibilityLabel("Remove \(pill.label)")
         }
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color.secondary.opacity(0.15))
-        .clipShape(Capsule())
+        .pillChrome()
     }
 }

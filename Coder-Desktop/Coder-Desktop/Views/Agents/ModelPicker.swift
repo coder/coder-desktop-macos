@@ -85,10 +85,7 @@ struct ModelPicker<Agents: AgentsService>: View {
         }
         .font(.caption)
         .foregroundStyle(.tertiary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color.secondary.opacity(0.1))
-        .clipShape(Capsule())
+        .pillChrome(tint: 0.1)
         .help(hint)
         .accessibilityLabel(label)
         .accessibilityHint(hint)
@@ -118,10 +115,7 @@ struct ModelPicker<Agents: AgentsService>: View {
             // on both selectors). The label keeps an ~8-character floor before truncating.
             .font(.caption)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Color.secondary.opacity(0.15))
-            .clipShape(Capsule())
+            .pillChrome()
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

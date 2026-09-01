@@ -111,10 +111,7 @@ struct MessagePartView: View {
         case .fileReference:
             Label(part.file_name ?? "Code reference", systemImage: "text.alignleft")
                 .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.15))
-                .clipShape(Capsule())
+                .pillChrome(vertical: 4)
         default:
             if let text = part.text, !text.isEmpty {
                 MarkdownText(text: text)

@@ -292,29 +292,20 @@ struct GeneralSettingsSection<Agents: AgentsService>: View {
 }
 
 /// The server's 4-way thinking-display option, mapped to our simpler renderer enum.
+/// Raw values ARE the server's wire values, so RawRepresentable does the conversion.
 private enum ThinkingDisplayMode: String, CaseIterable, Identifiable {
-    case auto, preview, alwaysExpanded, alwaysCollapsed
-    var id: String {
-        rawValue
-    }
+    case auto
+    case preview
+    case alwaysExpanded = "always_expanded"
+    case alwaysCollapsed = "always_collapsed"
+    var id: String { rawValue }
 
+    /// Unknown or absent server values fall back to `auto`.
     init(serverValue: String?) {
-        self = switch serverValue {
-        case "preview": .preview
-        case "always_expanded": .alwaysExpanded
-        case "always_collapsed": .alwaysCollapsed
-        default: .auto
-        }
+        self = ThinkingDisplayMode(rawValue: serverValue ?? "") ?? .auto
     }
 
-    var serverValue: String {
-        switch self {
-        case .auto: "auto"
-        case .preview: "preview"
-        case .alwaysExpanded: "always_expanded"
-        case .alwaysCollapsed: "always_collapsed"
-        }
-    }
+    var serverValue: String { rawValue }
 
     var label: String {
         switch self {
@@ -337,26 +328,17 @@ private enum ThinkingDisplayMode: String, CaseIterable, Identifiable {
 
 /// The server's 3-way display option for tool calls and code diffs.
 private enum ToolDisplayMode: String, CaseIterable, Identifiable {
-    case auto, alwaysExpanded, alwaysCollapsed
-    var id: String {
-        rawValue
-    }
+    case auto
+    case alwaysExpanded = "always_expanded"
+    case alwaysCollapsed = "always_collapsed"
+    var id: String { rawValue }
 
+    /// Unknown or absent server values fall back to `auto`.
     init(serverValue: String?) {
-        self = switch serverValue {
-        case "always_expanded": .alwaysExpanded
-        case "always_collapsed": .alwaysCollapsed
-        default: .auto
-        }
+        self = ToolDisplayMode(rawValue: serverValue ?? "") ?? .auto
     }
 
-    var serverValue: String {
-        switch self {
-        case .auto: "auto"
-        case .alwaysExpanded: "always_expanded"
-        case .alwaysCollapsed: "always_collapsed"
-        }
-    }
+    var serverValue: String { rawValue }
 
     var label: String {
         switch self {

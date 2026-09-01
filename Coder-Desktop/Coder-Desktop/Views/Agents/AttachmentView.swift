@@ -71,10 +71,7 @@ struct AttachmentPartView: View {
         Button { attachments.open(part) } label: {
             Label(part.attachmentDisplayName, systemImage: "doc")
                 .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.15))
-                .clipShape(Capsule())
+                .pillChrome(vertical: 4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("View \(part.attachmentDisplayName)")
@@ -99,10 +96,7 @@ struct AttachmentPartView: View {
         return Label(text, systemImage: "exclamationmark.triangle")
             .font(.caption)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.secondary.opacity(0.1))
-            .clipShape(Capsule())
+            .pillChrome(vertical: 4, tint: 0.1)
             .help(help)
     }
 }
