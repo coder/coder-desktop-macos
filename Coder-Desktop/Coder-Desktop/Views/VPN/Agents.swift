@@ -3,7 +3,6 @@ import SwiftUI
 struct Agents<VPN: VPNService>: View {
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var state: AppState
-    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled = false
     @State private var viewAll = false
     @State private var expandedItem: VPNMenuItem.ID?
     @State private var hasToggledExpansion: Bool = false
@@ -73,7 +72,7 @@ struct Agents<VPN: VPNService>: View {
     /// Asks the server which of the listed workspaces were created by an Agents chat
     /// (the web UI's "Agent" badge). Best-effort: failures just leave rows unbadged.
     private func loadAgentWorkspaces(_ ids: Set<UUID>) async {
-        guard agentsEnabled, let client = state.client, !ids.isEmpty else {
+        guard let client = state.client, !ids.isEmpty else {
             agentWorkspaceIDs = []
             return
         }

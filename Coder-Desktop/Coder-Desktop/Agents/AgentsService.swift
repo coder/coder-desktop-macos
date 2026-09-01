@@ -98,6 +98,8 @@ final class CoderAgentsService: AgentsService {
     private var cancellables: Set<AnyCancellable> = []
     /// Dock-badge subscription (AgentsServiceBadge.swift), dropped on sign-out.
     var badgeCancellable: AnyCancellable?
+    /// Spotlight re-donation subscription (AgentsServiceSpotlight.swift).
+    var spotlightCancellable: AnyCancellable?
 
     init(state: AppState, telemetry: Telemetry = LoggerTelemetry()) {
         self.state = state
@@ -118,6 +120,8 @@ final class CoderAgentsService: AgentsService {
         // The badge outlives the window, so a sign-out must clear it explicitly — a stale
         // count on the Dock would advertise another account's unread chats.
         NSApp.dockTile.badgeLabel = nil
+        // Another account's chat titles must not stay searchable on this Mac.
+        clearSpotlight()
         for (_, task) in streamTasks {
             task.cancel()
         }

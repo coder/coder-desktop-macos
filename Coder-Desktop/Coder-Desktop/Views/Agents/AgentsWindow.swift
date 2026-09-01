@@ -12,9 +12,6 @@ enum AgentsRoute: Hashable {
 struct AgentsWindow<Agents: AgentsService>: View {
     @EnvironmentObject var agents: Agents
     @EnvironmentObject var state: AppState
-    /// Ships behind an off-by-default flag. Gated here too (not just the menu entry) so
-    /// window-state restoration can't reopen it after the flag is turned off.
-    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled = false
 
     @State private var route: AgentsRoute?
     @State private var search = ""
@@ -33,24 +30,8 @@ struct AgentsWindow<Agents: AgentsService>: View {
     @State private var expandedRoots: Set<UUID> = []
 
     var body: some View {
-        Group {
-            if agentsEnabled {
-                splitView
-            } else {
-                disabledPlaceholder
-            }
-        }
-        .frame(minWidth: 760, minHeight: 480)
-    }
-
-    private var disabledPlaceholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            Text("Agents is turned off").font(.headline)
-            Text("Enable it in Settings → General.").foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        splitView
+            .frame(minWidth: 760, minHeight: 480)
     }
 
     private var splitView: some View {

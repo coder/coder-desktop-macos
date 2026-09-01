@@ -1,3 +1,4 @@
+import CoreSpotlight
 import FluidMenuBarExtra
 import NetworkExtension
 import os
@@ -100,6 +101,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 .first { $0.identifier?.rawValue == Windows.agents.rawValue }?
                 .makeKeyAndOrderFront(nil)
         }
+        // Answering from the banner is the point of interrupting: no window is raised, so
+        // the user stays in whatever they were doing.
+        notifDelegate.onReplyToChat = { [weak agents = agents] chatID, text in
+            Task { await agents?.sendMessage(chatID, prompt: text, extraParts: [], options: .init()) }
+        }
+        notifDelegate.onStopChat = { [weak agents = agents] chatID in
+            Task { await agents?.interrupt(chatID) }
+        }
+        ChatNotification.registerCategory()
+    }
+
+    /// Opening a chat from a Spotlight result. Core Spotlight hands back the item's
+    /// identifier, which is the chat's UUID.
+    func application(_: NSApplication, continue userActivity: NSUserActivity,
+                     restorationHandler _: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool
+    {
+        guard userActivity.activityType == CSSearchableItemActionType,
+              let raw = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+              let chatID = UUID(uuidString: raw)
+        else { return false }
+        agents.pendingOpenChatID = chatID
+        appActivate()
+        NSApp.windows
+            .first { $0.identifier?.rawValue == Windows.agents.rawValue }?
+            .makeKeyAndOrderFront(nil)
+        return true
     }
 
     func applicationDidFinishLaunching(_: Notification) {

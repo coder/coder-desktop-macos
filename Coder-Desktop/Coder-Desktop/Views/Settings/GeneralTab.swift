@@ -4,17 +4,10 @@ import SwiftUI
 struct GeneralTab: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var updater: UpdaterService
-    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled: Bool = false
     var body: some View {
         Form {
             Section {
                 LaunchAtLogin.Toggle("Launch at login")
-            }
-            Section {
-                Toggle(isOn: $agentsEnabled) {
-                    Text("Enable Agents")
-                    Text("Launch and supervise Coder Agents sessions from Desktop.")
-                }
             }
             Section {
                 Toggle(isOn: $state.stopVPNOnQuit) {

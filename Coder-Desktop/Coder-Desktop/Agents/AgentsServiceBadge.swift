@@ -13,6 +13,13 @@ extension CoderAgentsService {
             .sink { count in
                 NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
             }
+        // Re-donate to Spotlight when the list settles, debounced so a burst of watch
+        // events doesn't re-index on every frame.
+        spotlightCancellable = $sessions
+            .map { $0.map(\.id) }
+            .removeDuplicates()
+            .debounce(for: .seconds(2), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.donateToSpotlight() }
     }
 
     func clearBadge() {

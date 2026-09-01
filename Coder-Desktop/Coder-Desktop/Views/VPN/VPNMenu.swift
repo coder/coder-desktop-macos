@@ -5,9 +5,10 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
     @EnvironmentObject var vpn: VPN
     @EnvironmentObject var fileSync: FS
     @EnvironmentObject var state: AppState
+    /// Only to know whether there are chats worth showing a Chats section for.
+    @EnvironmentObject var agents: AgentsSvc
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
-    @AppStorage(Defaults.agentsEnabled) private var agentsEnabled: Bool = false
     @AppStorage(Defaults.trayChatsExpanded) private var chatsExpanded: Bool = true
     @AppStorage(Defaults.trayWorkspacesExpanded) private var workspacesExpanded: Bool = false
 
@@ -46,7 +47,9 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                 }
                 Divider()
             }.padding([.horizontal, .top], Theme.Size.trayInset)
-            if agentsEnabled, state.hasSession {
+            // Hidden entirely until there's something to list — an empty Chats section is
+            // noise. "Open Agents" below stays available so a first chat can still be started.
+            if state.hasSession, !agents.sessions.isEmpty {
                 CollapsibleSectionHeader(title: "Chats", expanded: $chatsExpanded)
                 if chatsExpanded {
                     ChatsSection<AgentsSvc>()
@@ -75,8 +78,7 @@ struct VPNMenu<VPN: VPNService, FS: FileSyncDaemon, AgentsSvc: AgentsService>: V
                     }.buttonStyle(.plain)
                 }
                 // Open Agents: available whenever signed in — independent of Coder Connect.
-                // Ships behind a flag, off by default.
-                if agentsEnabled, state.hasSession {
+                if state.hasSession {
                     Button {
                         openWindow(id: .agents)
                     } label: {
