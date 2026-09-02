@@ -42,6 +42,10 @@ struct SessionRow: View {
     var isExpanded = false
     /// The open chat's row: title at full strength and kebab pinned visible (web parity).
     var isSelected = false
+    /// A failed action on THIS chat (archive, pin, rename…). Shown here because the action
+    /// can be invoked from the row while a different chat is open, where the detail view's
+    /// status strip would never render it.
+    var actionError: String?
     var onToggleExpand: () -> Void = {}
     var onOpen: () -> Void = {}
     var onOpenInWindow: () -> Void = {}
@@ -144,8 +148,15 @@ struct SessionRow: View {
                 Text(workspaceName)
                 Text("·")
             }
-            // An errored chat shows WHY (web parity) — bare "Error" is undebuggable.
-            if session.status == .error, let message = session.last_error?.message, !message.isEmpty {
+            // A failed action on this row outranks the status text: it's the newer news,
+            // and the user just tried to do it.
+            if let actionError {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+                Text(actionError).foregroundStyle(.orange)
+            } else if session.status == .error, let message = session.last_error?.message,
+                      !message.isEmpty
+            {
                 Text(message).foregroundStyle(.red)
             } else if let summary = session.last_turn_summary, !summary.isEmpty, !session.status.isActive {
                 // The server's one-line turn summary (the web sidebar's subtitle).

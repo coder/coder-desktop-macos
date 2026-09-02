@@ -117,7 +117,7 @@ extension CoderAgentsService {
         }
         state.recordFailure(sawEvent: sawEvent)
         if state.exhausted {
-            loadError = "Lost connection to the agent stream. Reopen the session to retry."
+            chatErrors[id] = "Lost connection to the agent stream. Reopen the session to retry."
             logger.error("chat stream giving up: \(error.localizedDescription, privacy: .public)")
             return false
         }
@@ -214,7 +214,7 @@ extension CoderAgentsService {
         case .error:
             retryBySession[id] = nil // retries are over; the error banner takes it from here
             if let message = event.error?.message {
-                loadError = message
+                chatErrors[id] = message
             }
         default:
             dispatchAuxiliary(event, to: id)

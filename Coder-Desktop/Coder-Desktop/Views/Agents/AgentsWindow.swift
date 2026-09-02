@@ -247,6 +247,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                 childCount: session.children?.count ?? 0,
                                 isExpanded: expandedRoots.contains(session.id),
                                 isSelected: route == .session(session.id),
+                                actionError: agents.chatErrors[session.id],
                                 onToggleExpand: { toggleExpanded(session.id) },
                                 onOpen: { openInBrowser(session) },
                                 onOpenInWindow: { openWindow(id: Windows.chat.rawValue, value: session.id) },
@@ -264,6 +265,7 @@ struct AgentsWindow<Agents: AgentsService>: View {
                                         workspaceName: nil,
                                         isChild: true,
                                         isSelected: route == .session(child.id),
+                                        actionError: agents.chatErrors[child.id],
                                         onOpen: { openInBrowser(child) },
                                         onOpenInWindow: {
                                             openWindow(id: Windows.chat.rawValue, value: child.id)

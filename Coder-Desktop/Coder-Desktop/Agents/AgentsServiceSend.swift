@@ -125,6 +125,7 @@ extension CoderAgentsService {
                 )
             )
             telemetry.send(.agentMessageSent)
+            clearFailure(id) // a successful retry must not leave the failure banner up
             return true
         } catch {
             pendingSendsBySession[id]?.removeAll { $0.id == optimistic.id }

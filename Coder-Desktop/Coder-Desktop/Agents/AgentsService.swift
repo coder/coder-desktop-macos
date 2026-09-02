@@ -355,6 +355,7 @@ final class CoderAgentsService: AgentsService {
         if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = trimmed } // optimistic
         do {
             try await client.renameChat(id, title: trimmed)
+            clearFailure(id)
         } catch {
             reportFailure(error, action: "rename this chat", chatID: id)
             await reloadSessions() // drop the optimistic title
@@ -367,6 +368,7 @@ final class CoderAgentsService: AgentsService {
         if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].pin_order = order } // optimistic
         do {
             try await client.setChatPinOrder(id, order: order)
+            clearFailure(id)
         } catch {
             reportFailure(error, action: pinned ? "pin this chat" : "unpin this chat", chatID: id)
             await reloadSessions() // drop the optimistic order
@@ -380,6 +382,7 @@ final class CoderAgentsService: AgentsService {
             let title = try await client.proposeChatTitle(id)
             try await client.renameChat(id, title: title)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].title = title }
+            clearFailure(id)
         } catch {
             reportFailure(error, action: "generate a title", chatID: id)
         }
@@ -390,6 +393,7 @@ final class CoderAgentsService: AgentsService {
         do {
             let updated = try await client.reconcileInvalidChat(id)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx] = updated }
+            clearFailure(id)
         } catch {
             reportFailure(error, action: "recover this chat", chatID: id)
         }
@@ -496,6 +500,7 @@ extension CoderAgentsService {
         do {
             let updated = try await client.refreshChatContext(id)
             if let idx = sessions.firstIndex(where: { $0.id == id }) { sessions[idx].context = updated.context }
+            clearFailure(id)
         } catch {
             reportFailure(error, action: "refresh the workspace context", chatID: id)
         }
