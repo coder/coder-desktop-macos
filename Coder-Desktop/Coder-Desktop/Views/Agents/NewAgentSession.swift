@@ -47,7 +47,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                         Task { await upload(pending) { await agents.uploadData(data, filename: name, contentType: "image/png") } }
                     },
                     skills: agents.userSkills.map {
-                        SkillMenuItem(name: $0.name, description: $0.description, source: .personal, qualified: false)
+                        SkillMenuItem(name: $0.name, description: $0.description, source: .personal, qualified: true)
                     },
                     onSkillTrigger: { Task { await agents.loadUserSkills() } }
                 )
@@ -78,7 +78,7 @@ struct NewAgentSession<Agents: AgentsService>: View {
                     }
                     .buttonStyle(.borderless)
                     .keyboardShortcut(.return, modifiers: [.command])
-                    .disabled(launching || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!canLaunch)
                     .help("Start chat (⌘↵)")
                     .accessibilityLabel(launching ? "Starting chat" : "Start chat")
                 }
@@ -170,10 +170,18 @@ struct NewAgentSession<Agents: AgentsService>: View {
         }
     }
 
+    /// Submittable when there's something to send and nothing still in flight. Enter can
+    /// reach `launch()` directly, so the guard has to live here and not only on the button.
+    private var canLaunch: Bool {
+        guard !launching, !attachments.contains(where: \.uploading) else { return false }
+        return !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !attachments.isEmpty
+    }
+
     private func launch() {
         voice.stop()
+        guard canLaunch else { return }
         let typed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !typed.isEmpty else { return }
         let text = attachments.folded(into: typed)
         let fileIDs = attachments.fileIDs
         launching = true

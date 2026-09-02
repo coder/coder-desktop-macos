@@ -21,6 +21,8 @@ struct ArchivedSessions<Agents: AgentsService>: View {
     /// The load finished but failed — distinct from "finished and found nothing".
     @State private var loadFailed = false
     @State private var unarchiving: Set<UUID> = []
+    /// Chats unarchived here, so stale search matches don't resurrect them.
+    @State private var restored: Set<UUID> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +56,9 @@ struct ArchivedSessions<Agents: AgentsService>: View {
         guard !query.isEmpty else { return chats }
         let byTitle = chats.filter { ($0.title ?? "").lowercased().contains(query) }
         let ids = Set(byTitle.map(\.id))
-        return byTitle + matches.filter { !ids.contains($0.id) }
+        // `restored` excludes chats unarchived in this session: they're gone from `chats`,
+        // but the server matches still list them and would re-appear with a Restore button.
+        return byTitle + matches.filter { !ids.contains($0.id) && !restored.contains($0.id) }
     }
 
     @ViewBuilder
@@ -143,6 +147,7 @@ struct ArchivedSessions<Agents: AgentsService>: View {
             // sidebar, so leaving it here would offer a restore that now does nothing.
             if await agents.unarchive(chat.id) {
                 chats?.removeAll { $0.id == chat.id }
+                restored.insert(chat.id)
             }
         }
     }
