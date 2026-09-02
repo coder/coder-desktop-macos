@@ -45,6 +45,8 @@ struct ChatWindow<Agents: AgentsService>: View {
             // Opened straight from Spotlight or a notification, this window may be the
             // app's first: the chat list has to exist before it can be resolved.
             if !agents.hasLoadedOnce { await agents.reloadSessions() }
+            // The header names the workspace, so don't wait for the composer to backfill it.
+            if agents.workspaces.isEmpty { await agents.loadWorkspaces() }
         }
     }
 

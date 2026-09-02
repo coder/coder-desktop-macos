@@ -53,6 +53,8 @@ protocol AgentsService: ObservableObject {
     var pendingOpenArchived: Bool { get set }
     /// Set by Chat ▸ Clear Context…; the open chat's view raises the confirmation.
     var pendingConfirmClear: Bool { get set }
+    /// Set by a sidebar row's Share…; the chat's header opens its share popover.
+    var pendingOpenShare: UUID? { get set }
     /// Live auto-retry notice per chat ("Retrying in Xs"), cleared when output resumes.
     var retryBySession: [UUID: ChatRetryInfo] { get }
     /// A chat whose initial history fetch failed with nothing cached to show.

@@ -130,6 +130,31 @@ struct AgentsWindow<Agents: AgentsService>: View {
         return agents.sessions.filter { ($0.title ?? "").lowercased().contains(query) }
     }
 
+    /// One root chat's sidebar row. Extracted from the list body: with this many action
+    /// closures inline, the type-checker gave up on the enclosing expression.
+    private func rootRow(_ session: Chat) -> some View {
+        SessionRow(
+            session: session,
+            workspaceName: workspaceName(session.workspace_id),
+            childCount: session.children?.count ?? 0,
+            isExpanded: expandedRoots.contains(session.id),
+            isSelected: route == .session(session.id),
+            actionError: agents.chatErrors[session.id],
+            onToggleExpand: { toggleExpanded(session.id) },
+            onOpen: { openInBrowser(session) },
+            onOpenInWindow: { openWindow(id: Windows.chat.rawValue, value: session.id) },
+            onShare: {
+                route = .session(session.id)
+                agents.pendingOpenShare = session.id
+            },
+            onRename: { renameText = session.title ?? ""; renaming = session },
+            onGenerateTitle: { Task { await agents.regenerateTitle(session.id) } },
+            onTogglePin: { Task { await agents.setPinned(session.id, pinned: !session.isPinned) } },
+            onArchive: { Task { await agents.archive(session.id) } },
+            onDeleteWorkspace: { deletingWorkspace = session }
+        )
+    }
+
     private func session(for id: UUID) -> Chat? {
         agents.sessions.first { $0.id == id }
             ?? agents.sessions.lazy.compactMap { $0.children?.first { $0.id == id } }.first
@@ -241,23 +266,8 @@ struct AgentsWindow<Agents: AgentsService>: View {
                 ForEach(SessionGroup.grouped(filteredSessions), id: \.title) { group in
                     Section(group.title) {
                         ForEach(group.sessions) { session in
-                            SessionRow(
-                                session: session,
-                                workspaceName: workspaceName(session.workspace_id),
-                                childCount: session.children?.count ?? 0,
-                                isExpanded: expandedRoots.contains(session.id),
-                                isSelected: route == .session(session.id),
-                                actionError: agents.chatErrors[session.id],
-                                onToggleExpand: { toggleExpanded(session.id) },
-                                onOpen: { openInBrowser(session) },
-                                onOpenInWindow: { openWindow(id: Windows.chat.rawValue, value: session.id) },
-                                onRename: { renameText = session.title ?? ""; renaming = session },
-                                onGenerateTitle: { Task { await agents.regenerateTitle(session.id) } },
-                                onTogglePin: { Task { await agents.setPinned(session.id, pinned: !session.isPinned) } },
-                                onArchive: { Task { await agents.archive(session.id) } },
-                                onDeleteWorkspace: { deletingWorkspace = session }
-                            )
-                            .tag(AgentsRoute.session(session.id))
+                            rootRow(session)
+                                .tag(AgentsRoute.session(session.id))
                             if expandedRoots.contains(session.id) {
                                 ForEach(session.children ?? []) { child in
                                     SessionRow(

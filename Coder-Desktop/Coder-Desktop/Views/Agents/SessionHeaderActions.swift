@@ -20,5 +20,11 @@ struct SessionHeaderActions<Agents: AgentsService>: View {
         .popover(isPresented: $showShare, arrowEdge: .bottom) {
             ChatSharePopover<Agents>(session: session)
         }
+        // Opened from a sidebar row's Share…, which routes here first.
+        .onChange(of: agents.pendingOpenShare, initial: true) { _, pending in
+            guard pending == session.id else { return }
+            agents.pendingOpenShare = nil
+            showShare = true
+        }
     }
 }

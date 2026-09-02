@@ -117,7 +117,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
                     streamPlaceholder(
                         title: "Terminal",
                         systemImage: "terminal",
-                        detail: "Available when the session is attached to a workspace and Coder Connect is on."
+                        detail: "Available when the chat is attached to a workspace."
                     )
                 }
             case .desktop:
@@ -128,7 +128,7 @@ struct SessionSidePanel<Agents: AgentsService>: View {
                     streamPlaceholder(
                         title: "Desktop",
                         systemImage: "display",
-                        detail: "Available when the session is attached to a workspace and Coder Connect is on."
+                        detail: "Available when the chat is attached to a workspace."
                     )
                 }
             case .browser:

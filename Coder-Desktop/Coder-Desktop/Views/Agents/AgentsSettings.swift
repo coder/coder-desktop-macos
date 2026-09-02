@@ -77,7 +77,9 @@ struct AgentsSettingsView<Agents: AgentsService>: View {
             }
             .navigationSplitViewStyle(.balanced)
         }
-        .frame(width: 760, height: 600)
+        // Ideal, not fixed: a sheet pinned to an exact size can't be resized for a long
+        // skill or a wide model list.
+        .frame(minWidth: 640, idealWidth: 760, minHeight: 480, idealHeight: 600)
     }
 
     @ViewBuilder

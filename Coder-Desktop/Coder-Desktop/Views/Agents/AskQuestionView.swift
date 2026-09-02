@@ -15,6 +15,9 @@ struct AskQuestionView<Agents: AgentsService>: View {
     @State private var otherText: [Int: String] = [:]
     @State private var submitting = false
     @State private var submitted = false
+    /// A failed send used to just re-enable the button, so the user had no idea why
+    /// nothing happened. Their typed answer is preserved.
+    @State private var sendError: String?
 
     private var questions: [AskUserQuestion] {
         (step.call ?? step.result)?.askUserQuestions ?? []
@@ -44,6 +47,9 @@ struct AskQuestionView<Agents: AgentsService>: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
                 .disabled(!canSubmit || submitting)
+                if let sendError {
+                    Text(sendError).font(.caption).foregroundStyle(.orange)
+                }
             } else if submitted {
                 Text("Answer sent.").font(.caption).foregroundStyle(.secondary)
             }
@@ -121,7 +127,12 @@ struct AskQuestionView<Agents: AgentsService>: View {
         Task {
             let ok = await agents.answerQuestion(chatID, text: text)
             submitting = false
-            if ok { submitted = true }
+            if ok {
+                submitted = true
+                sendError = nil
+            } else {
+                sendError = "Couldn't send your answer. Try again."
+            }
         }
     }
 }

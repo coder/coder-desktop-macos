@@ -94,6 +94,8 @@ final class CoderAgentsService: AgentsService {
     @Published var pendingOpenArchived = false
     /// Set by Chat ▸ Clear Context…; the open chat's view raises the confirmation.
     @Published var pendingConfirmClear = false
+    /// Set by a sidebar row's Share…; the chat's header opens its share popover.
+    @Published var pendingOpenShare: UUID?
     // Monotonic per-session token: a late-finishing old stream must not clobber a newer one.
     var streamGeneration: [UUID: Int] = [:]
     private var cachedOrgID: UUID?
@@ -148,6 +150,7 @@ final class CoderAgentsService: AgentsService {
         pendingOpenSettings = false
         pendingOpenArchived = false
         pendingConfirmClear = false
+        pendingOpenShare = nil
         localReposBySession.removeAll()
         streamGeneration.removeAll()
         streamingStore.removeAll()

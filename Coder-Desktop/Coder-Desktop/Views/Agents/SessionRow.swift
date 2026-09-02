@@ -49,6 +49,7 @@ struct SessionRow: View {
     var onToggleExpand: () -> Void = {}
     var onOpen: () -> Void = {}
     var onOpenInWindow: () -> Void = {}
+    var onShare: () -> Void = {}
     var onRename: () -> Void = {}
     var onGenerateTitle: () -> Void = {}
     var onTogglePin: () -> Void = {}
@@ -186,6 +187,7 @@ struct SessionRow: View {
         Button(action: onOpenInWindow) { Label("Open in New Window", systemImage: "macwindow") }
         Button(action: onOpen) { Label("Open in browser", systemImage: "safari") }
         if !isChild {
+            Button(action: onShare) { Label("Share…", systemImage: "person.badge.plus") }
             Button(action: onRename) { Label("Rename", systemImage: "pencil") }
             Button(action: onGenerateTitle) { Label("Generate title", systemImage: "sparkles") }
             if childCount > 0 {

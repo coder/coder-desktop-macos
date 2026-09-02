@@ -19,6 +19,7 @@ final class PreviewAgents: AgentsService {
     @Published var pendingOpenSettings = false
     @Published var pendingOpenArchived = false
     @Published var pendingConfirmClear = false
+    @Published var pendingOpenShare: UUID?
     @Published var retryBySession: [UUID: ChatRetryInfo] = [:]
     @Published var historyLoadErrorBySession: [UUID: String] = [:]
     @Published var pendingMCPAuthServerID: UUID?
