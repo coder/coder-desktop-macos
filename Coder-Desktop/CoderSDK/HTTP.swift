@@ -25,4 +25,5 @@ enum HTTPMethod: String, Equatable, Hashable, Sendable {
 
 enum Headers {
     static let sessionToken = "Coder-Session-Token"
+    static let userAgent = "User-Agent"
 }

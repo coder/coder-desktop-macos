@@ -4,11 +4,18 @@ public struct Client: Sendable {
     public let url: URL
     public var token: String?
     public var headers: [HTTPHeader]
+    public var component: CoderComponent
 
-    public init(url: URL, token: String? = nil, headers: [HTTPHeader] = []) {
+    public init(
+        url: URL,
+        token: String? = nil,
+        headers: [HTTPHeader] = [],
+        component: CoderComponent = .app
+    ) {
         self.url = url
         self.token = token
         self.headers = headers
+        self.component = component
     }
 
     func request(
@@ -25,6 +32,7 @@ public struct Client: Sendable {
             path: path,
             method: method,
             headers: headers,
+            component: component,
             body: body
         )
     }
@@ -41,7 +49,8 @@ public struct Client: Sendable {
             baseURL: url,
             path: path,
             method: method,
-            headers: headers
+            headers: headers,
+            component: component
         )
     }
 }
@@ -115,11 +124,13 @@ func doRequest(
     path: String,
     method: HTTPMethod,
     headers: [HTTPHeader] = [],
+    component: CoderComponent = .app,
     body: Data? = nil
 ) async throws(SDKError) -> HTTPResponse {
     let url = baseURL.appendingPathComponent(path)
     var req = URLRequest(url: url)
     req.httpMethod = method.rawValue
+    req.setCoderUserAgent(component, unlessIn: headers)
     for header in headers {
         req.addValue(header.value, forHTTPHeaderField: header.name)
     }
@@ -142,6 +153,7 @@ func request(
     path: String,
     method: HTTPMethod,
     headers: [HTTPHeader] = [],
+    component: CoderComponent = .app,
     body: some Encodable & Sendable
 ) async throws(SDKError) -> HTTPResponse {
     let encodedBody: Data
@@ -155,6 +167,7 @@ func request(
         path: path,
         method: method,
         headers: headers,
+        component: component,
         body: encodedBody
     )
 }
@@ -163,13 +176,15 @@ func request(
     baseURL: URL,
     path: String,
     method: HTTPMethod,
-    headers: [HTTPHeader] = []
+    headers: [HTTPHeader] = [],
+    component: CoderComponent = .app
 ) async throws(SDKError) -> HTTPResponse {
     try await doRequest(
         baseURL: baseURL,
         path: path,
         method: method,
-        headers: headers
+        headers: headers,
+        component: component
     )
 }
 

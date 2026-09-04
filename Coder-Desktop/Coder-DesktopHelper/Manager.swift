@@ -41,7 +41,7 @@ actor Manager {
                 "Failed to create directories for binary destination (\(dest)): \(error.localizedDescription)"
             )
         }
-        let client = Client(url: cfg.serverUrl, headers: cfg.literalHeaders)
+        let client = Client(url: cfg.serverUrl, headers: cfg.literalHeaders, component: .helper)
         let buildInfo: BuildInfoResponse
         do {
             buildInfo = try await client.buildInfo()
@@ -68,7 +68,8 @@ actor Manager {
                 src: binaryPath,
                 dest: dest,
                 urlSession: URLSession(configuration: sessionConfig),
-                headers: cfg.literalHeaders
+                headers: cfg.literalHeaders,
+                component: .helper
             ) { progress in
                 pushProgress(stage: .downloading, downloadProgress: progress)
             }
