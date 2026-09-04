@@ -7,6 +7,7 @@ public func download(
     dest: URL,
     urlSession: URLSession,
     headers: [HTTPHeader] = [],
+    component: CoderComponent = .app,
     progressUpdates: (@Sendable (DownloadProgress) -> Void)? = nil
 ) async throws(DownloadError) {
     try await DownloadManager().download(
@@ -14,6 +15,7 @@ public func download(
         dest: dest,
         urlSession: urlSession,
         headers: headers,
+        component: component,
         progressUpdates: progressUpdates.flatMap { throttle(interval: .milliseconds(10), $0) }
     )
 }
@@ -58,9 +60,11 @@ private final class DownloadManager: NSObject, @unchecked Sendable {
         dest: URL,
         urlSession: URLSession,
         headers: [HTTPHeader] = [],
+        component: CoderComponent = .app,
         progressUpdates: (@Sendable (DownloadProgress) -> Void)?
     ) async throws(DownloadError) {
         var req = URLRequest(url: src)
+        req.setCoderUserAgent(component, unlessIn: headers)
         for header in headers {
             req.addValue(header.value, forHTTPHeaderField: header.name)
         }
