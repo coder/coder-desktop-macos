@@ -49,11 +49,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let state: AppState
     let fileSyncDaemon: MutagenDaemon
     let urlHandler: URLHandler
-    let notifDelegate: NotifDelegate
     let autoUpdater: UpdaterService
 
     override init() {
-        notifDelegate = NotifDelegate()
+        AppDelegate.registerNotificationCategories()
         vpn = CoderVPNService()
         autoUpdater = UpdaterService()
         let state = AppState(onChange: vpn.configureTunnelProviderProtocol)
@@ -79,8 +78,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.fileSyncDaemon = fileSyncDaemon
         urlHandler = URLHandler(state: state, vpn: vpn)
+        super.init()
         // `delegate` is weak
-        UNUserNotificationCenter.current().delegate = notifDelegate
+        UNUserNotificationCenter.current().delegate = self
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -164,7 +164,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do { try urlHandler.handle(url) } catch let handleError {
             Task {
                 do {
-                    try await sendNotification(title: "Failed to handle link", body: handleError.description)
+                    try await sendNotification(
+                        title: "Failed to handle link",
+                        body: handleError.description,
+                        category: .uriFailure
+                    )
                 } catch let notifError {
                     logger.error("Failed to send notification (\(handleError.description)): \(notifError)")
                 }
