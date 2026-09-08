@@ -61,7 +61,9 @@ final class CoderVPNService: NSObject, VPNService {
             if tunnelState == .connecting {
                 progress = .init(stage: .initial, downloadProgress: nil)
             }
-            if case let .failed(tunnelError) = tunnelState, tunnelState != oldValue {
+            if case let .failed(tunnelError) = tunnelState, tunnelState != oldValue,
+               tunnelError != .networkExtensionError(.unconfigured)
+            {
                 onFailure?(tunnelError)
             }
         }
