@@ -44,7 +44,7 @@ struct DesktopApp: App {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "app-delegate")
-    private var menuBar: MenuBarController?
+    var menuBar: MenuBarController?
     let vpn: CoderVPNService
     let state: AppState
     let fileSyncDaemon: MutagenDaemon
@@ -81,6 +81,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
         // `delegate` is weak
         UNUserNotificationCenter.current().delegate = self
+        vpn.onFailure = { [logger] tunnelError in
+            Task {
+                do {
+                    try await sendNotification(
+                        title: "Coder Connect has failed!",
+                        body: tunnelError.description,
+                        category: .vpnFailure
+                    )
+                } catch let notifError {
+                    logger.error("Failed to send notification (\(tunnelError.description)): \(notifError)")
+                }
+            }
+        }
     }
 
     func applicationDidFinishLaunching(_: Notification) {
