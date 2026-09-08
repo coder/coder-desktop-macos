@@ -67,8 +67,22 @@ final class CoderVPNService: NSObject, VPNService {
         }
     }
 
-    @Published var sysExtnState: SystemExtensionState = .uninstalled
-    @Published var neState: NetworkExtensionState = .unconfigured
+    @Published var sysExtnState: SystemExtensionState = .uninstalled {
+        didSet {
+            if case .failed = sysExtnState, sysExtnState != oldValue {
+                onFailure?(.systemExtensionError(sysExtnState))
+            }
+        }
+    }
+
+    @Published var neState: NetworkExtensionState = .unconfigured {
+        didSet {
+            if case .failed = neState, neState != oldValue {
+                onFailure?(.networkExtensionError(neState))
+            }
+        }
+    }
+
     var state: VPNServiceState {
         guard sysExtnState == .installed else {
             return .failed(.systemExtensionError(sysExtnState))
