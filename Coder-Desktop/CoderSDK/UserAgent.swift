@@ -27,12 +27,12 @@ enum UserAgentDefaults {
     }
 }
 
-/// Formats a `User-Agent` as `<token>/<version> (<goos>/<goarch>)`.
-func userAgent(
-    component: CoderComponent,
-    version: String = UserAgentDefaults.version,
-    arch: GoArch = UserAgentDefaults.arch
-) -> String {
+/// The `User-Agent` `component` sends on deployment requests, as `<token>/<version> (<goos>/<goarch>)`.
+public func userAgent(component: CoderComponent) -> String {
+    userAgent(component: component, version: UserAgentDefaults.version, arch: UserAgentDefaults.arch)
+}
+
+func userAgent(component: CoderComponent, version: String, arch: GoArch) -> String {
     "\(component.rawValue)/\(version) (\(UserAgentDefaults.goos)/\(arch.rawValue))"
 }
 
