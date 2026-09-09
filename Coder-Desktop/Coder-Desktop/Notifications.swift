@@ -1,8 +1,12 @@
 import UserNotifications
 
-class NotifDelegate: NSObject, UNUserNotificationCenterDelegate {
-    override init() {
-        super.init()
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    static func registerNotificationCategories() {
+        UNUserNotificationCenter.current().setNotificationCategories(
+            Set(NotificationCategory.allCases.map {
+                UNNotificationCategory(identifier: $0.rawValue, actions: [], intentIdentifiers: [], options: [])
+            })
+        )
     }
 
     // This function is required for notifications to appear as banners whilst the app is running.
@@ -15,7 +19,7 @@ class NotifDelegate: NSObject, UNUserNotificationCenterDelegate {
     }
 }
 
-func sendNotification(title: String, body: String) async throws {
+func sendNotification(title: String, body: String, category: NotificationCategory) async throws {
     let nc = UNUserNotificationCenter.current()
     let granted = try await nc.requestAuthorization(options: [.alert, .badge])
     guard granted else {
@@ -24,5 +28,10 @@ func sendNotification(title: String, body: String) async throws {
     let content = UNMutableNotificationContent()
     content.title = title
     content.body = body
+    content.categoryIdentifier = category.rawValue
     try await nc.add(.init(identifier: UUID().uuidString, content: content, trigger: nil))
+}
+
+enum NotificationCategory: String, CaseIterable {
+    case uriFailure = "URI_FAILURE"
 }
