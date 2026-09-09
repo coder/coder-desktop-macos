@@ -61,11 +61,30 @@ final class CoderVPNService: NSObject, VPNService {
             if tunnelState == .connecting {
                 progress = .init(stage: .initial, downloadProgress: nil)
             }
+            if case let .failed(tunnelError) = tunnelState, tunnelState != oldValue,
+               tunnelError != .networkExtensionError(.unconfigured)
+            {
+                onFailure?(tunnelError)
+            }
         }
     }
 
-    @Published var sysExtnState: SystemExtensionState = .uninstalled
-    @Published var neState: NetworkExtensionState = .unconfigured
+    @Published var sysExtnState: SystemExtensionState = .uninstalled {
+        didSet {
+            if case .failed = sysExtnState, sysExtnState != oldValue {
+                onFailure?(.systemExtensionError(sysExtnState))
+            }
+        }
+    }
+
+    @Published var neState: NetworkExtensionState = .unconfigured {
+        didSet {
+            if case .failed = neState, neState != oldValue {
+                onFailure?(.networkExtensionError(neState))
+            }
+        }
+    }
+
     var state: VPNServiceState {
         guard sysExtnState == .installed else {
             return .failed(.systemExtensionError(sysExtnState))
@@ -87,6 +106,7 @@ final class CoderVPNService: NSObject, VPNService {
     // Whether the VPN should start as soon as possible
     var startWhenReady: Bool = false
     var onStart: (() -> Void)?
+    var onFailure: ((VPNServiceError) -> Void)?
 
     // systemExtnDelegate holds a reference to the SystemExtensionDelegate so that it doesn't get
     // garbage collected while the OSSystemExtensionRequest is in flight, since the OS framework

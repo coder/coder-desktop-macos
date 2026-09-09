@@ -17,6 +17,24 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     ) async -> UNNotificationPresentationOptions {
         [.banner]
     }
+
+    nonisolated func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let category = response.notification.request.content.categoryIdentifier
+        let action = response.actionIdentifier
+        switch (category, action) {
+        case (NotificationCategory.vpnFailure.rawValue, UNNotificationDefaultActionIdentifier):
+            await showMenuBarWindow()
+        default:
+            break
+        }
+    }
+
+    private func showMenuBarWindow() {
+        menuBar?.menuBarExtra.toggleVisibility()
+    }
 }
 
 func sendNotification(title: String, body: String, category: NotificationCategory) async throws {
@@ -33,5 +51,6 @@ func sendNotification(title: String, body: String, category: NotificationCategor
 }
 
 enum NotificationCategory: String, CaseIterable {
+    case vpnFailure = "VPN_FAILURE"
     case uriFailure = "URI_FAILURE"
 }
