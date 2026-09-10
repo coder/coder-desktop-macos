@@ -1,3 +1,4 @@
+import CoderSDK
 import FluidMenuBarExtra
 import NetworkExtension
 import os
@@ -102,6 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.setValue(Theme.Animation.tooltipDelay, forKey: "NSInitialToolTipDelay")
         // Init SVG loader
         SDImageCodersManager.shared.addCoder(SDImageSVGCoder.shared)
+        SDWebImageDownloader.shared.setValue(CoderSDK.userAgent(component: .app), forHTTPHeaderField: "User-Agent")
 
         menuBar = .init(menuBarExtra: FluidMenuBarExtra(
             title: "Coder Desktop",
