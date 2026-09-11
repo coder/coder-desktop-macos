@@ -6,6 +6,7 @@ struct FilePicker: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var model: FilePickerModel
     @State private var selection: FilePickerEntryModel?
+    @AppStorage("ShowHiddenFilesInRemoteFilePicker") private var showHiddenFiles = false
 
     @Binding var outputAbsPath: String
 
@@ -34,8 +35,8 @@ struct FilePicker: View {
                     .padding()
             } else {
                 List(selection: $selection) {
-                    ForEach(model.rootEntries) { entry in
-                        FilePickerEntry(entry: entry).tag(entry)
+                    ForEach(model.rootEntries.filter { showHiddenFiles || !$0.isHidden }) { entry in
+                        FilePickerEntry(entry: entry, showHiddenFiles: showHiddenFiles).tag(entry)
                     }
                 }.contextMenu(
                     forSelectionType: FilePickerEntryModel.self,
@@ -49,6 +50,9 @@ struct FilePicker: View {
             }
             Divider()
             HStack {
+                Toggle(isOn: $showHiddenFiles) {
+                    Text("Show hidden files")
+                }
                 Spacer()
                 Button("Cancel", action: { dismiss() }).keyboardShortcut(.cancelAction)
                 Button("Select", action: submit).keyboardShortcut(.defaultAction).disabled(selection == nil)
@@ -56,6 +60,11 @@ struct FilePicker: View {
         }
         .onAppear {
             model.loadRoot()
+        }
+        .onChange(of: showHiddenFiles) {
+            if !showHiddenFiles, selection?.isHidden == true {
+                selection = nil
+            }
         }
         .onReceive(inspection.notice) { inspection.visit(self, $0) } // ViewInspector
     }
@@ -99,6 +108,7 @@ class FilePickerModel: ObservableObject {
 
 struct FilePickerEntry: View {
     @ObservedObject var entry: FilePickerEntryModel
+    let showHiddenFiles: Bool
 
     var body: some View {
         Group {
@@ -116,8 +126,8 @@ struct FilePickerEntry: View {
     private var directory: some View {
         DisclosureGroup(isExpanded: $entry.isExpanded) {
             if let entries = entry.entries {
-                ForEach(entries) { entry in
-                    FilePickerEntry(entry: entry).tag(entry)
+                ForEach(entries.filter { showHiddenFiles || !$0.isHidden }) { entry in
+                    FilePickerEntry(entry: entry, showHiddenFiles: showHiddenFiles).tag(entry)
                 }
             }
         } label: {
@@ -150,6 +160,7 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
     let path: [String]
     let absolute_path: String
     let dir: Bool
+    var isHidden: Bool { path.contains { $0.hasPrefix(".") } }
 
     let client: AgentClient
 
@@ -221,11 +232,8 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
 extension LSResponse {
     @MainActor
     func toModels(client: AgentClient) -> [FilePickerEntryModel] {
-        contents.compactMap { entry in
-            // Filter dotfiles from the picker
-            guard !entry.name.hasPrefix(".") else { return nil }
-
-            return FilePickerEntryModel(
+        contents.map { entry in
+            FilePickerEntryModel(
                 name: entry.name,
                 client: client,
                 absolute_path: entry.absolute_path_string,

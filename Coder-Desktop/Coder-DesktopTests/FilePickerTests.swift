@@ -78,6 +78,63 @@ struct FilePickerTests {
     }
 
     @Test
+    func testHiddenFilesToggle() async throws {
+        let key = "ShowHiddenFilesInRemoteFilePicker"
+        UserDefaults.standard.removeObject(forKey: key)
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+
+        let hiddenMockResponse = LSResponse(
+            absolute_path: ["/"],
+            absolute_path_string: "/",
+            contents: [
+                LSFile(name: ".mux", absolute_path_string: "/.mux", is_dir: true),
+                LSFile(name: ".bashrc", absolute_path_string: "/.bashrc", is_dir: false),
+                LSFile(name: "home", absolute_path_string: "/home", is_dir: true),
+                LSFile(name: "tmp", absolute_path_string: "/tmp", is_dir: true),
+                LSFile(name: "etc", absolute_path_string: "/etc", is_dir: true),
+                LSFile(name: "README.md", absolute_path_string: "/README.md", is_dir: false),
+            ]
+        )
+        let host = "test-hidden-toggle.coder"
+        let sut = FilePicker(host: host, outputAbsPath: .constant(""))
+        let view = sut
+
+        let url = URL(string: "http://\(host):4")!
+
+        try Mock(
+            url: url.appendingPathComponent("/api/v0/list-directory"),
+            statusCode: 200,
+            data: [.post: CoderSDK.encoder.encode(hiddenMockResponse)]
+        ).register()
+
+        try await ViewHosting.host(view) {
+            try await sut.inspection.inspect { view in
+                try #expect(await eventually { @MainActor in
+                    _ = try view.find(ViewType.List.self)
+                    return true
+                })
+                _ = try view.find(text: "README.md")
+                var toggle = try view.find(ViewType.Toggle.self)
+                #expect(try toggle.labelView().text().string() == "Show hidden files")
+                #expect(try !toggle.isOn())
+                #expect(throws: (any Error).self) { _ = try view.find(text: ".mux") }
+
+                try toggle.tap()
+                toggle = try view.find(ViewType.Toggle.self)
+                #expect(try toggle.isOn())
+                #expect(UserDefaults.standard.bool(forKey: key))
+                _ = try view.find(text: ".mux")
+
+                try toggle.tap()
+                toggle = try view.find(ViewType.Toggle.self)
+                #expect(try !toggle.isOn())
+                #expect(!UserDefaults.standard.bool(forKey: key))
+                #expect(throws: (any Error).self) { _ = try view.find(text: ".mux") }
+            }
+        }
+    }
+
+    @Test
     func testDirectoryExpansion() async throws {
         let host = "test-expansion.coder"
         let sut = FilePicker(host: host, outputAbsPath: .constant(""))
