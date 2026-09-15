@@ -88,10 +88,7 @@ struct FilePickerTests {
             absolute_path_string: "/",
             contents: [
                 LSFile(name: ".mux", absolute_path_string: "/.mux", is_dir: true),
-                LSFile(name: ".bashrc", absolute_path_string: "/.bashrc", is_dir: false),
                 LSFile(name: "home", absolute_path_string: "/home", is_dir: true),
-                LSFile(name: "tmp", absolute_path_string: "/tmp", is_dir: true),
-                LSFile(name: "etc", absolute_path_string: "/etc", is_dir: true),
                 LSFile(name: "README.md", absolute_path_string: "/README.md", is_dir: false),
             ]
         )
@@ -118,18 +115,21 @@ struct FilePickerTests {
                 #expect(try toggle.labelView().text().string() == "Show hidden files")
                 #expect(try !toggle.isOn())
                 #expect(throws: (any Error).self) { _ = try view.find(text: ".mux") }
+                #expect(view.findAll(ViewType.DisclosureGroup.self).count == 1)
 
                 try toggle.tap()
                 toggle = try view.find(ViewType.Toggle.self)
                 #expect(try toggle.isOn())
                 #expect(UserDefaults.standard.bool(forKey: key))
                 _ = try view.find(text: ".mux")
+                #expect(view.findAll(ViewType.DisclosureGroup.self).count == 2)
 
                 try toggle.tap()
                 toggle = try view.find(ViewType.Toggle.self)
                 #expect(try !toggle.isOn())
                 #expect(!UserDefaults.standard.bool(forKey: key))
                 #expect(throws: (any Error).self) { _ = try view.find(text: ".mux") }
+                #expect(view.findAll(ViewType.DisclosureGroup.self).count == 1)
             }
         }
     }
