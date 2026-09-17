@@ -9,6 +9,12 @@ Before opening the project in Xcode, you need to generate the Xcode project file
 We use [**XcodeGen**](https://github.com/yonaskolb/XcodeGen) to handle this
 process, and the project generation is integrated into the `Makefile`.
 
+Running the app (but not `make test`) requires signing its System Extension,
+which needs a paid [Apple Developer Program](https://developer.apple.com/programs/)
+membership. Coder employees should ask in Slack for an invite to the Coder team;
+external contributors need their own membership and must swap out Coder's team ID
+and bundle identifiers.
+
 ## Setting Up the Development Environment
 
 To ensure a consistent and reliable development environment, we recommend using
