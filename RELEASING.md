@@ -34,10 +34,10 @@ Release builds are signed with two provisioning profiles, one for the app
 (`com.coder.Coder-Desktop`) and one for the network extension
 (`com.coder.Coder-Desktop.VPN`). CI reads them from these repository secrets:
 
-| Secret                                         | Profile           |
-| ---------------------------------------------- | ----------------- |
-| `CODER_DESKTOP_APP_PROVISIONPROFILE_B64`       | App               |
-| `CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64` | Network extension |
+| Secret                                         | Profile file                               |
+| ---------------------------------------------- | ------------------------------------------ |
+| `CODER_DESKTOP_APP_PROVISIONPROFILE_B64`       | `Coder_Desktop_App.provisionprofile`       |
+| `CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64` | `Coder_Desktop_Extension.provisionprofile` |
 
 When a profile expires or needs regenerating:
 
@@ -47,7 +47,8 @@ When a profile expires or needs regenerating:
 3. Base64-encode the downloaded file and copy the output:
 
    ```bash
-   cat Coder_Desktop_<piece>.provisionprofile | base64
+   cat Coder_Desktop_App.provisionprofile | base64
+   cat Coder_Desktop_Extension.provisionprofile | base64
    ```
 
 4. Paste the output into the matching secret under **Settings** >
