@@ -144,5 +144,8 @@ To maintain code quality, ensure you run the following before submitting any cha
 
 4. Open a pull request to the main repository.
 
+Maintainers can find release and signing instructions in
+[RELEASING.md](RELEASING.md).
+
 Thank you for contributing! If you have any questions or need further assistance,
 feel free to open an issue.
