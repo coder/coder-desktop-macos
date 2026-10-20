@@ -219,6 +219,20 @@ struct VPNMenuStateTests {
     }
 
     @Test
+    mutating func testFindWorkspace_caseInsensitive() async throws {
+        let workspaceID = UUID()
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "My-Workspace" })
+
+        let lower = try #require(state.findWorkspace(name: "my-workspace"))
+        #expect(lower.id == workspaceID)
+        let original = try #require(state.findWorkspace(name: "My-Workspace"))
+        #expect(original.id == workspaceID)
+        let upper = try #require(state.findWorkspace(name: "MY-WORKSPACE"))
+        #expect(upper.id == workspaceID)
+        #expect(state.findWorkspace(name: "other-workspace") == nil)
+    }
+
+    @Test
     mutating func testUpsertAgent_invalidAgent_noUUID() async throws {
         let agent = Vpn_Agent.with {
             $0.name = "invalidAgent"

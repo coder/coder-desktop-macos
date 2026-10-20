@@ -160,7 +160,10 @@ struct VPNMenuState {
     }
 
     public func findWorkspace(name: String) -> Workspace? {
-        workspaces
+        // Workspace names are stored lowercased (see `upsertWorkspace`), but
+        // callers like deep links may pass the name with its original casing.
+        let name = name.lowercased()
+        return workspaces
             .first(where: { $0.value.name == name })?.value
     }
 
