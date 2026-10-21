@@ -162,7 +162,7 @@ struct VPNMenuStateTests {
         let newAgent = Vpn_Agent.with {
             $0.id = newAgentID.uuidData
             $0.workspaceID = workspaceID.uuidData
-            $0.name = "agent1" // Same name as old agent
+            $0.name = "Agent1" // Same name as old agent, different case
             $0.lastHandshake = .init(date: Date.now)
             $0.lastPing = .with {
                 $0.latency = .init(floatLiteral: 0.05)
@@ -174,7 +174,7 @@ struct VPNMenuStateTests {
 
         #expect(state.agents[oldAgentID] == nil)
         let storedAgent = try #require(state.agents[newAgentID])
-        #expect(storedAgent.name == "agent1")
+        #expect(storedAgent.name == "Agent1")
         #expect(storedAgent.wsID == workspaceID)
         #expect(storedAgent.primaryHost == "foo.coder")
         #expect(storedAgent.status == .okay)
@@ -183,15 +183,16 @@ struct VPNMenuStateTests {
     @Test
     mutating func testUpsertWorkspace_addsOfflineWorkspace() async throws {
         let workspaceID = UUID()
-        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "Foo" })
 
         let storedWorkspace = try #require(state.workspaces[workspaceID])
-        #expect(storedWorkspace.name == "foo")
+        #expect(storedWorkspace.name == "Foo")
 
         var output = state.sorted
         #expect(output.count == 1)
         #expect(output[0].id == workspaceID)
-        #expect(output[0].wsName == "foo")
+        #expect(output[0].wsName == "Foo")
+        #expect(output[0].primaryHost(hostnameSuffix: "coder") == "foo.coder")
 
         let agentID = UUID()
         let agent = Vpn_Agent.with {
@@ -210,7 +211,7 @@ struct VPNMenuStateTests {
         output = state.sorted
         #expect(output.count == 1)
         #expect(output[0].id == agentID)
-        #expect(output[0].wsName == "foo")
+        #expect(output[0].wsName == "Foo")
         #expect(output[0].status == .okay)
         let storedAgentFromSort = try #require(state.agents[agentID])
         #expect(storedAgentFromSort.statusString.contains("You're connected through a DERP relay."))
@@ -219,17 +220,20 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testFindWorkspace_caseInsensitive() async throws {
+    mutating func testFind_ignoresNameCase() async throws {
         let workspaceID = UUID()
+        let agentID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "My-Workspace" })
+        state.upsertAgent(Vpn_Agent.with {
+            $0.id = agentID.uuidData
+            $0.workspaceID = workspaceID.uuidData
+            $0.name = "Main"
+            $0.fqdn = ["main.my-workspace.me.coder"]
+        })
 
-        let lower = try #require(state.findWorkspace(name: "my-workspace"))
-        #expect(lower.id == workspaceID)
-        let original = try #require(state.findWorkspace(name: "My-Workspace"))
-        #expect(original.id == workspaceID)
-        let upper = try #require(state.findWorkspace(name: "MY-WORKSPACE"))
-        #expect(upper.id == workspaceID)
-        #expect(state.findWorkspace(name: "other-workspace") == nil)
+        #expect(state.findWorkspace(name: "MY-WORKSPACE")?.id == workspaceID)
+        #expect(state.findAgent(workspaceID: workspaceID, name: "MAIN")?.id == agentID)
+        #expect(state.findWorkspace(name: "other") == nil)
     }
 
     @Test

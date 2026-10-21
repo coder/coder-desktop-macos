@@ -45,7 +45,7 @@ enum VPNMenuItem: Equatable, Comparable, Identifiable {
     func primaryHost(hostnameSuffix: String) -> String {
         switch self {
         case let .agent(agent): agent.primaryHost
-        case .offlineWorkspace: "\(wsName).\(hostnameSuffix)"
+        case .offlineWorkspace: "\(wsName.lowercased()).\(hostnameSuffix)"
         }
     }
 
