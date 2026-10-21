@@ -141,7 +141,6 @@ enum AgentStatus: Int, Equatable, Comparable {
 struct Workspace: Identifiable, Equatable, Comparable {
     let id: UUID
     let name: String
-    var agents: Set<UUID>
 
     static func < (lhs: Workspace, rhs: Workspace) -> Bool {
         lhs.name.localizedCompare(rhs.name) == .orderedAscending
@@ -167,7 +166,7 @@ struct VPNMenuState {
         guard
             let id = UUID(uuidData: agent.id),
             let wsID = UUID(uuidData: agent.workspaceID),
-            var workspace = workspaces[wsID],
+            let workspace = workspaces[wsID],
             !agent.fqdn.isEmpty
         else {
             invalidAgents.append(agent)
@@ -180,8 +179,6 @@ struct VPNMenuState {
         // is from a previous workspace build, and should be removed.
         agents.filter { $0.value.name.caseInsensitiveCompare(agent.name) == .orderedSame && $0.value.wsID == wsID }
             .forEach { agents[$0.key] = nil }
-        workspace.agents.insert(id)
-        workspaces[wsID] = workspace
 
         var lastPing: LastPing?
         if agent.hasLastPing {
@@ -211,11 +208,6 @@ struct VPNMenuState {
 
     mutating func deleteAgent(withId id: Data) {
         guard let agentUUID = UUID(uuidData: id) else { return }
-        // Update Workspaces
-        if let agent = agents[agentUUID], var ws = workspaces[agent.wsID] {
-            ws.agents.remove(agentUUID)
-            workspaces[agent.wsID] = ws
-        }
         agents[agentUUID] = nil
         // Remove from invalid agents if present
         invalidAgents.removeAll { invalidAgent in
@@ -225,7 +217,7 @@ struct VPNMenuState {
 
     mutating func upsertWorkspace(_ workspace: Vpn_Workspace) {
         guard let wsID = UUID(uuidData: workspace.id) else { return }
-        workspaces[wsID] = Workspace(id: wsID, name: workspace.name, agents: [])
+        workspaces[wsID] = Workspace(id: wsID, name: workspace.name)
         // Check if we can associate any invalid agents with this workspace
         invalidAgents.filter { agent in
             agent.workspaceID == workspace.id
@@ -248,9 +240,10 @@ struct VPNMenuState {
     var sorted: [VPNMenuItem] {
         var items = agents.values.map { VPNMenuItem.agent($0) }
         // Workspaces with no agents are shown as offline
-        items += workspaces.filter { _, value in
-            value.agents.isEmpty
-        }.map { VPNMenuItem.offlineWorkspace(Workspace(id: $0.key, name: $0.value.name, agents: $0.value.agents)) }
+        let workspacesWithAgents = Set(agents.values.map(\.wsID))
+        items += workspaces.values
+            .filter { !workspacesWithAgents.contains($0.id) }
+            .map { VPNMenuItem.offlineWorkspace($0) }
         return items.sorted()
     }
 

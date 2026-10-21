@@ -109,7 +109,7 @@ struct AgentsTests {
         vpn.state = .connected
         vpn.menuState = .init(
             agents: createMockAgents(count: Theme.defaultVisibleAgents - 1),
-            workspaces: [UUID(): Workspace(id: UUID(), name: "offline", agents: .init())]
+            workspaces: [UUID(): Workspace(id: UUID(), name: "offline")]
         )
 
         try await ViewHosting.host(view) {

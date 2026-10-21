@@ -178,6 +178,9 @@ struct VPNMenuStateTests {
         #expect(storedAgent.wsID == workspaceID)
         #expect(storedAgent.primaryHost == "foo.coder")
         #expect(storedAgent.status == .okay)
+
+        state.deleteAgent(withId: newAgentID.uuidData)
+        #expect(state.sorted.map(\.id) == [workspaceID])
     }
 
     @Test
@@ -217,6 +220,9 @@ struct VPNMenuStateTests {
         #expect(storedAgentFromSort.statusString.contains("You're connected through a DERP relay."))
         #expect(storedAgentFromSort.statusString.contains("Total latency: 50.00 ms"))
         #expect(storedAgentFromSort.statusString.contains("Last handshake: 3 minutes ago"))
+
+        state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "Foo" })
+        #expect(state.sorted.map(\.id) == [agentID])
     }
 
     @Test
