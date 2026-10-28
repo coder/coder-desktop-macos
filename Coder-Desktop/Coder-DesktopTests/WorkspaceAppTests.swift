@@ -27,10 +27,11 @@ struct WorkspaceAppTests {
 
         let workspaceApp = try WorkspaceApp(
             sdkApp,
-            iconBaseURL: baseAccessURL,
+            deploymentURL: baseAccessURL,
             sessionToken: sessionToken
         )
 
+        #expect(workspaceApp.confirmBeforeOpening)
         #expect(workspaceApp.slug == "test-app")
         #expect(workspaceApp.displayName == "Test App")
         #expect(workspaceApp.url.absoluteString == "vscode://myworkspace.coder/foo")
@@ -39,27 +40,30 @@ struct WorkspaceAppTests {
 
     @Test
     func testCreateWorkspaceApp_SessionTokenReplacement() throws {
-        let sdkApp = CoderSDK.WorkspaceApp(
+        let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo?token=$SESSION_TOKEN")!,
+            url: #require(URL(string: "vscode://coder.coder-remote/open?url=https://coder.example.com&token=$SESSION_TOKEN")),
             external: true,
             slug: "token-app",
             display_name: "Token App",
             command: nil,
-            icon: URL(string: "/icon/test-app.svg")!,
+            icon: #require(URL(string: "/icon/test-app.svg")),
             subdomain: false,
             subdomain_name: nil
         )
 
         let workspaceApp = try WorkspaceApp(
             sdkApp,
-            iconBaseURL: baseAccessURL,
+            deploymentURL: baseAccessURL,
             sessionToken: sessionToken
         )
 
         #expect(
-            workspaceApp.url.absoluteString == "vscode://myworkspace.coder/foo?token=test-session-token"
+            workspaceApp.url.absoluteString ==
+                "vscode://coder.coder-remote/open?url=https://coder.example.com&token=test-session-token"
         )
+        #expect(workspaceApp.blockedReason == nil)
+        #expect(!workspaceApp.confirmBeforeOpening)
     }
 
     @Test
@@ -79,7 +83,7 @@ struct WorkspaceAppTests {
         #expect(throws: WorkspaceAppError.missingURL) {
             try WorkspaceApp(
                 sdkApp,
-                iconBaseURL: baseAccessURL,
+                deploymentURL: baseAccessURL,
                 sessionToken: sessionToken
             )
         }
@@ -102,7 +106,7 @@ struct WorkspaceAppTests {
         #expect(throws: WorkspaceAppError.isCommandApp) {
             try WorkspaceApp(
                 sdkApp,
-                iconBaseURL: baseAccessURL,
+                deploymentURL: baseAccessURL,
                 sessionToken: sessionToken
             )
         }
@@ -115,6 +119,7 @@ struct WorkspaceAppTests {
         let apps = agentToApps(logger, agent, host, baseAccessURL, sessionToken)
 
         #expect(apps.count == 1)
+        #expect(!apps[0].confirmBeforeOpening)
         #expect(apps[0].slug == "-vscode")
         #expect(apps[0].displayName == "VS Code Desktop")
         #expect(apps[0].url.absoluteString == "vscode://vscode-remote/ssh-remote+test-workspace.coder.test//home/user")
@@ -162,7 +167,7 @@ struct WorkspaceAppTests {
         #expect(throws: WorkspaceAppError.isWebApp) {
             try WorkspaceApp(
                 sdkApp,
-                iconBaseURL: baseAccessURL,
+                deploymentURL: baseAccessURL,
                 sessionToken: sessionToken
             )
         }
@@ -239,5 +244,84 @@ struct WorkspaceAppTests {
             apps: apps,
             display_apps: displayApps
         )
+    }
+}
+
+extension WorkspaceAppTests {
+    @Test
+    func createWorkspaceApp_SessionTokenBlocked() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
+            id: UUID(),
+            url: #require(URL(string: "vscode://coder.coder-remote/open?url=https://other.example&token=$SESSION_TOKEN")),
+            external: true,
+            slug: "token-app",
+            display_name: "Token App",
+            command: nil,
+            icon: nil,
+            subdomain: false,
+            subdomain_name: nil
+        )
+
+        let workspaceApp = try WorkspaceApp(
+            sdkApp,
+            deploymentURL: baseAccessURL,
+            sessionToken: sessionToken
+        )
+
+        #expect(!workspaceApp.url.absoluteString.contains(sessionToken))
+        #expect(workspaceApp.blockedReason?.hasPrefix(SessionTokenLink.blockedMessage) == true)
+    }
+
+    @Test
+    func createWorkspaceApp_SubAgentGetsNoToken() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
+            id: UUID(),
+            url: #require(URL(
+                string: "vscode://coder.coder-remote/openDevContainer?url=https://coder.example.com&token=$SESSION_TOKEN"
+            )),
+            external: true,
+            slug: "token-app",
+            display_name: "Token App",
+            command: nil,
+            icon: nil,
+            subdomain: false,
+            subdomain_name: nil
+        )
+
+        let agent = CoderSDK.WorkspaceAgent(
+            id: UUID(),
+            expanded_directory: nil,
+            parent_id: UUID(),
+            apps: [sdkApp],
+            display_apps: []
+        )
+        let apps = agentToApps(logger, agent, host, baseAccessURL, sessionToken)
+
+        #expect(apps.count == 1)
+        #expect(
+            apps[0].url.absoluteString ==
+                "vscode://coder.coder-remote/openDevContainer?url=https://coder.example.com&token="
+        )
+        #expect(apps[0].blockedReason == nil)
+    }
+
+    @Test
+    func displayApps_VSCodeEscapesPath() {
+        let agent = CoderSDK.WorkspaceAgent(
+            id: UUID(),
+            expanded_directory: "/home/a b?x=1#y",
+            apps: [],
+            display_apps: [.vscode]
+        )
+
+        let apps = agentToApps(logger, agent, host, baseAccessURL, sessionToken)
+
+        #expect(apps.count == 1)
+        #expect(
+            apps[0].url.absoluteString ==
+                "vscode://vscode-remote/ssh-remote+test-workspace.coder.test//home/a%20b%3Fx=1%23y"
+        )
+        #expect(apps[0].url.query == nil)
+        #expect(apps[0].url.fragment == nil)
     }
 }
