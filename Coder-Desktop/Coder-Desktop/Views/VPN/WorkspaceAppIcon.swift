@@ -83,10 +83,8 @@ struct WorkspaceApp {
     let displayName: String
     let url: URL
     let icon: URL?
-    /// Set when the app's link needs a session token but isn't trusted with
-    /// one. Such apps are shown disabled with this message.
+    /// Set when the link needs a session token but isn't trusted with one.
     let blockedReason: String?
-    /// True when the user must confirm before the app's link is opened.
     let confirmBeforeOpening: Bool
 
     var id: String { slug }
@@ -100,8 +98,6 @@ struct WorkspaceApp {
         confirmBeforeOpening = false
     }
 
-    /// `deploymentURL` is the Coder deployment the user is signed in to. It is
-    /// the only `url` a link may name to receive `sessionToken`.
     init(
         _ original: CoderSDK.WorkspaceApp,
         deploymentURL: URL,
@@ -255,8 +251,8 @@ func vscodeInsidersDisplayApp(hostname: String, baseIconURL: URL, path: String? 
     )
 }
 
-/// Builds a VS Code Remote SSH link. The path setter percent-encodes the host
-/// and directory, so they can't add a query or fragment to the link.
+/// The path setter percent-encodes the host and directory, so they can't add a
+/// query or fragment.
 private func vscodeRemoteURL(scheme: String, hostname: String, path: String?) -> URL {
     var components = URLComponents()
     components.scheme = scheme

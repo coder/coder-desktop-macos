@@ -79,7 +79,7 @@ class AppState: ObservableObject {
         }
     }
 
-    /// Lowercase URL schemes the user chose to open without confirmation.
+    /// Lowercase schemes of app links the user chose to open without confirmation.
     @Published var trustedAppSchemes: Set<String> = Set(
         UserDefaults.standard.stringArray(forKey: Keys.trustedAppSchemes) ?? []
     ) {
