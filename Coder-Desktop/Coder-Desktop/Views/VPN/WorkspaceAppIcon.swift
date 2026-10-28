@@ -7,6 +7,7 @@ struct WorkspaceAppIcon: View {
     let app: WorkspaceApp
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var state: AppState
 
     @State var isHovering: Bool = false
     @State var isPressed = false
@@ -44,8 +45,9 @@ struct WorkspaceAppIcon: View {
                             isPressed = false
                         }
                         guard app.blockedReason == nil else { return }
-                        if app.confirmBeforeOpening {
-                            confirmOpen()
+                        let scheme = app.url.scheme?.lowercased() ?? ""
+                        if app.confirmBeforeOpening, !state.trustedAppSchemes.contains(scheme) {
+                            confirmOpen(scheme: scheme)
                         } else {
                             openURL(app.url)
                         }
@@ -57,15 +59,20 @@ struct WorkspaceAppIcon: View {
 
     /// `.alert` from SwiftUI doesn't play nice when the calling view is in the
     /// menu bar.
-    private func confirmOpen() {
+    private func confirmOpen(scheme: String) {
         let alert = NSAlert()
         alert.messageText = "Open \(app.displayName)?"
-        alert.informativeText = "This opens a \(app.url.scheme ?? ""): link in another app on your computer."
+        alert.informativeText = "This opens a \(scheme): link in another app on your computer."
         alert.alertStyle = .informational
+        let dontAskAgain = NSButton(checkboxWithTitle: "Don't ask again for \(scheme): links", target: nil, action: nil)
+        alert.accessoryView = dontAskAgain
         alert.addButton(withTitle: "Open")
         alert.addButton(withTitle: "Cancel")
         dismiss()
         if alert.runModal() == .alertFirstButtonReturn {
+            if dontAskAgain.state == .on {
+                state.trustedAppSchemes.insert(scheme)
+            }
             openURL(app.url)
         }
     }

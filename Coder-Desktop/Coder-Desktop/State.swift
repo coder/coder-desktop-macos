@@ -79,6 +79,16 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Lowercase URL schemes the user chose to open without confirmation.
+    @Published var trustedAppSchemes: Set<String> = Set(
+        UserDefaults.standard.stringArray(forKey: Keys.trustedAppSchemes) ?? []
+    ) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(Array(trustedAppSchemes), forKey: Keys.trustedAppSchemes)
+        }
+    }
+
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
@@ -228,6 +238,7 @@ class AppState: ObservableObject {
 
         static let dangerousDisableCoderSignatureValidation = "DangerousDisableCoderSignatureValidation"
         static let skipHiddenIconAlert = "SkipHiddenIconAlert"
+        static let trustedAppSchemes = "TrustedAppSchemes"
     }
 }
 
