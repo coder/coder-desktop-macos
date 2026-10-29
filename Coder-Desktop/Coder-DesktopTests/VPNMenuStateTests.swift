@@ -1,6 +1,7 @@
 @testable import Coder_Desktop
 import Testing
 @testable import VPNLib
+import VPNProto
 
 @MainActor
 struct VPNMenuStateTests {
