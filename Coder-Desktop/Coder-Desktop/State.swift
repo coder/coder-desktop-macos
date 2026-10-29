@@ -181,6 +181,10 @@ class AppState: ObservableObject {
         }
     }
 
+    /// The deployment's access URL from build info. Not saved, since an admin
+    /// can change it.
+    @Published var dashboardURL: URL?
+
     private var refreshTask: Task<String?, Never>?
     public func refreshDeploymentConfig() async {
         // Client is non-nil if there's a sesssion
@@ -201,12 +205,14 @@ class AppState: ObservableObject {
             }
 
             hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
+            dashboardURL = try? await client.buildInfo().dashboard_url
         }
     }
 
     public func clearSession() {
         hasSession = false
         sessionToken = nil
+        dashboardURL = nil
         refreshTask?.cancel()
         client = nil
         reconfigure()

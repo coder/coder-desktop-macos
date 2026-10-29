@@ -3,114 +3,98 @@ import Foundation
 import Testing
 
 struct SessionTokenLinkTests {
-    let deployment = URL(string: "https://coder.example.com/")!
+    static let signedIn = URL(string: "https://coder.example.com/")!
+    static let dashboard = URL(string: "https://dashboard.example/")!
+
+    struct LinkCase: CustomStringConvertible {
+        let description: String
+        let url: String
+        let expected: SessionTokenBlockReason?
+    }
 
     /// A link with `url` set to `origin` and the placeholder as `token`.
     static func link(_ prefix: String, origin: String = "https://coder.example.com", extra: String = "") -> String {
         "\(prefix)url=\(origin)&token=\(SessionTokenLink.placeholder)\(extra)"
     }
 
-    func trusted(_ url: String) -> Bool {
-        SessionTokenLink.isDestinationTrusted(url, deploymentURL: deployment)
+    static func trusted(_ description: String, _ url: String) -> LinkCase {
+        LinkCase(description: description, url: url, expected: nil)
     }
 
-    @Test(arguments: [
-        "vscode://coder.coder-remote/open?owner=a&",
-        "cursor://coder.coder-remote/openDevContainer?",
-        "VSCode://Coder.Coder-Remote/open?",
-        "jetbrains://gateway/coder?",
-        "jetbrains://gateway/com.coder.toolbox?",
-        "jetbrains-gateway://connect#type=coder&",
+    static func untrusted(_ description: String, _ url: String) -> LinkCase {
+        LinkCase(description: description, url: url, expected: .untrustedURL)
+    }
+
+    static func wrongDeployment(_ description: String, origin: String) -> LinkCase {
+        LinkCase(
+            description: description,
+            url: link("vscode://coder.coder-remote/open?", origin: origin),
+            expected: .wrongDeployment(link: origin, signedIn: signedIn)
+        )
+    }
+
+    static let vscode = "vscode://coder.coder-remote/open?"
+    static let gateway = "jetbrains-gateway://connect#type=coder&"
+
+    @Test("Block reasons", arguments: [
+        trusted("no placeholder", "someapp://anything?x=1"),
+        trusted("VS Code", link("vscode://coder.coder-remote/open?owner=a&")),
+        trusted("dev container handler", link("cursor://coder.coder-remote/openDevContainer?")),
+        trusted("uppercase scheme and authority", link("VSCode://Coder.Coder-Remote/open?")),
+        trusted("Gateway plugin", link("jetbrains://gateway/coder?")),
+        trusted("Toolbox", link("jetbrains://gateway/com.coder.toolbox?")),
+        trusted("Gateway fragment", link(gateway)),
+        trusted("trailing slash", link(vscode, origin: "https://coder.example.com/")),
+        trusted("uppercase host", link(vscode, origin: "https://CODER.example.com")),
+        trusted("default port", link(vscode, origin: "https://coder.example.com:443")),
+        trusted("encoded url value", link(vscode, origin: "https%3A%2F%2Fcoder.example.com")),
+        trusted("dashboard URL", link(vscode, origin: "https://dashboard.example")),
+
+        untrusted("unknown extension", link("vscode://other.ext/open?")),
+        untrusted("unknown scheme", link("coder://open?")),
+        untrusted("opaque handler", link("vscode:coder.coder-remote/open?")),
+        untrusted("userinfo in handler", link("vscode://x@coder.coder-remote/open?")),
+        untrusted("dot segments in handler", link("vscode://coder.coder-remote/open/../open?")),
+        untrusted("VS Code params in fragment", link("vscode://coder.coder-remote/open#")),
+        untrusted("Gateway params in query", link("jetbrains-gateway://connect?")),
+        untrusted("non-Coder Gateway provider", link("jetbrains-gateway://connect#type=ssh&")),
+        untrusted("tab in a param name", link(gateway, extra: "&ur\tl=https://other.example")),
+        untrusted("second placeholder", link(gateway, extra: "&x=$SESSION_TOKEN")),
+        untrusted("params after a fragment", link("\(vscode)x=1#&")),
+        untrusted(
+            "placeholder outside the raw token entry",
+            "\(vscode)url=https://coder.example.com&token=%24SESSION_TOKEN&y=$SESSION_TOKEN"
+        ),
+        untrusted("encoded url name", "\(vscode)%75rl=https://coder.example.com&token=$SESSION_TOKEN"),
+        untrusted("invalid percent encoding", link(gateway, extra: "&x=%FF")),
+        untrusted("double-encoded url param", link(gateway, extra: "&x=%2526url%253Dhttps://other.example")),
+        untrusted("duplicate url", link(gateway, extra: "&url=https://other.example")),
+        untrusted("duplicate Gateway type", link(gateway, extra: "&type=ssh")),
+        untrusted("url hidden by a combining mark", link(gateway, extra: "&x=%26url=%CC%81https://other.example")),
+        untrusted("url smuggled in an encoded value", link(gateway, extra: "&x=a%26url%3Dhttps://other.example")),
+        untrusted("no url", "\(vscode)token=$SESSION_TOKEN"),
+        untrusted("url isn't a URL", link(vscode, origin: "not-a-url")),
+        untrusted("url has a path", link(vscode, origin: "https://coder.example.com/@victim/ws.main/apps/x/")),
+        untrusted("url has userinfo", link(vscode, origin: "https://user@coder.example.com")),
+        untrusted("url has a dot segment", link(vscode, origin: "https://coder.example.com/.")),
+        untrusted("url has an empty query", link(vscode, origin: "https://coder.example.com?")),
+
+        wrongDeployment("another host", origin: "https://other.example"),
+        wrongDeployment("another port", origin: "https://coder.example.com:1"),
+        wrongDeployment("http instead of https", origin: "http://coder.example.com"),
     ])
-    func trustedHandler(prefix: String) {
-        #expect(trusted(Self.link(prefix)))
-    }
-
-    @Test(arguments: [
-        "https://coder.example.com/",
-        "https://CODER.example.com",
-        "https://coder.example.com:443",
-        "https%3A%2F%2Fcoder.example.com",
-    ])
-    func trustedOrigin(origin: String) {
-        #expect(trusted(Self.link("vscode://coder.coder-remote/open?", origin: origin)))
-    }
-
-    @Test(arguments: [
-        "vscode://other.ext/open?",
-        "coder://open?",
-        "vscode:coder.coder-remote/open?",
-        "vscode://x@coder.coder-remote/open?",
-        "vscode://coder.coder-remote/open/../open?",
-        "vscode://coder.coder-remote/open#",
-        "jetbrains-gateway://connect?",
-        "jetbrains-gateway://connect#type=ssh&",
-        "\u{212A}iro://coder.coder-remote/open?",
-    ])
-    func untrustedHandler(prefix: String) {
-        #expect(!trusted(Self.link(prefix)))
-    }
-
-    @Test(arguments: [
-        "https://other.example",
-        "https://coder.example.com:1",
-        "http://coder.example.com",
-        "https%3A%2F%2Fother.example",
-        "not-a-url",
-        "https://coder.example.com/@victim/ws.main/apps/x/",
-        "https://user@coder.example.com",
-        "https://other.example%252Fx@coder.example.com/",
-        "https://coder.example.com/.",
-        "https://coder.example.com?",
-        "https://coder.example.com%0A",
-    ])
-    func untrustedOrigin(origin: String) {
-        #expect(!trusted(Self.link("vscode://coder.coder-remote/open?", origin: origin)))
-    }
-
-    @Test(arguments: [
-        "&url=https://other.example",
-        "&t=$SESSION_TOKEN",
-        "#url=https://other.example",
-        "&type=ssh",
-        "%FF",
-        "&x=%26url%3Dhttps%253A%252F%252Fother.example",
-        "&x=%252526url%25253Dhttps%25253A%25252F%25252Fother.example",
-        "&x=%26url=%CC%81https://other.example",
-        "&ur\tl=https://other.example",
-        "&%75rl=https://other.example",
-    ])
-    func untrustedExtraParams(extra: String) {
-        #expect(!trusted(Self.link("jetbrains-gateway://connect#type=coder&", extra: extra)))
-    }
-
-    @Test(arguments: [
-        "vscode://coder.coder-remote/open?token=$SESSION_TOKEN",
-        "vscode://coder.coder-remote/open?url=https://coder.example.com#token=$SESSION_TOKEN",
-        "vscode://coder.coder-remote/open?x=1#&url=https://coder.example.com&token=$SESSION_TOKEN",
-        "jetbrains://gateway/coder?url=https://coder.example.com&token=x&ide_download_link=https://other.example/$SESSION_TOKEN",
-        "jetbrains-gateway://connect#type=coder&url=https://coder.example.com&token=%24SESSION_TOKEN&x=$SESSION_TOKEN",
-    ])
-    func untrustedTokenPlacement(url: String) {
-        #expect(!trusted(url))
-    }
-
-    @Test
-    func substitute() {
-        let substitute = { (url: String, isSubAgentApp: Bool) in
-            SessionTokenLink.substitute(url, deploymentURL: deployment, token: "secret", isSubAgentApp: isSubAgentApp)
-        }
-        let url = Self.link("vscode://coder.coder-remote/open?")
-        #expect(substitute(url, false)?.hasSuffix("&token=secret") == true)
-        #expect(substitute(url, true)?.hasSuffix("&token=") == true)
-        #expect(substitute(Self.link("vscode://other.ext/open?"), false) == nil)
-        #expect(substitute("someapp://anything?x=1", false) == "someapp://anything?x=1")
+    func blockReason(_ testCase: LinkCase) {
+        #expect(
+            SessionTokenLink.blockReason(testCase.url, signedInURL: Self.signedIn, dashboardURL: Self.dashboard)
+                == testCase.expected
+        )
     }
 
     @Test(arguments: [
         ("vscode://coder.coder-remote/open?owner=a", true),
         ("jetbrains-gateway://connect#type=coder&workspace=b", true),
         ("jetbrains-gateway://connect#type=ssh&host=other.example", false),
+        ("\u{212A}iro://coder.coder-remote/open?", false),
         ("someapp://anything?x=1", false),
     ])
     func isKnownHandler(url: String, expected: Bool) {

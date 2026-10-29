@@ -54,7 +54,7 @@ struct WorkspaceAppIcon: View {
                     }
             )
             .opacity(app.blockedReason == nil ? 1 : 0.4)
-            .help(app.blockedReason.map { "\(app.displayName): \($0)" } ?? app.displayName)
+            .help(app.blockedReason.map { reason in "\(app.displayName): \(reason.description)" } ?? app.displayName)
     }
 
     /// `.alert` from SwiftUI doesn't play nice when the calling view is in the
@@ -84,7 +84,7 @@ struct WorkspaceApp {
     let url: URL
     let icon: URL?
     /// Set when the link needs a session token but isn't trusted with one.
-    let blockedReason: String?
+    let blockedReason: SessionTokenBlockReason?
     let confirmBeforeOpening: Bool
 
     var id: String { slug }
@@ -101,8 +101,8 @@ struct WorkspaceApp {
     init(
         _ original: CoderSDK.WorkspaceApp,
         deploymentURL: URL,
-        sessionToken: String,
-        isSubAgentApp: Bool = false
+        dashboardURL: URL?,
+        sessionToken: String
     ) throws(WorkspaceAppError) {
         slug = original.slug
         // Same behaviour as the web UI
@@ -127,22 +127,22 @@ struct WorkspaceApp {
         }
 
         confirmBeforeOpening = !SessionTokenLink.isKnownHandler(originalUrl.absoluteString)
-        if let newUrlString = SessionTokenLink.substitute(
+        blockedReason = SessionTokenLink.blockReason(
             originalUrl.absoluteString,
-            deploymentURL: deploymentURL,
-            token: sessionToken,
-            isSubAgentApp: isSubAgentApp
-        ) {
+            signedInURL: deploymentURL,
+            dashboardURL: dashboardURL
+        )
+        if blockedReason == nil {
+            let newUrlString = originalUrl.absoluteString.replacingOccurrences(
+                of: SessionTokenLink.placeholder,
+                with: sessionToken
+            )
             guard let newUrl = URL(string: newUrlString) else {
                 throw .invalidURL
             }
             url = newUrl
-            blockedReason = nil
         } else {
             url = originalUrl
-            blockedReason = SessionTokenLink.blockedMessage + " " + (isSubAgentApp
-                ? "Fix the app's url in the dev container's devcontainer.json."
-                : "Ask your template administrator to fix the app's url in the template's coder_app configuration.")
         }
 
         var icon = original.icon
@@ -185,20 +185,28 @@ enum WorkspaceAppError: Error {
     var localizedDescription: String { description }
 }
 
+// swiftlint:disable:next function_parameter_count
 func agentToApps(
     _ logger: Logger,
     _ agent: CoderSDK.WorkspaceAgent,
     _ host: String,
     _ baseAccessURL: URL,
+    _ dashboardURL: URL?,
     _ sessionToken: String
 ) -> [WorkspaceApp] {
     let workspaceApps = agent.apps.compactMap { app in
+        var app = app
+        // Dev container apps never get a token. coderd removes the placeholder
+        // since coder/coder#31262, but older servers still send it.
+        if agent.parent_id != nil, let url = app.url {
+            app.url = URL(string: url.absoluteString.replacingOccurrences(of: SessionTokenLink.placeholder, with: ""))
+        }
         do throws(WorkspaceAppError) {
             return try WorkspaceApp(
                 app,
                 deploymentURL: baseAccessURL,
-                sessionToken: sessionToken,
-                isSubAgentApp: agent.parent_id != nil
+                dashboardURL: dashboardURL,
+                sessionToken: sessionToken
             )
         } catch {
             logger.warning("Skipping WorkspaceApp '\(app.slug)' for \(host): \(error.localizedDescription)")

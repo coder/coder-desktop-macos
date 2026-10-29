@@ -12,6 +12,12 @@ public extension Client {
 
 public struct BuildInfoResponse: Codable, Equatable, Sendable {
     public let version: String
+    public let dashboard_url: URL?
+
+    public init(version: String, dashboard_url: URL? = nil) {
+        self.version = version
+        self.dashboard_url = dashboard_url
+    }
 
     // `version` in the form `[0-9]+.[0-9]+.[0-9]+`
     public var semver: String? {

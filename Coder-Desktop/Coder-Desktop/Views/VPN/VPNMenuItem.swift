@@ -189,7 +189,9 @@ struct MenuItemView: View {
                 .flatMap(\.self)
                 .first(where: { $0.id == agent.id })
             {
-                apps = agentToApps(logger, wsAgent, agent.primaryHost, baseAccessURL, sessionToken)
+                apps = agentToApps(
+                    logger, wsAgent, agent.primaryHost, baseAccessURL, state.dashboardURL, sessionToken
+                )
             } else {
                 logger.error("Could not find agent '\(agent.id)' in workspace '\(item.wsName)' resources")
             }
