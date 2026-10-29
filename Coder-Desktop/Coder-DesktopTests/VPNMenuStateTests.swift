@@ -3,12 +3,11 @@ import Testing
 @testable import VPNLib
 
 @MainActor
-@Suite
 struct VPNMenuStateTests {
     var state = VPNMenuState()
 
     @Test
-    mutating func testUpsertAgent_addsAgent() async throws {
+    mutating func upsertAgent_addsAgent() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -39,7 +38,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteAgent_removesAgent() async throws {
+    mutating func deleteAgent_removesAgent() {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -59,7 +58,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteWorkspace_removesWorkspaceAndAgents() async throws {
+    mutating func deleteWorkspace_removesWorkspaceAndAgents() {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -80,7 +79,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_poorConnection() async throws {
+    mutating func upsertAgent_poorConnection() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -103,7 +102,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_connecting() async throws {
+    mutating func upsertAgent_connecting() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -123,7 +122,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_unhealthyAgent() async throws {
+    mutating func upsertAgent_unhealthyAgent() throws {
         let agentID = UUID()
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "foo" })
@@ -143,7 +142,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_replacesOldAgent() async throws {
+    mutating func upsertAgent_replacesOldAgent() throws {
         let workspaceID = UUID()
         let oldAgentID = UUID()
         let newAgentID = UUID()
@@ -184,7 +183,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertWorkspace_addsOfflineWorkspace() async throws {
+    mutating func upsertWorkspace_addsOfflineWorkspace() throws {
         let workspaceID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "Foo" })
 
@@ -226,7 +225,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testFind_ignoresNameCase() async throws {
+    mutating func find_ignoresNameCase() {
         let workspaceID = UUID()
         let agentID = UUID()
         state.upsertWorkspace(Vpn_Workspace.with { $0.id = workspaceID.uuidData; $0.name = "My-Workspace" })
@@ -243,7 +242,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_invalidAgent_noUUID() async throws {
+    mutating func upsertAgent_invalidAgent_noUUID() {
         let agent = Vpn_Agent.with {
             $0.name = "invalidAgent"
             $0.fqdn = ["invalid.coder"]
@@ -256,7 +255,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testUpsertAgent_outOfOrder() async throws {
+    mutating func upsertAgent_outOfOrder() {
         let agentID = UUID()
         let workspaceID = UUID()
 
@@ -275,7 +274,7 @@ struct VPNMenuStateTests {
     }
 
     @Test
-    mutating func testDeleteInvalidAgent_removesInvalid() async throws {
+    mutating func deleteInvalidAgent_removesInvalid() {
         let agentID = UUID()
         let workspaceID = UUID()
 

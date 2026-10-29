@@ -15,103 +15,99 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
     @State private var dontRetry: Bool = false
 
     var body: some View {
-        Group {
-            Table(fileSync.sessionState, selection: $selection) {
-                TableColumn("Local Path") {
-                    Text($0.alphaPath).help($0.alphaPath)
-                }.width(min: 200, ideal: 240)
-                TableColumn("Workspace", value: \.agentHost)
-                    .width(min: 100, ideal: 120)
-                TableColumn("Remote Path") { Text($0.betaPath).help($0.betaPath) }
-                    .width(min: 100, ideal: 120)
-                TableColumn("Status") { $0.status.column.help($0.statusAndErrors) }
-                    .width(min: 80, ideal: 100)
-                TableColumn("Size") { Text($0.localSize.humanSizeBytes).help($0.sizeDescription) }
-                    .width(min: 60, ideal: 80)
+        Table(fileSync.sessionState, selection: $selection) {
+            TableColumn("Local Path") {
+                Text($0.alphaPath).help($0.alphaPath)
+            }.width(min: 200, ideal: 240)
+            TableColumn("Workspace", value: \.agentHost)
+                .width(min: 100, ideal: 120)
+            TableColumn("Remote Path") { Text($0.betaPath).help($0.betaPath) }
+                .width(min: 100, ideal: 120)
+            TableColumn("Status") { $0.status.column.help($0.statusAndErrors) }
+                .width(min: 80, ideal: 100)
+            TableColumn("Size") { Text($0.localSize.humanSizeBytes).help($0.sizeDescription) }
+                .width(min: 60, ideal: 80)
+        }
+        .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { selections in
+            // TODO: We only support single selections for now
+            if let selected = selections.first,
+               let session = fileSync.sessionState.first(where: { $0.id == selected })
+            {
+                Button("Edit") { editingSession = session }
+                Button(session.status.isResumable ? "Resume" : "Pause")
+                    { Task { await pauseResume(session: session) } }
+                Button("Reset") { Task { await reset(session: session) } }
+                Button("Terminate") { Task { await delete(session: session) } }
             }
-            .contextMenu(forSelectionType: FileSyncSession.ID.self, menu: { selections in
-                // TODO: We only support single selections for now
-                if let selected = selections.first,
-                   let session = fileSync.sessionState.first(where: { $0.id == selected })
-                {
-                    Button("Edit") { editingSession = session }
-                    Button(session.status.isResumable ? "Resume" : "Pause")
-                        { Task { await pauseResume(session: session) } }
-                    Button("Reset") { Task { await reset(session: session) } }
-                    Button("Terminate") { Task { await delete(session: session) } }
-                }
-            },
-            primaryAction: { selectedSessions in
-                if let session = selectedSessions.first {
-                    editingSession = fileSync.sessionState.first(where: { $0.id == session })
-                }
-            })
-            .frame(minWidth: 400, minHeight: 200)
-            .padding(.bottom, Theme.Size.tableFooterIconSize)
-            .overlay(alignment: .bottom) {
-                tableFooter
+        },
+        primaryAction: { selectedSessions in
+            if let session = selectedSessions.first {
+                editingSession = fileSync.sessionState.first(where: { $0.id == session })
             }
-            // Only the table & footer should be disabled if the daemon has crashed
-            // otherwise the alert buttons will be disabled too
+        })
+        .frame(minWidth: 400, minHeight: 200)
+        .padding(.bottom, Theme.Size.tableFooterIconSize)
+        .overlay(alignment: .bottom) {
+            tableFooter
         }.disabled(fileSync.state.isFailed)
-            .sheet(isPresented: $addingNewSession) {
-                FileSyncSessionModal<VPN, FS>()
-                    .frame(width: 700)
-            }.sheet(item: $editingSession) { session in
-                FileSyncSessionModal<VPN, FS>(existingSession: session)
-                    .frame(width: 700)
-            }.alert("Error", isPresented: Binding(
-                get: { actionError != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        actionError = nil
+        .sheet(isPresented: $addingNewSession) {
+            FileSyncSessionModal<VPN, FS>()
+                .frame(width: 700)
+        }.sheet(item: $editingSession) { session in
+            FileSyncSessionModal<VPN, FS>(existingSession: session)
+                .frame(width: 700)
+        }.alert("Error", isPresented: Binding(
+            get: { actionError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    actionError = nil
+                }
+            }
+        )) {} message: {
+            Text(actionError?.description ?? "An unknown error occurred.")
+        }.alert("Error", isPresented: Binding(
+            // We only show the alert if the file config window is open
+            // Users will see the alert symbol on the menu bar to prompt them to
+            // open it. The requirement on `!loading` prevents the alert from
+            // re-opening immediately.
+            get: { !loading && isVisible && fileSync.state.isFailed },
+            set: { isPresented in
+                if !isPresented {
+                    if dontRetry {
+                        dontRetry = false
+                        return
+                    }
+                    loading = true
+                    Task {
+                        await fileSync.tryStart()
+                        loading = false
                     }
                 }
-            )) {} message: {
-                Text(actionError?.description ?? "An unknown error occurred.")
-            }.alert("Error", isPresented: Binding(
-                // We only show the alert if the file config window is open
-                // Users will see the alert symbol on the menu bar to prompt them to
-                // open it. The requirement on `!loading` prevents the alert from
-                // re-opening immediately.
-                get: { !loading && isVisible && fileSync.state.isFailed },
-                set: { isPresented in
-                    if !isPresented {
-                        if dontRetry {
-                            dontRetry = false
-                            return
-                        }
-                        loading = true
-                        Task {
-                            await fileSync.tryStart()
-                            loading = false
-                        }
-                    }
-                }
-            )) {
-                Button("Retry") {}
-                // This gives the user an out if the daemon is crashing on launch,
-                // they can cancel the alert, and it will reappear if they re-open the
-                // file sync window.
-                Button("Cancel", role: .cancel) {
-                    dontRetry = true
-                }
-            } message: {
-                Text("""
-                File sync daemon failed. The daemon log file at\n\(fileSync.logFile.path)\nhas been opened.
-                """).onAppear {
-                    // Opens the log file in Console
-                    NSWorkspace.shared.open(fileSync.logFile)
-                }
-            }.onAppear {
-                isVisible = true
-            }.onDisappear {
-                isVisible = false
-                // If the failure alert is dismissed without restarting the daemon,
-                // (by clicking cancel) this makes it clear that the daemon
-                // is still in a failed state.
-            }.navigationTitle("Coder File Sync \(fileSync.state.isFailed ? "- Failed" : "")")
-            .disabled(loading)
+            }
+        )) {
+            Button("Retry") {}
+            // This gives the user an out if the daemon is crashing on launch,
+            // they can cancel the alert, and it will reappear if they re-open the
+            // file sync window.
+            Button("Cancel", role: .cancel) {
+                dontRetry = true
+            }
+        } message: {
+            Text("""
+            File sync daemon failed. The daemon log file at\n\(fileSync.logFile.path)\nhas been opened.
+            """).onAppear {
+                // Opens the log file in Console
+                NSWorkspace.shared.open(fileSync.logFile)
+            }
+        }.onAppear {
+            isVisible = true
+        }.onDisappear {
+            isVisible = false
+            // If the failure alert is dismissed without restarting the daemon,
+            // (by clicking cancel) this makes it clear that the daemon
+            // is still in a failed state.
+        }.navigationTitle("Coder File Sync \(fileSync.state.isFailed ? "- Failed" : "")")
+        .disabled(loading)
     }
 
     var tableFooter: some View {
@@ -132,34 +128,33 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    @ViewBuilder
     var sessionControls: some View {
-        Group {
-            if let selection {
-                if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
-                    Divider()
-                    Button { Task { await delete(session: selectedSession) } }
-                        label: {
-                            FooterIcon(systemName: "minus")
-                                .help("Terminate")
+        if let selection {
+            if let selectedSession = fileSync.sessionState.first(where: { $0.id == selection }) {
+                Divider()
+                Button { Task { await delete(session: selectedSession) } }
+                    label: {
+                        FooterIcon(systemName: "minus")
+                            .help("Terminate")
+                    }
+                Divider()
+                Button { Task { await pauseResume(session: selectedSession) } }
+                    label: {
+                        if selectedSession.status.isResumable {
+                            FooterIcon(systemName: "play")
+                                .help("Resume")
+                        } else {
+                            FooterIcon(systemName: "pause")
+                                .help("Pause")
                         }
-                    Divider()
-                    Button { Task { await pauseResume(session: selectedSession) } }
-                        label: {
-                            if selectedSession.status.isResumable {
-                                FooterIcon(systemName: "play")
-                                    .help("Resume")
-                            } else {
-                                FooterIcon(systemName: "pause")
-                                    .help("Pause")
-                            }
-                        }
-                    Divider()
-                    Button { Task { await reset(session: selectedSession) } }
-                        label: {
-                            FooterIcon(systemName: "arrow.clockwise")
-                                .help("Reset")
-                        }
-                }
+                    }
+                Divider()
+                Button { Task { await reset(session: selectedSession) } }
+                    label: {
+                        FooterIcon(systemName: "arrow.clockwise")
+                            .help("Reset")
+                    }
             }
         }
     }
