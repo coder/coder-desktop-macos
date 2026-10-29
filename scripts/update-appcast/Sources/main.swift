@@ -1,10 +1,10 @@
 import ArgumentParser
 import Foundation
+import Parsley
 import RegexBuilder
 #if canImport(FoundationXML)
     import FoundationXML
 #endif
-import Parsley
 
 /// UpdateAppcast
 /// -------------
@@ -80,7 +80,7 @@ struct UpdateAppcast: AsyncParsableCommand {
                 guard let item = node as? XMLElement,
                       item.name == "item",
                       item.elements(forName: "sparkle:channel")
-                      .first?.stringValue == channel.rawValue
+                          .first?.stringValue == channel.rawValue
                 else { return false }
                 return true
             })?.offset
@@ -173,13 +173,18 @@ enum UpdateChannel: String { case stable, preview }
 
 struct RuntimeError: Error, CustomStringConvertible {
     var message: String
-    var description: String { message }
-    init(_ message: String) { self.message = message }
+    var description: String {
+        message
+    }
+
+    init(_ message: String) {
+        self.message = message
+    }
 }
 
 extension Regex: @retroactive @unchecked Sendable {}
 
-// Matches CFBundleVersion format: X.Y.Z or X.Y.Z.N
+/// Matches CFBundleVersion format: X.Y.Z or X.Y.Z.N
 let versionRegex = Regex {
     Anchor.startOfLine
     Capture {

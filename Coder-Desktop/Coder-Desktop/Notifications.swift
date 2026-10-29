@@ -9,8 +9,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         )
     }
 
-    // This function is required for notifications to appear as banners whilst the app is running.
-    // We're effectively forwarding the notification back to the OS
+    /// This function is required for notifications to appear as banners whilst the app is running.
+    /// We're effectively forwarding the notification back to the OS
     nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification

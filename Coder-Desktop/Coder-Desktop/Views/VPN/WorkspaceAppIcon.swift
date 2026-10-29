@@ -11,44 +11,40 @@ struct WorkspaceAppIcon: View {
     @State var isPressed = false
 
     var body: some View {
-        Group {
-            Group {
-                WebImage(
-                    url: app.icon,
-                    context: [.imageThumbnailPixelSize: Theme.Size.appIconSize]
-                ) { $0 }
-                    placeholder: {
-                        if app.icon != nil {
-                            CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
-                        } else {
-                            Image(systemName: "questionmark").frame(
-                                width: Theme.Size.appIconWidth,
-                                height: Theme.Size.appIconHeight
-                            )
-                        }
-                    }.frame(
+        WebImage(
+            url: app.icon,
+            context: [.imageThumbnailPixelSize: Theme.Size.appIconSize]
+        ) { $0 }
+            placeholder: {
+                if app.icon != nil {
+                    CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
+                } else {
+                    Image(systemName: "questionmark").frame(
                         width: Theme.Size.appIconWidth,
                         height: Theme.Size.appIconHeight
                     )
-            }.padding(6)
-        }
-        .background(isHovering ? Color.accentColor.opacity(0.8) : .clear)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .onHover { hovering in isHovering = hovering }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = true
-                    }
                 }
-                .onEnded { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = false
+            }.frame(
+                width: Theme.Size.appIconWidth,
+                height: Theme.Size.appIconHeight
+            ).padding(6)
+            .background(isHovering ? Color.accentColor.opacity(0.8) : .clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .onHover { hovering in isHovering = hovering }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isPressed = true
+                        }
                     }
-                    openURL(app.url)
-                }
-        ).help(app.displayName)
+                    .onEnded { _ in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isPressed = false
+                        }
+                        openURL(app.url)
+                    }
+            ).help(app.displayName)
     }
 }
 

@@ -3,7 +3,7 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct TelemetryEnricherTests {
-    @Test func testEnrichStartRequest() throws {
+    @Test func enrichStartRequest() throws {
         let enricher0 = TelemetryEnricher()
         let original = Vpn_StartRequest.with { req in
             req.coderURL = "https://example.com"

@@ -22,7 +22,7 @@ struct LoginTests {
     }
 
     @Test
-    func testInitialView() async throws {
+    func initialView() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 #expect(throws: Never.self) { try view.find(text: "Coder Desktop") }
@@ -33,7 +33,7 @@ struct LoginTests {
     }
 
     @Test
-    func testInvalidServerURL() async throws {
+    func invalidServerURL() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("http://")
@@ -44,7 +44,7 @@ struct LoginTests {
     }
 
     @Test
-    func testValidServerURL() async throws {
+    func validServerURL() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
@@ -58,7 +58,7 @@ struct LoginTests {
     }
 
     @Test
-    func testBackButton() async throws {
+    func backButton() async throws {
         try await ViewHosting.host(view) {
             try await sut.inspection.inspect { view in
                 try view.find(ViewType.TextField.self).setInput("https://coder.example.com")
@@ -72,8 +72,8 @@ struct LoginTests {
     }
 
     @Test
-    func testFailedAuthentication() async throws {
-        let url = URL(string: "https://testFailedAuthentication.com")!
+    func failedAuthentication() async throws {
+        let url = try #require(URL(string: "https://testFailedAuthentication.com"))
         let buildInfo = BuildInfoResponse(
             version: "v2.20.0"
         )
@@ -97,8 +97,8 @@ struct LoginTests {
     }
 
     @Test
-    func testOutdatedServer() async throws {
-        let url = URL(string: "https://testOutdatedServer.com")!
+    func outdatedServer() async throws {
+        let url = try #require(URL(string: "https://testOutdatedServer.com"))
         let buildInfo = BuildInfoResponse(
             version: "v2.19.0"
         )
@@ -127,8 +127,8 @@ struct LoginTests {
     }
 
     @Test
-    func testSuccessfulLogin() async throws {
-        let url = URL(string: "https://testSuccessfulLogin.com")!
+    func successfulLogin() async throws {
+        let url = try #require(URL(string: "https://testSuccessfulLogin.com"))
 
         let user = User(
             id: UUID(),

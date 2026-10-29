@@ -20,7 +20,7 @@ struct VPNStateTests {
     }
 
     @Test
-    func testDisabledState() async throws {
+    func disabledState() async throws {
         vpn.state = .disabled
 
         try await ViewHosting.host(view) {
@@ -33,7 +33,7 @@ struct VPNStateTests {
     }
 
     @Test
-    func testConnectingState() async throws {
+    func connectingState() async throws {
         vpn.state = .connecting
 
         try await ViewHosting.host(view) {
@@ -44,7 +44,7 @@ struct VPNStateTests {
     }
 
     @Test
-    func testDisconnectingState() async throws {
+    func disconnectingState() async throws {
         vpn.state = .disconnecting
 
         try await ViewHosting.host(view) {
@@ -55,7 +55,7 @@ struct VPNStateTests {
     }
 
     @Test
-    func testFailedState() async throws {
+    func failedState() async throws {
         let errMsg = "Internal error occured!"
         vpn.state = .failed(.internalError(errMsg))
 
@@ -68,7 +68,7 @@ struct VPNStateTests {
     }
 
     @Test
-    func testDefaultState() async throws {
+    func defaultState() async throws {
         vpn.state = .connected
 
         try await ViewHosting.host(view.environmentObject(vpn)) {

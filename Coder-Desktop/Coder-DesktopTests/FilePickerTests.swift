@@ -24,19 +24,19 @@ struct FilePickerTests {
     }
 
     @Test
-    func testLoadError() async throws {
+    func loadError() async throws {
         let host = "test-error.coder"
         let sut = FilePicker(host: host, outputAbsPath: .constant(""))
         let view = sut
 
-        let url = URL(string: "http://\(host):4")!
+        let url = try #require(URL(string: "http://\(host):4"))
 
         let errorMessage = "Connection failed"
-        Mock(
+        try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
             contentType: .json,
             statusCode: 500,
-            data: [.post: errorMessage.data(using: .utf8)!]
+            data: [.post: #require(errorMessage.data(using: .utf8))]
         ).register()
 
         try await ViewHosting.host(view) {
@@ -50,12 +50,12 @@ struct FilePickerTests {
     }
 
     @Test
-    func testSuccessfulFileLoad() async throws {
+    func successfulFileLoad() async throws {
         let host = "test-success.coder"
         let sut = FilePicker(host: host, outputAbsPath: .constant(""))
         let view = sut
 
-        let url = URL(string: "http://\(host):4")!
+        let url = try #require(URL(string: "http://\(host):4"))
 
         try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
@@ -78,7 +78,7 @@ struct FilePickerTests {
     }
 
     @Test
-    func testHiddenFilesToggle() async throws {
+    func hiddenFilesToggle() async throws {
         let key = "ShowHiddenFilesInRemoteFilePicker"
         UserDefaults.standard.removeObject(forKey: key)
         defer { UserDefaults.standard.removeObject(forKey: key) }
@@ -96,7 +96,7 @@ struct FilePickerTests {
         let sut = FilePicker(host: host, outputAbsPath: .constant(""))
         let view = sut
 
-        let url = URL(string: "http://\(host):4")!
+        let url = try #require(URL(string: "http://\(host):4"))
 
         try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
@@ -135,12 +135,12 @@ struct FilePickerTests {
     }
 
     @Test
-    func testDirectoryExpansion() async throws {
+    func directoryExpansion() async throws {
         let host = "test-expansion.coder"
         let sut = FilePicker(host: host, outputAbsPath: .constant(""))
         let view = sut
 
-        let url = URL(string: "http://\(host):4")!
+        let url = try #require(URL(string: "http://\(host):4"))
 
         try Mock(
             url: url.appendingPathComponent("/api/v0/list-directory"),
@@ -161,7 +161,7 @@ struct FilePickerTests {
 
                 // Disclosure group should expand out to 3 more directories
                 #expect(await eventually { @MainActor in
-                    return view.findAll(ViewType.DisclosureGroup.self).count == 6
+                    view.findAll(ViewType.DisclosureGroup.self).count == 6
                 })
             }
         }
