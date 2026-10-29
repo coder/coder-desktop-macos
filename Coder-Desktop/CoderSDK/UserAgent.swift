@@ -7,7 +7,7 @@ public enum CoderComponent: String, Sendable {
 }
 
 /// Go's `GOARCH` spelling, so a single pattern matches the CLI, the vpn-daemon and Desktop client.
-enum GoArch: String, Sendable {
+enum GoArch: String {
     case arm64
     case amd64
 }
