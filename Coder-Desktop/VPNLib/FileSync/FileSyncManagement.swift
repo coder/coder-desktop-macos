@@ -1,3 +1,5 @@
+internal import MutagenProto
+
 public extension MutagenDaemon {
     func refreshSessions() async {
         guard case .running = state else { return }

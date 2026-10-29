@@ -2,6 +2,7 @@ import CoderSDK
 import Foundation
 import os
 import VPNLib
+import VPNProto
 
 /// This listener handles XPC connections from the Coder Desktop System Network
 /// Extension (`com.coder.Coder-Desktop.VPN`).

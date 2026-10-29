@@ -1,3 +1,4 @@
+internal import MutagenProto
 import GRPCCore
 import GRPCNIOTransportHTTP2Posix
 
