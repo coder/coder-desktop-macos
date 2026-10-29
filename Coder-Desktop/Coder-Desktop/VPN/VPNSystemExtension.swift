@@ -2,7 +2,7 @@ import Foundation
 import os
 import SystemExtensions
 
-enum SystemExtensionState: Equatable, Sendable {
+enum SystemExtensionState: Equatable {
     case uninstalled
     case needsUserApproval
     case installed
