@@ -2,12 +2,15 @@ name: "Coder-Desktop"
 options:
   bundleIdPrefix: com.coder
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   xcodeVersion: "1600"
   minimumXcodeGenVersion: "2.42.0"
   fileTypes:
+    # Inputs to the GRPCProtobufGenerator plugin, see VPNLib's buildRules
     proto:
-      buildPhase: none
+      buildPhase: sources
+    json:
+      buildPhase: sources
     "icon":
       file: true
 
@@ -91,10 +94,10 @@ settings:
 packages:
   ViewInspector:
     url: https://github.com/nalexn/ViewInspector
-    from: 0.10.0
+    from: 0.10.5
   SwiftLintPlugins:
     url: https://github.com/SimplyDanny/SwiftLintPlugins
-    from: 0.57.1
+    from: 0.65.1
   FluidMenuBarExtra:
     # Forked to:
     # - Dynamically update the menu bar icon
@@ -107,35 +110,40 @@ packages:
     branch: e0c7eebc5a4465a3c4680764f26b7a61f567cdaf
   SwiftProtobuf:
     url: https://github.com/apple/swift-protobuf.git
-    exactVersion: 1.28.2
+    exactVersion: 1.39.0
   Mocker:
     url: https://github.com/WeTransfer/Mocker
     from: 3.0.2
   LaunchAtLogin:
     url: https://github.com/sindresorhus/LaunchAtLogin-modern
     from: 1.1.0
-  GRPC:
-    url: https://github.com/grpc/grpc-swift
-    # v2 does not support macOS 14.0
-    exactVersion: 1.24.2
+  GRPCCore:
+    url: https://github.com/grpc/grpc-swift-2
+    exactVersion: 2.4.4
+  GRPCProtobuf:
+    url: https://github.com/grpc/grpc-swift-protobuf
+    exactVersion: 2.5.0
+  GRPCNIOTransport:
+    url: https://github.com/grpc/grpc-swift-nio-transport
+    exactVersion: 2.11.0
   Subprocess:
     url: https://github.com/jamf/Subprocess
-    revision: 9d67b79
+    exactVersion: 4.0.1
   Semaphore:
     url: https://github.com/groue/Semaphore/
     exactVersion: 0.1.0
   SDWebImageSwiftUI:
     url: https://github.com/SDWebImage/SDWebImageSwiftUI
-    exactVersion: 3.1.3
+    exactVersion: 3.1.4
   SDWebImageSVGCoder:
     url: https://github.com/SDWebImage/SDWebImageSVGCoder
-    exactVersion: 1.7.0
+    exactVersion: 1.8.0
   URLRouting:
     url: https://github.com/pointfreeco/swift-url-routing
-    revision: 09b155d
+    exactVersion: 0.7.0
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    exactVersion: 2.7.0
+    exactVersion: 2.10.1
 
 
 targets:
@@ -332,11 +340,32 @@ targets:
     scheme:
       testTargets:
         - VPNLibTests
+    buildToolPlugins:
+      # Generates the Swift code for the .proto files, as configured by each
+      # grpc-swift-proto-generator-config.json.
+      - plugin: GRPCProtobufGenerator
+        package: GRPCProtobuf
+    buildRules:
+      # Xcode only passes files in a build phase to build tool plugins, so the
+      # .proto files and plugin configs are in the sources phase. These no-op
+      # rules stop Xcode warning that it doesn't know how to compile them.
+      # Xcode requires them to have an output.
+      - name: Protobuf definitions
+        fileType: sourcecode.protobuf
+        script: touch "${SCRIPT_OUTPUT_FILE_0}"
+        outputFiles:
+          - "$(DERIVED_FILE_DIR)/$(INPUT_FILE_PATH:c99extidentifier).stamp"
+      - name: GRPCProtobufGenerator configs
+        fileType: text.json
+        script: touch "${SCRIPT_OUTPUT_FILE_0}"
+        outputFiles:
+          - "$(DERIVED_FILE_DIR)/$(INPUT_FILE_PATH:c99extidentifier).stamp"
     dependencies:
       - package: SwiftProtobuf
-      - package: SwiftProtobuf
-        product: SwiftProtobufPluginLibrary
-      - package: GRPC
+      - package: GRPCCore
+      - package: GRPCProtobuf
+      - package: GRPCNIOTransport
+        product: GRPCNIOTransportHTTP2Posix
       - package: Subprocess
       - package: Semaphore
       - package: URLRouting
