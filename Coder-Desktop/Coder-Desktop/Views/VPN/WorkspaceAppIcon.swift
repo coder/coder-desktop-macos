@@ -78,6 +78,14 @@ struct WorkspaceAppIcon: View {
     }
 }
 
+/// The signed-in deployment that app links are built for.
+struct CoderSession {
+    let baseAccessURL: URL
+    /// The deployment's access URL from build info, if it has loaded.
+    let dashboardURL: URL?
+    let sessionToken: String
+}
+
 struct WorkspaceApp {
     let slug: String
     let displayName: String
@@ -100,9 +108,7 @@ struct WorkspaceApp {
 
     init(
         _ original: CoderSDK.WorkspaceApp,
-        deploymentURL: URL,
-        dashboardURL: URL?,
-        sessionToken: String
+        session: CoderSession
     ) throws(WorkspaceAppError) {
         slug = original.slug
         // Same behaviour as the web UI
@@ -129,13 +135,13 @@ struct WorkspaceApp {
         confirmBeforeOpening = !SessionTokenLink.isKnownHandler(originalUrl.absoluteString)
         blockedReason = SessionTokenLink.blockReason(
             originalUrl.absoluteString,
-            signedInURL: deploymentURL,
-            dashboardURL: dashboardURL
+            signedInURL: session.baseAccessURL,
+            dashboardURL: session.dashboardURL
         )
         if blockedReason == nil {
             let newUrlString = originalUrl.absoluteString.replacingOccurrences(
                 of: SessionTokenLink.placeholder,
-                with: sessionToken
+                with: session.sessionToken
             )
             guard let newUrl = URL(string: newUrlString) else {
                 throw .invalidURL
@@ -150,9 +156,9 @@ struct WorkspaceApp {
            var components = URLComponents(url: originalIcon, resolvingAgainstBaseURL: false)
         {
             if components.host == nil {
-                components.port = deploymentURL.port
-                components.scheme = deploymentURL.scheme
-                components.host = deploymentURL.host(percentEncoded: false)
+                components.port = session.baseAccessURL.port
+                components.scheme = session.baseAccessURL.scheme
+                components.host = session.baseAccessURL.host(percentEncoded: false)
             }
 
             if let newIconURL = components.url {
@@ -185,14 +191,11 @@ enum WorkspaceAppError: Error {
     var localizedDescription: String { description }
 }
 
-// swiftlint:disable:next function_parameter_count
 func agentToApps(
     _ logger: Logger,
     _ agent: CoderSDK.WorkspaceAgent,
     _ host: String,
-    _ baseAccessURL: URL,
-    _ dashboardURL: URL?,
-    _ sessionToken: String
+    _ session: CoderSession
 ) -> [WorkspaceApp] {
     let workspaceApps = agent.apps.compactMap { app in
         var app = app
@@ -202,12 +205,7 @@ func agentToApps(
             app.url = URL(string: url.absoluteString.replacingOccurrences(of: SessionTokenLink.placeholder, with: ""))
         }
         do throws(WorkspaceAppError) {
-            return try WorkspaceApp(
-                app,
-                deploymentURL: baseAccessURL,
-                dashboardURL: dashboardURL,
-                sessionToken: sessionToken
-            )
+            return try WorkspaceApp(app, session: session)
         } catch {
             logger.warning("Skipping WorkspaceApp '\(app.slug)' for \(host): \(error.localizedDescription)")
             return nil
@@ -219,13 +217,13 @@ func agentToApps(
         case .vscode:
             return vscodeDisplayApp(
                 hostname: host,
-                baseIconURL: baseAccessURL,
+                baseIconURL: session.baseAccessURL,
                 path: agent.expanded_directory
             )
         case .vscode_insiders:
             return vscodeInsidersDisplayApp(
                 hostname: host,
-                baseIconURL: baseAccessURL,
+                baseIconURL: session.baseAccessURL,
                 path: agent.expanded_directory
             )
         default:

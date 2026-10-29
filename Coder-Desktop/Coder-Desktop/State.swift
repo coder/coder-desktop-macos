@@ -205,7 +205,11 @@ class AppState: ObservableObject {
             }
 
             hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
-            dashboardURL = try? await client.buildInfo().dashboard_url
+            do {
+                dashboardURL = try await client.buildInfo().dashboard_url
+            } catch {
+                logger.error("failed to get build info: \(error)")
+            }
         }
     }
 

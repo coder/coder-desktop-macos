@@ -51,7 +51,7 @@ public struct WorkspaceAgent: Codable, Identifiable, Sendable {
     public init(
         id: UUID,
         expanded_directory: String?,
-        parent_id: UUID? = nil,
+        parent_id: UUID?,
         apps: [WorkspaceApp],
         display_apps: [DisplayApp]
     ) {
