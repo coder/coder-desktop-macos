@@ -21,99 +21,93 @@ enum SessionTokenBlockReason: Equatable {
 enum SessionTokenLink {
     static let placeholder = "$SESSION_TOKEN"
 
-    /// `base` (scheme and authority) is case-insensitive; `path` runs through
-    /// the first param and is exact.
-    private static let handlers: [(base: String, path: String)] = [
+    private struct Handler {
+        /// Scheme and authority, matched case-insensitively.
+        let base: String
+        /// Matched exactly, up to where the params start.
+        let path: String
+        var firstParam = ""
+    }
+
+    private static let handlers: [Handler] = [
         "vscode", "vscode-insiders", "windsurf", "devin", "cursor", "kiro", "positron", "antigravity",
         "antigravity-ide",
     ].flatMap { scheme in
-        ["/open?", "/openDevContainer?"].map { path in ("\(scheme)://coder.coder-remote", path) }
+        ["/open?", "/openDevContainer?"].map { path in Handler(base: "\(scheme)://coder.coder-remote", path: path) }
     } + [
-        ("jetbrains://gateway", "/coder?"),
-        ("jetbrains://gateway", "/com.coder.toolbox?"),
+        Handler(base: "jetbrains://gateway", path: "/coder?"),
+        Handler(base: "jetbrains://gateway", path: "/com.coder.toolbox?"),
         // Gateway also handles non-Coder providers, such as `type=ssh`.
-        ("jetbrains-gateway://connect", "#type=coder&"),
+        Handler(base: "jetbrains-gateway://connect", path: "#", firstParam: "type=coder&"),
     ]
 
     static func isKnownHandler(_ appURL: String) -> Bool {
         handler(for: appURL) != nil
     }
 
-    /// Returns why the link can't get a session token, or nil if it has no
-    /// placeholder or its only `url` is `signedInURL` or `dashboardURL`.
+    /// Returns nil if the link has no placeholder, or its only `url` is
+    /// `signedInURL` or `dashboardURL`.
     static func blockReason(_ appURL: String, signedInURL: URL, dashboardURL: URL?) -> SessionTokenBlockReason? {
         guard appURL.contains(placeholder) else { return nil }
-        // Printable ASCII only: some parsers drop tab, LF and CR, so `ur\tl`
-        // could become `url`, and it keeps grapheme comparisons byte-exact.
-        guard appURL.unicodeScalars.allSatisfy({ scalar in (0x20 ..< 0x7F).contains(scalar.value) }),
-              appURL.components(separatedBy: placeholder).count == 2,
+        guard appURL.components(separatedBy: placeholder).count == 2,
               let handler = handler(for: appURL)
         else { return .untrustedURL }
 
-        let paramsStart = handler.base.count + handler.path.prefix { char in char != "?" && char != "#" }.count + 1
-        let params = String(appURL.dropFirst(paramsStart))
+        // The placeholder is replaced raw, so it must be the raw `token` value.
+        // Gateway doesn't decode names, IDEs decode values twice, and VS Code
+        // ignores params after a `#`.
+        let params = String(appURL.dropFirst(handler.base.count + handler.path.count))
         let entries = params.components(separatedBy: "&")
-        // The placeholder is replaced raw, so it must be the raw `token` entry,
-        // and unique names make it the only `token`. Gateway doesn't decode
-        // names, and IDEs decode values twice.
-        guard !params.contains("#"),
-              entries.contains("token=\(placeholder)"),
+        guard entries.contains("token=\(placeholder)"),
               entries.allSatisfy({ entry in !entry.prefix { char in char != "=" }.contains("%") }),
+              !params.contains("#"),
               let decoded = params.removingPercentEncoding,
               !decoded.unicodeScalars.contains("%"),
-              let origin = linkOrigin(params),
-              linkOrigin(decoded) == origin
+              let url = urlParam(params),
+              urlParam(decoded) == url
         else { return .untrustedURL }
 
         let trusted = [signedInURL, dashboardURL].compactMap(\.self)
-        return trusted.contains { url in sameOrigin(origin, url) }
+        return trusted.contains { trustedURL in isSameOrigin(url, trustedURL) }
             ? nil
-            : .wrongDeployment(link: origin, signedIn: signedInURL)
+            : .wrongDeployment(link: url, signedIn: signedInURL)
     }
 
-    private static func handler(for appURL: String) -> (base: String, path: String)? {
-        // Compare UTF-8 with ASCII-only case folding, so a Kelvin sign isn't `k`.
-        let bytes = appURL.utf8
+    /// Only printable ASCII links match, so parsers can't drop a tab, LF or CR
+    /// and `lowercased()` can't fold a Kelvin sign into `k`.
+    private static func handler(for appURL: String) -> Handler? {
+        guard appURL.unicodeScalars.allSatisfy({ scalar in (0x20 ..< 0x7F).contains(scalar.value) }) else {
+            return nil
+        }
         return handlers.first { handler in
-            let base = handler.base.utf8
-            let folded = bytes.prefix(base.count).map { byte in (65 ... 90).contains(byte) ? byte + 32 : byte }
-            return folded.elementsEqual(base) && bytes.dropFirst(base.count).starts(with: handler.path.utf8)
+            appURL.prefix(handler.base.count).lowercased() == handler.base
+                && appURL.dropFirst(handler.base.count).hasPrefix(handler.path + handler.firstParam)
         }
     }
 
-    /// Returns the `url` param if every name is unique and `url` is a bare
-    /// http(s) origin. Matched raw, since parsing normalizes `/.` and drops an
-    /// empty `?`.
-    private static func linkOrigin(_ query: String) -> String? {
-        let params = parseQuery(query)
-        guard Set(params.map(\.name)).count == params.count,
-              let url = params.first(where: { param in param.name == "url" })?.value,
+    /// Returns `url` if the names are unique and it's a bare http(s) origin,
+    /// matched raw since parsing normalizes `/.` and drops an empty `?`.
+    private static func urlParam(_ query: String) -> String? {
+        // Split on scalars like `URLSearchParams`, since `&` followed by a
+        // combining mark is one `Character`.
+        let params = query.unicodeScalars.split(separator: "&").map { entry in
+            entry.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map { part in
+                let plain = String(part).replacingOccurrences(of: "+", with: " ", options: .literal)
+                return plain.removingPercentEncoding ?? plain
+            }
+        }
+        guard Set(params.map { param in param[0] }).count == params.count,
+              let url = params.first(where: { param in param[0] == "url" && param.count == 2 })?[1],
               url.range(of: #"^https?://[^/\\?#@\s]+/?\z"#, options: [.regularExpression, .caseInsensitive]) != nil
         else { return nil }
         return url
     }
 
-    /// Parsed like `URLSearchParams`, split on scalars since `&` followed by a
-    /// combining mark is one `Character`.
-    private static func parseQuery(_ query: String) -> [(name: String, value: String)] {
-        query.unicodeScalars.split(separator: "&").map { entry in
-            let parts = entry.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map { part in
-                let plain = String(part).replacingOccurrences(of: "+", with: " ", options: .literal)
-                return plain.removingPercentEncoding ?? plain
-            }
-            return (parts[0], parts.count > 1 ? parts[1] : "")
-        }
-    }
-
-    private static func sameOrigin(_ origin: String, _ url: URL) -> Bool {
-        guard let lhs = URLComponents(string: origin),
-              let rhs = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        else { return false }
-        let port = { (components: URLComponents) in
-            components.port ?? (components.scheme?.lowercased() == "https" ? 443 : 80)
-        }
-        return lhs.scheme?.lowercased() == rhs.scheme?.lowercased()
-            && lhs.host?.lowercased() == rhs.host?.lowercased()
-            && port(lhs) == port(rhs)
+    private static func isSameOrigin(_ link: String, _ url: URL) -> Bool {
+        guard let origin = URL(string: link) else { return false }
+        let port = { (target: URL) in target.port ?? (target.scheme?.lowercased() == "https" ? 443 : 80) }
+        return origin.scheme?.lowercased() == url.scheme?.lowercased()
+            && origin.host?.lowercased() == url.host?.lowercased()
+            && port(origin) == port(url)
     }
 }
