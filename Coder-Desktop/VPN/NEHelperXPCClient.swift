@@ -1,6 +1,7 @@
 import Foundation
 import os
 import VPNLib
+import VPNProto
 
 final class HelperXPCClient: @unchecked Sendable {
     var ptp: PacketTunnelProvider?

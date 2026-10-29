@@ -5,6 +5,6 @@
     "messages": true
   },
   "generatedSource": {
-    "accessLevel": "internal"
+    "accessLevel": "public"
   }
 }

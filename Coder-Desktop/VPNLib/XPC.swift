@@ -1,4 +1,5 @@
 import Foundation
+import VPNProto
 
 // The Helper listens on two mach services, one for the GUI app
 // and one for the system network extension.

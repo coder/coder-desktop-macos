@@ -1,3 +1,4 @@
+internal import MutagenProto
 import SwiftUI
 
 public struct FileSyncSession: Identifiable {

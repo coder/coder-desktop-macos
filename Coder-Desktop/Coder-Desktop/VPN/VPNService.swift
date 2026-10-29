@@ -2,6 +2,7 @@ import NetworkExtension
 import os
 import SwiftUI
 import VPNLib
+import VPNProto
 
 @MainActor
 protocol VPNService: ObservableObject {

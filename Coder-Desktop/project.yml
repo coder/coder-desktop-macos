@@ -6,11 +6,6 @@ options:
   xcodeVersion: "1600"
   minimumXcodeGenVersion: "2.42.0"
   fileTypes:
-    # Inputs to the GRPCProtobufGenerator plugin, see VPNLib's buildRules
-    proto:
-      buildPhase: sources
-    json:
-      buildPhase: sources
     "icon":
       file: true
 
@@ -111,6 +106,8 @@ packages:
   SwiftProtobuf:
     url: https://github.com/apple/swift-protobuf.git
     exactVersion: 1.39.0
+  Proto:
+    path: Proto
   Mocker:
     url: https://github.com/WeTransfer/Mocker
     from: 3.0.2
@@ -121,6 +118,7 @@ packages:
     url: https://github.com/grpc/grpc-swift-2
     exactVersion: 2.4.4
   GRPCProtobuf:
+    # Only used by Proto, pinned here with the rest.
     url: https://github.com/grpc/grpc-swift-protobuf
     exactVersion: 2.5.0
   GRPCNIOTransport:
@@ -340,30 +338,13 @@ targets:
     scheme:
       testTargets:
         - VPNLibTests
-    buildToolPlugins:
-      # Generates the Swift code for the .proto files, as configured by each
-      # grpc-swift-proto-generator-config.json.
-      - plugin: GRPCProtobufGenerator
-        package: GRPCProtobuf
-    buildRules:
-      # Xcode only passes files in a build phase to build tool plugins, so the
-      # .proto files and plugin configs are in the sources phase. These no-op
-      # rules stop Xcode warning that it doesn't know how to compile them.
-      # Xcode requires them to have an output.
-      - name: Protobuf definitions
-        fileType: sourcecode.protobuf
-        script: touch "${SCRIPT_OUTPUT_FILE_0}"
-        outputFiles:
-          - "$(DERIVED_FILE_DIR)/$(INPUT_FILE_PATH:c99extidentifier).stamp"
-      - name: GRPCProtobufGenerator configs
-        fileType: text.json
-        script: touch "${SCRIPT_OUTPUT_FILE_0}"
-        outputFiles:
-          - "$(DERIVED_FILE_DIR)/$(INPUT_FILE_PATH:c99extidentifier).stamp"
     dependencies:
+      - package: Proto
+        product: VPNProto
+      - package: Proto
+        product: MutagenProto
       - package: SwiftProtobuf
       - package: GRPCCore
-      - package: GRPCProtobuf
       - package: GRPCNIOTransport
         product: GRPCNIOTransportHTTP2Posix
       - package: Subprocess

@@ -25,7 +25,7 @@ proto_prefix="pkg"
 # Right now, we only care about the synchronization and daemon management gRPC
 entry_files=("service/synchronization/synchronization.proto" "service/daemon/daemon.proto" "service/prompting/prompting.proto")
 
-out_folder="Coder-Desktop/VPNLib/FileSync/MutagenSDK"
+out_folder="Coder-Desktop/Proto/Sources/MutagenProto"
 
 clone_dir="/tmp/coder-desktop-mutagen-proto"
 if [ -d "$clone_dir" ]; then

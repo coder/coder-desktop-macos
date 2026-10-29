@@ -1,6 +1,7 @@
 import NetworkExtension
 import os
 import SwiftProtobuf
+import VPNProto
 
 public func convertDnsSettings(_ req: Vpn_NetworkSettingsRequest.DNSSettings) -> NEDNSSettings {
     let dnsSettings = NEDNSSettings(servers: req.servers)
