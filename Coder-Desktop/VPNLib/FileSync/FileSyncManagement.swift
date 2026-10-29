@@ -1,5 +1,3 @@
-import NIOCore
-
 public extension MutagenDaemon {
     func refreshSessions() async {
         guard case .running = state else { return }
@@ -29,27 +27,27 @@ public extension MutagenDaemon {
                 throw error
             }
         }
-        let (stream, promptID) = try await host(promptCallback: promptCallback)
-        defer { stream.cancel() }
-        let req = Synchronization_CreateRequest.with { req in
-            req.prompter = promptID
-            req.specification = .with { spec in
-                spec.alpha = arg.alpha.mutagenURL
-                spec.beta = arg.beta.mutagenURL
-                // TODO: Ingest configs from somewhere
-                spec.configuration = .with {
-                    // ALWAYS ignore VCS directories for now
-                    // https://mutagen.io/documentation/synchronization/version-control-systems/
-                    $0.ignoreVcsmode = .ignore
+        try await withPrompter(promptCallback: promptCallback) { promptID throws(DaemonError) in
+            let req = Synchronization_CreateRequest.with { req in
+                req.prompter = promptID
+                req.specification = .with { spec in
+                    spec.alpha = arg.alpha.mutagenURL
+                    spec.beta = arg.beta.mutagenURL
+                    // TODO: Ingest configs from somewhere
+                    spec.configuration = .with {
+                        // ALWAYS ignore VCS directories for now
+                        // https://mutagen.io/documentation/synchronization/version-control-systems/
+                        $0.ignoreVcsmode = .ignore
+                    }
+                    spec.configurationAlpha = Synchronization_Configuration()
+                    spec.configurationBeta = Synchronization_Configuration()
                 }
-                spec.configurationAlpha = Synchronization_Configuration()
-                spec.configurationBeta = Synchronization_Configuration()
             }
-        }
-        do {
-            _ = try await client!.sync.create(req, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout * 4)))
-        } catch {
-            throw .grpcFailure(error)
+            do {
+                _ = try await client!.sync.create(req, options: .timeout(sessionMgmtReqTimeout * 4))
+            } catch {
+                throw .grpcFailure(error)
+            }
         }
         await refreshSessions()
     }
@@ -57,9 +55,7 @@ public extension MutagenDaemon {
     func deleteSessions(ids: [String]) async throws(DaemonError) {
         // Terminating sessions does not require prompting, according to the
         // Mutagen CLI
-        do {
-            let (stream, promptID) = try await host(allowPrompts: false)
-            defer { stream.cancel() }
+        try await withPrompter(allowPrompts: false) { promptID throws(DaemonError) in
             guard case .running = state else { return }
             do {
                 _ = try await client!.sync.terminate(Synchronization_TerminateRequest.with { req in
@@ -67,7 +63,7 @@ public extension MutagenDaemon {
                     req.selection = .with { selection in
                         selection.specifications = ids
                     }
-                }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
+                }, options: .timeout(sessionMgmtReqTimeout))
             } catch {
                 throw .grpcFailure(error)
             }
@@ -82,54 +78,54 @@ public extension MutagenDaemon {
     func pauseSessions(ids: [String]) async throws(DaemonError) {
         // Pausing sessions does not require prompting, according to the
         // Mutagen CLI
-        let (stream, promptID) = try await host(allowPrompts: false)
-        defer { stream.cancel() }
-        guard case .running = state else { return }
-        do {
-            _ = try await client!.sync.pause(Synchronization_PauseRequest.with { req in
-                req.prompter = promptID
-                req.selection = .with { selection in
-                    selection.specifications = ids
-                }
-            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
-        } catch {
-            throw .grpcFailure(error)
+        try await withPrompter(allowPrompts: false) { promptID throws(DaemonError) in
+            guard case .running = state else { return }
+            do {
+                _ = try await client!.sync.pause(Synchronization_PauseRequest.with { req in
+                    req.prompter = promptID
+                    req.selection = .with { selection in
+                        selection.specifications = ids
+                    }
+                }, options: .timeout(sessionMgmtReqTimeout))
+            } catch {
+                throw .grpcFailure(error)
+            }
         }
         await refreshSessions()
     }
 
     func resumeSessions(ids: [String]) async throws(DaemonError) {
         // Resuming sessions does use prompting, as it may start a new SSH connection
-        let (stream, promptID) = try await host(allowPrompts: true)
-        defer { stream.cancel() }
-        guard case .running = state else { return }
-        do {
-            _ = try await client!.sync.resume(Synchronization_ResumeRequest.with { req in
-                req.prompter = promptID
-                req.selection = .with { selection in
-                    selection.specifications = ids
-                }
-            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
-        } catch {
-            throw .grpcFailure(error)
+        try await withPrompter(allowPrompts: true) { promptID throws(DaemonError) in
+            guard case .running = state else { return }
+            do {
+                _ = try await client!.sync.resume(Synchronization_ResumeRequest.with { req in
+                    req.prompter = promptID
+                    req.selection = .with { selection in
+                        selection.specifications = ids
+                    }
+                }, options: .timeout(sessionMgmtReqTimeout))
+            } catch {
+                throw .grpcFailure(error)
+            }
         }
         await refreshSessions()
     }
 
     func resetSessions(ids: [String]) async throws(DaemonError) {
         // Resetting a session involves pausing & resuming, so it does use prompting
-        let (stream, promptID) = try await host(allowPrompts: true)
-        defer { stream.cancel() }
-        guard case .running = state else { return }
-        do {
-            _ = try await client!.sync.reset(Synchronization_ResetRequest.with { req in
-                req.prompter = promptID
-                req.selection = .with { selection in
-                    selection.specifications = ids
-                }
-            }, callOptions: .init(timeLimit: .timeout(sessionMgmtReqTimeout)))
-        } catch {
-            throw .grpcFailure(error)
+        try await withPrompter(allowPrompts: true) { promptID throws(DaemonError) in
+            guard case .running = state else { return }
+            do {
+                _ = try await client!.sync.reset(Synchronization_ResetRequest.with { req in
+                    req.prompter = promptID
+                    req.selection = .with { selection in
+                        selection.specifications = ids
+                    }
+                }, options: .timeout(sessionMgmtReqTimeout))
+            } catch {
+                throw .grpcFailure(error)
+            }
         }
         await refreshSessions()
     }
