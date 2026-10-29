@@ -23,6 +23,12 @@ jobs:
   test:
     name: test
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
+    env:
+      # Depot's Xcode compilation caching remaps DerivedData to /^dd, which
+      # breaks the path swift-protobuf's protoc uses to find the well-known
+      # type protos (google/protobuf/*.proto) during codegen.
+      # See https://github.com/apple/swift-protobuf/pull/2060
+      DEPOT_XCODE_CACHE_ENABLED: 0
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
