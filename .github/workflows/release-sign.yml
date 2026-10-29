@@ -201,6 +201,9 @@ jobs:
       (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
     permissions:
       contents: read
+    env:
+      # See the test job in ci.yml.
+      DEPOT_XCODE_CACHE_ENABLED: 0
     outputs:
       app-sha256: ${{ steps.checksums.outputs.app }}
       dsyms-sha256: ${{ steps.checksums.outputs.dsyms }}
