@@ -1,4 +1,5 @@
 import Foundation
+import VPNProto
 
 public struct TelemetryEnricher {
     private let deviceID: String

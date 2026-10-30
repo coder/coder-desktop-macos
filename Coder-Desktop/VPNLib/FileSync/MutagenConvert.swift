@@ -1,3 +1,5 @@
+internal import MutagenProto
+
 // swiftlint:disable:next cyclomatic_complexity
 func convertSessionStatus(status: Synchronization_Status) -> FileSyncStatus {
     switch status {

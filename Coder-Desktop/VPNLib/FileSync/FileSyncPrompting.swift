@@ -1,58 +1,82 @@
-import GRPC
+internal import MutagenProto
+import GRPCCore
 
 extension MutagenDaemon {
-    typealias PromptStream = GRPCAsyncBidirectionalStreamingCall<Prompting_HostRequest, Prompting_HostResponse>
-
-    func host(
+    /// Hosts a prompter on the daemon for the duration of `body`, which is
+    /// passed the prompter identifier to include in requests that may prompt.
+    func withPrompter<T>(
         allowPrompts: Bool = true,
-        promptCallback: (@MainActor (String) -> Void)? = nil
-    ) async throws(DaemonError) -> (PromptStream, identifier: String) {
-        let stream = client!.prompt.makeHostCall()
+        promptCallback: (@MainActor (String) -> Void)? = nil,
+        _ body: (_ promptID: String) async throws(DaemonError) -> T
+    ) async throws(DaemonError) -> T {
+        let (replies, replyContinuation) = AsyncStream.makeStream(of: Prompting_HostRequest.self)
+        let (identifier, identifierContinuation) = AsyncThrowingStream.makeStream(of: String.self)
+        let prompt = client!.prompt
+        let logger = logger
 
-        do {
-            try await stream.requestStream.send(.with { req in req.allowPrompts = allowPrompts })
-        } catch {
-            throw .grpcFailure(error)
-        }
-
-        // We can't make call `makeAsyncIterator` more than once
-        // (as a for-loop would do implicitly)
-        var iter = stream.responseStream.makeAsyncIterator()
-
-        let initResp: Prompting_HostResponse?
-        do {
-            initResp = try await iter.next()
-        } catch {
-            throw .grpcFailure(error)
-        }
-        guard let initResp else {
-            throw .unexpectedStreamClosure
-        }
-        try initResp.ensureValid(first: true, allowPrompts: allowPrompts)
-
-        Task.detached(priority: .background) {
+        let hostTask = Task.detached(priority: .background) {
             do {
-                while let msg = try await iter.next() {
-                    try msg.ensureValid(first: false, allowPrompts: allowPrompts)
-                    var reply: Prompting_HostRequest = .init()
-                    if msg.isPrompt {
-                        // Handle SSH key prompts
-                        if msg.message.contains("yes/no/[fingerprint]") {
-                            reply.response = "yes"
-                        }
-                        // Any other messages that require a non-empty response will
-                        // cause the create op to fail, showing an error. This is ok for now.
-                    } else {
-                        Task { @MainActor in promptCallback?(msg.message) }
+                try await prompt.host { writer in
+                    try await writer.write(.with { req in req.allowPrompts = allowPrompts })
+                    for await reply in replies {
+                        try await writer.write(reply)
                     }
-                    try await stream.requestStream.send(reply)
+                } onResponse: { response in
+                    var first = true
+                    for try await msg in response.messages {
+                        try msg.ensureValid(first: first, allowPrompts: allowPrompts)
+                        if first {
+                            first = false
+                            identifierContinuation.yield(msg.identifier)
+                            continue
+                        }
+                        replyContinuation.yield(reply(to: msg, promptCallback: promptCallback))
+                    }
                 }
-            } catch let error as GRPCStatus where error.code == .cancelled {
-                return
+                identifierContinuation.finish()
             } catch {
-                self.logger.critical("Prompt stream failed: \(error)")
+                identifierContinuation.finish(throwing: error)
+                // The stream is cancelled once `body` returns
+                if !Task.isCancelled {
+                    logger.critical("Prompt stream failed: \(error)")
+                }
             }
         }
-        return (stream, identifier: initResp.identifier)
+        defer {
+            replyContinuation.finish()
+            hostTask.cancel()
+        }
+
+        let promptID: String?
+        do {
+            var iter = identifier.makeAsyncIterator()
+            promptID = try await iter.next()
+        } catch let error as DaemonError {
+            throw error
+        } catch {
+            throw .grpcFailure(error)
+        }
+        guard let promptID else {
+            throw .unexpectedStreamClosure
+        }
+        return try await body(promptID)
     }
+}
+
+private func reply(
+    to msg: Prompting_HostResponse,
+    promptCallback: (@MainActor (String) -> Void)?
+) -> Prompting_HostRequest {
+    var reply: Prompting_HostRequest = .init()
+    if msg.isPrompt {
+        // Handle SSH key prompts
+        if msg.message.contains("yes/no/[fingerprint]") {
+            reply.response = "yes"
+        }
+        // Any other messages that require a non-empty response will
+        // cause the create op to fail, showing an error. This is ok for now.
+    } else {
+        Task { @MainActor in promptCallback?(msg.message) }
+    }
+    return reply
 }

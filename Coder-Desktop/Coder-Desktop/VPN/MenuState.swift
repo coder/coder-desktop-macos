@@ -2,6 +2,7 @@ import Foundation
 import SwiftProtobuf
 import SwiftUI
 import VPNLib
+import VPNProto
 
 struct Agent: Identifiable, Equatable, Comparable, Hashable {
     let id: UUID
