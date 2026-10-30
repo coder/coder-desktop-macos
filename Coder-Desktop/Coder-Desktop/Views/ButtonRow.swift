@@ -1,19 +1,19 @@
 import SwiftUI
 
 struct ButtonRowView<Label: View>: View {
-    init(highlightColor: Color = .accentColor, isSelected: Bool = false, label: @escaping () -> Label) {
+    init(highlightColor: Color = .accentColor, isSelected: Bool = false, @ViewBuilder label: () -> Label) {
         self.highlightColor = highlightColor
-        self.isSelected = isSelected
-        self.label = label
+        _isSelected = State(initialValue: isSelected)
+        self.label = label()
     }
 
     let highlightColor: Color
-    @State private var isSelected: Bool = false
-    @ViewBuilder var label: () -> Label
+    @State private var isSelected: Bool
+    let label: Label
 
     var body: some View {
         HStack(spacing: 0) {
-            label()
+            label
             Spacer()
         }
         .padding(.horizontal, Theme.Size.trayPadding)
