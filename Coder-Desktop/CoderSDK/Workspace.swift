@@ -43,12 +43,21 @@ public struct WorkspaceResource: Codable, Identifiable, Sendable {
 public struct WorkspaceAgent: Codable, Identifiable, Sendable {
     public let id: UUID
     public let expanded_directory: String? // `omitempty`
+    /// Set for sub-agents, such as dev containers.
+    public let parent_id: UUID?
     public let apps: [WorkspaceApp]
     public let display_apps: [DisplayApp]
 
-    public init(id: UUID, expanded_directory: String?, apps: [WorkspaceApp], display_apps: [DisplayApp]) {
+    public init(
+        id: UUID,
+        expanded_directory: String?,
+        parent_id: UUID?,
+        apps: [WorkspaceApp],
+        display_apps: [DisplayApp]
+    ) {
         self.id = id
         self.expanded_directory = expanded_directory
+        self.parent_id = parent_id
         self.apps = apps
         self.display_apps = display_apps
     }

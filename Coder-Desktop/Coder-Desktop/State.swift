@@ -79,6 +79,16 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Lowercase schemes of app links the user chose to open without confirmation.
+    @Published var trustedAppSchemes: Set<String> = Set(
+        UserDefaults.standard.stringArray(forKey: Keys.trustedAppSchemes) ?? []
+    ) {
+        didSet {
+            guard persistent else { return }
+            UserDefaults.standard.set(Array(trustedAppSchemes), forKey: Keys.trustedAppSchemes)
+        }
+    }
+
     func tunnelProviderProtocol() -> NETunnelProviderProtocol? {
         if !hasSession { return nil }
         let proto = NETunnelProviderProtocol()
@@ -171,6 +181,10 @@ class AppState: ObservableObject {
         }
     }
 
+    /// The deployment's access URL from build info. Not saved, since an admin
+    /// can change it.
+    @Published var dashboardURL: URL?
+
     private var refreshTask: Task<String?, Never>?
     public func refreshDeploymentConfig() async {
         // Client is non-nil if there's a sesssion
@@ -191,12 +205,18 @@ class AppState: ObservableObject {
             }
 
             hostnameSuffix = await refreshTask?.value ?? Self.defaultHostnameSuffix
+            do {
+                dashboardURL = try await client.buildInfo().dashboard_url
+            } catch {
+                logger.error("failed to get build info: \(error)")
+            }
         }
     }
 
     public func clearSession() {
         hasSession = false
         sessionToken = nil
+        dashboardURL = nil
         refreshTask?.cancel()
         client = nil
         reconfigure()
@@ -228,6 +248,7 @@ class AppState: ObservableObject {
 
         static let dangerousDisableCoderSignatureValidation = "DangerousDisableCoderSignatureValidation"
         static let skipHiddenIconAlert = "SkipHiddenIconAlert"
+        static let trustedAppSchemes = "TrustedAppSchemes"
     }
 }
 
