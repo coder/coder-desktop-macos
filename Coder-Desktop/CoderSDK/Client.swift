@@ -203,7 +203,7 @@ func responseAsError(_ resp: HTTPResponse) -> SDKError {
     }
 }
 
-// Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
+/// Wrapper around JSONDecoder.decode that displays useful error messages from `DecodingError`.
 func decode<T: Decodable>(_: T.Type, from data: Data) throws(SDKError) -> T {
     do {
         return try decoder.decode(T.self, from: data)

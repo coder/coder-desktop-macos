@@ -3,12 +3,12 @@ import NetworkExtension
 import os
 import VPNLib
 
-/* From <sys/kern_control.h> */
+/** From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
 
 class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "provider")
-    // a `tunnelRemoteAddress` is required, but not currently used.
+    /// a `tunnelRemoteAddress` is required, but not currently used.
     private var currentSettings: NEPacketTunnelNetworkSettings = .init(tunnelRemoteAddress: "127.0.0.1")
 
     var tunnelFileDescriptor: Int32? {
@@ -90,7 +90,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         }
     }
 
-    // Wrapper around `setTunnelNetworkSettings` that supports merging updates
+    /// Wrapper around `setTunnelNetworkSettings` that supports merging updates
     func applyTunnelNetworkSettings(_ diff: Vpn_NetworkSettingsRequest) async throws {
         logger.debug("applying settings diff: \(diff.debugDescription, privacy: .public)")
 

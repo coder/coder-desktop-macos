@@ -4,7 +4,6 @@ import os
 import Testing
 
 @MainActor
-@Suite
 struct WorkspaceAppTests {
     let logger = Logger(subsystem: "com.coder.Coder-Desktop-Tests", category: "WorkspaceAppTests")
     let baseAccessURL = URL(string: "https://coder.example.com")!
@@ -12,15 +11,15 @@ struct WorkspaceAppTests {
     let host = "test-workspace.coder.test"
 
     @Test
-    func testCreateWorkspaceApp_Success() throws {
-        let sdkApp = CoderSDK.WorkspaceApp(
+    func createWorkspaceApp_Success() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo")!,
+            url: #require(URL(string: "vscode://myworkspace.coder/foo")),
             external: true,
             slug: "test-app",
             display_name: "Test App",
             command: nil,
-            icon: URL(string: "/icon/test-app.svg")!,
+            icon: #require(URL(string: "/icon/test-app.svg")),
             subdomain: false,
             subdomain_name: nil
         )
@@ -38,15 +37,15 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testCreateWorkspaceApp_SessionTokenReplacement() throws {
-        let sdkApp = CoderSDK.WorkspaceApp(
+    func createWorkspaceApp_SessionTokenReplacement() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo?token=$SESSION_TOKEN")!,
+            url: #require(URL(string: "vscode://myworkspace.coder/foo?token=$SESSION_TOKEN")),
             external: true,
             slug: "token-app",
             display_name: "Token App",
             command: nil,
-            icon: URL(string: "/icon/test-app.svg")!,
+            icon: #require(URL(string: "/icon/test-app.svg")),
             subdomain: false,
             subdomain_name: nil
         )
@@ -63,7 +62,7 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testCreateWorkspaceApp_MissingURL() throws {
+    func createWorkspaceApp_MissingURL() throws {
         let sdkApp = CoderSDK.WorkspaceApp(
             id: UUID(),
             url: nil,
@@ -86,10 +85,10 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testCreateWorkspaceApp_CommandApp() throws {
-        let sdkApp = CoderSDK.WorkspaceApp(
+    func createWorkspaceApp_CommandApp() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo")!,
+            url: #require(URL(string: "vscode://myworkspace.coder/foo")),
             external: true,
             slug: "command-app",
             display_name: "Command App",
@@ -109,7 +108,7 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testDisplayApps_VSCode() throws {
+    func displayApps_VSCode() {
         let agent = createMockAgent(displayApps: [.vscode, .web_terminal, .ssh_helper, .port_forwarding_helper])
 
         let apps = agentToApps(logger, agent, host, baseAccessURL, sessionToken)
@@ -122,7 +121,7 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testDisplayApps_VSCodeInsiders() throws {
+    func displayApps_VSCodeInsiders() {
         let agent = createMockAgent(
             displayApps: [
                 .vscode_insiders,
@@ -146,15 +145,15 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testCreateWorkspaceApp_WebAppFilter() throws {
-        let sdkApp = CoderSDK.WorkspaceApp(
+    func createWorkspaceApp_WebAppFilter() throws {
+        let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "https://myworkspace.coder/foo")!,
+            url: #require(URL(string: "https://myworkspace.coder/foo")),
             external: false,
             slug: "web-app",
             display_name: "Web App",
             command: nil,
-            icon: URL(string: "/icon/web-app.svg")!,
+            icon: #require(URL(string: "/icon/web-app.svg")),
             subdomain: false,
             subdomain_name: nil
         )
@@ -169,35 +168,35 @@ struct WorkspaceAppTests {
     }
 
     @Test
-    func testAgentToApps_MultipleApps() throws {
-        let sdkApp1 = CoderSDK.WorkspaceApp(
+    func agentToApps_MultipleApps() throws {
+        let sdkApp1 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo1")!,
+            url: #require(URL(string: "vscode://myworkspace.coder/foo1")),
             external: true,
             slug: "app1",
             display_name: "App 1",
             command: nil,
-            icon: URL(string: "/icon/foo1.svg")!,
+            icon: #require(URL(string: "/icon/foo1.svg")),
             subdomain: false,
             subdomain_name: nil
         )
 
-        let sdkApp2 = CoderSDK.WorkspaceApp(
+        let sdkApp2 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "jetbrains://myworkspace.coder/foo2")!,
+            url: #require(URL(string: "jetbrains://myworkspace.coder/foo2")),
             external: true,
             slug: "app2",
             display_name: "App 2",
             command: nil,
-            icon: URL(string: "/icon/foo2.svg")!,
+            icon: #require(URL(string: "/icon/foo2.svg")),
             subdomain: false,
             subdomain_name: nil
         )
 
         // Command app; skipped
-        let sdkApp3 = CoderSDK.WorkspaceApp(
+        let sdkApp3 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "vscode://myworkspace.coder/foo3")!,
+            url: #require(URL(string: "vscode://myworkspace.coder/foo3")),
             external: true,
             slug: "app3",
             display_name: "App 3",
@@ -208,14 +207,14 @@ struct WorkspaceAppTests {
         )
 
         // Web app skipped
-        let sdkApp4 = CoderSDK.WorkspaceApp(
+        let sdkApp4 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: URL(string: "https://myworkspace.coder/foo4")!,
+            url: #require(URL(string: "https://myworkspace.coder/foo4")),
             external: true,
             slug: "app4",
             display_name: "App 4",
             command: nil,
-            icon: URL(string: "/icon/foo4.svg")!,
+            icon: #require(URL(string: "/icon/foo4.svg")),
             subdomain: false, subdomain_name: nil
         )
 

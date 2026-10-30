@@ -8,9 +8,15 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    # The protoc plugins must stay in lockstep with the SwiftProtobuf and
+    # grpc-swift (v1) runtime versions pinned in Coder-Desktop/project.yml.
+    # They're built from source with nixpkgs' Swift toolchain, which newer
+    # nixpkgs no longer supports on Darwin, so they get their own pin that's
+    # independent of the rest of the toolchain.
+    nixpkgs-grpc-swift.url = "github:nixos/nixpkgs/698214a32beb4f4c8e3942372c694f40848b360d";
     grpc-swift = {
       url = "github:i10416/grpc-swift-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-grpc-swift";
       inputs.flake-parts.follows = "flake-parts";
     };
   };
@@ -34,7 +40,7 @@
             inherit system;
           };
 
-          formatter = pkgs.nixfmt-rfc-style;
+          formatter = pkgs.nixfmt;
         in
         {
           inherit formatter;
@@ -49,7 +55,7 @@
                 gh
                 git
                 gnumake
-                protobuf_28
+                protobuf_36
                 grpc-swift.packages.${system}.protoc-gen-grpc-swift
                 grpc-swift.packages.${system}.protoc-gen-swift
                 swiftformat

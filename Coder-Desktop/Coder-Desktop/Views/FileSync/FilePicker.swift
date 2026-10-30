@@ -82,8 +82,8 @@ class FilePickerModel: ObservableObject {
     @Published private(set) var rootIsLoading: Bool = false
     @Published private(set) var error: SDKError?
 
-    // It's important that `AgentClient` is a reference type (class)
-    // as we were having performance issues with a struct (unless it was a binding).
+    /// It's important that `AgentClient` is a reference type (class)
+    /// as we were having performance issues with a struct (unless it was a binding).
     let client: AgentClient
 
     init(host: String) {
@@ -111,15 +111,13 @@ struct FilePickerEntry: View {
     let showHiddenFiles: Bool
 
     var body: some View {
-        Group {
-            if entry.dir {
-                directory
-            } else {
-                Label(entry.name, systemImage: "doc")
-                    .help(entry.absolute_path)
-                    .selectionDisabled()
-                    .foregroundColor(.secondary)
-            }
+        if entry.dir {
+            directory
+        } else {
+            Label(entry.name, systemImage: "doc")
+                .help(entry.absolute_path)
+                .selectionDisabled()
+                .foregroundColor(.secondary)
         }
     }
 
@@ -229,8 +227,8 @@ class FilePickerEntryModel: Identifiable, Hashable, ObservableObject {
     }
 }
 
+@MainActor
 extension LSResponse {
-    @MainActor
     func toModels(client: AgentClient) -> [FilePickerEntryModel] {
         contents.map { entry in
             FilePickerEntryModel(

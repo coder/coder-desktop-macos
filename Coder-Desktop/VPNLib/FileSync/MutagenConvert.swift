@@ -93,7 +93,7 @@ extension Prompting_HostResponse {
     }
 }
 
-// Translated from `cmd/mutagen/sync/list_monitor_common.go`
+/// Translated from `cmd/mutagen/sync/list_monitor_common.go`
 func formatConflicts(conflicts: [Core_Conflict], excludedConflicts: UInt64) -> String {
     var result = ""
     for (i, conflict) in conflicts.enumerated() {

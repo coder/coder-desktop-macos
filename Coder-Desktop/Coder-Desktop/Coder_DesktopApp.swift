@@ -141,8 +141,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 
-    // This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
-    // or return `.terminateNow`
+    /// This function MUST eventually call `NSApp.reply(toApplicationShouldTerminate: true)`
+    /// or return `.terminateNow`
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         Task {
             async let vpnTask: Void = {
@@ -214,15 +214,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "OK")
         let response = alert.runModal()
         state.skipHiddenIconAlert = suppressCheckbox.state == .on
-        if #available(macOS 26, *), response == .alertFirstButtonReturn {
-            // We'll need to ensure this continues to work in future macOS versions
-            if !NSWorkspace.shared.open(
-                URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension?MenuBar")!
-            ) {
-                NSWorkspace.shared.open(
-                    URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension")!
-                )
-            }
+        if #available(macOS 26, *), response == .alertFirstButtonReturn,
+           // We'll need to ensure this continues to work in future macOS versions
+           !NSWorkspace.shared.open(
+               URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension?MenuBar")!
+           )
+        {
+            NSWorkspace.shared.open(
+                URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension")!
+            )
         }
     }
 }

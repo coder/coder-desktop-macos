@@ -42,10 +42,7 @@ public struct ProtoVersion: CustomStringConvertible, Equatable, Comparable, Coda
         if parts.count != 2 {
             throw .invalidVersion(str)
         }
-        guard let major = parts[0] else {
-            throw .invalidVersion(str)
-        }
-        guard let minor = parts[1] else {
+        guard let major = parts[0], let minor = parts[1] else {
             throw .invalidVersion(str)
         }
         self.major = major
@@ -167,7 +164,8 @@ extension Speaker: AsyncSequence, AsyncIteratorProtocol {
                     try await secretary.route(reply: msg)
                 } catch {
                     logger.error(
-                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)")
+                        "couldn't route RPC reply for \(msg.rpc.responseTo): \(error)"
+                    )
                 }
                 continue
             }
@@ -239,7 +237,7 @@ actor Handshaker {
         }
     }
 
-    // resumes must only ever throw HandshakeError
+    /// resumes must only ever throw HandshakeError
     private func handleRead(_: Bool, _ data: DispatchData?, _ error: Int32) {
         guard error == 0 else {
             let errStrPtr = strerror(error)

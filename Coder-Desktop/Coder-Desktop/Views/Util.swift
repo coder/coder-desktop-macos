@@ -1,7 +1,7 @@
 import Combine
 import SwiftUI
 
-// This is required for inspecting stateful views
+/// This is required for inspecting stateful views
 final class Inspection<V> {
     let notice = PassthroughSubject<UInt, Never>()
     var callbacks = [UInt: (V) -> Void]()
