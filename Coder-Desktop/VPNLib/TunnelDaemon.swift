@@ -70,7 +70,7 @@ public actor TunnelDaemon {
 
     deinit { logger.debug("tunnel daemon deinit") }
 
-    // This could be an isolated deinit in Swift 6.1
+    /// This could be an isolated deinit in Swift 6.1
     public func close() throws(TunnelDaemonError) {
         state = .stopped
 

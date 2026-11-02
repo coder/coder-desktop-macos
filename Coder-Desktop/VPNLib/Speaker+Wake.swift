@@ -10,7 +10,8 @@ public extension Speaker where SendMsg == Vpn_ManagerMessage, RecvMsg == Vpn_Tun
             _ = try await unaryRPC(
                 .with { msg in
                     msg.wake = .init()
-                })
+                }
+            )
         } catch {
             throw .failedRPC(error)
         }

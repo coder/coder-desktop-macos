@@ -98,8 +98,8 @@ extension CircularProgressView {
     }
 }
 
-// We note a constant >10% CPU usage when using a SwiftUI rotation animation that
-// repeats forever, while this implementation, using Core Animation, uses <1% CPU.
+/// We note a constant >10% CPU usage when using a SwiftUI rotation animation that
+/// repeats forever, while this implementation, using Core Animation, uses <1% CPU.
 struct IndeterminateSpinnerView: NSViewRepresentable {
     var diameter: CGFloat
     var strokeWidth: CGFloat

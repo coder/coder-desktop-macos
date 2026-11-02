@@ -3,7 +3,7 @@ import NetworkExtension
 import os
 import VPNLib
 
-// This is the client for the app to communicate with the privileged helper.
+/// This is the client for the app to communicate with the privileged helper.
 @objc final class HelperXPCClient: NSObject, @unchecked Sendable {
     private var svc: CoderVPNService
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "HelperXPCClient")
@@ -43,7 +43,7 @@ import VPNLib
         return connection
     }
 
-    // Establishes a connection to the Helper, so it can send messages back.
+    /// Establishes a connection to the Helper, so it can send messages back.
     func ping() async throws {
         let conn = connect()
         return try await withCheckedThrowingContinuation { continuation in
@@ -83,7 +83,7 @@ import VPNLib
     }
 }
 
-// These methods are called by the Helper over XPC
+/// These methods are called by the Helper over XPC
 extension HelperXPCClient: AppXPCInterface {
     func onPeerUpdate(_ diff: Data, reply: @escaping () -> Void) {
         let reply = CompletionWrapper(reply)

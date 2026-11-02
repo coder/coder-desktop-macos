@@ -16,14 +16,14 @@ final class Coder_DesktopUITests: XCTestCase {
     }
 
     @MainActor
-    func testStatusItemExists() throws {
+    func testStatusItemExists() {
         let app = XCUIApplication()
         app.launch()
         app.statusItems.firstMatch.tap()
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
+    func testLaunchPerformance() {
         if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
             // This measures how long it takes to launch your application.
             measure(metrics: [XCTApplicationLaunchMetric()]) {
