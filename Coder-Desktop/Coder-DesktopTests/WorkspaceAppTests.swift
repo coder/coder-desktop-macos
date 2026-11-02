@@ -17,12 +17,12 @@ struct WorkspaceAppTests {
     func createWorkspaceApp_Success() throws {
         let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "vscode://myworkspace.coder/foo")),
+            url: #require(URL(string: "vscode://myworkspace.coder/foo")) as URL,
             external: true,
             slug: "test-app",
             display_name: "Test App",
             command: nil,
-            icon: #require(URL(string: "/icon/test-app.svg")),
+            icon: #require(URL(string: "/icon/test-app.svg")) as URL,
             subdomain: false,
             subdomain_name: nil
         )
@@ -43,12 +43,12 @@ struct WorkspaceAppTests {
     func createWorkspaceApp_SessionTokenReplacement() throws {
         let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "vscode://coder.coder-remote/open?url=https://coder.example.com&token=$SESSION_TOKEN")),
+            url: #require(URL(string: "vscode://coder.coder-remote/open?url=https://coder.example.com&token=$SESSION_TOKEN")) as URL,
             external: true,
             slug: "token-app",
             display_name: "Token App",
             command: nil,
-            icon: #require(URL(string: "/icon/test-app.svg")),
+            icon: #require(URL(string: "/icon/test-app.svg")) as URL,
             subdomain: false,
             subdomain_name: nil
         )
@@ -92,7 +92,7 @@ struct WorkspaceAppTests {
     func createWorkspaceApp_CommandApp() throws {
         let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "vscode://myworkspace.coder/foo")),
+            url: #require(URL(string: "vscode://myworkspace.coder/foo")) as URL,
             external: true,
             slug: "command-app",
             display_name: "Command App",
@@ -152,12 +152,12 @@ struct WorkspaceAppTests {
     func createWorkspaceApp_WebAppFilter() throws {
         let sdkApp = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "https://myworkspace.coder/foo")),
+            url: #require(URL(string: "https://myworkspace.coder/foo")) as URL,
             external: false,
             slug: "web-app",
             display_name: "Web App",
             command: nil,
-            icon: #require(URL(string: "/icon/web-app.svg")),
+            icon: #require(URL(string: "/icon/web-app.svg")) as URL,
             subdomain: false,
             subdomain_name: nil
         )
@@ -174,24 +174,24 @@ struct WorkspaceAppTests {
     func agentToApps_MultipleApps() throws {
         let sdkApp1 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "vscode://myworkspace.coder/foo1")),
+            url: #require(URL(string: "vscode://myworkspace.coder/foo1")) as URL,
             external: true,
             slug: "app1",
             display_name: "App 1",
             command: nil,
-            icon: #require(URL(string: "/icon/foo1.svg")),
+            icon: #require(URL(string: "/icon/foo1.svg")) as URL,
             subdomain: false,
             subdomain_name: nil
         )
 
         let sdkApp2 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "jetbrains://myworkspace.coder/foo2")),
+            url: #require(URL(string: "jetbrains://myworkspace.coder/foo2")) as URL,
             external: true,
             slug: "app2",
             display_name: "App 2",
             command: nil,
-            icon: #require(URL(string: "/icon/foo2.svg")),
+            icon: #require(URL(string: "/icon/foo2.svg")) as URL,
             subdomain: false,
             subdomain_name: nil
         )
@@ -199,7 +199,7 @@ struct WorkspaceAppTests {
         // Command app; skipped
         let sdkApp3 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "vscode://myworkspace.coder/foo3")),
+            url: #require(URL(string: "vscode://myworkspace.coder/foo3")) as URL,
             external: true,
             slug: "app3",
             display_name: "App 3",
@@ -212,12 +212,12 @@ struct WorkspaceAppTests {
         // Web app skipped
         let sdkApp4 = try CoderSDK.WorkspaceApp(
             id: UUID(),
-            url: #require(URL(string: "https://myworkspace.coder/foo4")),
+            url: #require(URL(string: "https://myworkspace.coder/foo4")) as URL,
             external: true,
             slug: "app4",
             display_name: "App 4",
             command: nil,
-            icon: #require(URL(string: "/icon/foo4.svg")),
+            icon: #require(URL(string: "/icon/foo4.svg")) as URL,
             subdomain: false, subdomain_name: nil
         )
 
@@ -248,7 +248,7 @@ struct WorkspaceAppTests {
 extension WorkspaceAppTests {
     private func externalApp(_ url: String) throws -> CoderSDK.WorkspaceApp {
         try CoderSDK.WorkspaceApp(
-            id: UUID(), url: #require(URL(string: url)), external: true, slug: "app", display_name: "App",
+            id: UUID(), url: #require(URL(string: url)) as URL, external: true, slug: "app", display_name: "App",
             command: nil, icon: nil, subdomain: false, subdomain_name: nil
         )
     }
@@ -268,7 +268,7 @@ extension WorkspaceAppTests {
         let sdkApp = try externalApp("vscode://coder.coder-remote/open?url=https://dogfood.example&token=$SESSION_TOKEN")
         let session = try CoderSession(
             baseAccessURL: baseAccessURL,
-            dashboardURL: #require(URL(string: "https://dogfood.example/")),
+            dashboardURL: #require(URL(string: "https://dogfood.example/")) as URL,
             sessionToken: sessionToken
         )
 
