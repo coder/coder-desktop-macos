@@ -5,7 +5,7 @@ lockfile = true
 
 [tools]
 actionlint = "1.7.12"
-gh = "2.103.2"
+gh = "latest"
 # The Makefile needs GNU Make 3.82+ for .SHELLFLAGS, but macOS ships 3.81.
 make = "4.4.1"
 swiftformat = "0.64.3"
