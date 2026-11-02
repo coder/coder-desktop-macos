@@ -2,6 +2,10 @@
 SHELL := bash
 .SHELLFLAGS := -ceu
 
+ifeq ($(filter oneshell,$(.FEATURES)),)
+$(error GNU Make 3.82 or later is required for .SHELLFLAGS, but this is $(MAKE_VERSION). Install the tools with mise, see CONTRIBUTING.md)
+endif
+
 # This doesn't work on directories.
 # See https://stackoverflow.com/questions/25752543/make-delete-on-error-for-directory-targets
 .DELETE_ON_ERROR:
