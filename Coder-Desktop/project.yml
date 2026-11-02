@@ -139,6 +139,9 @@ packages:
   URLRouting:
     url: https://github.com/pointfreeco/swift-url-routing
     exactVersion: 0.7.0
+  CasePaths:
+    url: https://github.com/pointfreeco/swift-case-paths
+    exactVersion: 1.10.0
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.1
@@ -351,6 +354,7 @@ targets:
       - package: Subprocess
       - package: Semaphore
       - package: URLRouting
+      - package: CasePaths
       - target: CoderSDK
         embed: false
 
