@@ -27,14 +27,22 @@ related to missing path setups or other tooling installation problems. For
 example, a Homebrew `swiftformat` may format the code differently from CI.
 
 1. [Install mise](https://mise.jdx.dev/installing-mise.html).
-2. [Activate mise in your shell](https://mise.jdx.dev/getting-started.html#activate-mise),
-   so the pinned tools are on your `PATH` whenever you are in the project
-   directory.
+2. From the project directory, [trust](https://mise.jdx.dev/cli/trust.html) its
+   `mise.toml`. mise asks for this because the file changes mise settings:
+
+   ```bash
+   mise trust
+   ```
+
 3. Install the tools:
 
    ```bash
    mise install
    ```
+
+4. [Activate mise in your shell](https://mise.jdx.dev/getting-started.html#activate-mise),
+   so the pinned tools are on your `PATH` whenever you are in the project
+   directory.
 
 ## Generating the Xcode Project Files
 
