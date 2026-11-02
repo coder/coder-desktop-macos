@@ -173,6 +173,7 @@ targets:
         DEVELOPMENT_ASSET_PATHS: '"Coder-Desktop/Preview Content"' # Adds development assets.
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_PREVIEWS: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
         SWIFT_EMIT_LOC_STRINGS: YES
