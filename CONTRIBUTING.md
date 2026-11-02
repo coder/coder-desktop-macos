@@ -17,61 +17,24 @@ and bundle identifiers.
 
 ## Setting Up the Development Environment
 
-To ensure a consistent and reliable development environment, we recommend using
-[**Nix**](https://nix.dev/) with Flake support. All the tools required for
-development are defined in the `flake.nix` file.
+To ensure a consistent and reliable development environment, we use
+[**mise**](https://mise.jdx.dev/) to install the tools required for development.
+Their versions are pinned in `mise.toml`.
 
-**Note:** Nix is the only supported development environment for this project.
-While setups outside of Nix may work, we do not support custom tool installations
-or address issues related to missing path setups or other tooling installation
-problems. Using Nix ensures consistency across development environments and avoids
-these potential issues.
+**Note:** mise is the only supported way to install these tools. While other
+setups may work, we do not support custom tool installations or address issues
+related to missing path setups or other tooling installation problems. For
+example, a Homebrew `swiftformat` may format the code differently from CI.
 
-### Installing Nix with Flakes Enabled
-
-If you don’t already have Nix installed, you can:
-
-1. Use the [Determinate Systems installer](https://nixinstaller.com/) for a
-   simple setup.
-2. Alternatively, use the [official installer](https://nixos.org/download.html)
-   and enable Flake support by adding the following to your Nix configuration:
-
-   ```nix
-   experimental-features = nix-command flakes
-   ```
-
-This project does **not** support non-Flake versions of Nix.
-
-### Entering the Development Environment
-
-Run the following command to enter the development environment with all necessary
-tools:
-
-```bash
-nix develop
-```
-
-### Using `direnv` for Environment Automation (Optional)
-
-As an optional recommendation, you can use [`direnv`](https://direnv.net/) to
-automatically load and unload the Nix development environment when you navigate
-to the project directory. After installing `direnv`, enable it for this project by:
-
-1. Adding the following line to your `.envrc` file in the project directory:
+1. [Install mise](https://mise.jdx.dev/installing-mise.html).
+2. [Activate mise in your shell](https://mise.jdx.dev/getting-started.html#activate-mise),
+   so the pinned tools are on your `PATH` whenever you are in the project
+   directory.
+3. Install the tools:
 
    ```bash
-   use flake
+   mise install
    ```
-
-2. Allowing the `.envrc` file by running:
-
-   ```bash
-   direnv allow
-   ```
-
-With `direnv`, the development environment will automatically be set up whenever
-you enter the project directory. This step is optional but can significantly
-streamline your workflow.
 
 ## Generating the Xcode Project Files
 

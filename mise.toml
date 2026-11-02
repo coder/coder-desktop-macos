@@ -1,0 +1,16 @@
+min_version = "2026.10.19"
+
+[settings]
+lockfile = true
+
+[tools]
+actionlint = "1.7.12"
+gh = "2.103.2"
+# The Makefile needs GNU Make 3.82+ for .SHELLFLAGS, but macOS ships 3.81.
+make = "4.4.1"
+swiftformat = "0.64.3"
+swiftlint = "0.65.1"
+watchexec = "2.5.1"
+xcbeautify = "3.2.1"
+xcodegen = "2.44.1"
+zizmor = "1.31.1"

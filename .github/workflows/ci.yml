@@ -42,8 +42,8 @@ jobs:
         with:
           xcode-version: "26.5.0"
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make test
 
@@ -63,8 +63,8 @@ jobs:
         with:
           xcode-version: "26.5.0"
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make fmt
 
@@ -79,8 +79,8 @@ jobs:
           fetch-tags: true
           persist-credentials: false
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make lint
         env:
