@@ -236,6 +236,11 @@ targets:
             # Skip in CI
             exit 0
           fi
+          if [ "${CODE_SIGNING_ALLOWED}" = "NO" ]; then
+            # Signing-free builds (e.g. `make test`) can't produce a helper
+            # the app will accept over XPC, so don't install one.
+            exit 0
+          fi
           /usr/bin/osascript <<'APPLESCRIPT'
           do shell script "/bin/bash -c " & quoted form of ((system attribute "SRCROOT") & "/../scripts/upsert-dev-helper.sh") with administrator privileges
           APPLESCRIPT
