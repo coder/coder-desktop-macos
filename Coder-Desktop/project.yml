@@ -8,6 +8,13 @@ options:
   fileTypes:
     "icon":
       file: true
+  # XcodeGen adds every local package as both a package and a folder reference,
+  # and Xcode then refuses to load Proto as a package because it's "already
+  # open as a Folder". Drop the folder reference until XcodeGen can skip it:
+  # https://github.com/yonaskolb/XcodeGen/pull/1631
+  postGenCommand: >-
+    perl -0pi -e 's/^\s*(\w{24}) .*lastKnownFileType = folder; name = Proto; path = Proto;.*\n//m
+    and s/^.*\b$1\b.*\n//mg' Coder-Desktop.xcodeproj/project.pbxproj
 
 
 settings:
