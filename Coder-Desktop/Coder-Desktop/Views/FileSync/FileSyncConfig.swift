@@ -49,7 +49,10 @@ struct FileSyncConfig<VPN: VPNService, FS: FileSyncDaemon>: View {
         .padding(.bottom, Theme.Size.tableFooterIconSize)
         .overlay(alignment: .bottom) {
             tableFooter
-        }.disabled(fileSync.state.isFailed)
+        }
+        // Only the table & footer should be disabled if the daemon has crashed
+        // otherwise the alert buttons will be disabled too
+        .disabled(fileSync.state.isFailed)
         .sheet(isPresented: $addingNewSession) {
             FileSyncSessionModal<VPN, FS>()
                 .frame(width: 700)
