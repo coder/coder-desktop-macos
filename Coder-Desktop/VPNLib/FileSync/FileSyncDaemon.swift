@@ -1,7 +1,7 @@
+internal import GRPCCore
+internal import GRPCNIOTransportHTTP2Posix
 internal import MutagenProto
 import Foundation
-import GRPCCore
-import GRPCNIOTransportHTTP2Posix
 import os
 import Semaphore
 import Subprocess
