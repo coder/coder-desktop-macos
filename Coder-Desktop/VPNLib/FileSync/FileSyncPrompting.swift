@@ -1,5 +1,5 @@
+internal import GRPCCore
 internal import MutagenProto
-import GRPCCore
 
 extension MutagenDaemon {
     /// Hosts a prompter on the daemon for the duration of `body`, which is

@@ -1,6 +1,6 @@
+internal import GRPCCore
+internal import GRPCNIOTransportHTTP2Posix
 internal import MutagenProto
-import GRPCCore
-import GRPCNIOTransportHTTP2Posix
 
 struct DaemonClient {
     let mgmt: Daemon_Daemon.Client<HTTP2ClientTransport.Posix>
