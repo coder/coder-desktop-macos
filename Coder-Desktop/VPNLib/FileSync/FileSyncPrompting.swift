@@ -14,7 +14,7 @@ extension MutagenDaemon {
         let prompt = client!.prompt
         let logger = logger
 
-        let hostTask = Task.detached(priority: .background) {
+        let hostTask = Task.detached(priority: Task.currentPriority) {
             do {
                 try await prompt.host { writer in
                     try await writer.write(.with { req in req.allowPrompts = allowPrompts })
