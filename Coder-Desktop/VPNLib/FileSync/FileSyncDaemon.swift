@@ -58,7 +58,6 @@ public class MutagenDaemon: FileSyncDaemon {
 
     // Non-nil when the daemon is running
     var client: DaemonClient?
-    private var grpcClient: GRPCClient<HTTP2ClientTransport.Posix>?
     private var grpcConnections: Task<Void, Never>?
     private var waitForExit: (@Sendable () async -> Void)?
 
@@ -197,7 +196,6 @@ public class MutagenDaemon: FileSyncDaemon {
                     logger.error("gRPC client stopped: \(error)")
                 }
             }
-            self.grpcClient = grpcClient
             client = DaemonClient(
                 mgmt: .init(wrapping: grpcClient),
                 sync: .init(wrapping: grpcClient),
@@ -214,14 +212,12 @@ public class MutagenDaemon: FileSyncDaemon {
     }
 
     private func cleanupGRPC() async {
-        let grpcClient = grpcClient
         let grpcConnections = grpcConnections
         client = nil
-        self.grpcClient = nil
         self.grpcConnections = nil
 
-        // Waits for any in-flight RPCs to finish
-        grpcClient?.beginGracefulShutdown()
+        // A graceful shutdown would wait on in-flight RPCs, which may never finish if the daemon hangs
+        grpcConnections?.cancel()
         await grpcConnections?.value
     }
 
