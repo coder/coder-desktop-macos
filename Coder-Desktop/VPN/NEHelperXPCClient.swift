@@ -94,7 +94,7 @@ final class HelperXPCClient: @unchecked Sendable {
     }
 }
 
-// These methods are called over XPC by the helper.
+/// These methods are called over XPC by the helper.
 extension HelperXPCClient: NEXPCInterface {
     func applyTunnelNetworkSettings(diff: Data, reply: @escaping () -> Void) {
         let reply = CompletionWrapper(reply)

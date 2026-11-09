@@ -16,8 +16,8 @@ struct InvalidAgentsButton<VPN: VPNService>: View {
         }.buttonStyle(.plain)
     }
 
-    // `.alert` from SwiftUI doesn't play nice when the calling view is in the
-    // menu bar.
+    /// `.alert` from SwiftUI doesn't play nice when the calling view is in the
+    /// menu bar.
     private func showAlert() {
         let formattedAgents = vpn.menuState.invalidAgents.map { agent in
             let agent_id = if let agent_id = UUID(uuidData: agent.id) {

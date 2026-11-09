@@ -9,10 +9,10 @@ public extension AgentClient {
 }
 
 public struct LSRequest: Sendable, Codable {
-    // e.g. [], ["repos", "coder"]
+    /// e.g. [], ["repos", "coder"]
     public let path: [String]
-    // Whether the supplied path is relative to the user's home directory,
-    // or the root directory.
+    /// Whether the supplied path is relative to the user's home directory,
+    /// or the root directory.
     public let relativity: LSRelativity
 
     public init(path: [String], relativity: LSRelativity) {

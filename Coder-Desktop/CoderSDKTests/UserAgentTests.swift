@@ -5,7 +5,7 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct UserAgentTests {
-    // The pattern operators are expected to match against every Coder client.
+    /// The pattern operators are expected to match against every Coder client.
     static let grammar = #"^coder-desktop(-core)?/[0-9]+\.[0-9]+\.[0-9]+ \(darwin/(amd64|arm64)\)$"#
 
     static let stubVersion = "0.8.4"
@@ -27,7 +27,7 @@ struct UserAgentTests {
         )
     }
 
-    // The CLI and the vpn-daemon report `amd64`, so an Intel build must too.
+    /// The CLI and the vpn-daemon report `amd64`, so an Intel build must too.
     @Test
     func intelReportsGoArchNotSwiftArch() {
         let ua = userAgent(component: .app, version: Self.stubVersion, arch: .amd64)
@@ -64,7 +64,7 @@ struct UserAgentTests {
     func setOnRequest() async throws {
         // A distinct host per test: Mocker's registry is process-global and
         // suites run in parallel.
-        let url = URL(string: "https://ua-default.example.com")!
+        let url = try #require(URL(string: "https://ua-default.example.com"))
         let client = Client(url: url, component: .helper)
         let sentUA = try await capturedUserAgent(client: client, url: url)
 
@@ -72,11 +72,11 @@ struct UserAgentTests {
         #expect(sentUA.hasPrefix("coder-desktop-core/"))
     }
 
-    // A user-configured literal header must replace ours outright. Caller headers
-    // are applied with `addValue`, which would otherwise comma-join the two.
+    /// A user-configured literal header must replace ours outright. Caller headers
+    /// are applied with `addValue`, which would otherwise comma-join the two.
     @Test
     func callerSuppliedUserAgentWins() async throws {
-        let url = URL(string: "https://ua-override.example.com")!
+        let url = try #require(URL(string: "https://ua-override.example.com"))
         let custom = "my-own-agent/1.2.3"
         let client = Client(
             url: url,
