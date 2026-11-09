@@ -3,7 +3,7 @@ import Testing
 @testable import VPNLib
 
 @Suite(.timeLimit(.minutes(1)))
-struct SpeakerTests: Sendable {
+struct SpeakerTests {
     let pipeMT = Pipe()
     let pipeTM = Pipe()
     let uut: Speaker<Vpn_TunnelMessage, Vpn_ManagerMessage>
@@ -121,7 +121,7 @@ struct SpeakerTests: Sendable {
 }
 
 @Suite(.timeLimit(.minutes(1)))
-struct ManagerSpeakerTests: Sendable {
+struct ManagerSpeakerTests {
     let pipeMT = Pipe()
     let pipeTM = Pipe()
     let queue: DispatchQueue = .global(qos: .utility)

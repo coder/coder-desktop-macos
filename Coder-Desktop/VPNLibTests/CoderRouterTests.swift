@@ -12,7 +12,7 @@ struct CoderRouterTests {
         router = CoderRouter()
     }
 
-    struct RouteTestCase: CustomStringConvertible, Sendable {
+    struct RouteTestCase: CustomStringConvertible {
         let urlString: String
         let expectedRoute: CoderRoute?
         let description: String
