@@ -1,9 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/xcode,jetbrains,macos,direnv,swift,swiftpm,objective-c
-# Edit at https://www.toptal.com/developers/gitignore?templates=xcode,jetbrains,macos,direnv,swift,swiftpm,objective-c
-
-### direnv ###
-.direnv
-.envrc
+# Created by https://www.toptal.com/developers/gitignore/api/xcode,jetbrains,macos,swift,swiftpm,objective-c
+# Edit at https://www.toptal.com/developers/gitignore?templates=xcode,jetbrains,macos,swift,swiftpm,objective-c
 
 ### JetBrains ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
@@ -294,7 +290,7 @@ xcuserdata
 **/.vscode/**
 buildServer.json
 
-# End of https://www.toptal.com/developers/gitignore/api/xcode,jetbrains,macos,direnv,swift,swiftpm,objective-c
+# End of https://www.toptal.com/developers/gitignore/api/xcode,jetbrains,macos,swift,swiftpm,objective-c
 
 *.entitlements
 app-signing.keychain-db
