@@ -1,7 +1,5 @@
 @testable import Coder_Desktop
 import Foundation
-import GRPC
-import NIO
 import Subprocess
 import Testing
 import VPNLib

@@ -2,6 +2,7 @@ import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
+import VPNProto
 
 /** From <sys/kern_control.h> */
 let CTLIOCGINFO: UInt = 0xC064_4E03
