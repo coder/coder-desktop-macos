@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 # Signs a Coder Desktop release with rcodesign. CI runs this on Linux: the
-# Developer ID private key lives in Google Cloud KMS, which Apple's codesign
-# can't use.
+# Developer ID Application private key lives in Google Cloud KMS, which Apple's
+# codesign can't use.
 #
 # Usage:
 #   ./scripts/sign.sh app "path/to/Coder Desktop.app"
 #   ./scripts/sign.sh pkg path/to/Coder-Desktop.pkg
 #
 # `app` signs, in place, an app built by ./scripts/build.sh (unsigned, with its
-# provisioning profiles embedded) with the Developer ID Application certificate.
-# Coder's own executables get the hardened runtime and the entitlements in
-# signing/entitlements. Prebuilt executables (Sparkle, mutagen, the Swift
-# runtime) keep the identifier, flags and entitlements they were built with.
-#
-# `pkg` signs, in place, an installer built by ./scripts/package.sh with the
-# Developer ID Installer certificate.
-#
-# The signing key comes from one of:
+# provisioning profiles embedded) with the Developer ID Application
+# certificate. Coder's own executables get the hardened runtime and the
+# entitlements in signing/entitlements. Prebuilt executables (Sparkle, mutagen,
+# the Swift runtime) keep the identifier, flags and entitlements they were
+# built with. The key comes from one of:
 #  - Google Cloud KMS, through the Cloud KMS PKCS#11 library: set
 #    $PKCS11_LIBRARY to libkmsp11.so (rcodesign must be built with the
 #    "pkcs11" feature) and $KMS_PKCS11_CONFIG to the library's config naming
 #    the apple-codesign key ring. Google credentials that can sign with the
-#    key must be available, e.g. via $GOOGLE_APPLICATION_CREDENTIALS. Both
-#    certificates in signing/ were issued for the developer-id-application
-#    CryptoKey.
+#    developer-id-application key must be available, e.g. via
+#    $GOOGLE_APPLICATION_CREDENTIALS. The certificate is
+#    signing/developer-id-application.pem.
 #  - A PKCS#12 file, to try signing with a throwaway certificate: set
 #    $P12_FILE and $P12_PASSWORD_FILE.
+#
+# `pkg` signs, in place, an installer built by ./scripts/package.sh with the
+# Developer ID Installer certificate and key in the PKCS#12 file
+# $INSTALLER_P12_FILE, whose password is in $INSTALLER_P12_PASSWORD_FILE.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,22 +40,21 @@ kind="$1"
 target="$2"
 command -v rcodesign >/dev/null || die "rcodesign is not installed"
 
-# key_args CERT prints the rcodesign arguments for signing with signing/CERT.pem.
-key_args() {
+# app_key_args prints the rcodesign arguments selecting the Developer ID
+# Application key.
+app_key_args() {
   if [[ -n "${PKCS11_LIBRARY:-}" ]]; then
     [[ -n "${KMS_PKCS11_CONFIG:-}" ]] || die "KMS_PKCS11_CONFIG must be set with PKCS11_LIBRARY"
-    [[ -f "$ROOT/signing/$1.pem" ]] || die "signing/$1.pem is missing; see RELEASING.md"
     printf '%s\0' \
       --pkcs11-library "$PKCS11_LIBRARY" \
       --pkcs11-key-label developer-id-application \
-      --pkcs11-certificate-file "$ROOT/signing/$1.pem"
+      --pkcs11-certificate-file "$ROOT/signing/developer-id-application.pem"
   elif [[ -n "${P12_FILE:-}" ]]; then
     printf '%s\0' --p12-file "$P12_FILE" --p12-password-file "${P12_PASSWORD_FILE:?}"
   else
     die "set PKCS11_LIBRARY or P12_FILE"
   fi
 }
-
 # is_macho FILE succeeds if FILE is a Mach-O or universal binary.
 is_macho() {
   case "$(head -c 4 "$1" | od -An -tx1 | tr -d ' \n')" in
@@ -74,7 +73,7 @@ sign_app() {
   [[ -f "$app/$vpn/Contents/embedded.provisionprofile" ]] || die "$app/$vpn has no provisioning profile"
 
   local -a args
-  mapfile -d '' args < <(key_args developer-id-application)
+  mapfile -d '' args < <(app_key_args)
 
   # Coder's executables. A path scope applies to the bundle or binary at that
   # path; an unscoped setting applies to the app's main executable.
@@ -107,9 +106,25 @@ sign_app() {
 }
 
 sign_pkg() {
-  local -a args
-  mapfile -d '' args < <(key_args developer-id-installer)
-  rcodesign sign "${args[@]}" "$1"
+  local pkg="$1" dir
+  : "${INSTALLER_P12_FILE:?}" "${INSTALLER_P12_PASSWORD_FILE:?}"
+  command -v openssl >/dev/null || die "openssl is not installed"
+
+  # rcodesign only reads PKCS#12 files in the legacy encryption (Keychain
+  # Access exports); re-encode whatever we were given into that form.
+  dir="$(mktemp -d)"
+  # shellcheck disable=SC2064 # expand $dir now
+  trap "rm -rf '$dir'" RETURN
+  (
+    umask 077
+    openssl pkcs12 -legacy -in "$INSTALLER_P12_FILE" -passin "file:$INSTALLER_P12_PASSWORD_FILE" -nodes -out "$dir/installer.pem"
+    openssl pkcs12 -export -legacy -in "$dir/installer.pem" -out "$dir/installer.p12" -passout "file:$INSTALLER_P12_PASSWORD_FILE"
+  )
+
+  rcodesign sign \
+    --p12-file "$dir/installer.p12" \
+    --p12-password-file "$INSTALLER_P12_PASSWORD_FILE" \
+    "$pkg"
 }
 
 case "$kind" in

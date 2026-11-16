@@ -30,13 +30,13 @@ point at.
 
 ## Signing
 
-The Developer ID private key lives in Google Cloud KMS (`coder-release-signing`
-project, `apple-codesign/developer-id-application`, managed in coder/gcp) and
-cannot be exported. Apple issued both the Developer ID Application and the
-Developer ID Installer certificates for it. Apple's `codesign` can't use it,
-so `release.yml` signs on Linux with
+The Developer ID Application private key is the one coder/coder signs with. It
+lives in Google Cloud KMS (`coder-release-signing` project,
+`apple-codesign/developer-id-application`, managed in coder/gcp) and cannot be
+exported. Apple's `codesign` can't use it, so `release.yml` signs on Linux with
 [rcodesign](https://github.com/indygreg/apple-platform-rs) through the Cloud
-KMS PKCS#11 library:
+KMS PKCS#11 library. The installer is signed with the Developer ID Installer
+certificate and key from a PKCS#12 file in the `signing` environment.
 
 1. `build` (macOS) builds the app without signing it (`scripts/build.sh`).
 2. `sign-app` (Linux) signs it with the Developer ID Application certificate
@@ -52,14 +52,16 @@ KMS PKCS#11 library:
 Only jobs in the `signing` environment can use the keys, and only on `main`
 or a published `vX.Y.Z` release. That environment holds:
 
-| Secret                 | Value                                              |
-| ---------------------- | -------------------------------------------------- |
-| `AC_APIKEY_ISSUER_ID`  | App Store Connect API key issuer ID (notarization) |
-| `AC_APIKEY_ID`         | App Store Connect API key ID                       |
-| `AC_APIKEY_P8_BASE64`  | The API key's `.p8` file, base64-encoded          |
-| `SPARKLE_PRIVATE_KEY`  | Sparkle EdDSA update signing key                   |
+| Secret                            | Value                                              |
+| --------------------------------- | -------------------------------------------------- |
+| `APPLE_INSTALLER_PKCS12_B64`      | Developer ID Installer PKCS#12, base64-encoded     |
+| `APPLE_INSTALLER_PKCS12_PASSWORD` | Its password                                       |
+| `AC_APIKEY_ISSUER_ID`             | App Store Connect API key issuer ID (notarization) |
+| `AC_APIKEY_ID`                    | App Store Connect API key ID                       |
+| `AC_APIKEY_P8_BASE64`             | The API key's `.p8` file, base64-encoded          |
+| `SPARKLE_PRIVATE_KEY`             | Sparkle EdDSA update signing key                   |
 
-The certificates are public and committed in `signing/`, with the
+The Application certificate is public and committed in `signing/`, with the
 entitlements each executable is signed with in `signing/entitlements/`. If you
 change an entitlement in `Coder-Desktop/project.yml`, change it there too:
 release builds are signed with those files, not with Xcode's.

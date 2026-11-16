@@ -22,16 +22,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'tags/')}}
 
-# The Developer ID key lives in Google Cloud KMS, which only Linux can reach
-# (through the Cloud KMS PKCS#11 library), so the release alternates between
-# macOS and Linux:
+# The Developer ID Application key lives in Google Cloud KMS, which only Linux
+# can reach (through the Cloud KMS PKCS#11 library), so the release alternates
+# between macOS and Linux:
 #   build (macOS)     unsigned app
 #   sign-app (Linux)  sign the app with the Developer ID Application certificate
 #   package (macOS)   unsigned installer around the signed app
 #   sign-pkg (Linux)  sign the installer with the Developer ID Installer certificate, notarize, staple
 #   publish (macOS)   Sparkle signature, release assets, appcast
-# Only jobs in the "signing" environment get the signing identity, the App
-# Store Connect key and the Sparkle key.
+# Only jobs in the "signing" environment get the signing identity, the Developer
+# ID Installer key, the App Store Connect key and the Sparkle key.
 jobs:
   build:
     name: Build Coder Desktop
@@ -232,17 +232,20 @@ jobs:
     environment: signing
     permissions:
       contents: read
-      # for the desktop-macos-signer identity
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Set up Cloud KMS signing
-        id: kms
-        uses: ./.github/actions/kms-signing
+      - name: Download rcodesign
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: rcodesign
+          path: ${{ runner.temp }}/rcodesign
+
+      - name: Install rcodesign
+        run: sudo install -m 0755 "$RUNNER_TEMP/rcodesign/rcodesign" /usr/local/bin/rcodesign
 
       - name: Download unsigned installer
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -252,10 +255,19 @@ jobs:
 
       - name: Sign installer
         env:
-          PKCS11_LIBRARY: ${{ steps.kms.outputs.pkcs11-library }}
-          KMS_PKCS11_CONFIG: ${{ steps.kms.outputs.kms-pkcs11-config }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.kms.outputs.credentials-file }}
-        run: ./scripts/sign.sh pkg "$RUNNER_TEMP/pkg/Coder-Desktop.pkg"
+          APPLE_INSTALLER_PKCS12_B64: ${{ secrets.APPLE_INSTALLER_PKCS12_B64 }}
+          APPLE_INSTALLER_PKCS12_PASSWORD: ${{ secrets.APPLE_INSTALLER_PKCS12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          dir="$(mktemp -d)"
+          trap 'rm -rf "$dir"' EXIT
+          (
+            umask 077
+            printf '%s' "$APPLE_INSTALLER_PKCS12_B64" | base64 -d > "$dir/installer.p12"
+            printf '%s' "$APPLE_INSTALLER_PKCS12_PASSWORD" > "$dir/installer.pw"
+          )
+          INSTALLER_P12_FILE="$dir/installer.p12" INSTALLER_P12_PASSWORD_FILE="$dir/installer.pw" \
+            ./scripts/sign.sh pkg "$RUNNER_TEMP/pkg/Coder-Desktop.pkg"
 
       - name: Notarize installer
         env:
