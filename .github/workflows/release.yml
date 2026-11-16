@@ -110,6 +110,8 @@ jobs:
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
     needs: build
+    # Holds the coder-package-publisher App key; release tags only, approved by a release manager.
+    environment: release-publish
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -121,9 +123,20 @@ jobs:
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
 
+      - name: Generate coder-package-publisher App token
+        id: publisher_token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_PRIVATE_KEY }}
+          owner: coder
+          repositories: homebrew-coder
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Update homebrew-coder
         env:
-          GH_TOKEN: ${{ secrets.CODERCI_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.publisher_token.outputs.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           ASSIGNEE: ${{ github.actor }}
         run: |
