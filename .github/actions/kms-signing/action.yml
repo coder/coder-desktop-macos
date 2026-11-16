@@ -1,0 +1,71 @@
+name: "Set up Cloud KMS signing"
+description: |
+  Prepares a Linux job to run scripts/sign.sh with the Apple Developer ID keys
+  in Google Cloud KMS: installs the rcodesign built by the release workflow's
+  rcodesign job and the Cloud KMS PKCS#11 library, and authenticates as
+  desktop-macos-signer. Only release.yml in the "signing" environment, on main
+  or a published vX.Y.Z release, can obtain that identity (coder/gcp,
+  projects/production/coder-release-signing).
+
+  The credentials are not exported to the job's environment: pass
+  outputs.credentials-file to the signing step only.
+outputs:
+  credentials-file:
+    description: Google credentials for desktop-macos-signer.
+    value: ${{ steps.auth.outputs.credentials_file_path }}
+  pkcs11-library:
+    description: Path to the Cloud KMS PKCS#11 library.
+    value: /usr/local/lib/libkmsp11.so
+  kms-pkcs11-config:
+    description: Path to the PKCS#11 library's config, naming the apple-codesign key ring.
+    value: ${{ steps.config.outputs.path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Download rcodesign
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: rcodesign
+        path: ${{ runner.temp }}/rcodesign
+
+    - name: Install rcodesign and the Cloud KMS PKCS#11 library
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo install -m 0755 "$RUNNER_TEMP/rcodesign/rcodesign" /usr/local/bin/rcodesign
+        rcodesign --version
+
+        wget -q -O "$RUNNER_TEMP/libkmsp11.tar.gz" https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.9/libkmsp11-1.9-linux-amd64.tar.gz
+        echo "5397f965073cd5d1e2c43e5148f102f31a7c835902f97eb41c7c9c0f1b876a40 $RUNNER_TEMP/libkmsp11.tar.gz" | sha256sum -c
+        sudo tar -xzf "$RUNNER_TEMP/libkmsp11.tar.gz" \
+          -C /usr/local/lib \
+          --strip-components=1 \
+          libkmsp11-1.9-linux-amd64/libkmsp11.so
+        rm "$RUNNER_TEMP/libkmsp11.tar.gz"
+
+    - name: Write the PKCS#11 library config
+      id: config
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$RUNNER_TEMP/kms-signing"
+        rm -rf "$dir"
+        mkdir -m 700 "$dir"
+        # The library refuses a config file writable by anyone but the owner.
+        (
+          umask 077
+          cat > "$dir/kmsp11.yaml" <<EOF
+        ---
+        tokens:
+          - key_ring: projects/coder-release-signing/locations/us-central1/keyRings/apple-codesign
+        EOF
+        )
+        echo "path=$dir/kmsp11.yaml" >> "$GITHUB_OUTPUT"
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+      with:
+        workload_identity_provider: projects/720429782538/locations/global/workloadIdentityPools/github-release-signing/providers/coder-desktop-macos
+        service_account: desktop-macos-signer@coder-release-signing.iam.gserviceaccount.com
+        export_environment_variables: false
