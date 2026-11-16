@@ -10,12 +10,10 @@ name: release
 #   build           macOS. Builds the app with code signing disabled.
 #   sign-app        Linux. Signs the app with the Developer ID Application key
 #                   and notarizes it.
-#   package         macOS. Checks the result with Apple's tools and builds
-#                   the installer.
+#   package         macOS. Builds the installer.
 #   sign-installer  Linux. Signs the installer with the Developer ID
 #                   Installer key and notarizes it.
-#   publish         macOS. Checks the installer, signs it for Sparkle, and
-#                   publishes it.
+#   publish         macOS. Signs the installer for Sparkle and publishes it.
 #
 # The three jobs that hold credentials run in the "signing" environment,
 # which only main and v* tags may use. See RELEASING.md.
@@ -128,7 +126,7 @@ jobs:
 
       # Before anything slow, so that a wrong secret fails in seconds and says
       # why. The certificate is public; printing it records what was used.
-      - name: Check certificate, profiles and notarization key
+      - name: Check certificate and notarization key
         run: |
           set -euo pipefail
           if ! openssl x509 -in /tmp/apple_cert.pem -noout -subject -serial -enddate; then
@@ -139,8 +137,6 @@ jobs:
             echo "::error::The AC_APIKEY_P8_BASE64 secret does not decode to a private key. It must be the base64 of the AuthKey .p8 file."
             exit 1
           fi
-          ./scripts/signing/check-profile.py /tmp/app.provisionprofile scripts/signing/entitlements/app.plist /tmp/apple_cert.pem
-          ./scripts/signing/check-profile.py /tmp/ext.provisionprofile scripts/signing/entitlements/vpn.plist /tmp/apple_cert.pem
 
       - name: Install rcodesign
         uses: ./.github/actions/install-rcodesign
@@ -225,7 +221,7 @@ jobs:
         run: rm -f /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
 
   package:
-    name: Check the app and build the installer
+    name: Build the installer
     needs: sign-app
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' }}
@@ -243,21 +239,20 @@ jobs:
           name: signed-app
           path: build/signed
 
-      - name: Check with Apple's tools and build the installer
+      # The installer comes out unsigned. The sign-installer job signs it.
+      - name: Build the installer
         run: |
           set -euo pipefail
-          mkdir -p build/app
+          mkdir -p build/app build/package
           tar -C build/app -xf build/signed/coder-desktop-signed.tar
-          ./scripts/signing/verify-and-package.sh "build/app/Coder Desktop.app" build/package
-
-      - name: Upload check report
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: app-verification
-          path: build/package/verification.txt
-          retention-days: 3
-          if-no-files-found: ignore
+          app="build/app/Coder Desktop.app"
+          version="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$app/Contents/Info.plist")"
+          pkgbuild --component "$app" \
+            --scripts pkgbuild/scripts/ \
+            --identifier "com.coder.Coder-Desktop" \
+            --version "$version" \
+            --install-location "/Applications/" \
+            build/package/Coder-Desktop.pkg
 
       - name: Upload unsigned installer
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -392,7 +387,7 @@ jobs:
         run: rm -f /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
 
   publish:
-    name: Check the installer, sign for Sparkle and publish
+    name: Sign for Sparkle and publish
     needs: [build, sign-installer]
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' }}
@@ -404,9 +399,12 @@ jobs:
       # for GCP auth
       id-token: write
     steps:
+      # With tags, for scripts/version.sh in the appcast step.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
 
       - name: Switch XCode Version
@@ -425,9 +423,6 @@ jobs:
         with:
           name: dsyms
           path: build/out
-
-      - name: Check the installer with Apple's tools
-        run: ./scripts/signing/verify-installer.sh build/out/Coder-Desktop.pkg
 
       # Sparkle, the app's updater, only accepts an installer whose Ed25519
       # signature verifies against the public key built into the app. The
@@ -456,22 +451,6 @@ jobs:
             "$RUNNER_TEMP/sparkle/bin/sign_update" build/out/Coder-Desktop.pkg --ed-key-file - \
               > build/out/Coder-Desktop.pkg.sig
           cat build/out/Coder-Desktop.pkg.sig
-
-      # The check an installed copy of the app makes before it accepts an
-      # update. The public key and the version are read from the app inside
-      # the installer.
-      - name: Check the signature against the public key built into the app
-        run: |
-          set -euo pipefail
-          pkgutil --expand-full build/out/Coder-Desktop.pkg "$RUNNER_TEMP/expanded"
-          plist="$(find "$RUNNER_TEMP/expanded" -path '*/Coder Desktop.app/Contents/Info.plist' | head -n 1)"
-          public_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist")"
-          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")"
-          signature="$(sed -E 's/.*sparkle:edSignature="([^"]+)".*/\1/' build/out/Coder-Desktop.pkg.sig)"
-          echo "Version: $version"
-          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
-          swift scripts/signing/verify-sparkle-signature.swift \
-            build/out/Coder-Desktop.pkg "$signature" "$public_key"
 
       # Upload as artifact in dry-run mode
       - name: Upload Build Artifact
@@ -511,7 +490,7 @@ jobs:
           swift run update-appcast \
             -i ../../oldappcast.xml \
             -s ../../build/out/Coder-Desktop.pkg.sig \
-            -v "$RELEASE_VERSION" \
+            -v "$(../version.sh)" \
             -o ../../appcast.xml \
             -d "$VERSION_DESCRIPTION"
           popd

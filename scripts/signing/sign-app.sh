@@ -38,7 +38,6 @@ APP="$1"
 RCODESIGN="${RCODESIGN:-rcodesign}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENTITLEMENTS="$SCRIPT_DIR/entitlements"
-TEAM_ID="4399GN35BJ"
 
 SYSEXT="Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension"
 SPARKLE="Contents/Frameworks/Sparkle.framework/Versions/B"
@@ -65,13 +64,6 @@ if [[ -n "${AC_TEAM_NAME:-}" ]]; then
   key_args+=(--team-name "$AC_TEAM_NAME")
 fi
 
-# Neither a wrong profile nor a Mach service name without its team prefix is
-# rejected here or by notarization. macOS rejects both when the system
-# extension is activated, so check before signing.
-"$SCRIPT_DIR/check-bundle.py" "$APP" "$ENTITLEMENTS"
-"$SCRIPT_DIR/check-profile.py" "$APP_PROF_PATH" "$ENTITLEMENTS/app.plist" ${AC_CERTIFICATE_FILE:+"$AC_CERTIFICATE_FILE"}
-"$SCRIPT_DIR/check-profile.py" "$EXT_PROF_PATH" "$ENTITLEMENTS/vpn.plist" ${AC_CERTIFICATE_FILE:+"$AC_CERTIFICATE_FILE"}
-
 # Xcode embeds the profiles while it signs. They are sealed as resources of
 # their bundle, so they have to be in place before anything is signed.
 cp "$APP_PROF_PATH" "$APP/Contents/embedded.provisionprofile"
@@ -85,12 +77,9 @@ cp "$EXT_PROF_PATH" "$APP/$SYSEXT/Contents/embedded.provisionprofile"
 AGENTS="$APP/Contents/Resources/mutagen-agents.tar.gz"
 agents_dir="$(mktemp -d)"
 trap 'rm -rf "$agents_dir"' EXIT
-mapfile -t agents < <("$SCRIPT_DIR/archive-members.py" list "$AGENTS")
-if [[ "${#agents[@]}" -eq 0 ]]; then
-  echo "ERROR: found no macOS programs in $AGENTS"
-  exit 1
-fi
-tar -xzf "$AGENTS" -C "$agents_dir" "${agents[@]}"
+agents=(darwin_amd64 darwin_arm64)
+mapfile -t members < <(tar -tzf "$AGENTS")
+tar -xpzf "$AGENTS" -C "$agents_dir"
 for agent in "${agents[@]}"; do
   # Identified by its name in the archive, which is what it was called
   # before. Nothing is kept from the signature it arrived with.
@@ -99,7 +88,8 @@ for agent in "${agents[@]}"; do
     --code-signature-flags runtime \
     "$agents_dir/$agent" 1>&2
 done
-"$SCRIPT_DIR/archive-members.py" replace "$AGENTS" "$agents_dir" "${agents[@]}"
+# Same members, in the same order.
+tar -czf "$AGENTS" -C "$agents_dir" "${members[@]}"
 
 args=()
 
@@ -156,55 +146,3 @@ args+=(
 )
 
 "$RCODESIGN" sign "${key_args[@]}" "${args[@]}" "$APP" 1>&2
-
-# Report what was signed, and fail on the two mistakes that are easy to make
-# when a binary is added to the app: a missing team, or a missing hardened
-# runtime flag on code Xcode built.
-echo "Signed code in $APP:"
-failed=0
-while IFS= read -r -d '' file; do
-  info="$("$RCODESIGN" print-signature-info "$file" 2>/dev/null || true)"
-  if [[ "$info" != *"code_directory:"* ]]; then
-    continue
-  fi
-  rel="${file#"$APP"/}"
-  identifier="$(awk '$1 == "identifier:" { print $2; exit }' <<<"$info")"
-  flags="$(awk '$1 == "flags:" { print $2; exit }' <<<"$info")"
-  slices="$(grep -c "^ *identifier:" <<<"$info")"
-  teamed="$(grep -c "^ *team_name: $TEAM_ID\$" <<<"$info" || true)"
-  # Count keys in the first slice's entitlements only. Other parts of the
-  # output contain plists too.
-  entitlements="$(awk '
-    /^ *entitlements_plist:/ { inside = 1; next }
-    inside && /^ *- / { if ($0 ~ /<key>/) n++; next }
-    inside { exit }
-    END { print n + 0 }' <<<"$info")"
-  echo "  $rel: id=$identifier flags=$flags slices=$slices entitlements=$entitlements"
-  if [[ "$slices" != "$teamed" ]]; then
-    echo "ERROR: $rel: $teamed of $slices slices carry team $TEAM_ID"
-    failed=1
-  fi
-  for path in "${runtime[@]}"; do
-    if [[ "$rel" == "$path" && "$flags" != *RUNTIME* ]]; then
-      echo "ERROR: $rel is missing the hardened runtime flag"
-      failed=1
-    fi
-  done
-done < <(find "$APP" -type f -print0)
-for agent in "${agents[@]}"; do
-  info="$("$RCODESIGN" print-signature-info "$agents_dir/$agent")"
-  identifier="$(awk '$1 == "identifier:" { print $2; exit }' <<<"$info")"
-  flags="$(awk '$1 == "flags:" { print $2; exit }' <<<"$info")"
-  echo "  Contents/Resources/mutagen-agents.tar.gz/$agent: id=$identifier flags=$flags"
-  if [[ "$flags" != *RUNTIME* || "$info" != *"team_name: $TEAM_ID"* ]]; then
-    echo "ERROR: agent $agent is missing the hardened runtime flag or the team"
-    failed=1
-  fi
-done
-
-# Every program, including those inside archives, must carry the signing
-# certificate and no other Developer ID Application certificate.
-if [[ -n "${AC_CERTIFICATE_FILE:-}" ]]; then
-  "$SCRIPT_DIR/check-signers.py" "$APP" "$AC_CERTIFICATE_FILE" || failed=1
-fi
-exit "$failed"

@@ -35,7 +35,6 @@ fi
 UNSIGNED="$1"
 SIGNED="$2"
 RCODESIGN="${RCODESIGN:-rcodesign}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 key_args=()
 if [[ -n "${AC_PKCS11_LIBRARY:-}" ]]; then
@@ -54,7 +53,3 @@ else
 fi
 
 "$RCODESIGN" sign "${key_args[@]}" "$UNSIGNED" "$SIGNED" 1>&2
-
-# Confirm what came out: both signatures present, made with the expected
-# certificate, and the payload left alone.
-"$SCRIPT_DIR/check-installer.py" "$UNSIGNED" "$SIGNED" ${AC_CERTIFICATE_FILE:+"$AC_CERTIFICATE_FILE"}

@@ -26,13 +26,40 @@ export EXT_PROVISIONING_PROFILE_ID=""
 make clean/project clean/build
 make
 
-# Xcode used to work out the signed entitlements itself. They are now kept in
-# scripts/signing/entitlements, so make sure they still match the project.
-./scripts/signing/check-entitlements.py \
+# The app is signed with the entitlements in scripts/signing/entitlements,
+# not with the ones in project.yml. Xcode used to derive one from the other
+# when it signed. Stop here, before compiling, if a change to project.yml has
+# not been copied over.
+#
+# Usage: check_entitlements GENERATED SIGNED BUNDLE_ID
+check_entitlements() {
+  local generated="$1" signed="$2" bundle_id="$3" expected
+  expected="$(mktemp)"
+  # What Xcode's Developer ID export does to a target's entitlements: it
+  # expands the team prefix, adds the application and team identifiers, and
+  # drops aps-environment, which the provisioning profile does not grant.
+  sed "s/[$](TeamIdentifierPrefix)/${TEAM_ID}./g" "$generated" >"$expected"
+  /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$expected" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy \
+    -c "Add :com.apple.application-identifier string ${TEAM_ID}.${bundle_id}" \
+    -c "Add :com.apple.developer.team-identifier string ${TEAM_ID}" \
+    "$expected"
+  # Both in the same canonical form, so that only the content is compared.
+  if ! diff <(plutil -convert xml1 -o - "$expected") <(plutil -convert xml1 -o - "$signed"); then
+    echo "ERROR: $signed is out of date."
+    echo "The entitlements for $bundle_id in Coder-Desktop/project.yml have changed."
+    echo "Lines marked < are what the project now produces. Update $signed to"
+    echo "match, and check that the provisioning profile grants them. See RELEASING.md."
+    exit 1
+  fi
+  rm -f "$expected"
+  echo "OK: $signed matches the project's entitlements for $bundle_id"
+}
+check_entitlements \
   Coder-Desktop/Coder-Desktop/Coder-Desktop.entitlements \
   scripts/signing/entitlements/app.plist \
   com.coder.Coder-Desktop
-./scripts/signing/check-entitlements.py \
+check_entitlements \
   Coder-Desktop/VPN/VPN.entitlements \
   scripts/signing/entitlements/vpn.plist \
   com.coder.Coder-Desktop.VPN

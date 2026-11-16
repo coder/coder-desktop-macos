@@ -42,28 +42,16 @@ keys only exists for Linux, while building and packaging need macOS. The
 | ---------------- | ------- | ----------------------------------------------------------------- |
 | `build`          | macOS   | Builds the app with code signing disabled (`scripts/build.sh`)    |
 | `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
-| `package`        | macOS   | Checks the app with Apple's tools and builds the installer        |
+| `package`        | macOS   | Builds the installer                                              |
 | `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
-| `publish`        | macOS   | Checks the installer, signs it for Sparkle, publishes             |
+| `publish`        | macOS   | Signs the installer for Sparkle, publishes                        |
 
 The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
-Developer ID export used to do, and several checks stop a release when
-something Xcode used to take care of has gone wrong:
-
-- `check-entitlements.py`: the entitlements in `project.yml` no longer match
-  the ones the app is signed with (see [Changing entitlements](#changing-entitlements)).
-- `check-bundle.py`: the system extension's Mach service name has lost its
-  team prefix. macOS would refuse to activate the extension.
-- `check-profile.py`: a provisioning profile is expired, is for the wrong
-  bundle, or is bound to a different certificate.
-- `check-signers.py` and `check-installer.py`: something is not signed, or not
-  by the expected key. This includes the two macOS programs inside
-  `mutagen-agents.tar.gz`, which are signed separately because signing a
-  bundle does not look inside an archive.
+Developer ID export used to do. It also signs the two macOS programs inside
+`mutagen-agents.tar.gz`, which signing the app bundle does not reach.
 
 Sparkle, the app's updater, has its own signing key, which cannot be kept in
-Cloud KMS. The `publish` job signs the finished installer with it and checks
-the signature against the public key built into the app.
+Cloud KMS. The `publish` job signs the finished installer with it.
 
 ### Secrets
 
@@ -105,7 +93,7 @@ Release builds carry two provisioning profiles, one for the app
 (`com.coder.Coder-Desktop`) and one for the system extension
 (`com.coder.Coder-Desktop.VPN`). A profile is bound to the certificate chosen
 when it was created, so both must be bound to the certificate in the
-`AC_CERTIFICATE_PEM` secret.
+`AC_CERTIFICATE_PEM` secret. Nothing in the release workflow checks this.
 
 When a profile expires or needs regenerating:
 
@@ -113,19 +101,7 @@ When a profile expires or needs regenerating:
    and open **Certificates, Identifiers & Profiles** > **Profiles**.
 2. Create or edit a **Developer ID** profile, select that certificate, and
    download it.
-3. Check it before uploading. The last argument is that certificate as a PEM
-   file. The `sign-app` job runs the same check before it signs anything.
-
-   ```bash
-   ./scripts/signing/check-profile.py Coder_Desktop_App.provisionprofile \
-     scripts/signing/entitlements/app.plist \
-     developer-id-application.pem
-   ./scripts/signing/check-profile.py Coder_Desktop_Extension.provisionprofile \
-     scripts/signing/entitlements/vpn.plist \
-     developer-id-application.pem
-   ```
-
-4. Set the secrets in the `signing` environment:
+3. Set the secrets in the `signing` environment:
 
    ```bash
    base64 < Coder_Desktop_App.provisionprofile | tr -d '\n' |
@@ -138,8 +114,9 @@ When a profile expires or needs regenerating:
 
 The entitlements the app is signed with are in `scripts/signing/entitlements`.
 When you change a target's entitlements in `Coder-Desktop/project.yml`, change
-the matching file there too, or the build fails. If the entitlement is a
-restricted one, the provisioning profile has to grant it as well.
+the matching file there too. `scripts/build.sh` compares the two and stops the
+release build if they differ. If the entitlement is a restricted one, the
+provisioning profile has to grant it as well.
 
 ## Replacing a certificate
 
