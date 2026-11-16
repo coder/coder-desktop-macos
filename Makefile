@@ -55,11 +55,6 @@ ifeq ($(strip $(GIT_COMMIT_HASH)),)
 $(error GIT_COMMIT_HASH cannot be empty)
 endif
 
-# Define the keychain file name first
-KEYCHAIN_FILE := app-signing.keychain-db
-# Use shell to get the absolute path only if the file exists
-APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEYCHAIN_FILE)),$(abspath $(KEYCHAIN_FILE)))
-
 .PHONY: setup
 setup: \
 	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) \
@@ -93,33 +88,9 @@ $(MUTAGEN_PROTO_SWIFTS):
 	--grpc-swift_out=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
 	$(patsubst %.pb.swift,%.proto,$@)
 
-$(KEYCHAIN_FILE):
-	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
-	security set-keychain-settings -lut 21600 "$(APP_SIGNING_KEYCHAIN)"
-	security unlock-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
-	@tempfile=$$(mktemp); \
-	echo "$$APPLE_DEVELOPER_ID_PKCS12_B64" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(APPLE_DEVELOPER_ID_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
-	rm $$tempfile
-	@tempfile=$$(mktemp); \
-	echo "$$APPLE_INSTALLER_PKCS12_B64" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(APPLE_INSTALLER_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
-	rm $$tempfile
-	security list-keychains -d user -s $$(security list-keychains -d user | tr -d '\"') "$(APP_SIGNING_KEYCHAIN)"
-
 .PHONY: release
-release: $(KEYCHAIN_FILE) ## Create a release build of Coder Desktop
-	@APP_PROF_PATH="$$(mktemp)"; \
-	EXT_PROF_PATH="$$(mktemp)"; \
-	echo -n "$$APP_PROF" | base64 -d > "$$APP_PROF_PATH"; \
-	echo -n "$$EXT_PROF" | base64 -d > "$$EXT_PROF_PATH"; \
-	./scripts/build.sh \
-		--app-prof-path "$$APP_PROF_PATH" \
-		--ext-prof-path "$$EXT_PROF_PATH" \
-		--version $(MARKETING_VERSION) \
-		--keychain "$(APP_SIGNING_KEYCHAIN)" \
-		--sparkle-private-key "$$SPARKLE_PRIVATE_KEY"; \
-	rm "$$APP_PROF_PATH" "$$EXT_PROF_PATH"
+release: ## Build an unsigned release of Coder Desktop. CI signs it, see RELEASING.md
+	./scripts/build.sh
 
 .PHONY: fmt
 fmt: ## Run Swift file formatter
@@ -153,7 +124,7 @@ lint/actions: ## Lint GitHub Actions
 	zizmor .
 
 .PHONY: clean
-clean: clean/project clean/keychain clean/build clean/mutagen ## Clean project and artifacts
+clean: clean/project clean/build clean/mutagen ## Clean project and artifacts
 
 .PHONY: clean/project
 clean/project:
@@ -163,14 +134,6 @@ clean/project:
 		rm -rf $(XCPROJECT); \
 	fi
 	find . -name "*.entitlements" -type f -delete
-
-.PHONY: clean/keychain
-clean/keychain:
-	@if [ -e "$(APP_SIGNING_KEYCHAIN)" ]; then \
-		echo "Cleaning keychain: '$(APP_SIGNING_KEYCHAIN)'"; \
-		security delete-keychain "$(APP_SIGNING_KEYCHAIN)"; \
-		rm -f "$(APP_SIGNING_KEYCHAIN)"; \
-	fi
 
 .PHONY: clean/build
 clean/build:

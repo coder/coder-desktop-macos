@@ -1,5 +1,25 @@
 name: release
 
+# Builds, signs, notarizes and publishes Coder Desktop.
+#
+# The Developer ID keys live in Google Cloud KMS and cannot be exported.
+# Xcode cannot sign with a key there, and the library that reaches it only
+# exists for Linux, while building and packaging need macOS. So the jobs
+# alternate:
+#
+#   build           macOS. Builds the app with code signing disabled.
+#   sign-app        Linux. Signs the app with the Developer ID Application key
+#                   and notarizes it.
+#   package         macOS. Checks the result with Apple's tools and builds
+#                   the installer.
+#   sign-installer  Linux. Signs the installer with the Developer ID
+#                   Installer key and notarizes it.
+#   publish         macOS. Checks the installer, signs it for Sparkle, and
+#                   publishes it.
+#
+# The three jobs that hold credentials run in the "signing" environment,
+# which only main and v* tags may use. See RELEASING.md.
+
 on:
   push:
     branches:
@@ -28,10 +48,7 @@ jobs:
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' }}
     permissions:
-      # To upload assets to the release
-      contents: write
-      # for GCP auth
-      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,7 +65,425 @@ jobs:
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
 
+      - name: Build
+        run: ./scripts/build.sh build/release
+
+      - name: Upload unsigned app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-app
+          path: build/release/coder-desktop-unsigned.tar
+          retention-days: 3
+
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dsyms
+          path: build/release/coder-desktop-dsyms.zip
+          retention-days: 3
+
+  sign-app:
+    name: Sign and notarize the app
+    needs: build
+    runs-on: ubuntu-22.04
+    if: ${{ github.repository_owner == 'coder' }}
+    # Holds the signing identity. The Google Cloud workload identity provider
+    # only exchanges tokens for this workflow file, from this environment, on
+    # main or a release tag.
+    environment: signing
+    permissions:
+      contents: read
+      # To authenticate to Google Cloud
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup certificate, profiles and notarization key
+        env:
+          AC_CERTIFICATE_PEM: ${{ secrets.AC_CERTIFICATE_PEM }}
+          AC_APP_PROVISIONPROFILE_B64: ${{ secrets.AC_APP_PROVISIONPROFILE_B64 }}
+          AC_EXT_PROVISIONPROFILE_B64: ${{ secrets.AC_EXT_PROVISIONPROFILE_B64 }}
+          AC_APIKEY_P8_BASE64: ${{ secrets.AC_APIKEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          touch /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
+          chmod 600 /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
+          echo "$AC_CERTIFICATE_PEM" > /tmp/apple_cert.pem
+
+          # Decodes one secret and, if it is not base64, says which one.
+          # Whitespace is dropped first: base64 rejects the stray line break
+          # or space that a pasted value often carries.
+          decode() {
+            if ! tr -d '[:space:]' <<<"${!1}" | base64 -d > "$2"; then
+              echo "::error::The $1 secret is not valid base64. It must be the base64 of the file, not the file itself."
+              exit 1
+            fi
+          }
+          decode AC_APP_PROVISIONPROFILE_B64 /tmp/app.provisionprofile
+          decode AC_EXT_PROVISIONPROFILE_B64 /tmp/ext.provisionprofile
+          decode AC_APIKEY_P8_BASE64 /tmp/apple_apikey.p8
+
+      # Before anything slow, so that a wrong secret fails in seconds and says
+      # why. The certificate is public; printing it records what was used.
+      - name: Check certificate, profiles and notarization key
+        run: |
+          set -euo pipefail
+          if ! openssl x509 -in /tmp/apple_cert.pem -noout -subject -serial -enddate; then
+            echo "::error::The AC_CERTIFICATE_PEM secret is not a PEM certificate. It is the certificate text itself, not base64 of it."
+            exit 1
+          fi
+          if ! openssl pkey -in /tmp/apple_apikey.p8 -noout; then
+            echo "::error::The AC_APIKEY_P8_BASE64 secret does not decode to a private key. It must be the base64 of the AuthKey .p8 file."
+            exit 1
+          fi
+          ./scripts/signing/check-profile.py /tmp/app.provisionprofile scripts/signing/entitlements/app.plist /tmp/apple_cert.pem
+          ./scripts/signing/check-profile.py /tmp/ext.provisionprofile scripts/signing/entitlements/vpn.plist /tmp/apple_cert.pem
+
+      - name: Install rcodesign
+        uses: ./.github/actions/install-rcodesign
+
+      # Same library, version and checksum as coder/coder's release workflow.
+      - name: Setup Cloud KMS PKCS#11 library
+        env:
+          AC_KMS_KEY_RING: ${{ secrets.AC_KMS_KEY_RING }}
+        run: |
+          set -euo pipefail
+          wget -q -O /tmp/libkmsp11.tar.gz https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.9/libkmsp11-1.9-linux-amd64.tar.gz
+          echo "5397f965073cd5d1e2c43e5148f102f31a7c835902f97eb41c7c9c0f1b876a40 /tmp/libkmsp11.tar.gz" | sha256sum -c
+          sudo tar -xzf /tmp/libkmsp11.tar.gz \
+            -C /usr/local/lib \
+            --strip-components=1 \
+            libkmsp11-1.9-linux-amd64/libkmsp11.so
+          rm /tmp/libkmsp11.tar.gz
+
+          # The library requires the config file to be owner-writable only.
+          touch /tmp/kmsp11_config.yaml
+          chmod 600 /tmp/kmsp11_config.yaml
+          cat > /tmp/kmsp11_config.yaml <<EOF
+          ---
+          tokens:
+            - key_ring: "$AC_KMS_KEY_RING"
+          EOF
+
       - name: Authenticate to Google Cloud
+        id: gcloud_auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.SIGNING_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ secrets.SIGNING_SERVICE_ACCOUNT }}
+
+      - name: Download unsigned app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unsigned-app
+          path: build/unsigned
+
+      - name: Sign
+        env:
+          APP_PROF_PATH: /tmp/app.provisionprofile
+          EXT_PROF_PATH: /tmp/ext.provisionprofile
+          AC_CERTIFICATE_FILE: /tmp/apple_cert.pem
+          AC_PKCS11_LIBRARY: /usr/local/lib/libkmsp11.so
+          AC_PKCS11_KEY_LABEL: ${{ secrets.AC_KMS_KEY }}
+          KMS_PKCS11_CONFIG: /tmp/kmsp11_config.yaml
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcloud_auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/app
+          tar -C build/app -xf build/unsigned/coder-desktop-unsigned.tar
+          ./scripts/signing/sign-app.sh "build/app/Coder Desktop.app"
+
+      - name: Notarize and staple
+        env:
+          AC_APIKEY_ISSUER_ID: ${{ secrets.AC_APIKEY_ISSUER_ID }}
+          AC_APIKEY_ID: ${{ secrets.AC_APIKEY_ID }}
+        run: |
+          set -euo pipefail
+          rcodesign encode-app-store-connect-api-key \
+            "$AC_APIKEY_ISSUER_ID" \
+            "$AC_APIKEY_ID" \
+            /tmp/apple_apikey.p8 \
+            > /tmp/apple_apikey.json
+          rcodesign notary-submit \
+            --api-key-path /tmp/apple_apikey.json \
+            --staple \
+            "build/app/Coder Desktop.app"
+          tar -C build/app -cf build/coder-desktop-signed.tar "Coder Desktop.app"
+
+      - name: Upload signed app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: signed-app
+          path: build/coder-desktop-signed.tar
+          retention-days: 3
+
+      - name: Delete certificate, profiles and notarization key
+        if: always()
+        run: rm -f /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
+
+  package:
+    name: Check the app and build the installer
+    needs: sign-app
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
+    if: ${{ github.repository_owner == 'coder' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download signed app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: signed-app
+          path: build/signed
+
+      - name: Check with Apple's tools and build the installer
+        run: |
+          set -euo pipefail
+          mkdir -p build/app
+          tar -C build/app -xf build/signed/coder-desktop-signed.tar
+          ./scripts/signing/verify-and-package.sh "build/app/Coder Desktop.app" build/package
+
+      - name: Upload check report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-verification
+          path: build/package/verification.txt
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Upload unsigned installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-installer
+          path: build/package/Coder-Desktop.pkg
+          retention-days: 3
+
+  sign-installer:
+    name: Sign and notarize the installer
+    needs: package
+    runs-on: ubuntu-22.04
+    if: ${{ github.repository_owner == 'coder' }}
+    # See the sign-app job.
+    environment: signing
+    permissions:
+      contents: read
+      # To authenticate to Google Cloud
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup and check installer certificate and notarization key
+        env:
+          AC_INSTALLER_CERTIFICATE_PEM: ${{ secrets.AC_INSTALLER_CERTIFICATE_PEM }}
+          AC_INSTALLER_KMS_KEY: ${{ secrets.AC_INSTALLER_KMS_KEY }}
+          AC_APIKEY_P8_BASE64: ${{ secrets.AC_APIKEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          for name in AC_INSTALLER_CERTIFICATE_PEM AC_INSTALLER_KMS_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::The $name secret is not set in the signing environment."
+              exit 1
+            fi
+          done
+          touch /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json}
+          chmod 600 /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json}
+          echo "$AC_INSTALLER_CERTIFICATE_PEM" > /tmp/installer_cert.pem
+          if ! tr -d '[:space:]' <<<"$AC_APIKEY_P8_BASE64" | base64 -d > /tmp/apple_apikey.p8; then
+            echo "::error::The AC_APIKEY_P8_BASE64 secret is not valid base64."
+            exit 1
+          fi
+          if ! subject="$(openssl x509 -in /tmp/installer_cert.pem -noout -subject -serial -enddate)"; then
+            echo "::error::The AC_INSTALLER_CERTIFICATE_PEM secret is not a PEM certificate."
+            exit 1
+          fi
+          echo "$subject"
+          if [[ "$subject" != *"Developer ID Installer"* ]]; then
+            echo "::error::AC_INSTALLER_CERTIFICATE_PEM is not a Developer ID Installer certificate. An installer cannot be signed with the application certificate."
+            exit 1
+          fi
+
+      - name: Install rcodesign
+        uses: ./.github/actions/install-rcodesign
+
+      # Same as in the sign-app job.
+      - name: Setup Cloud KMS PKCS#11 library
+        env:
+          AC_KMS_KEY_RING: ${{ secrets.AC_KMS_KEY_RING }}
+        run: |
+          set -euo pipefail
+          wget -q -O /tmp/libkmsp11.tar.gz https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.9/libkmsp11-1.9-linux-amd64.tar.gz
+          echo "5397f965073cd5d1e2c43e5148f102f31a7c835902f97eb41c7c9c0f1b876a40 /tmp/libkmsp11.tar.gz" | sha256sum -c
+          sudo tar -xzf /tmp/libkmsp11.tar.gz \
+            -C /usr/local/lib \
+            --strip-components=1 \
+            libkmsp11-1.9-linux-amd64/libkmsp11.so
+          rm /tmp/libkmsp11.tar.gz
+
+          # The library requires the config file to be owner-writable only.
+          touch /tmp/kmsp11_config.yaml
+          chmod 600 /tmp/kmsp11_config.yaml
+          cat > /tmp/kmsp11_config.yaml <<EOF
+          ---
+          tokens:
+            - key_ring: "$AC_KMS_KEY_RING"
+          EOF
+
+      - name: Authenticate to Google Cloud
+        id: gcloud_auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.SIGNING_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ secrets.SIGNING_SERVICE_ACCOUNT }}
+
+      - name: Download unsigned installer
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unsigned-installer
+          path: build/package
+
+      - name: Sign
+        env:
+          AC_CERTIFICATE_FILE: /tmp/installer_cert.pem
+          AC_PKCS11_LIBRARY: /usr/local/lib/libkmsp11.so
+          AC_PKCS11_KEY_LABEL: ${{ secrets.AC_INSTALLER_KMS_KEY }}
+          KMS_PKCS11_CONFIG: /tmp/kmsp11_config.yaml
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcloud_auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/out
+          ./scripts/signing/sign-installer.sh build/package/Coder-Desktop.pkg build/out/Coder-Desktop.pkg
+
+      - name: Notarize and staple
+        env:
+          AC_APIKEY_ISSUER_ID: ${{ secrets.AC_APIKEY_ISSUER_ID }}
+          AC_APIKEY_ID: ${{ secrets.AC_APIKEY_ID }}
+        run: |
+          set -euo pipefail
+          rcodesign encode-app-store-connect-api-key \
+            "$AC_APIKEY_ISSUER_ID" \
+            "$AC_APIKEY_ID" \
+            /tmp/apple_apikey.p8 \
+            > /tmp/apple_apikey.json
+          rcodesign notary-submit \
+            --api-key-path /tmp/apple_apikey.json \
+            --staple \
+            build/out/Coder-Desktop.pkg
+
+      - name: Upload installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installer
+          path: build/out/Coder-Desktop.pkg
+          retention-days: 3
+
+      - name: Delete certificate and notarization key
+        if: always()
+        run: rm -f /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
+
+  publish:
+    name: Check the installer, sign for Sparkle and publish
+    needs: [build, sign-installer]
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
+    if: ${{ github.repository_owner == 'coder' }}
+    # Holds the Sparkle signing key.
+    environment: signing
+    permissions:
+      # To upload assets to the release
+      contents: write
+      # for GCP auth
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Switch XCode Version
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.5.0"
+
+      - name: Download installer
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installer
+          path: build/out
+
+      - name: Download debug symbols
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dsyms
+          path: build/out
+
+      - name: Check the installer with Apple's tools
+        run: ./scripts/signing/verify-installer.sh build/out/Coder-Desktop.pkg
+
+      # Sparkle, the app's updater, only accepts an installer whose Ed25519
+      # signature verifies against the public key built into the app. The
+      # signature covers the file as it is after notarization, and Sparkle's
+      # signing tool only runs on macOS, which is why this is the last step.
+      # The tool comes from the Sparkle release the app is built with.
+      - name: Install Sparkle's signing tool
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.7.0/Sparkle-2.7.0.tar.xz
+          echo "09fed60cca507d2dc542c86c22e525598af5483954a5c66366ce039647ec88e9  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xJf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle" ./bin/sign_update
+
+      - name: Sign for Sparkle
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo "::error::The SPARKLE_PRIVATE_KEY secret is not set in the signing environment."
+            exit 1
+          fi
+          # The key goes in on standard input.
+          echo "$SPARKLE_PRIVATE_KEY" |
+            "$RUNNER_TEMP/sparkle/bin/sign_update" build/out/Coder-Desktop.pkg --ed-key-file - \
+              > build/out/Coder-Desktop.pkg.sig
+          cat build/out/Coder-Desktop.pkg.sig
+
+      # The check an installed copy of the app makes before it accepts an
+      # update. The public key and the version are read from the app inside
+      # the installer.
+      - name: Check the signature against the public key built into the app
+        run: |
+          set -euo pipefail
+          pkgutil --expand-full build/out/Coder-Desktop.pkg "$RUNNER_TEMP/expanded"
+          plist="$(find "$RUNNER_TEMP/expanded" -path '*/Coder Desktop.app/Contents/Info.plist' | head -n 1)"
+          public_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist")"
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")"
+          signature="$(sed -E 's/.*sparkle:edSignature="([^"]+)".*/\1/' build/out/Coder-Desktop.pkg.sig)"
+          echo "Version: $version"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          swift scripts/signing/verify-sparkle-signature.swift \
+            build/out/Coder-Desktop.pkg "$signature" "$public_key"
+
+      # Upload as artifact in dry-run mode
+      - name: Upload Build Artifact
+        if: ${{ inputs.dryrun }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coder-desktop-build
+          path: build/out
+          retention-days: 7
+
+      - name: Authenticate to Google Cloud
+        if: ${{ !inputs.dryrun }}
         id: gcloud_auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
@@ -57,34 +492,13 @@ jobs:
           token_format: "access_token"
 
       - name: Setup GCloud SDK
+        if: ${{ !inputs.dryrun }}
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-
-      - name: Build
-        env:
-          APPLE_DEVELOPER_ID_PKCS12_B64: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_B64 }}
-          APPLE_DEVELOPER_ID_PKCS12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_PASSWORD }}
-          APPLE_INSTALLER_PKCS12_B64: ${{ secrets.APPLE_INSTALLER_PKCS12_B64 }}
-          APPLE_INSTALLER_PKCS12_PASSWORD: ${{ secrets.APPLE_INSTALLER_PKCS12_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_NOTARYTOOL_USERNAME  }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_NOTARYTOOL_PASSWORD }}
-          APP_PROF: ${{ secrets.CODER_DESKTOP_APP_PROVISIONPROFILE_B64 }}
-          EXT_PROF: ${{ secrets.CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64 }}
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: make release
-
-      # Upload as artifact in dry-run mode
-      - name: Upload Build Artifact
-        if: ${{ inputs.dryrun }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coder-desktop-build
-          path: ${{ github.workspace }}/outputs/out
-          retention-days: 7
 
       # Upload to release in non-dry-run mode
       - name: Upload Release Assets
         if: ${{ !inputs.dryrun }}
-        run: gh release upload "$RELEASE_TAG" "$out"/* --clobber
+        run: gh release upload "$RELEASE_TAG" build/out/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
@@ -96,8 +510,8 @@ jobs:
           pushd scripts/update-appcast
           swift run update-appcast \
             -i ../../oldappcast.xml \
-            -s "$out"/Coder-Desktop.pkg.sig \
-            -v "$(../version.sh)" \
+            -s ../../build/out/Coder-Desktop.pkg.sig \
+            -v "$RELEASE_VERSION" \
             -o ../../appcast.xml \
             -d "$VERSION_DESCRIPTION"
           popd
@@ -109,7 +523,7 @@ jobs:
     name: Update homebrew-coder cask
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
-    needs: build
+    needs: publish
     # Holds the coder-package-publisher App key; release tags only, approved by a release manager.
     environment: release-publish
     steps:

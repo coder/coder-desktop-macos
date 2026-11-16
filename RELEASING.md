@@ -28,32 +28,132 @@ point at.
    [homebrew-coder](https://github.com/coder/homebrew-coder) cask. Wait for it
    to finish, then review and merge the cask pull request.
 
+## How releases are signed
+
+The app and its installer are signed with Coder's Developer ID keys. Both keys
+live in Google Cloud KMS and cannot be exported, so nothing in this repository
+or its secrets can sign on its own.
+
+Xcode cannot sign with a key in Cloud KMS, and the library that reaches the
+keys only exists for Linux, while building and packaging need macOS. The
+`release` workflow therefore alternates between the two:
+
+| Job              | Runs on | Does                                                              |
+| ---------------- | ------- | ----------------------------------------------------------------- |
+| `build`          | macOS   | Builds the app with code signing disabled (`scripts/build.sh`)    |
+| `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
+| `package`        | macOS   | Checks the app with Apple's tools and builds the installer        |
+| `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
+| `publish`        | macOS   | Checks the installer, signs it for Sparkle, publishes             |
+
+The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
+Developer ID export used to do, and several checks stop a release when
+something Xcode used to take care of has gone wrong:
+
+- `check-entitlements.py`: the entitlements in `project.yml` no longer match
+  the ones the app is signed with (see [Changing entitlements](#changing-entitlements)).
+- `check-bundle.py`: the system extension's Mach service name has lost its
+  team prefix. macOS would refuse to activate the extension.
+- `check-profile.py`: a provisioning profile is expired, is for the wrong
+  bundle, or is bound to a different certificate.
+- `check-signers.py` and `check-installer.py`: something is not signed, or not
+  by the expected key. This includes the two macOS programs inside
+  `mutagen-agents.tar.gz`, which are signed separately because signing a
+  bundle does not look inside an archive.
+
+Sparkle, the app's updater, has its own signing key, which cannot be kept in
+Cloud KMS. The `publish` job signs the finished installer with it and checks
+the signature against the public key built into the app.
+
+### Secrets
+
+`sign-app`, `sign-installer` and `publish` run in the `signing` environment,
+which only `main` and `v*` tags may use. Its secrets:
+
+| Secret                         | What it is                                                        |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `SIGNING_WORKLOAD_ID_PROVIDER` | Google Cloud workload identity provider for this workflow         |
+| `SIGNING_SERVICE_ACCOUNT`      | Service account that may sign with the keys                       |
+| `AC_KMS_KEY_RING`              | Resource name of the Cloud KMS key ring that holds the keys       |
+| `AC_KMS_KEY`                   | Name of the Developer ID Application key in that key ring         |
+| `AC_CERTIFICATE_PEM`           | The Developer ID Application certificate, as PEM text             |
+| `AC_INSTALLER_KMS_KEY`         | Name of the Developer ID Installer key in that key ring           |
+| `AC_INSTALLER_CERTIFICATE_PEM` | The Developer ID Installer certificate, as PEM text               |
+| `AC_APP_PROVISIONPROFILE_B64`  | Provisioning profile for the app, base64-encoded                  |
+| `AC_EXT_PROVISIONPROFILE_B64`  | Provisioning profile for the system extension, base64-encoded     |
+| `AC_APIKEY_P8_BASE64`          | App Store Connect API key for notarization (`.p8`), base64-encoded |
+| `AC_APIKEY_ID`                 | That key's ID                                                     |
+| `AC_APIKEY_ISSUER_ID`          | That key's issuer ID                                              |
+| `SPARKLE_PRIVATE_KEY`          | Sparkle's signing key                                             |
+
+Google Cloud only gives this workflow a signing identity when it runs from
+`release.yml` in the `signing` environment, on `main` or a release tag.
+
+### Trying a change
+
+Run the `release` workflow manually on `main` with **dryrun** enabled. The
+build is uploaded as a workflow artifact instead of a release asset. The
+signing jobs cannot run from any other branch.
+
+To try the scripts without the real keys, `sign-app.sh` and
+`sign-installer.sh` also accept a throwaway certificate; see the comments at
+the top of each.
+
 ## Updating provisioning profiles
 
-Release builds are signed with two provisioning profiles, one for the app
-(`com.coder.Coder-Desktop`) and one for the network extension
-(`com.coder.Coder-Desktop.VPN`). CI reads them from these repository secrets:
-
-| Secret                                         | Profile file                               |
-| ---------------------------------------------- | ------------------------------------------ |
-| `CODER_DESKTOP_APP_PROVISIONPROFILE_B64`       | `Coder_Desktop_App.provisionprofile`       |
-| `CODER_DESKTOP_EXTENSION_PROVISIONPROFILE_B64` | `Coder_Desktop_Extension.provisionprofile` |
+Release builds carry two provisioning profiles, one for the app
+(`com.coder.Coder-Desktop`) and one for the system extension
+(`com.coder.Coder-Desktop.VPN`). A profile is bound to the certificate chosen
+when it was created, so both must be bound to the certificate in the
+`AC_CERTIFICATE_PEM` secret.
 
 When a profile expires or needs regenerating:
 
 1. Sign in to the [Apple Developer portal](https://developer.apple.com/account/resources/profiles/list)
    and open **Certificates, Identifiers & Profiles** > **Profiles**.
-2. Regenerate or edit the profile if needed, then download it.
-3. Base64-encode the downloaded file and copy the output:
+2. Create or edit a **Developer ID** profile, select that certificate, and
+   download it.
+3. Check it before uploading. The last argument is that certificate as a PEM
+   file. The `sign-app` job runs the same check before it signs anything.
 
    ```bash
-   cat Coder_Desktop_App.provisionprofile | base64
-   cat Coder_Desktop_Extension.provisionprofile | base64
+   ./scripts/signing/check-profile.py Coder_Desktop_App.provisionprofile \
+     scripts/signing/entitlements/app.plist \
+     developer-id-application.pem
+   ./scripts/signing/check-profile.py Coder_Desktop_Extension.provisionprofile \
+     scripts/signing/entitlements/vpn.plist \
+     developer-id-application.pem
    ```
 
-4. Paste the output into the matching secret under **Settings** >
-   **Secrets and variables** > **Actions**.
+4. Set the secrets in the `signing` environment:
 
-To check new profiles before cutting a release, run the `release` workflow
-manually with **dryrun** enabled. The build is uploaded as a workflow artifact
-instead of a release asset.
+   ```bash
+   base64 < Coder_Desktop_App.provisionprofile | tr -d '\n' |
+     gh secret set AC_APP_PROVISIONPROFILE_B64 --env signing
+   base64 < Coder_Desktop_Extension.provisionprofile | tr -d '\n' |
+     gh secret set AC_EXT_PROVISIONPROFILE_B64 --env signing
+   ```
+
+## Changing entitlements
+
+The entitlements the app is signed with are in `scripts/signing/entitlements`.
+When you change a target's entitlements in `Coder-Desktop/project.yml`, change
+the matching file there too, or the build fails. If the entitlement is a
+restricted one, the provisioning profile has to grant it as well.
+
+## Replacing a certificate
+
+The Developer ID Application certificate expires on 2027-12-15, the Developer
+ID Installer certificate on 2030-03-05. To replace one:
+
+1. Create a new key in Cloud KMS and have the Apple Account Holder issue a
+   certificate for it. The runbook is in the `coder-release-signing` project in
+   [coder/gcp](https://github.com/coder/gcp).
+2. Set the certificate secret (`AC_CERTIFICATE_PEM` or
+   `AC_INSTALLER_CERTIFICATE_PEM`) and the key name secret (`AC_KMS_KEY` or
+   `AC_INSTALLER_KMS_KEY`) in the `signing` environment.
+3. For the Application certificate, create new provisioning profiles bound to
+   it (see above).
+
+Do not revoke the old certificate. Revoking a Developer ID certificate
+invalidates everything already shipped under it.
