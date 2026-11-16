@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Signs a Coder Desktop release with rcodesign. CI runs this on Linux: the
-# Developer ID private keys live in Google Cloud KMS, which Apple's codesign
+# Developer ID private key lives in Google Cloud KMS, which Apple's codesign
 # can't use.
 #
 # Usage:
@@ -8,22 +8,22 @@
 #   ./scripts/sign.sh pkg path/to/Coder-Desktop.pkg
 #
 # `app` signs, in place, an app built by ./scripts/build.sh (unsigned, with its
-# provisioning profiles embedded) with the Developer ID Application key. Coder's
-# own executables get the hardened runtime and the entitlements in
+# provisioning profiles embedded) with the Developer ID Application certificate.
+# Coder's own executables get the hardened runtime and the entitlements in
 # signing/entitlements. Prebuilt executables (Sparkle, mutagen, the Swift
 # runtime) keep the identifier, flags and entitlements they were built with.
 #
 # `pkg` signs, in place, an installer built by ./scripts/package.sh with the
-# Developer ID Installer key.
+# Developer ID Installer certificate.
 #
 # The signing key comes from one of:
 #  - Google Cloud KMS, through the Cloud KMS PKCS#11 library: set
 #    $PKCS11_LIBRARY to libkmsp11.so (rcodesign must be built with the
 #    "pkcs11" feature) and $KMS_PKCS11_CONFIG to the library's config naming
 #    the apple-codesign key ring. Google credentials that can sign with the
-#    key must be available, e.g. via $GOOGLE_APPLICATION_CREDENTIALS. The key
-#    is the developer-id-application or developer-id-installer CryptoKey, with
-#    the matching certificate in signing/.
+#    key must be available, e.g. via $GOOGLE_APPLICATION_CREDENTIALS. Both
+#    certificates in signing/ were issued for the developer-id-application
+#    CryptoKey.
 #  - A PKCS#12 file, to try signing with a throwaway certificate: set
 #    $P12_FILE and $P12_PASSWORD_FILE.
 set -euo pipefail
@@ -40,14 +40,14 @@ kind="$1"
 target="$2"
 command -v rcodesign >/dev/null || die "rcodesign is not installed"
 
-# key_args KEY_NAME prints the rcodesign arguments selecting the signing key.
+# key_args CERT prints the rcodesign arguments for signing with signing/CERT.pem.
 key_args() {
   if [[ -n "${PKCS11_LIBRARY:-}" ]]; then
     [[ -n "${KMS_PKCS11_CONFIG:-}" ]] || die "KMS_PKCS11_CONFIG must be set with PKCS11_LIBRARY"
     [[ -f "$ROOT/signing/$1.pem" ]] || die "signing/$1.pem is missing; see RELEASING.md"
     printf '%s\0' \
       --pkcs11-library "$PKCS11_LIBRARY" \
-      --pkcs11-key-label "$1" \
+      --pkcs11-key-label developer-id-application \
       --pkcs11-certificate-file "$ROOT/signing/$1.pem"
   elif [[ -n "${P12_FILE:-}" ]]; then
     printf '%s\0' --p12-file "$P12_FILE" --p12-password-file "${P12_PASSWORD_FILE:?}"

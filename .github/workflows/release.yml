@@ -22,13 +22,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'tags/')}}
 
-# The Developer ID keys live in Google Cloud KMS, which only Linux can reach
+# The Developer ID key lives in Google Cloud KMS, which only Linux can reach
 # (through the Cloud KMS PKCS#11 library), so the release alternates between
 # macOS and Linux:
 #   build (macOS)     unsigned app
-#   sign-app (Linux)  sign the app with the Developer ID Application key
+#   sign-app (Linux)  sign the app with the Developer ID Application certificate
 #   package (macOS)   unsigned installer around the signed app
-#   sign-pkg (Linux)  sign the installer with the Developer ID Installer key, notarize, staple
+#   sign-pkg (Linux)  sign the installer with the Developer ID Installer certificate, notarize, staple
 #   publish (macOS)   Sparkle signature, release assets, appcast
 # Only jobs in the "signing" environment get the signing identity, the App
 # Store Connect key and the Sparkle key.

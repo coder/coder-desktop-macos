@@ -30,20 +30,21 @@ point at.
 
 ## Signing
 
-The Developer ID Application and Developer ID Installer private keys live in
-Google Cloud KMS (`coder-release-signing` project, `apple-codesign` key ring,
-managed in coder/gcp) and cannot be exported. Apple's `codesign` can't use
-them, so `release.yml` signs on Linux with
+The Developer ID private key lives in Google Cloud KMS (`coder-release-signing`
+project, `apple-codesign/developer-id-application`, managed in coder/gcp) and
+cannot be exported. Apple issued both the Developer ID Application and the
+Developer ID Installer certificates for it. Apple's `codesign` can't use it,
+so `release.yml` signs on Linux with
 [rcodesign](https://github.com/indygreg/apple-platform-rs) through the Cloud
 KMS PKCS#11 library:
 
 1. `build` (macOS) builds the app without signing it (`scripts/build.sh`).
-2. `sign-app` (Linux) signs it with the Developer ID Application key
+2. `sign-app` (Linux) signs it with the Developer ID Application certificate
    (`scripts/sign.sh app`).
 3. `package` (macOS) checks the signature with `codesign` and builds the
    installer (`scripts/package.sh`).
-4. `sign-pkg` (Linux) signs the installer with the Developer ID Installer key
-   (`scripts/sign.sh pkg`), then notarizes and staples it
+4. `sign-pkg` (Linux) signs the installer with the Developer ID Installer
+   certificate (`scripts/sign.sh pkg`), then notarizes and staples it
    (`scripts/notarize.sh`).
 5. `publish` (macOS) checks the installer with `spctl`, signs the Sparkle
    update and publishes.
