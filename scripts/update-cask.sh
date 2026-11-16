@@ -87,7 +87,7 @@ cask "coder-desktop" do
   homepage "https://github.com/coder/coder-desktop-macos"
 
   auto_updates true
-  depends_on macos: :sonoma
+  depends_on macos: :sequoia
 
   pkg "Coder-Desktop.pkg"
 

@@ -125,7 +125,7 @@ struct UpdateAppcast: AsyncParsableCommand {
         ))
         item.addChild(XMLElement(
             name: "sparkle:minimumSystemVersion",
-            stringValue: "14.0.0"
+            stringValue: "15.0.0"
         ))
 
         let enclosure = XMLElement(name: "enclosure")

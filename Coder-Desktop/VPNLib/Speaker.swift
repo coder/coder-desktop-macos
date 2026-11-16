@@ -1,6 +1,7 @@
 import Foundation
 import os
 import SwiftProtobuf
+import VPNProto
 
 let newLine = 0x0A
 let headerPreamble = "codervpn"

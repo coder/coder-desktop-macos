@@ -20,8 +20,6 @@ SCHEME := Coder\ Desktop
 TEST_PLAN := Coder-Desktop
 SWIFT_VERSION := 6.0
 
-MUTAGEN_PROTO_DEFS := $(shell find $(PROJECT)/VPNLib/FileSync/MutagenSDK -type f -name '*.proto' -print)
-MUTAGEN_PROTO_SWIFTS := $(patsubst %.proto,%.pb.swift,$(MUTAGEN_PROTO_DEFS))
 
 MUTAGEN_RESOURCES := mutagen-agents.tar.gz mutagen-darwin-arm64 mutagen-darwin-amd64
 ifndef MUTAGEN_VERSION
@@ -63,9 +61,7 @@ APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEY
 .PHONY: setup
 setup: \
 	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) \
-	$(XCPROJECT) \
-	$(PROJECT)/VPNLib/vpn.pb.swift \
-	$(MUTAGEN_PROTO_SWIFTS)
+	$(XCPROJECT)
 
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
@@ -82,16 +78,6 @@ $(XCPROJECT): $(PROJECT)/project.yml
 		MARKETING_VERSION=$(MARKETING_VERSION) \
 		GIT_COMMIT_HASH=$(GIT_COMMIT_HASH) \
 		xcodegen
-
-$(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
-	protoc --swift_opt=Visibility=public --swift_out=. 'Coder-Desktop/VPNLib/vpn.proto'
-
-$(MUTAGEN_PROTO_SWIFTS):
-	protoc \
-	-I=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
-	--swift_out=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
-	--grpc-swift_out=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
-	$(patsubst %.pb.swift,%.proto,$@)
 
 $(KEYCHAIN_FILE):
 	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
@@ -179,9 +165,6 @@ clean/build:
 .PHONY: clean/mutagen
 clean/mutagen:
 	find $(PROJECT)/Resources -name 'mutagen-*' -delete
-
-.PHONY: proto
-proto: $(PROJECT)/VPNLib/vpn.pb.swift $(MUTAGEN_PROTO_SWIFTS) ## Generate Swift files from protobufs
 
 .PHONY: help
 help: ## Show this help

@@ -1,6 +1,7 @@
 import Sparkle
 import SwiftUI
 
+@MainActor
 final class UpdaterService: NSObject, ObservableObject {
     /// The auto-updater can be entirely disabled by setting the
     /// `disableUpdater` UserDefaults key to `true`. This is designed for use in
@@ -87,7 +88,7 @@ extension UpdaterService: SPUUpdaterDelegate {
 }
 
 extension UpdaterService: SUVersionDisplay {
-    func formatUpdateVersion(
+    nonisolated func formatUpdateVersion(
         fromUpdate update: SUAppcastItem,
         andBundleDisplayVersion inOutBundleDisplayVersion: AutoreleasingUnsafeMutablePointer<NSString>,
         withBundleVersion bundleVersion: String
@@ -102,7 +103,7 @@ extension UpdaterService: SUVersionDisplay {
 }
 
 extension UpdaterService: SPUStandardUserDriverDelegate {
-    func standardUserDriverRequestsVersionDisplayer() -> (any SUVersionDisplay)? {
+    nonisolated func standardUserDriverRequestsVersionDisplayer() -> (any SUVersionDisplay)? {
         self
     }
 }

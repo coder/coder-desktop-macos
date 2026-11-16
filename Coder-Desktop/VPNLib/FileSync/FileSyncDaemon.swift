@@ -1,6 +1,7 @@
+internal import GRPCCore
+internal import GRPCNIOTransportHTTP2Posix
+internal import MutagenProto
 import Foundation
-import GRPC
-import NIO
 import os
 import Semaphore
 import Subprocess
@@ -35,7 +36,7 @@ public class MutagenDaemon: FileSyncDaemon {
             logger.info("mutagen daemon state set: \(self.state.description, privacy: .public)")
             if case .failed = state {
                 Task {
-                    try? await cleanupGRPC()
+                    await cleanupGRPC()
                 }
                 mutagenProcess?.kill()
                 mutagenProcess = nil
@@ -53,12 +54,11 @@ public class MutagenDaemon: FileSyncDaemon {
     public let logFile: URL
 
     /// Managing sync sessions could take a while, especially with prompting
-    let sessionMgmtReqTimeout: TimeAmount = .seconds(15)
+    let sessionMgmtReqTimeout: Duration = .seconds(15)
 
     // Non-nil when the daemon is running
     var client: DaemonClient?
-    private var group: MultiThreadedEventLoopGroup?
-    private var channel: GRPCChannel?
+    private var grpcConnections: Task<Void, Never>?
     private var waitForExit: (@Sendable () async -> Void)?
 
     /// Protect start & stop transitions against re-entrancy
@@ -160,7 +160,9 @@ public class MutagenDaemon: FileSyncDaemon {
                     do {
                         _ = try await self.client!.mgmt.version(
                             Daemon_VersionRequest(),
-                            callOptions: .init(timeLimit: .timeout(.milliseconds(500)))
+                            // The socket might not exist yet, so wait for the
+                            // connection instead of failing straight away.
+                            options: .timeout(.milliseconds(500), waitForReady: true)
                         )
                         return
                     } catch {
@@ -181,35 +183,42 @@ public class MutagenDaemon: FileSyncDaemon {
             // Already connected
             return
         }
-        group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
         do {
-            channel = try GRPCChannelPool.with(
-                target: .unixDomainSocket(mutagenDaemonSocket.path),
-                transportSecurity: .plaintext,
-                eventLoopGroup: group!
-            )
+            let grpcClient = try GRPCClient(transport: HTTP2ClientTransport.Posix(
+                target: .unixDomainSocket(path: mutagenDaemonSocket.path),
+                transportSecurity: .plaintext
+            ))
+            let logger = logger
+            grpcConnections = Task.detached {
+                do {
+                    try await grpcClient.runConnections()
+                } catch {
+                    logger.error("gRPC client stopped: \(error)")
+                }
+            }
             client = DaemonClient(
-                mgmt: Daemon_DaemonAsyncClient(channel: channel!),
-                sync: Synchronization_SynchronizationAsyncClient(channel: channel!),
-                prompt: Prompting_PromptingAsyncClient(channel: channel!)
+                mgmt: .init(wrapping: grpcClient),
+                sync: .init(wrapping: grpcClient),
+                prompt: .init(wrapping: grpcClient)
             )
             logger.info(
                 "Successfully connected to mutagen daemon, socket: \(self.mutagenDaemonSocket.path, privacy: .public)"
             )
         } catch {
             logger.error("Failed to connect to gRPC: \(error)")
-            try? await cleanupGRPC()
+            await cleanupGRPC()
             throw .connectionFailure(error)
         }
     }
 
-    private func cleanupGRPC() async throws {
-        try? await channel?.close().get()
-        try? await group?.shutdownGracefully()
-
+    private func cleanupGRPC() async {
+        let grpcConnections = grpcConnections
         client = nil
-        channel = nil
-        group = nil
+        self.grpcConnections = nil
+
+        // A graceful shutdown would wait on in-flight RPCs, which may never finish if the daemon hangs
+        grpcConnections?.cancel()
+        await grpcConnections?.value
     }
 
     public func stop() async {
@@ -228,10 +237,10 @@ public class MutagenDaemon: FileSyncDaemon {
         // may terminate before it has a chance to send the response."
         _ = try? await client?.mgmt.terminate(
             Daemon_TerminateRequest(),
-            callOptions: .init(timeLimit: .timeout(.milliseconds(500)))
+            options: .timeout(.milliseconds(500))
         )
 
-        try? await cleanupGRPC()
+        await cleanupGRPC()
 
         mutagenProcess?.kill()
         mutagenProcess = nil
@@ -294,12 +303,6 @@ public class MutagenDaemon: FileSyncDaemon {
 
         try? fileHandle.close()
     }
-}
-
-struct DaemonClient {
-    let mgmt: Daemon_DaemonAsyncClient
-    let sync: Synchronization_SynchronizationAsyncClient
-    let prompt: Prompting_PromptingAsyncClient
 }
 
 public enum DaemonState {

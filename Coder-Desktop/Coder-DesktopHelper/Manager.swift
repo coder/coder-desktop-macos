@@ -2,6 +2,7 @@ import CoderSDK
 import NetworkExtension
 import os
 import VPNLib
+import VPNProto
 
 actor Manager {
     let cfg: ManagerConfig
