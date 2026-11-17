@@ -78,7 +78,23 @@ AGENTS="$APP/Contents/Resources/mutagen-agents.tar.gz"
 agents_dir="$(mktemp -d)"
 trap 'rm -rf "$agents_dir"' EXIT
 agents=(darwin_amd64 darwin_arm64)
+# The archive comes from the unsigned, credentialless build, so its contents
+# are not trusted. The member names are reused below, first as paths under
+# $agents_dir and then as tar -c operands, where an absolute or parent path
+# would read a host file (a signing key, say) into the published archive.
+# Accept only the exact two regular-file members the build is known to
+# produce; reject absolute, parent, link, duplicate, or extra entries.
 mapfile -t members < <(tar -tzf "$AGENTS")
+if [[ "$(printf '%s\n' "${members[@]}" | LC_ALL=C sort)" != "$(printf '%s\n' "${agents[@]}" | LC_ALL=C sort)" ]]; then
+  echo "ERROR: unexpected members in mutagen-agents.tar.gz: ${members[*]}"
+  exit 1
+fi
+while IFS= read -r entry; do
+  if [[ "$entry" != -* ]]; then
+    echo "ERROR: non-regular member in mutagen-agents.tar.gz: $entry"
+    exit 1
+  fi
+done < <(tar -tvzf "$AGENTS")
 tar -xpzf "$AGENTS" -C "$agents_dir"
 for agent in "${agents[@]}"; do
   # Identified by its name in the archive, which is what it was called
