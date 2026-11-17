@@ -82,11 +82,19 @@ agents=(darwin_amd64 darwin_arm64)
 # are not trusted. The member names are reused below, first as paths under
 # $agents_dir and then as tar -c operands, where an absolute or parent path
 # would read a host file (a signing key, say) into the published archive.
-# Accept only the exact two regular-file members the build is known to
-# produce; reject absolute, parent, link, duplicate, or extra entries.
+# The archive holds one agent for every platform mutagen supports, so the
+# platforms are not listed here. Every member must be a regular file with a
+# plain <os>_<arch> name that appears once, which rejects absolute, parent,
+# link and duplicate entries.
 mapfile -t members < <(tar -tzf "$AGENTS")
-if [[ "$(printf '%s\n' "${members[@]}" | LC_ALL=C sort)" != "$(printf '%s\n' "${agents[@]}" | LC_ALL=C sort)" ]]; then
-  echo "ERROR: unexpected members in mutagen-agents.tar.gz: ${members[*]}"
+for member in "${members[@]}"; do
+  if [[ ! "$member" =~ ^[a-z0-9]+_[a-z0-9]+$ ]]; then
+    echo "ERROR: unexpected member in mutagen-agents.tar.gz: $member"
+    exit 1
+  fi
+done
+if [[ -n "$(printf '%s\n' "${members[@]}" | LC_ALL=C sort | uniq -d)" ]]; then
+  echo "ERROR: duplicate members in mutagen-agents.tar.gz: ${members[*]}"
   exit 1
 fi
 while IFS= read -r entry; do
