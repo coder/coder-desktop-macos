@@ -1,130 +1,75 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Add standard Nix environment variables
-out="${out:-release}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Builds a release of Coder Desktop with code signing disabled.
+#
+# The Developer ID keys live in Google Cloud KMS, which Xcode cannot use, so
+# the app is signed afterwards, on Linux, by scripts/signing/sign-app.sh. See
+# RELEASING.md. Nothing here touches a certificate, a keychain or a secret.
+#
+# Usage: build.sh [output-directory]
+#
+# Outputs, in the output directory (default: build/release):
+#   coder-desktop-unsigned.tar  The unsigned app. A tarball, because artifact
+#                               uploads drop the symlinks frameworks rely on.
+#   coder-desktop-dsyms.zip     Debug symbols.
 
-# Build Documentation @ https://developer.apple.com/forums/thread/737894
-APPLE_TEAM_ID="4399GN35BJ"
-CODE_SIGN_IDENTITY="Developer ID Application: Coder Technologies Inc (${APPLE_TEAM_ID})"
-CODE_SIGN_INSTALLER_IDENTITY="Developer ID Installer: Coder Technologies Inc (${APPLE_TEAM_ID})"
-PKG_SCRIPTS="$SCRIPT_DIR/../pkgbuild/scripts/"
+OUT="${1:-build/release}"
+TEAM_ID="4399GN35BJ"
 
-# Default values pulled in from env
-APP_PROF_PATH=${APP_PROF_PATH:-""}
-EXT_PROF_PATH=${EXT_PROF_PATH:-""}
-KEYCHAIN=${KEYCHAIN:-""}
-VERSION=${VERSION:-""}
-SPARKLE_PRIVATE_KEY=${SPARKLE_PRIVATE_KEY:-""}
-
-# Function to display usage
-usage() {
-  echo "Usage: $0 [--app-prof-path <path>] [--ext-prof-path <path>] [--keychain <path>]"
-  echo "  --app-prof-path       <path>     Set the APP_PROF_PATH variable"
-  echo "  --ext-prof-path       <path>     Set the EXT_PROF_PATH variable"
-  echo "  --keychain            <path>     Set the KEYCHAIN variable"
-  echo "  --sparkle-private-key <path>     Set the SPARKLE_PRIVATE_KEY variable"
-  echo "  --version             <version>  Set the VERSION variable to fetch and generate the cask file for"
-  echo "  -h, --help                       Display this help message"
-}
-
-# Parse command line arguments
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-  --app-prof-path)
-    APP_PROF_PATH="$2"
-    shift 2
-    ;;
-  --ext-prof-path)
-    EXT_PROF_PATH="$2"
-    shift 2
-    ;;
-  --keychain)
-    KEYCHAIN="$2"
-    shift 2
-    ;;
-  --sparkle-private-key)
-    SPARKLE_PRIVATE_KEY="$2"
-    shift 2
-    ;;
-  --version)
-    VERSION="$2"
-    shift 2
-    ;;
-  -h | --help)
-    usage
-    exit 0
-    ;;
-  *)
-    echo "Unknown parameter passed: $1"
-    usage
-    exit 1
-    ;;
-  esac
-done
-
-# Check if required variables are set
-if [[ -z "$APP_PROF_PATH" || -z "$EXT_PROF_PATH" || -z "$KEYCHAIN" || -z "$SPARKLE_PRIVATE_KEY" ]]; then
-  echo "Missing required values"
-  echo "APP_PROF_PATH: $APP_PROF_PATH"
-  echo "EXT_PROF_PATH: $EXT_PROF_PATH"
-  echo "KEYCHAIN: $KEYCHAIN"
-  echo
-  usage
-  exit 1
-fi
-
-# Assert version is not empty and starts with v
-[ -z "$VERSION" ] && {
-  echo "Error: VERSION cannot be empty"
-  echo
-  usage
-  exit 1
-}
-[[ "$VERSION" =~ ^[0-9] ]] || {
-  echo "ERROR: Version must start with a number."
-  echo "Note: VERSION must not start with a 'v'"
-  echo
-  usage
-  exit 1
-}
-
-XCODE_PROVISIONING_PROFILES_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
-ALT_PROVISIONING_PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-mkdir -p "$XCODE_PROVISIONING_PROFILES_DIR"
-mkdir -p "$ALT_PROVISIONING_PROFILES_DIR"
-
-get_uuid() {
-  strings "$1" | grep -E -o '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}'
-}
-
-# Extract the ID of each provisioning profile
-APP_PROVISIONING_PROFILE_ID=$(get_uuid "$APP_PROF_PATH")
-EXT_PROVISIONING_PROFILE_ID=$(get_uuid "$EXT_PROF_PATH")
-PTP_SUFFIX="-systemextension"
-
-# Install Provisioning Profiles
-cp "$APP_PROF_PATH" "${XCODE_PROVISIONING_PROFILES_DIR}/${APP_PROVISIONING_PROFILE_ID}.provisionprofile"
-cp "$APP_PROF_PATH" "${ALT_PROVISIONING_PROFILES_DIR}/${APP_PROVISIONING_PROFILE_ID}.provisionprofile"
-cp "$EXT_PROF_PATH" "${XCODE_PROVISIONING_PROFILES_DIR}/${EXT_PROVISIONING_PROFILE_ID}.provisionprofile"
-cp "$EXT_PROF_PATH" "${ALT_PROVISIONING_PROFILES_DIR}/${EXT_PROVISIONING_PROFILE_ID}.provisionprofile"
-
-export APP_PROVISIONING_PROFILE_ID
-export EXT_PROVISIONING_PROFILE_ID
-export PTP_SUFFIX
+# Selects the system extension flavour of the packet tunnel entitlement.
+export PTP_SUFFIX="-systemextension"
+# Provisioning profiles are embedded when the app is signed.
+export APP_PROVISIONING_PROFILE_ID=""
+export EXT_PROVISIONING_PROFILE_ID=""
 
 make clean/project clean/build
-
 make
 
-mkdir -p "$out"
-mkdir build
+# The app is signed with the entitlements in scripts/signing/entitlements,
+# not with the ones in project.yml. Xcode used to derive one from the other
+# when it signed. Stop here, before compiling, if a change to project.yml has
+# not been copied over.
+#
+# Usage: check_entitlements GENERATED SIGNED BUNDLE_ID
+check_entitlements() {
+  local generated="$1" signed="$2" bundle_id="$3" expected
+  expected="$(mktemp)"
+  # What Xcode's Developer ID export does to a target's entitlements: it
+  # expands the team prefix, adds the application and team identifiers, and
+  # drops aps-environment, which the provisioning profile does not grant.
+  sed "s/[$](TeamIdentifierPrefix)/${TEAM_ID}./g" "$generated" >"$expected"
+  /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$expected" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy \
+    -c "Add :com.apple.application-identifier string ${TEAM_ID}.${bundle_id}" \
+    -c "Add :com.apple.developer.team-identifier string ${TEAM_ID}" \
+    "$expected"
+  # Both in the same canonical form, so that only the content is compared.
+  if ! diff <(plutil -convert xml1 -o - "$expected") <(plutil -convert xml1 -o - "$signed"); then
+    echo "ERROR: $signed is out of date."
+    echo "The entitlements for $bundle_id in Coder-Desktop/project.yml have changed."
+    echo "Lines marked < are what the project now produces. Update $signed to"
+    echo "match, and check that the provisioning profile grants them. See RELEASING.md."
+    exit 1
+  fi
+  rm -f "$expected"
+  echo "OK: $signed matches the project's entitlements for $bundle_id"
+}
+check_entitlements \
+  Coder-Desktop/Coder-Desktop/Coder-Desktop.entitlements \
+  scripts/signing/entitlements/app.plist \
+  com.coder.Coder-Desktop
+check_entitlements \
+  Coder-Desktop/VPN/VPN.entitlements \
+  scripts/signing/entitlements/vpn.plist \
+  com.coder.Coder-Desktop.VPN
 
-# Archive the app
 ARCHIVE_PATH="./build/Coder-Desktop.xcarchive"
-mkdir -p build
+mkdir -p build "$OUT"
 
+# Xcode takes $(TeamIdentifierPrefix) from the signing identity, so with
+# signing disabled it has to be passed in. The Info.plists build the system
+# extension's Mach service name from it.
 xcodebuild \
   -project "Coder-Desktop/Coder-Desktop.xcodeproj" \
   -scheme "Coder Desktop" \
@@ -133,76 +78,37 @@ xcodebuild \
   archive \
   -skipMacroValidation \
   -skipPackagePluginValidation \
-  CODE_SIGN_STYLE=Manual \
-  CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
-  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-  CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION=YES \
-  OTHER_CODE_SIGN_FLAGS='--timestamp' | xcbeautify
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" \
+  TeamIdentifierPrefix="${TEAM_ID}." \
+  AppIdentifierPrefix="${TEAM_ID}." | xcbeautify
 
-# Create exportOptions.plist
-EXPORT_OPTIONS_PATH="./build/exportOptions.plist"
-cat >"$EXPORT_OPTIONS_PATH" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>developer-id</string>
-    <key>teamID</key>
-    <string>${APPLE_TEAM_ID}</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>com.coder.Coder-Desktop</key>
-        <string>${APP_PROVISIONING_PROFILE_ID}</string>
-        <key>com.coder.Coder-Desktop.VPN</key>
-        <string>${EXT_PROVISIONING_PROFILE_ID}</string>
-    </dict>
-</dict>
-</plist>
-EOF
+APP_PATH="$(find "$ARCHIVE_PATH/Products" -maxdepth 4 -name "Coder Desktop.app" -type d | head -n 1)"
+if [[ -z "$APP_PATH" ]]; then
+  echo "ERROR: could not find the app in $ARCHIVE_PATH/Products"
+  find "$ARCHIVE_PATH/Products" -maxdepth 4
+  exit 1
+fi
 
-# Export the archive
-EXPORT_PATH="./build/export"
-xcodebuild \
-  -exportArchive \
-  -archivePath "$ARCHIVE_PATH" \
-  -exportOptionsPlist "$EXPORT_OPTIONS_PATH" \
-  -exportPath "$EXPORT_PATH"
+# macOS refuses to activate a system extension whose Mach service name does
+# not start with the team prefix, and neither signing nor notarization
+# notices. Make sure the prefix arrived.
+for plist in \
+  "$APP_PATH/Contents/Info.plist" \
+  "$APP_PATH/Contents/Library/SystemExtensions/com.coder.Coder-Desktop.VPN.systemextension/Contents/Info.plist"; do
+  name="$(/usr/libexec/PlistBuddy -c "Print :NetworkExtension:NEMachServiceName" "$plist")"
+  if [[ "$name" != "${TEAM_ID}."* ]]; then
+    echo "ERROR: NEMachServiceName in $plist is '$name', without the team prefix."
+    echo "The TeamIdentifierPrefix build setting did not take effect."
+    exit 1
+  fi
+done
 
-BUILT_APP_PATH="$EXPORT_PATH/Coder Desktop.app"
-PKG_PATH="$out/Coder-Desktop.pkg"
-DSYM_ZIPPED_PATH="$out/coder-desktop-dsyms.zip"
-APP_ZIPPED_PATH="$out/coder-desktop-universal.zip"
+tar -C "$(dirname "$APP_PATH")" -cf "$OUT/coder-desktop-unsigned.tar" "Coder Desktop.app"
 
-pkgbuild --component "$BUILT_APP_PATH" \
-  --scripts "$PKG_SCRIPTS" \
-  --identifier "com.coder.Coder-Desktop" \
-  --version "$VERSION" \
-  --install-location "/Applications/" \
-  --timestamp \
-  --sign "$CODE_SIGN_INSTALLER_IDENTITY" \
-  "$PKG_PATH"
+DSYMS="$(cd "$OUT" && pwd)/coder-desktop-dsyms.zip"
+rm -f "$DSYMS"
+(cd "$ARCHIVE_PATH/dSYMs" && zip -9 -r --symlinks "$DSYMS" ./*)
 
-# Notarize
-xcrun notarytool store-credentials "notarytool-credentials" \
-  --apple-id "$APPLE_ID" \
-  --team-id "$APPLE_TEAM_ID" \
-  --password "$APPLE_ID_PASSWORD" \
-  --keychain "$KEYCHAIN"
-
-xcrun notarytool submit "$PKG_PATH" \
-  --keychain-profile "notarytool-credentials" \
-  --keychain "$KEYCHAIN" \
-  --wait
-
-# Staple the notarization to the app and pkg, so they work without internet
-xcrun stapler staple "$PKG_PATH"
-xcrun stapler staple "$BUILT_APP_PATH"
-
-signature=$(echo "$SPARKLE_PRIVATE_KEY" | ~/Library/Developer/Xcode/DerivedData/Coder-Desktop-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update "$PKG_PATH" --ed-key-file -)
-echo "$signature" >"$PKG_PATH.sig"
-
-# Add dsym to build artifacts
-(cd "$ARCHIVE_PATH/dSYMs" && zip -9 -r --symlinks "$DSYM_ZIPPED_PATH" ./*)
+ls -la "$OUT"

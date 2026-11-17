@@ -30,6 +30,12 @@ endif
 ifeq ($(strip $(MUTAGEN_VERSION)),)
 $(error MUTAGEN_VERSION must be a valid version)
 endif
+# SHA-256 of each mutagen resource at that version. They ship inside the app, so a download that
+# does not match is rejected. When changing .mutagenversion, take the new values from SHA256SUMS
+# in that coder/mutagen release.
+MUTAGEN_SHA256_mutagen-agents.tar.gz := 02e7458b9c6d1436c1fda8151bac86bfb46783b75a10d0fd9202100eb2a16f1d
+MUTAGEN_SHA256_mutagen-darwin-arm64 := 2439eafd5b53bdbaa6b36deeea747c4891eda8ca85ffdc7b8984c5de3e2fee62
+MUTAGEN_SHA256_mutagen-darwin-amd64 := 2cc67b7bc269a0549355116e05edc0635bb5724f735f9cc354f17a26ad43b41d
 
 ifndef CURRENT_PROJECT_VERSION
 # Must be X.Y.Z[.N]
@@ -55,11 +61,6 @@ ifeq ($(strip $(GIT_COMMIT_HASH)),)
 $(error GIT_COMMIT_HASH cannot be empty)
 endif
 
-# Define the keychain file name first
-KEYCHAIN_FILE := app-signing.keychain-db
-# Use shell to get the absolute path only if the file exists
-APP_SIGNING_KEYCHAIN := $(if $(wildcard $(KEYCHAIN_FILE)),$(shell realpath $(KEYCHAIN_FILE)),$(abspath $(KEYCHAIN_FILE)))
-
 .PHONY: setup
 setup: \
 	$(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) \
@@ -70,6 +71,7 @@ setup: \
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
 	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(notdir $@)" -o "$@"
+	echo "$(MUTAGEN_SHA256_$(notdir $@))  $@" | shasum -a 256 -c - || { rm -f "$@"; exit 1; }
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml
@@ -93,33 +95,9 @@ $(MUTAGEN_PROTO_SWIFTS):
 	--grpc-swift_out=$(PROJECT)/VPNLib/FileSync/MutagenSDK \
 	$(patsubst %.pb.swift,%.proto,$@)
 
-$(KEYCHAIN_FILE):
-	security create-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
-	security set-keychain-settings -lut 21600 "$(APP_SIGNING_KEYCHAIN)"
-	security unlock-keychain -p "" "$(APP_SIGNING_KEYCHAIN)"
-	@tempfile=$$(mktemp); \
-	echo "$$APPLE_DEVELOPER_ID_PKCS12_B64" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(APPLE_DEVELOPER_ID_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
-	rm $$tempfile
-	@tempfile=$$(mktemp); \
-	echo "$$APPLE_INSTALLER_PKCS12_B64" | base64 -d > $$tempfile; \
-	security import $$tempfile -P '$(APPLE_INSTALLER_PKCS12_PASSWORD)' -A -t cert -f pkcs12 -k "$(APP_SIGNING_KEYCHAIN)"; \
-	rm $$tempfile
-	security list-keychains -d user -s $$(security list-keychains -d user | tr -d '\"') "$(APP_SIGNING_KEYCHAIN)"
-
 .PHONY: release
-release: $(KEYCHAIN_FILE) ## Create a release build of Coder Desktop
-	@APP_PROF_PATH="$$(mktemp)"; \
-	EXT_PROF_PATH="$$(mktemp)"; \
-	echo -n "$$APP_PROF" | base64 -d > "$$APP_PROF_PATH"; \
-	echo -n "$$EXT_PROF" | base64 -d > "$$EXT_PROF_PATH"; \
-	./scripts/build.sh \
-		--app-prof-path "$$APP_PROF_PATH" \
-		--ext-prof-path "$$EXT_PROF_PATH" \
-		--version $(MARKETING_VERSION) \
-		--keychain "$(APP_SIGNING_KEYCHAIN)" \
-		--sparkle-private-key "$$SPARKLE_PRIVATE_KEY"; \
-	rm "$$APP_PROF_PATH" "$$EXT_PROF_PATH"
+release: ## Build an unsigned release of Coder Desktop. CI signs it, see RELEASING.md
+	./scripts/build.sh
 
 .PHONY: fmt
 fmt: ## Run Swift file formatter
@@ -153,7 +131,7 @@ lint/actions: ## Lint GitHub Actions
 	zizmor .
 
 .PHONY: clean
-clean: clean/project clean/keychain clean/build clean/mutagen ## Clean project and artifacts
+clean: clean/project clean/build clean/mutagen ## Clean project and artifacts
 
 .PHONY: clean/project
 clean/project:
@@ -163,14 +141,6 @@ clean/project:
 		rm -rf $(XCPROJECT); \
 	fi
 	find . -name "*.entitlements" -type f -delete
-
-.PHONY: clean/keychain
-clean/keychain:
-	@if [ -e "$(APP_SIGNING_KEYCHAIN)" ]; then \
-		echo "Cleaning keychain: '$(APP_SIGNING_KEYCHAIN)'"; \
-		security delete-keychain "$(APP_SIGNING_KEYCHAIN)"; \
-		rm -f "$(APP_SIGNING_KEYCHAIN)"; \
-	fi
 
 .PHONY: clean/build
 clean/build:
