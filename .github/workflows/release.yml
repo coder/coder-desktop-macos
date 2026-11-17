@@ -60,6 +60,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: Build
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           APPLE_DEVELOPER_ID_PKCS12_B64: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_B64 }}
           APPLE_DEVELOPER_ID_PKCS12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PKCS12_PASSWORD }}
@@ -83,6 +84,7 @@ jobs:
 
       # Upload to release in non-dry-run mode
       - name: Upload Release Assets
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         if: ${{ !inputs.dryrun }}
         run: gh release upload "$RELEASE_TAG" "$out"/* --clobber
         env:
@@ -90,6 +92,7 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
 
       - name: Update Appcast
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         if: ${{ !inputs.dryrun }}
         run: |
           gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
@@ -135,6 +138,7 @@ jobs:
           permission-pull-requests: write
 
       - name: Update homebrew-coder
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           GH_TOKEN: ${{ steps.publisher_token.outputs.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
