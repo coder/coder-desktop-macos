@@ -14,10 +14,14 @@ name: release
 #   package         macOS. Builds the installer.
 #   sign-installer  Linux. Signs the installer with the Developer ID
 #                   Installer key and notarizes it.
-#   publish         macOS. Signs the installer for Sparkle and publishes it.
+#   sign-sparkle    macOS. Signs the installer for Sparkle.
+#   publish         macOS. Publishes the installer.
 #
-# The three jobs that hold credentials run in the "signing" environment,
-# which only main and v* tags may use. See RELEASING.md.
+# The three signing jobs run in the "signing" environment, which only main and
+# v* tags may use. The publish job runs in the "publish" environment, under
+# the same restriction. Neither environment has reviewers, so that preview
+# builds from main need no approval. A release waits for one approval, in the
+# approve job. See RELEASING.md.
 
 on:
   push:
@@ -108,11 +112,29 @@ jobs:
           path: /tmp/rcodesign-bin/rcodesign
           retention-days: 1
 
+  # A release is signed only after a reviewer of the "release-approval" environment approves
+  # this job. It runs for releases only. The environment holds no secrets.
+  approve:
+    name: Approve the release
+    runs-on: ubuntu-22.04
+    if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
+    environment: release-approval
+    permissions: {}
+    steps:
+      - name: Approved
+        run: echo "Approved."
+
+  # The approve job is skipped unless this is a release. A job is skipped by default when any
+  # job before it was, however far back, so this job and every job after it state what they
+  # need instead.
   sign-app:
     name: Sign and notarize the app
-    needs: [build, rcodesign]
+    needs: [build, rcodesign, approve]
     runs-on: ubuntu-22.04
-    if: ${{ github.repository_owner == 'coder' }}
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' &&
+      needs.build.result == 'success' && needs.rcodesign.result == 'success' &&
+      (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
     # Holds the signing identity. The Google Cloud workload identity provider
     # only exchanges tokens for this workflow file, from this environment, on
     # main or a release tag.
@@ -263,7 +285,7 @@ jobs:
     name: Build the installer
     needs: sign-app
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
-    if: ${{ github.repository_owner == 'coder' }}
+    if: ${{ !cancelled() && github.repository_owner == 'coder' && needs.sign-app.result == 'success' }}
     permissions:
       contents: read
     steps:
@@ -304,7 +326,9 @@ jobs:
     name: Sign and notarize the installer
     needs: [package, rcodesign]
     runs-on: ubuntu-22.04
-    if: ${{ github.repository_owner == 'coder' }}
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' &&
+      needs.package.result == 'success' && needs.rcodesign.result == 'success' }}
     # See the sign-app job.
     environment: signing
     permissions:
@@ -435,13 +459,68 @@ jobs:
         if: always()
         run: rm -f /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
 
-  publish:
-    name: Sign for Sparkle and publish
-    needs: [build, sign-installer]
+  # Sparkle, the app's updater, only accepts an installer whose Ed25519 signature verifies
+  # against the public key built into the app. The signature covers the file as it is after
+  # notarization, and Sparkle's signing tool only runs on macOS.
+  #
+  # The job does nothing else, so that the Sparkle key is only ever next to that one tool.
+  sign-sparkle:
+    name: Sign the installer for Sparkle
+    needs: sign-installer
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
-    if: ${{ github.repository_owner == 'coder' }}
-    # Holds the Sparkle signing key.
+    if: ${{ !cancelled() && github.repository_owner == 'coder' && needs.sign-installer.result == 'success' }}
+    # See the sign-app job.
     environment: signing
+    permissions: {}
+    steps:
+      - name: Download installer
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installer
+          path: build/out
+
+      # The tool comes from the Sparkle release the app is built with.
+      - name: Install Sparkle's signing tool
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.7.0/Sparkle-2.7.0.tar.xz
+          echo "09fed60cca507d2dc542c86c22e525598af5483954a5c66366ce039647ec88e9  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xJf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle" ./bin/sign_update
+
+      - name: Sign for Sparkle
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo "::error::The SPARKLE_PRIVATE_KEY secret is not set in the signing environment."
+            exit 1
+          fi
+          # The key goes in on standard input.
+          echo "$SPARKLE_PRIVATE_KEY" |
+            "$RUNNER_TEMP/sparkle/bin/sign_update" build/out/Coder-Desktop.pkg --ed-key-file - \
+              > build/out/Coder-Desktop.pkg.sig
+          cat build/out/Coder-Desktop.pkg.sig
+
+      - name: Upload Sparkle signature
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sparkle-signature
+          path: build/out/Coder-Desktop.pkg.sig
+          retention-days: 3
+
+  # Holds no signing key, so it is outside the signing environment: the appcast tool's
+  # dependencies and the gcloud action run here. Its own environment holds the Google Cloud
+  # identity that may write to the releases bucket.
+  publish:
+    name: Publish
+    needs: [build, sign-sparkle]
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' &&
+      needs.build.result == 'success' && needs.sign-sparkle.result == 'success' }}
+    environment: publish
     permissions:
       # To upload assets to the release
       contents: write
@@ -467,39 +546,17 @@ jobs:
           name: installer
           path: build/out
 
+      - name: Download Sparkle signature
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sparkle-signature
+          path: build/out
+
       - name: Download debug symbols
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dsyms
           path: build/out
-
-      # Sparkle, the app's updater, only accepts an installer whose Ed25519
-      # signature verifies against the public key built into the app. The
-      # signature covers the file as it is after notarization, and Sparkle's
-      # signing tool only runs on macOS, which is why this is the last step.
-      # The tool comes from the Sparkle release the app is built with.
-      - name: Install Sparkle's signing tool
-        run: |
-          set -euo pipefail
-          curl -fsSL -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.7.0/Sparkle-2.7.0.tar.xz
-          echo "09fed60cca507d2dc542c86c22e525598af5483954a5c66366ce039647ec88e9  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c
-          mkdir -p "$RUNNER_TEMP/sparkle"
-          tar -xJf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle" ./bin/sign_update
-
-      - name: Sign for Sparkle
-        env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
-            echo "::error::The SPARKLE_PRIVATE_KEY secret is not set in the signing environment."
-            exit 1
-          fi
-          # The key goes in on standard input.
-          echo "$SPARKLE_PRIVATE_KEY" |
-            "$RUNNER_TEMP/sparkle/bin/sign_update" build/out/Coder-Desktop.pkg --ed-key-file - \
-              > build/out/Coder-Desktop.pkg.sig
-          cat build/out/Coder-Desktop.pkg.sig
 
       # Upload as artifact in dry-run mode
       - name: Upload Build Artifact
@@ -550,7 +607,9 @@ jobs:
   update-cask:
     name: Update homebrew-coder cask
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
-    if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' && github.event_name == 'release' &&
+      needs.publish.result == 'success' }}
     needs: publish
     # Holds the coder-package-publisher App key; release tags only, approved by a release manager.
     environment: release-publish

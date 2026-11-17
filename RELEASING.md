@@ -25,7 +25,9 @@ point at.
 4. Publishing the release starts the `release` workflow, which builds, signs,
    and notarizes the app, uploads the assets to the release, updates the
    appcast, and opens a pull request to update the
-   [homebrew-coder](https://github.com/coder/homebrew-coder) cask. Wait for it
+   [homebrew-coder](https://github.com/coder/homebrew-coder) cask. The run
+   waits for approval twice: once before anything is signed, and once before
+   the cask pull request is opened (see [Approvals](#approvals)). Wait for it
    to finish, then review and merge the cask pull request.
 
 ## How releases are signed
@@ -45,19 +47,22 @@ keys only exists for Linux, while building and packaging need macOS. The
 | `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
 | `package`        | macOS   | Builds the installer                                              |
 | `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
-| `publish`        | macOS   | Signs the installer for Sparkle, publishes                        |
+| `sign-sparkle`   | macOS   | Signs the installer for Sparkle                                   |
+| `publish`        | macOS   | Publishes the installer and updates the appcast                   |
 
 The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
 Developer ID export used to do. It also signs the two macOS programs inside
 `mutagen-agents.tar.gz`, which signing the app bundle does not reach.
 
 Sparkle, the app's updater, has its own signing key, which cannot be kept in
-Cloud KMS. The `publish` job signs the finished installer with it.
+Cloud KMS. The `sign-sparkle` job signs the finished installer with it, using
+Sparkle's own tool, which only runs on macOS. The job does nothing else, so
+that the key is never next to the tools `publish` downloads.
 
 ### Secrets
 
-`sign-app`, `sign-installer` and `publish` run in the `signing` environment,
-which only `main` and `v*` tags may use. Its secrets:
+`sign-app`, `sign-installer` and `sign-sparkle` run in the `signing`
+environment, which only `main` and `v*` tags may use. Its secrets:
 
 | Secret                         | What it is                                                        |
 | ------------------------------ | ----------------------------------------------------------------- |
@@ -78,11 +83,42 @@ which only `main` and `v*` tags may use. Its secrets:
 Google Cloud only gives this workflow a signing identity when it runs from
 `release.yml` in the `signing` environment, on `main` or a release tag.
 
+`publish` runs in the `publish` environment, which also only `main` and `v*`
+tags may use. It holds no signing secret, so that the tools `publish` downloads
+never run next to one. Its secrets:
+
+| Secret                     | What it is                                                |
+| -------------------------- | --------------------------------------------------------- |
+| `GCP_WORKLOAD_ID_PROVIDER` | Google Cloud workload identity provider for publishing    |
+| `GCP_SERVICE_ACCOUNT`      | Service account that may write the appcast to the releases bucket |
+
+### Approvals
+
+Every push to `main` is signed and published as the `preview` build, so the
+`signing` and `publish` environments must have no required reviewers. A release is approved
+once, in the `approve` job, before anything is signed.
+
+| Environment        | Required reviewers                      | Used by                                      | Approval asked   |
+| ------------------ | --------------------------------------- | -------------------------------------------- | ---------------- |
+| `signing`          | None                                    | `sign-app`, `sign-installer`, `sign-sparkle` | Never            |
+| `publish`          | None                                    | `publish`                                    | Never            |
+| `release-approval` | `coder/coder-desktop-release-managers`  | `approve`                                    | Once per release |
+| `release-publish`  | `coder/release-managers`                | `update-cask`                                | Once per release |
+
+`release-approval` holds no secrets, and only `v*` tags may use it. Neither
+reviewed environment lets the person who published the release approve it, so
+a release needs a second person. The environments are managed in
+[coder/github-org-terraform](https://github.com/coder/github-org-terraform).
+
+The approval is a step in the workflow, not a lock on the secrets: a change to
+`release.yml` on `main` could sign without it. What protects the `signing`
+and `publish` secrets is the review of changes to `main`.
+
 ### Trying a change
 
 Run the `release` workflow manually on `main` with **dryrun** enabled. The
 build is uploaded as a workflow artifact instead of a release asset. The
-signing jobs cannot run from any other branch.
+signing jobs cannot run from any other branch. A dry run needs no approval.
 
 To try the scripts without the real keys, `sign-app.sh` and
 `sign-installer.sh` also accept a throwaway certificate; see the comments at
