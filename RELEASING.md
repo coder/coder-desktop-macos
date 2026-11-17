@@ -72,10 +72,12 @@ installer: a signed, public record of the commit and workflow run that
 produced it. To check an installer against it:
 
 ```bash
-gh attestation verify Coder-Desktop.pkg --repo coder/coder-desktop-macos
+gh attestation verify Coder-Desktop.pkg --repo coder/coder-desktop-macos \
+  --cert-identity https://github.com/coder/coder-desktop-macos/.github/workflows/release-sign.yml@refs/heads/main
 ```
 
-Dry runs are not attested.
+`--cert-identity` only accepts an attestation made by `release-sign.yml` on
+`main`. Dry runs are not attested.
 
 ### Secrets
 
