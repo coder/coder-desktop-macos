@@ -85,6 +85,22 @@ make
 This will use **XcodeGen** to create the required Xcode project files.
 The configuration for the project is defined in `Coder-Desktop/project.yml`.
 
+### Changing Swift Packages
+
+The package versions the app is built with are recorded in
+`Coder-Desktop/Package.resolved`. CI and release builds use exactly those
+versions, and fail if the file does not match `project.yml`. After adding,
+removing or updating a package in `project.yml`, run:
+
+```bash
+make lockfile
+```
+
+and commit the updated `Package.resolved` with your change.
+
+The release tooling in `scripts/update-appcast` has its own
+`Package.resolved`. Update it with `swift package resolve` in that directory.
+
 ## Common Make Commands
 
 Here are some useful `make` commands for working with the project:
@@ -94,6 +110,7 @@ Here are some useful `make` commands for working with the project:
 - `make test`: Run all tests using `xcodebuild`.
 - `make clean`: Clean the Xcode project.
 - `make proto`: Generate Swift files from protobufs.
+- `make lockfile`: Update `Package.resolved` after changing packages.
 - `make help`: Display all available `make` commands with descriptions.
 
 For continuous development, you can also use:

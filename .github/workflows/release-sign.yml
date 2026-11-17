@@ -734,7 +734,7 @@ jobs:
         run: |
           gsutil cp "gs://releases.coder.com/coder-desktop/mac/appcast.xml" ./oldappcast.xml
           pushd scripts/update-appcast
-          swift run update-appcast \
+          swift run --disable-automatic-resolution update-appcast \
             -i ../../oldappcast.xml \
             -s ../../build/out/Coder-Desktop.pkg.sig \
             -v "$(../version.sh)" \
