@@ -51,6 +51,10 @@ alternate between the two:
 | `sign-sparkle`   | macOS   | Signs the installer for Sparkle                                   |
 | `publish`        | macOS   | Publishes the installer and updates the appcast                   |
 
+The jobs pass files to each other as workflow artifacts. Each job records the
+SHA-256 of what it uploads, and the job that downloads it checks the file
+against that before using it.
+
 The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
 Developer ID export used to do. It also signs the two macOS programs inside
 `mutagen-agents.tar.gz`, which signing the app bundle does not reach.
