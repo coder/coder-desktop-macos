@@ -1,19 +1,24 @@
 name: Install rcodesign
 description: |
-  Copied from coder/coder's .github/actions/install-rcodesign, minus its
-  retry helper.
+  Based on coder/coder's .github/actions/install-rcodesign.
 
-  Install the rcodesign (apple-codesign) binary with PKCS#11 support enabled
+  Build and install the rcodesign (apple-codesign) binary with PKCS#11 support enabled
   so the app can be signed with an Apple Developer certificate whose private
   key lives in Google Cloud KMS.
 
   PKCS#11 support is not in a published apple-codesign release (latest is
   0.29.0) and is gated behind the optional "pkcs11" cargo feature, so we build
-  rcodesign from source at a pinned revision and cache the resulting binary.
+  rcodesign from source at a pinned revision, with the dependency versions in
+  that revision's Cargo.lock and a pinned Rust toolchain.
   We also apply pkcs11-single-init.patch (the apple-codesign/src portion of
   https://github.com/indygreg/apple-platform-rs/pull/350) because without it
   the module is initialized twice per process and signing fails with
   CKR_CRYPTOKI_ALREADY_INITIALIZED.
+
+  The binary is not cached. Any workflow run on a branch can write that branch's
+  caches, so a cached binary is not known to be the one this action builds.
+  release.yml runs this action in a job that holds no credentials, and hands the
+  binary to the signing jobs as an artifact of the same run.
 
   TODO: switch back to a prebuilt release tarball once a release containing
   PKCS#11 support and the initialization fix is published with the feature
@@ -23,30 +28,18 @@ inputs:
     description: Git revision of indygreg/apple-platform-rs to build.
     required: false
     default: "0ebbd2ef3b96d5adccc30b1cad4deea38cd735c4"
+  toolchain:
+    description: Rust toolchain version to build with.
+    required: false
+    default: "1.100.0"
 runs:
   using: composite
   steps:
-    - name: Cache rcodesign binary
-      id: cache-rcodesign
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: /tmp/rcodesign-bin
-        key: rcodesign-pkcs11-${{ runner.os }}-${{ runner.arch }}-${{ inputs.rev }}-${{ hashFiles('.github/actions/install-rcodesign/pkcs11-single-init.patch') }}
-
     - name: Build rcodesign
-      if: steps.cache-rcodesign.outputs.cache-hit != 'true'
       shell: bash
       run: |
         set -euo pipefail
-        if command -v rustup >/dev/null 2>&1; then
-          rustup toolchain install --profile minimal stable
-          rustup default stable
-        elif ! command -v cargo >/dev/null 2>&1; then
-          curl --proto '=https' --tlsv1.2 -sSfL https://sh.rustup.rs -o /tmp/rustup-init.sh
-          sh /tmp/rustup-init.sh -y --profile minimal
-          rm /tmp/rustup-init.sh
-        fi
-        export PATH="$HOME/.cargo/bin:$PATH"
+        rustup toolchain install --profile minimal "$RUST_TOOLCHAIN"
 
         src=/tmp/apple-platform-rs-src
         rm -rf "$src"
@@ -55,7 +48,11 @@ runs:
         git -C "$src" checkout -q FETCH_HEAD
         git -C "$src" apply "$GITHUB_ACTION_PATH/pkcs11-single-init.patch"
 
-        cargo install \
+        # --locked: build with the dependency versions in Cargo.lock, and fail if they do
+        # not satisfy Cargo.toml. Without it, cargo install picks the newest compatible
+        # release of every dependency.
+        cargo "+$RUST_TOOLCHAIN" install \
+          --locked \
           --path "$src/apple-codesign" \
           --features pkcs11 \
           --bin rcodesign \
@@ -64,6 +61,7 @@ runs:
         cp /tmp/rcodesign-install/bin/rcodesign /tmp/rcodesign-bin/rcodesign
       env:
         RCODESIGN_REV: ${{ inputs.rev }}
+        RUST_TOOLCHAIN: ${{ inputs.toolchain }}
 
     - name: Install rcodesign
       shell: bash

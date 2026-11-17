@@ -41,6 +41,7 @@ keys only exists for Linux, while building and packaging need macOS. The
 | Job              | Runs on | Does                                                              |
 | ---------------- | ------- | ----------------------------------------------------------------- |
 | `build`          | macOS   | Builds the app with code signing disabled (`scripts/build.sh`)    |
+| `rcodesign`      | Linux   | Builds the signing tool, in a job with no credentials             |
 | `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
 | `package`        | macOS   | Builds the installer                                              |
 | `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
