@@ -40,6 +40,7 @@ jobs:
         uses: ./.github/actions/nix-devshell
 
       - run: make test
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
 
   format:
     name: fmt
@@ -61,6 +62,7 @@ jobs:
         uses: ./.github/actions/nix-devshell
 
       - run: make fmt
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
 
   lint:
     name: lint
@@ -77,5 +79,6 @@ jobs:
         uses: ./.github/actions/nix-devshell
 
       - run: make lint
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

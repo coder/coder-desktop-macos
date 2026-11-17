@@ -1,5 +1,11 @@
 name: "Setup Nix devshell"
-description: "This action sets up a nix devshell environment"
+description: |
+  Installs Nix and builds the "ci" devshell from flake.nix. It does not change the environment of
+  later steps. A step that needs the devshell's tools runs inside it with:
+
+    shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+  The bash options are the ones GitHub Actions uses for its default shell.
 runs:
   using: "composite"
   steps:
@@ -26,7 +32,8 @@ runs:
     #     # except the version with the `primary-key`, if it exists
     #     purge-primary-key: never
 
-    - name: Enter devshell
-      uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      with:
-        arguments: ".#ci"
+    # Downloads what the devshell needs here, so that the time and the output of that are not
+    # part of the first step that uses it.
+    - name: Build devshell
+      shell: bash
+      run: nix develop .#ci --command true
