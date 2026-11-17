@@ -9,13 +9,20 @@ SHELL := bash
 ifdef CI
 LINTFLAGS := --reporter github-actions-logging
 FMTFLAGS := --lint --reporter github-actions-log
+# Use the package versions in Package.resolved, and fail if it does not match project.yml.
+PACKAGEFLAGS := -disableAutomaticPackageResolution
 else
 LINTFLAGS :=
 FMTFLAGS :=
+PACKAGEFLAGS :=
 endif
 
 PROJECT := Coder-Desktop
 XCPROJECT := Coder-Desktop/Coder-Desktop.xcodeproj
+# The package versions the app is built with. Xcode reads them from inside the project, which
+# is generated, so the tracked file is copied there whenever the project is generated.
+PACKAGE_RESOLVED := $(PROJECT)/Package.resolved
+XCPROJECT_PACKAGE_RESOLVED := $(XCPROJECT)/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 SCHEME := Coder\ Desktop
 TEST_PLAN := Coder-Desktop
 SWIFT_VERSION := 6.0
@@ -74,7 +81,7 @@ $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.m
 	echo "$(MUTAGEN_SHA256_$(notdir $@))  $@" | shasum -a 256 -c - || { rm -f "$@"; exit 1; }
 	chmod +x "$@"
 
-$(XCPROJECT): $(PROJECT)/project.yml
+$(XCPROJECT): $(PROJECT)/project.yml $(PACKAGE_RESOLVED)
 	cd $(PROJECT); \
 		SWIFT_VERSION=$(SWIFT_VERSION) \
 		PTP_SUFFIX=${PTP_SUFFIX} \
@@ -84,6 +91,8 @@ $(XCPROJECT): $(PROJECT)/project.yml
 		MARKETING_VERSION=$(MARKETING_VERSION) \
 		GIT_COMMIT_HASH=$(GIT_COMMIT_HASH) \
 		xcodegen
+	mkdir -p $(dir $(XCPROJECT_PACKAGE_RESOLVED))
+	cp $(PACKAGE_RESOLVED) $(XCPROJECT_PACKAGE_RESOLVED)
 
 $(PROJECT)/VPNLib/vpn.pb.swift: $(PROJECT)/VPNLib/vpn.proto
 	protoc --swift_opt=Visibility=public --swift_out=. 'Coder-Desktop/VPNLib/vpn.proto'
@@ -113,8 +122,14 @@ test: $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)) $(XCPROJECT) ## Ru
 		-testPlan $(TEST_PLAN) \
 		-skipMacroValidation \
 		-skipPackagePluginValidation \
+		$(PACKAGEFLAGS) \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=NO | xcbeautify
+
+.PHONY: lockfile
+lockfile: $(XCPROJECT) ## Update Package.resolved after changing packages in project.yml
+	xcodebuild -resolvePackageDependencies -project $(XCPROJECT)
+	cp $(XCPROJECT_PACKAGE_RESOLVED) $(PACKAGE_RESOLVED)
 
 .PHONY: lint
 lint: lint/swift lint/actions ## Lint all files in the repo

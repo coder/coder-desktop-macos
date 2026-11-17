@@ -235,6 +235,9 @@ playground.xcworkspace
 Packages/
 Package.pins
 Package.resolved
+# The lockfiles are tracked. The Makefile copies the app's into the generated Xcode project.
+!/Coder-Desktop/Package.resolved
+!/scripts/update-appcast/Package.resolved
 *.xcodeproj
 # Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
 # hence it is not needed unless you have added a package configuration file to your project

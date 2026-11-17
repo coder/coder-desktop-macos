@@ -1,0 +1,33 @@
+{
+  "originHash" : "2ef197f440849ae28044b67ea7b7625bbd8ab173bb291eb0b01c4b12f98a9bff",
+  "pins" : [
+    {
+      "identity" : "parsley",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/loopwerk/Parsley",
+      "state" : {
+        "revision" : "ad35091c7a790f04fc5a912c8bde8963eba753d2",
+        "version" : "0.9.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
+      }
+    },
+    {
+      "identity" : "swift-cmark-gfm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stackotter/swift-cmark-gfm",
+      "state" : {
+        "revision" : "7ec44e7384793e507cf046336aef68586719a24e",
+        "version" : "1.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
