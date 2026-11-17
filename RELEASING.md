@@ -46,7 +46,8 @@ keys only exists for Linux, while building and packaging need macOS. The
 | `rcodesign`      | Linux   | Builds the signing tool, in a job with no credentials             |
 | `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
 | `package`        | macOS   | Builds the installer                                              |
-| `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it, signs it for Sparkle |
+| `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
+| `sign-sparkle`   | macOS   | Signs the installer for Sparkle                                   |
 | `publish`        | macOS   | Publishes the installer and updates the appcast                   |
 
 The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
@@ -54,15 +55,14 @@ Developer ID export used to do. It also signs the two macOS programs inside
 `mutagen-agents.tar.gz`, which signing the app bundle does not reach.
 
 Sparkle, the app's updater, has its own signing key, which cannot be kept in
-Cloud KMS. The `sign-installer` job signs the finished installer with it,
-using `sign-sparkle.sh`. Sparkle's own signing tool only runs on macOS; the
-script makes the same Ed25519 signature with OpenSSL, and stops if the key
-does not match the `SUPublicEDKey` in the app's `Info.plist`.
+Cloud KMS. The `sign-sparkle` job signs the finished installer with it, using
+Sparkle's own tool, which only runs on macOS. The job does nothing else, so
+that the key is never next to the tools `publish` downloads.
 
 ### Secrets
 
-`sign-app` and `sign-installer` run in the `signing` environment, which only
-`main` and `v*` tags may use. Its secrets:
+`sign-app`, `sign-installer` and `sign-sparkle` run in the `signing`
+environment, which only `main` and `v*` tags may use. Its secrets:
 
 | Secret                         | What it is                                                        |
 | ------------------------------ | ----------------------------------------------------------------- |
@@ -78,7 +78,7 @@ does not match the `SUPublicEDKey` in the app's `Info.plist`.
 | `AC_APIKEY_P8_BASE64`          | App Store Connect API key for notarization (`.p8`), base64-encoded |
 | `AC_APIKEY_ID`                 | That key's ID                                                     |
 | `AC_APIKEY_ISSUER_ID`          | That key's issuer ID                                              |
-| `SPARKLE_PRIVATE_KEY`          | Sparkle's signing key, as `generate_keys -x` exports it           |
+| `SPARKLE_PRIVATE_KEY`          | Sparkle's signing key                                             |
 
 Google Cloud only gives this workflow a signing identity when it runs from
 `release.yml` in the `signing` environment, on `main` or a release tag.
@@ -98,12 +98,12 @@ Every push to `main` is signed and published as the `preview` build, so the
 `signing` and `publish` environments must have no required reviewers. A release is approved
 once, in the `approve` job, before anything is signed.
 
-| Environment        | Required reviewers                      | Used by                      | Approval asked   |
-| ------------------ | --------------------------------------- | ---------------------------- | ---------------- |
-| `signing`          | None                                    | `sign-app`, `sign-installer` | Never            |
-| `publish`          | None                                    | `publish`                    | Never            |
-| `release-approval` | `coder/coder-desktop-release-managers`  | `approve`                    | Once per release |
-| `release-publish`  | `coder/release-managers`                | `update-cask`                | Once per release |
+| Environment        | Required reviewers                      | Used by                                      | Approval asked   |
+| ------------------ | --------------------------------------- | -------------------------------------------- | ---------------- |
+| `signing`          | None                                    | `sign-app`, `sign-installer`, `sign-sparkle` | Never            |
+| `publish`          | None                                    | `publish`                                    | Never            |
+| `release-approval` | `coder/coder-desktop-release-managers`  | `approve`                                    | Once per release |
+| `release-publish`  | `coder/release-managers`                | `update-cask`                                | Once per release |
 
 `release-approval` holds no secrets, and only `v*` tags may use it. Neither
 reviewed environment lets the person who published the release approve it, so
