@@ -625,8 +625,11 @@ jobs:
       ${{ !cancelled() && github.repository_owner == 'coder' && github.event_name == 'release' &&
       needs.publish.result == 'success' }}
     needs: publish
-    # Holds the coder-package-publisher App key; release tags only, approved by a release manager.
+    # Only this job (main's release-sign.yml, in release-publish: release tags only, approved by a
+    # release manager) may sign with the coder-package-publisher App's Cloud KMS key.
     environment: release-publish
+    permissions:
+      id-token: write # Cloud KMS signs the App's JWT
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -640,14 +643,16 @@ jobs:
 
       - name: Generate coder-package-publisher App token
         id: publisher_token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: coder/github-app-token-action@00eaec58ee1bfea9c8b48655b7ab7470b07739e5 # main 2026-11-17
         with:
-          app-id: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_ID }}
-          private-key: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_PRIVATE_KEY }}
+          client-id: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_ID }}
+          kms-key: ${{ secrets.CODER_PACKAGE_PUBLISHER_APP_KMS_KEY }}
+          workload-identity-provider: ${{ secrets.APP_KEYS_WORKLOAD_ID_PROVIDER }}
           owner: coder
           repositories: homebrew-coder
-          permission-contents: write
-          permission-pull-requests: write
+          permissions: |
+            contents: write
+            pull_requests: write
 
       - name: Update homebrew-coder
         shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
