@@ -497,8 +497,8 @@ jobs:
       - name: Install Sparkle's signing tool
         run: |
           set -euo pipefail
-          curl -fsSL -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.7.0/Sparkle-2.7.0.tar.xz
-          echo "09fed60cca507d2dc542c86c22e525598af5483954a5c66366ce039647ec88e9  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c
+          curl -fsSL -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.10.1/Sparkle-2.10.1.tar.xz
+          echo "1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c
           mkdir -p "$RUNNER_TEMP/sparkle"
           tar -xJf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle" ./bin/sign_update
 

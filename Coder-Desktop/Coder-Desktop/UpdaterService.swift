@@ -1,6 +1,9 @@
 import Sparkle
 import SwiftUI
 
+/// Since Sparkle 2.8, `SPUStandardUpdaterController`, `SPUUpdater` and
+/// `SPUUpdaterDelegate` are isolated to the main actor.
+@MainActor
 final class UpdaterService: NSObject, ObservableObject {
     /// The auto-updater can be entirely disabled by setting the
     /// `disableUpdater` UserDefaults key to `true`. This is designed for use in
@@ -86,8 +89,10 @@ extension UpdaterService: SPUUpdaterDelegate {
     }
 }
 
+/// `SUVersionDisplay` and `SPUStandardUserDriverDelegate` are not isolated to
+/// the main actor, so the methods that implement them cannot be either.
 extension UpdaterService: SUVersionDisplay {
-    func formatUpdateVersion(
+    nonisolated func formatUpdateVersion(
         fromUpdate update: SUAppcastItem,
         andBundleDisplayVersion inOutBundleDisplayVersion: AutoreleasingUnsafeMutablePointer<NSString>,
         withBundleVersion bundleVersion: String
@@ -102,7 +107,7 @@ extension UpdaterService: SUVersionDisplay {
 }
 
 extension UpdaterService: SPUStandardUserDriverDelegate {
-    func standardUserDriverRequestsVersionDisplayer() -> (any SUVersionDisplay)? {
+    nonisolated func standardUserDriverRequestsVersionDisplayer() -> (any SUVersionDisplay)? {
         self
     }
 }
