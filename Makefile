@@ -30,6 +30,12 @@ endif
 ifeq ($(strip $(MUTAGEN_VERSION)),)
 $(error MUTAGEN_VERSION must be a valid version)
 endif
+# SHA-256 of each mutagen resource at that version. They ship inside the app, so a download that
+# does not match is rejected. When changing .mutagenversion, take the new values from SHA256SUMS
+# in that coder/mutagen release.
+MUTAGEN_SHA256_mutagen-agents.tar.gz := 02e7458b9c6d1436c1fda8151bac86bfb46783b75a10d0fd9202100eb2a16f1d
+MUTAGEN_SHA256_mutagen-darwin-arm64 := 2439eafd5b53bdbaa6b36deeea747c4891eda8ca85ffdc7b8984c5de3e2fee62
+MUTAGEN_SHA256_mutagen-darwin-amd64 := 2cc67b7bc269a0549355116e05edc0635bb5724f735f9cc354f17a26ad43b41d
 
 ifndef CURRENT_PROJECT_VERSION
 # Must be X.Y.Z[.N]
@@ -65,6 +71,7 @@ setup: \
 # Mutagen resources
 $(addprefix $(PROJECT)/Resources/,$(MUTAGEN_RESOURCES)): $(PROJECT)/Resources/.mutagenversion
 	curl -sL "https://storage.googleapis.com/coder-desktop/mutagen/$(MUTAGEN_VERSION)/$(notdir $@)" -o "$@"
+	echo "$(MUTAGEN_SHA256_$(notdir $@))  $@" | shasum -a 256 -c - || { rm -f "$@"; exit 1; }
 	chmod +x "$@"
 
 $(XCPROJECT): $(PROJECT)/project.yml

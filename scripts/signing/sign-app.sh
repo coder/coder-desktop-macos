@@ -88,8 +88,8 @@ for agent in "${agents[@]}"; do
     --code-signature-flags runtime \
     "$agents_dir/$agent" 1>&2
 done
-# Same members, in the same order.
-tar -czf "$AGENTS" -C "$agents_dir" "${members[@]}"
+# Same members, in the same order. "--" keeps a member name from being read as an option.
+tar -czf "$AGENTS" -C "$agents_dir" -- "${members[@]}"
 
 args=()
 
