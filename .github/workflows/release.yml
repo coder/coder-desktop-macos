@@ -64,6 +64,7 @@ jobs:
         uses: ./.github/actions/nix-devshell
 
       - name: Build
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         run: ./scripts/build.sh build/release
 
       - name: Upload unsigned app
@@ -528,6 +529,7 @@ jobs:
           permission-pull-requests: write
 
       - name: Update homebrew-coder
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           GH_TOKEN: ${{ steps.publisher_token.outputs.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
