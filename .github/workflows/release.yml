@@ -37,3 +37,4 @@ jobs:
     permissions:
       contents: write # upload the release assets
       id-token: write # authenticate to Google Cloud
+      attestations: write # record which run built the installer
