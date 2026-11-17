@@ -37,8 +37,9 @@ live in Google Cloud KMS and cannot be exported, so nothing in this repository
 or its secrets can sign on its own.
 
 Xcode cannot sign with a key in Cloud KMS, and the library that reaches the
-keys only exists for Linux, while building and packaging need macOS. The
-`release` workflow therefore alternates between the two:
+keys only exists for Linux, while building and packaging need macOS. The jobs
+of the `release` workflow, in `.github/workflows/release-sign.yml`, therefore
+alternate between the two:
 
 | Job              | Runs on | Does                                                              |
 | ---------------- | ------- | ----------------------------------------------------------------- |
@@ -80,8 +81,9 @@ environment, which only `main` and `v*` tags may use. Its secrets:
 | `AC_APIKEY_ISSUER_ID`          | That key's issuer ID                                              |
 | `SPARKLE_PRIVATE_KEY`          | Sparkle's signing key                                             |
 
-Google Cloud only gives this workflow a signing identity when it runs from
-`release.yml` in the `signing` environment, on `main` or a release tag.
+Google Cloud only gives a job the signing identity when the job comes from
+the copy of `release-sign.yml` on `main` and runs in the `signing`
+environment, on `main` or a release tag.
 
 `publish` runs in the `publish` environment, which also only `main` and `v*`
 tags may use. It holds no signing secret, so that the tools `publish` downloads
@@ -110,15 +112,32 @@ reviewed environment lets the person who published the release approve it, so
 a release needs a second person. The environments are managed in
 [coder/github-org-terraform](https://github.com/coder/github-org-terraform).
 
-The approval is a step in the workflow, not a lock on the secrets: a change to
-`release.yml` on `main` could sign without it. What protects the `signing`
-and `publish` secrets is the review of changes to `main`.
+`release.yml` only starts the run. It calls the copy of `release-sign.yml` on
+`main`, also when a release tag starts the run, and Google Cloud lets no other
+copy sign. So a tag chooses the commit to release, but not the jobs that sign
+it, and it cannot leave out the `approve` job. The first job stops the run if
+that commit is not on `main`. The jobs come from the newest `main`, while the
+scripts they run come from the tagged commit.
+
+The approval is a job in `release-sign.yml`, so a change to that file on
+`main` could sign without it. What protects against that is the review of
+changes to `main`.
+
+The approval does not protect the secrets of the `signing` environment. GitHub
+gives them to any job in that environment on a `v*` tag, whatever workflow
+file the tag carries. Two of them are keys: `SPARKLE_PRIVATE_KEY` and
+`AC_APIKEY_P8_BASE64`. The same holds for the `publish` environment, whose
+identity may write the appcast. What protects those is that only
+`coder/coder-desktop-release-managers` may push a `v*` tag.
 
 ### Trying a change
 
 Run the `release` workflow manually on `main` with **dryrun** enabled. The
 build is uploaded as a workflow artifact instead of a release asset. The
 signing jobs cannot run from any other branch. A dry run needs no approval.
+
+Every run uses the copy of `release-sign.yml` on `main`, so a change to that
+file cannot be tried before it is merged.
 
 To try the scripts without the real keys, `sign-app.sh` and
 `sign-installer.sh` also accept a throwaway certificate; see the comments at
