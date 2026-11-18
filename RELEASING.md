@@ -47,11 +47,17 @@ checks them first, so that a mistake shows before anyone is asked to approve.
 
 ### When a release run fails
 
-The tag is created before the app is built. If a later job fails, fix the
-cause and re-run the failed jobs, or start the same version for the same
-commit again: the run finds the tag, and the release if there is one, and goes
-on from there. Starting it again takes a new approval, and uses the newest
+The tag is created before the app is built. If a job fails before the GitHub
+release is published, fix the cause and re-run the failed jobs, or start the
+same version for the same commit again: the run finds the tag and goes on
+from there. Starting it again takes a new approval, and uses the newest
 `release-sign.yml` on `main`, which re-running the failed jobs does not.
+
+Once the GitHub release is published, its files are final. If a later step
+fails, such as the appcast or the cask, re-run the failed jobs: the run
+uploads nothing again, and only checks that the release holds the files it
+built. Starting the version again would build new files, so the run refuses
+that.
 
 If the commit itself needs a fix, release the fixed commit as the next
 version. A tag is never moved to another commit.

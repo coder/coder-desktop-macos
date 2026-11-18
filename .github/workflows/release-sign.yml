@@ -860,24 +860,44 @@ jobs:
         if: ${{ !inputs.dryrun }}
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
-      # The preview build replaces the assets of the "preview" release.
+      # The preview build replaces the assets of the "preview" release. GitHub can lock the assets
+      # of published releases, but only of those published after that is turned on, and this one
+      # is older. Do not delete and recreate it: a new one would be locked like any other.
       - name: Upload Preview Assets
         if: ${{ !inputs.dryrun && inputs.version == '' }}
         run: gh release upload preview build/out/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # The approve job created the tag, and --verify-tag stops gh from creating one here. A
-      # re-run finds the release that the first attempt created, and replaces its assets.
+      # The approve job created the tag, and --verify-tag stops gh from creating one here. gh
+      # creates the release as a draft, uploads the assets and only then publishes it.
+      #
+      # A published release is final, and nothing here uploads to one. A re-run of this job
+      # finds the release that its first attempt published, and only checks that it holds the
+      # files of this run. A second build of a published version is refused.
       - name: Create Release
         if: ${{ !inputs.dryrun && inputs.version != '' }}
         run: |
           set -euo pipefail
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release upload "$VERSION" build/out/* --clobber
-          else
+          if ! draft="$(gh release view "$VERSION" --json isDraft --jq .isDraft 2>/dev/null)"; then
             gh release create "$VERSION" build/out/* --verify-tag --title "$VERSION" --notes "$RELEASE_NOTES"
+            exit 0
           fi
+
+          # An earlier attempt stopped between creating the draft and publishing it.
+          if [[ "$draft" == "true" ]]; then
+            gh release upload "$VERSION" build/out/* --clobber
+            gh release edit "$VERSION" --draft=false --verify-tag --title "$VERSION" --notes "$RELEASE_NOTES"
+            exit 0
+          fi
+
+          published="$(gh release view "$VERSION" --json assets --jq '.assets[] | "\(.digest)  \(.name)"' | LC_ALL=C sort)"
+          built="$(cd build/out && for f in *; do echo "sha256:$(shasum -a 256 "$f" | cut -d ' ' -f 1)  $f"; done | LC_ALL=C sort)"
+          if [[ "$published" != "$built" ]]; then
+            echo "::error::$VERSION is already published, with other files than this run built. A published version cannot be built again: re-run the failed jobs of the run that published it, or release the next version."
+            exit 1
+          fi
+          echo "$VERSION is already published, with the files of this run."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ inputs.version }}
