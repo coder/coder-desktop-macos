@@ -1,17 +1,28 @@
 name: release
 
-# Starts the build of Coder Desktop: the preview build on a push to main, a release when one is
-# published. The jobs are in release-sign.yml. See RELEASING.md.
+# Starts the build of Coder Desktop: the preview build on a push to main, a release when the
+# workflow is dispatched on main with a version, which scripts/release.sh does. The jobs are in
+# release-sign.yml. See RELEASING.md.
 
 on:
   push:
     branches:
       - main
-  release:
-    types: [published]
 
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Version to release, e.g. v0.8.7. Leave empty for a preview build or a dry run'
+        required: false
+        type: string
+      commit:
+        description: 'Full SHA of the commit on main to release. Required with a version'
+        required: false
+        type: string
+      release_notes:
+        description: 'Release notes, also shown in the update prompt. Required with a version'
+        required: false
+        type: string
       dryrun:
         description: 'Run in dry-run mode (upload as artifact instead of release asset)'
         required: true
@@ -20,20 +31,23 @@ on:
 permissions: {}
 
 # Cancel in-progress runs for when multiple PRs get merged
-# in quick succession. Ignore this for tag releases though.
+# in quick succession. A release has its own group, so that a merge to main never cancels it.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !contains(github.ref, 'tags/')}}
+  group: ${{ github.workflow }}-${{ inputs.version || github.ref }}
+  cancel-in-progress: ${{ !inputs.version }}
 
 jobs:
   release:
     # Runs main's copy of release-sign.yml, not this commit's. Google Cloud only lets that copy
-    # sign, so a release tag chooses the commit to release, but not the steps that sign it.
+    # sign, so a release chooses the commit to build, but not the steps that sign it.
     uses: coder/coder-desktop-macos/.github/workflows/release-sign.yml@main # zizmor: ignore[secrets-inherit,unpinned-uses]
     with:
       dryrun: ${{ inputs.dryrun || false }}
+      version: ${{ inputs.version || '' }}
+      commit: ${{ inputs.commit || '' }}
+      release_notes: ${{ inputs.release_notes || '' }}
     # The environment secrets only reach the called jobs if the caller passes them.
     secrets: inherit
     permissions:
-      contents: write # upload the release assets
+      contents: write # create the release and upload its assets
       id-token: write # authenticate to Google Cloud

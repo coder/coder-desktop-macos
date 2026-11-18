@@ -1,8 +1,12 @@
 name: release-sign
 
 # Builds, signs, notarizes and publishes Coder Desktop. release.yml calls main's copy of this
-# file, also when a release tag starts the run. Google Cloud only lets that copy sign, so a tag
-# chooses the commit to release, but not the steps that sign it.
+# file. Google Cloud only lets that copy sign, so a release chooses the commit to build, but not
+# the steps that sign it.
+#
+# A run with a version is a release: it only runs on main, for a commit on main, and creates the
+# vX.Y.Z tag itself once it is approved. Any other run builds the head of main, as the preview
+# build or as a dry run.
 #
 # The Developer ID keys live in Google Cloud KMS and cannot be exported.
 # Xcode cannot sign with a key there, and the library that reaches it only
@@ -22,11 +26,10 @@ name: release-sign
 # Each job records the SHA-256 of what it uploads as a job output, and the job that downloads
 # it checks the file against that before using it.
 #
-# The three signing jobs run in the "signing" environment, which only main and
-# v* tags may use. The publish job runs in the "publish" environment, under
-# the same restriction. Neither environment has reviewers, so that preview
-# builds from main need no approval. A release waits for one approval, in the
-# approve job. See RELEASING.md.
+# The three signing jobs run in the "signing" environment and the publish job
+# in the "publish" environment. Neither environment has reviewers, so that
+# preview builds from main need no approval. A release waits for one approval,
+# in the approve job, before it is tagged, built or signed. See RELEASING.md.
 
 on:
   workflow_call:
@@ -35,13 +38,27 @@ on:
         description: 'Run in dry-run mode (upload as artifact instead of release asset)'
         type: boolean
         default: false
+      version:
+        description: 'Version to release, e.g. v0.8.7. Empty for a preview build or a dry run'
+        type: string
+        default: ''
+      commit:
+        description: 'Full SHA of the commit on main to release. Required with a version'
+        type: string
+        default: ''
+      release_notes:
+        description: 'Release notes, also shown in the update prompt. Required with a version'
+        type: string
+        default: ''
 permissions: {}
 
 jobs:
-  # A release tag chooses the commit, and the jobs below run that commit's scripts and actions.
-  # So only a commit that went through review on main may be built and signed.
-  on-main:
-    name: Require a commit on main
+  # The jobs below run the scripts and actions of the commit they build. So only a commit that
+  # went through review on main may be built and signed: the head of main, or for a release the
+  # commit input, once this job has checked it. Every later job checks out
+  # `inputs.commit || github.sha` and runs only if this job passed.
+  validate:
+    name: Check the request
     runs-on: ubuntu-22.04
     if: ${{ github.repository_owner == 'coder' }}
     permissions:
@@ -53,18 +70,135 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Require a commit on main
+      - name: Check the request
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          DRYRUN: ${{ inputs.dryrun }}
         run: |
-          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
-            echo "::error::${GITHUB_REF_NAME} points at ${GITHUB_SHA}, which is not on main."
-            exit 1
+          set -euo pipefail
+          fail() { echo "::error::$*"; exit 1; }
+
+          # Also stops a run started from a tag or from another branch.
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || fail "This workflow only runs on main, not on $GITHUB_REF."
+
+          if [[ -z "$VERSION" ]]; then
+            [[ -z "$COMMIT" && -z "$RELEASE_NOTES" ]] || fail "commit and release_notes are only for a release: give a version too."
+            exit 0
           fi
 
+          [[ "$DRYRUN" != "true" ]] || fail "A release cannot be a dry run: leave version empty for a dry run."
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version must look like v1.2.3, got '$VERSION'."
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "commit must be a full 40-character SHA, got '$COMMIT'."
+          [[ -n "$RELEASE_NOTES" ]] || fail "A release needs release notes."
+          git merge-base --is-ancestor "$COMMIT" "$GITHUB_SHA" || fail "$COMMIT is not on main."
+
+  # A release is tagged only after a reviewer of the "release-approval" environment approves
+  # this job, and it is built and signed only once it is tagged. The job runs for releases only.
+  #
+  # Only the coder-release-publisher App may create a tag (ruleset "Release tags (App only)").
+  # Its key is in Cloud KMS, and in this repository only this job (main's copy of this file, in
+  # release-approval) may sign with it. So the tag is created here, at a commit on main, and
+  # nobody can push one beforehand.
+  approve:
+    name: Approve and tag the release
+    needs: validate
+    runs-on: ubuntu-22.04
+    if: ${{ github.repository_owner == 'coder' && inputs.version != '' }}
+    environment: release-approval
+    permissions:
+      contents: read
+      id-token: write # Cloud KMS signs the App's JWT
+    steps:
+      # For the tags and the history of main. Nothing from the tree runs in this job.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      # Here and not in the validate job, because the tags can change while the run waits for
+      # approval.
+      - name: Check the tag
+        id: check
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$*"; exit 1; }
+
+          # Checked by the validate job too, and again in the job that may tag.
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version must look like v1.2.3, got '$VERSION'."
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "commit must be a full 40-character SHA, got '$COMMIT'."
+          git merge-base --is-ancestor "$COMMIT" "$GITHUB_SHA" || fail "$COMMIT is not on main."
+
+          # A re-run finds the tag that the first attempt created.
+          if existing="$(git rev-parse --verify --quiet "refs/tags/$VERSION^{commit}")"; then
+            [[ "$existing" == "$COMMIT" ]] || fail "Tag $VERSION already exists at $existing, not at $COMMIT."
+            echo "Tag $VERSION already exists at $COMMIT."
+            echo "create=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # scripts/version.sh reads the version from the tag on the commit, so each release
+          # needs a commit of its own.
+          released="$(git tag --points-at "$COMMIT" --list 'v*' | paste -sd ' ' -)"
+          [[ -z "$released" ]] || fail "$COMMIT was already released as $released. Release a newer commit."
+
+          # Versions only go up, and a release never comes from before the last one.
+          tags="$(git tag --list 'v*' --sort=-version:refname)"
+          latest="$(grep -E -m 1 '^v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$tags" || true)"
+          if [[ -n "$latest" ]]; then
+            printf '%s\n' "$latest" "$VERSION" | sort -V -C || fail "$VERSION is not newer than $latest, the latest release."
+            git merge-base --is-ancestor "$latest" "$COMMIT" || fail "$COMMIT is older than the commit released as $latest."
+          fi
+
+          echo "create=true" >> "$GITHUB_OUTPUT"
+
+      # The App can also write to coder/coder, so the token is asked for this repository only.
+      - name: Generate release App token
+        id: app_token
+        if: ${{ steps.check.outputs.create == 'true' }}
+        uses: coder/github-app-token-action@00eaec58ee1bfea9c8b48655b7ab7470b07739e5 # main 2026-11-17
+        with:
+          client-id: ${{ secrets.CODER_RELEASE_PUBLISHER_APP_ID }}
+          kms-key: ${{ secrets.CODER_RELEASE_PUBLISHER_APP_KMS_KEY }}
+          workload-identity-provider: ${{ secrets.APP_KEYS_WORKLOAD_ID_PROVIDER }}
+          owner: coder
+          repositories: coder-desktop-macos
+          permissions: |
+            contents: write
+            workflows: write
+
+      # An annotated tag, through the API: nothing is pushed from this job's checkout.
+      - name: Create the tag
+        if: ${{ steps.check.outputs.create == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          tag_object="$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$VERSION" -f message="Release $VERSION" -f object="$COMMIT" -f type=commit \
+            --jq .sha)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$VERSION" -f sha="$tag_object" >/dev/null
+          echo "Created tag $VERSION at $COMMIT."
+
+  # The approve job is skipped unless this is a release. A job is skipped by default when any
+  # job before it was, however far back, so this job and every job after it state what they
+  # need instead.
   build:
     name: Build Coder Desktop
-    needs: on-main
+    needs: [validate, approve]
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
-    if: ${{ github.repository_owner == 'coder' }}
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' &&
+      needs.validate.result == 'success' &&
+      (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
     permissions:
       contents: read
     outputs:
@@ -74,9 +208,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
+
+      # The build takes its version from the tag, so stop here if that is not the one asked for.
+      - name: Check the version
+        if: ${{ inputs.version != '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tagged="v$(./scripts/version.sh)"
+          if [[ "$tagged" != "$VERSION" ]]; then
+            echo "::error::The tags give this commit the version $tagged, not $VERSION."
+            exit 1
+          fi
 
       - name: Switch XCode Version
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
@@ -121,7 +269,7 @@ jobs:
   # can write that branch's caches.
   rcodesign:
     name: Build rcodesign
-    needs: on-main
+    needs: validate
     runs-on: ubuntu-22.04
     if: ${{ github.repository_owner == 'coder' }}
     permissions:
@@ -132,6 +280,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           persist-credentials: false
 
       - name: Build rcodesign
@@ -151,22 +300,8 @@ jobs:
           path: /tmp/rcodesign-bin/rcodesign
           retention-days: 1
 
-  # A release is signed only after a reviewer of the "release-approval" environment approves
-  # this job. It runs for releases only. The environment holds no secrets.
-  approve:
-    name: Approve the release
-    needs: on-main
-    runs-on: ubuntu-22.04
-    if: ${{ github.repository_owner == 'coder' && github.event_name == 'release' }}
-    environment: release-approval
-    permissions: {}
-    steps:
-      - name: Approved
-        run: echo "Approved."
-
-  # The approve job is skipped unless this is a release. A job is skipped by default when any
-  # job before it was, however far back, so this job and every job after it state what they
-  # need instead.
+  # Needs the approve job itself and not only the build that waited for it, so that nothing is
+  # signed for a release without the approval, whatever happens to the build job.
   sign-app:
     name: Sign and notarize the app
     needs: [build, rcodesign, approve]
@@ -177,7 +312,7 @@ jobs:
       (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
     # Holds the signing identity. The Google Cloud workload identity provider
     # only exchanges tokens for main's copy of this file, from this environment,
-    # on main or a release tag.
+    # which only main may use.
     environment: signing
     permissions:
       contents: read
@@ -189,6 +324,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           persist-credentials: false
 
       # Tools first, before any credential is written to disk. rcodesign comes from the
@@ -359,6 +495,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           persist-credentials: false
 
       - name: Download signed app
@@ -423,6 +560,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           persist-credentials: false
 
       # Tools first, as in the sign-app job.
@@ -656,6 +794,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
@@ -721,13 +860,28 @@ jobs:
         if: ${{ !inputs.dryrun }}
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
-      # Upload to release in non-dry-run mode
-      - name: Upload Release Assets
-        if: ${{ !inputs.dryrun }}
-        run: gh release upload "$RELEASE_TAG" build/out/* --clobber
+      # The preview build replaces the assets of the "preview" release.
+      - name: Upload Preview Assets
+        if: ${{ !inputs.dryrun && inputs.version == '' }}
+        run: gh release upload preview build/out/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || 'preview' }}
+
+      # The approve job created the tag, and --verify-tag stops gh from creating one here. A
+      # re-run finds the release that the first attempt created, and replaces its assets.
+      - name: Create Release
+        if: ${{ !inputs.dryrun && inputs.version != '' }}
+        run: |
+          set -euo pipefail
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" build/out/* --clobber
+          else
+            gh release create "$VERSION" build/out/* --verify-tag --title "$VERSION" --notes "$RELEASE_NOTES"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
 
       - name: Update Appcast
         if: ${{ !inputs.dryrun }}
@@ -743,17 +897,17 @@ jobs:
           popd
           gsutil -h "Cache-Control:no-cache,max-age=0" cp ./appcast.xml "gs://releases.coder.com/coder-desktop/mac/appcast.xml"
         env:
-          VERSION_DESCRIPTION: ${{ (github.event_name == 'release' && github.event.release.body) || (github.event_name == 'push' && github.event.head_commit.message) || '' }}
+          VERSION_DESCRIPTION: ${{ inputs.release_notes || (github.event_name == 'push' && github.event.head_commit.message) || '' }}
 
   update-cask:
     name: Update homebrew-coder cask
     runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
     if: >-
-      ${{ !cancelled() && github.repository_owner == 'coder' && github.event_name == 'release' &&
+      ${{ !cancelled() && github.repository_owner == 'coder' && inputs.version != '' &&
       needs.publish.result == 'success' }}
     needs: publish
-    # Only this job (main's release-sign.yml, in release-publish: release tags only, approved by a
-    # release manager) may sign with the coder-package-publisher App's Cloud KMS key.
+    # Only this job (main's release-sign.yml, in release-publish, approved by a release manager)
+    # may sign with the coder-package-publisher App's Cloud KMS key.
     environment: release-publish
     permissions:
       id-token: write # Cloud KMS signs the App's JWT
@@ -761,6 +915,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit || github.sha }}
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
@@ -785,7 +940,7 @@ jobs:
         shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           GH_TOKEN: ${{ steps.publisher_token.outputs.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ inputs.version }}
           ASSIGNEE: ${{ github.actor }}
         run: |
           git config --global user.email "ci@coder.com"
