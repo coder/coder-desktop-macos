@@ -349,6 +349,15 @@ jobs:
           sudo install -m 0755 "$RUNNER_TEMP/rcodesign/rcodesign" /usr/bin/rcodesign
           rcodesign --version
 
+      # jsign signs the Windows programs in the agents archive. It runs on the Java of the
+      # runner image.
+      - name: Setup jsign
+        run: |
+          set -euo pipefail
+          java -version
+          wget -q -O /tmp/jsign-6.0.jar https://github.com/ebourg/jsign/releases/download/6.0/jsign-6.0.jar
+          echo "05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a  /tmp/jsign-6.0.jar" | sha256sum -c
+
       # Same library, version and checksum as coder/coder's release workflow.
       - name: Setup Cloud KMS PKCS#11 library
         env:
@@ -411,12 +420,36 @@ jobs:
             exit 1
           fi
 
+      - name: Setup and check Authenticode certificate
+        env:
+          EV_SIGNING_CERT: ${{ secrets.EV_SIGNING_CERT }}
+          EV_KEYSTORE: ${{ secrets.EV_KEYSTORE }}
+          EV_KEY: ${{ secrets.EV_KEY }}
+          EV_TSA_URL: ${{ secrets.EV_TSA_URL }}
+        run: |
+          set -euo pipefail
+          for name in EV_SIGNING_CERT EV_KEYSTORE EV_KEY EV_TSA_URL; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::The $name secret is not set in the signing environment."
+              exit 1
+            fi
+          done
+          touch /tmp/ev_cert.pem
+          chmod 600 /tmp/ev_cert.pem
+          echo "$EV_SIGNING_CERT" > /tmp/ev_cert.pem
+          if ! openssl x509 -in /tmp/ev_cert.pem -noout -subject -serial -enddate; then
+            echo "::error::The EV_SIGNING_CERT secret is not a PEM certificate."
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         id: gcloud_auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ secrets.SIGNING_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ secrets.SIGNING_SERVICE_ACCOUNT }}
+          # The access token is for jsign.
+          token_format: "access_token"
 
       - name: Download unsigned app
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -441,6 +474,12 @@ jobs:
           AC_PKCS11_KEY_LABEL: ${{ secrets.AC_KMS_KEY }}
           KMS_PKCS11_CONFIG: /tmp/kmsp11_config.yaml
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcloud_auth.outputs.credentials_file_path }}
+          JSIGN_PATH: /tmp/jsign-6.0.jar
+          EV_KEYSTORE: ${{ secrets.EV_KEYSTORE }}
+          EV_KEY: ${{ secrets.EV_KEY }}
+          EV_CERTIFICATE_PATH: /tmp/ev_cert.pem
+          EV_TSA_URL: ${{ secrets.EV_TSA_URL }}
+          GCLOUD_ACCESS_TOKEN: ${{ steps.gcloud_auth.outputs.access_token }}
         run: |
           set -euo pipefail
           mkdir -p build/app
@@ -480,7 +519,7 @@ jobs:
 
       - name: Delete certificate, profiles and notarization key
         if: always()
-        run: rm -f /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
+        run: rm -f /tmp/{apple_cert.pem,ev_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
 
   package:
     name: Build the installer
