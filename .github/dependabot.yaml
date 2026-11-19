@@ -15,3 +15,5 @@ updates:
       github-actions:
         patterns:
           - "*"
+        exclude-patterns:
+          - "coder/setup-apple-signing-action*"
