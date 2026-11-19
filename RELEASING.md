@@ -89,7 +89,8 @@ against that before using it.
 
 The scripts are in `scripts/signing`. `sign-app.sh` reproduces what Xcode's
 Developer ID export used to do. It also signs the two macOS programs inside
-`mutagen-agents.tar.gz`, which signing the app bundle does not reach.
+`mutagen-agents.tar.gz`, which signing the app bundle does not reach, and,
+with jsign, the two Windows programs there.
 
 Sparkle, the app's updater, has its own signing key, which cannot be kept in
 Cloud KMS. The `sign-sparkle` job signs the finished installer with it, using
@@ -115,6 +116,10 @@ environment, which only `main` may use. Its secrets:
 | `AC_APIKEY_P8_BASE64`          | App Store Connect API key for notarization (`.p8`), base64-encoded |
 | `AC_APIKEY_ID`                 | That key's ID                                                     |
 | `AC_APIKEY_ISSUER_ID`          | That key's issuer ID                                              |
+| `EV_KEYSTORE`                  | Resource name of the Cloud KMS key ring that holds the Authenticode key |
+| `EV_KEY`                       | Name of the Authenticode key in that key ring                     |
+| `EV_SIGNING_CERT`              | The Authenticode certificate chain, as PEM text                   |
+| `EV_TSA_URL`                   | URL of the timestamp server for Authenticode signatures           |
 | `SPARKLE_PRIVATE_KEY`          | Sparkle's signing key                                             |
 
 Google Cloud only gives a job the signing identity when the job comes from

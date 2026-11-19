@@ -28,6 +28,22 @@ set -euo pipefail
 #   AC_P12_FILE, AC_P12_PASSWORD_FILE
 #   AC_TEAM_NAME                  Team ID to record. Only needed when Apple
 #                                 did not issue the certificate.
+#
+# The Windows programs in the agents archive are signed with jsign.
+#   JSIGN_PATH                    Path to the jsign jar.
+#   JAVA                          java binary. Default: java.
+#
+# With AC_PKCS11_LIBRARY, their key is the Authenticode key in Google Cloud
+# KMS.
+#   EV_KEYSTORE                   Resource name of the key ring.
+#   EV_KEY                        Name of the key in the key ring.
+#   EV_CERTIFICATE_PATH           The certificate chain for that key, as PEM.
+#   EV_TSA_URL                    URL of the timestamp server.
+#   GCLOUD_ACCESS_TOKEN           Google access token for the key.
+#
+# With AC_P12_FILE, their key is the one in that file and the signatures carry
+# no timestamp. JSIGN_PATH is optional: without it the Windows programs are
+# left as they are.
 
 if [[ "$#" -ne 1 ]]; then
   echo "Usage: $0 \"path/to/Coder Desktop.app\""
@@ -36,6 +52,7 @@ fi
 
 APP="$1"
 RCODESIGN="${RCODESIGN:-rcodesign}"
+JAVA="${JAVA:-java}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENTITLEMENTS="$SCRIPT_DIR/entitlements"
 
@@ -46,6 +63,7 @@ SPARKLE="Contents/Frameworks/Sparkle.framework/Versions/B"
 : "${EXT_PROF_PATH:?EXT_PROF_PATH must be set}"
 
 key_args=()
+jsign_args=()
 if [[ -n "${AC_PKCS11_LIBRARY:-}" ]]; then
   : "${KMS_PKCS11_CONFIG:?KMS_PKCS11_CONFIG must be set}"
   : "${AC_PKCS11_KEY_LABEL:?AC_PKCS11_KEY_LABEL must be set}"
@@ -55,14 +73,53 @@ if [[ -n "${AC_PKCS11_LIBRARY:-}" ]]; then
     --pkcs11-key-label "$AC_PKCS11_KEY_LABEL"
     --pkcs11-certificate-file "$AC_CERTIFICATE_FILE"
   )
+  : "${JSIGN_PATH:?JSIGN_PATH must be set}"
+  : "${EV_KEYSTORE:?EV_KEYSTORE must be set}"
+  : "${EV_KEY:?EV_KEY must be set}"
+  : "${EV_CERTIFICATE_PATH:?EV_CERTIFICATE_PATH must be set}"
+  : "${EV_TSA_URL:?EV_TSA_URL must be set}"
+  : "${GCLOUD_ACCESS_TOKEN:?GCLOUD_ACCESS_TOKEN must be set}"
+  jsign_args+=(
+    --storetype GOOGLECLOUD
+    --storepass "$GCLOUD_ACCESS_TOKEN"
+    --keystore "$EV_KEYSTORE"
+    --alias "$EV_KEY"
+    --certfile "$EV_CERTIFICATE_PATH"
+    --tsmode RFC3161
+    --tsaurl "$EV_TSA_URL"
+  )
 else
   : "${AC_P12_FILE:?set AC_PKCS11_LIBRARY or AC_P12_FILE}"
   : "${AC_P12_PASSWORD_FILE:?AC_P12_PASSWORD_FILE must be set}"
   key_args+=(--p12-file "$AC_P12_FILE" --p12-password-file "$AC_P12_PASSWORD_FILE")
+  if [[ -n "${JSIGN_PATH:-}" ]]; then
+    jsign_args+=(
+      --storetype PKCS12
+      --keystore "$AC_P12_FILE"
+      --storepass "$(head -n 1 "$AC_P12_PASSWORD_FILE")"
+    )
+  fi
 fi
 if [[ -n "${AC_TEAM_NAME:-}" ]]; then
   key_args+=(--team-name "$AC_TEAM_NAME")
 fi
+
+# Prints the size of the certificate table of a PE file, which holds its
+# signatures.
+pe_certificate_table_size() {
+  local file="$1" header magic directories
+  header="$(od -An -tu4 -j 60 -N 4 "$file")"
+  magic="$(od -An -tu2 -j "$((header + 24))" -N 2 "$file")"
+  case "$((magic))" in
+    267) directories="$((header + 120))" ;; # PE32
+    523) directories="$((header + 136))" ;; # PE32+
+    *)
+      echo "ERROR: $file is not a PE file" 1>&2
+      return 1
+      ;;
+  esac
+  od -An -tu4 -j "$((directories + 36))" -N 4 "$file"
+}
 
 # Xcode embeds the profiles while it signs. They are sealed as resources of
 # their bundle, so they have to be in place before anything is signed.
@@ -81,13 +138,27 @@ agents=(darwin_amd64 darwin_arm64)
 mapfile -t members < <(tar -tzf "$AGENTS")
 tar -xpzf "$AGENTS" -C "$agents_dir"
 for agent in "${agents[@]}"; do
-  # Identified by its name in the archive, which is what it was called
-  # before. Nothing is kept from the signature it arrived with.
+  # Identified by its name in the archive.
   "$RCODESIGN" sign "${key_args[@]}" \
     --binary-identifier "$agent" \
     --code-signature-flags runtime \
     "$agents_dir/$agent" 1>&2
 done
+# The Windows programs in the archive. A signature a program already has is
+# replaced.
+windows_agents=(windows_amd64 windows_arm64)
+if [[ "${#jsign_args[@]}" -gt 0 ]]; then
+  for agent in "${windows_agents[@]}"; do
+    "$JAVA" -jar "$JSIGN_PATH" "${jsign_args[@]}" --replace "$agents_dir/$agent" 1>&2
+    size="$(pe_certificate_table_size "$agents_dir/$agent")"
+    if [[ "$size" -eq 0 ]]; then
+      echo "ERROR: $agent has no signature after signing"
+      exit 1
+    fi
+  done
+else
+  echo "JSIGN_PATH is not set: the Windows programs in the agents archive are left as they are" 1>&2
+fi
 # Same members, in the same order. "--" keeps a member name from being read as an option.
 tar -czf "$AGENTS" -C "$agents_dir" -- "${members[@]}"
 
@@ -124,8 +195,7 @@ for path in "${keep_identifier[@]}"; do
   fi
   args+=(--binary-identifier "$path:$identifier")
 done
-# The mutagen programs have always been identified this way, after the names
-# of the files mutagen's own build signs.
+# The identifiers of the mutagen programs.
 args+=(
   --binary-identifier "Contents/Resources/mutagen-darwin-amd64:darwin_amd64"
   --binary-identifier "Contents/Resources/mutagen-darwin-arm64:darwin_arm64"
