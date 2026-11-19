@@ -272,32 +272,19 @@ jobs:
     needs: validate
     runs-on: ubuntu-22.04
     if: ${{ github.repository_owner == 'coder' }}
-    permissions:
-      contents: read
+    permissions: {}
     outputs:
-      sha256: ${{ steps.checksum.outputs.sha256 }}
+      sha256: ${{ steps.rcodesign.outputs.sha256 }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.commit || github.sha }}
-          persist-credentials: false
-
       - name: Build rcodesign
-        uses: ./.github/actions/install-rcodesign
-
-      - name: Record checksum
-        id: checksum
-        run: |
-          set -euo pipefail
-          sha256="$(sha256sum /tmp/rcodesign-bin/rcodesign | cut -d ' ' -f 1)"
-          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+        id: rcodesign
+        uses: coder/setup-apple-signing-action/rcodesign@ee5b178f59b7ad9c80089dc91a36c45868cddb69 # main 2026-11-19
 
       - name: Upload rcodesign
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rcodesign
-          path: /tmp/rcodesign-bin/rcodesign
+          path: ${{ steps.rcodesign.outputs.path }}
           retention-days: 1
 
   # Needs the approve job itself and not only the build that waited for it, so that nothing is
@@ -358,40 +345,22 @@ jobs:
           wget -q -O /tmp/jsign-6.0.jar https://github.com/ebourg/jsign/releases/download/6.0/jsign-6.0.jar
           echo "05ca18d4ab7b8c2183289b5378d32860f0ea0f3bdab1f1b8cae5894fb225fa8a  /tmp/jsign-6.0.jar" | sha256sum -c
 
-      # Same library, version and checksum as coder/coder's release workflow.
-      - name: Setup Cloud KMS PKCS#11 library
-        env:
-          AC_KMS_KEY_RING: ${{ secrets.AC_KMS_KEY_RING }}
-        run: |
-          set -euo pipefail
-          wget -q -O /tmp/libkmsp11.tar.gz https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.9/libkmsp11-1.9-linux-amd64.tar.gz
-          echo "5397f965073cd5d1e2c43e5148f102f31a7c835902f97eb41c7c9c0f1b876a40 /tmp/libkmsp11.tar.gz" | sha256sum -c
-          sudo tar -xzf /tmp/libkmsp11.tar.gz \
-            -C /usr/local/lib \
-            --strip-components=1 \
-            libkmsp11-1.9-linux-amd64/libkmsp11.so
-          rm /tmp/libkmsp11.tar.gz
+      - name: Set up Apple signing
+        id: apple_signing
+        uses: coder/setup-apple-signing-action@ee5b178f59b7ad9c80089dc91a36c45868cddb69 # main 2026-11-19
+        with:
+          certificate-pem: ${{ secrets.AC_CERTIFICATE_PEM }}
+          key-ring: ${{ secrets.AC_KMS_KEY_RING }}
 
-          # The library requires the config file to be owner-writable only.
-          touch /tmp/kmsp11_config.yaml
-          chmod 600 /tmp/kmsp11_config.yaml
-          cat > /tmp/kmsp11_config.yaml <<EOF
-          ---
-          tokens:
-            - key_ring: "$AC_KMS_KEY_RING"
-          EOF
-
-      - name: Setup certificate, profiles and notarization key
+      - name: Setup profiles and notarization key
         env:
-          AC_CERTIFICATE_PEM: ${{ secrets.AC_CERTIFICATE_PEM }}
           AC_APP_PROVISIONPROFILE_B64: ${{ secrets.AC_APP_PROVISIONPROFILE_B64 }}
           AC_EXT_PROVISIONPROFILE_B64: ${{ secrets.AC_EXT_PROVISIONPROFILE_B64 }}
           AC_APIKEY_P8_BASE64: ${{ secrets.AC_APIKEY_P8_BASE64 }}
         run: |
           set -euo pipefail
-          touch /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
-          chmod 600 /tmp/{apple_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
-          echo "$AC_CERTIFICATE_PEM" > /tmp/apple_cert.pem
+          touch /tmp/{app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
+          chmod 600 /tmp/{app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
 
           # Decodes one secret and, if it is not base64, says which one.
           # Whitespace is dropped first: base64 rejects the stray line break
@@ -407,14 +376,10 @@ jobs:
           decode AC_APIKEY_P8_BASE64 /tmp/apple_apikey.p8
 
       # Before anything slow, so that a wrong secret fails in seconds and says
-      # why. The certificate is public; printing it records what was used.
-      - name: Check certificate and notarization key
+      # why.
+      - name: Check notarization key
         run: |
           set -euo pipefail
-          if ! openssl x509 -in /tmp/apple_cert.pem -noout -subject -serial -enddate; then
-            echo "::error::The AC_CERTIFICATE_PEM secret is not a PEM certificate. It is the certificate text itself, not base64 of it."
-            exit 1
-          fi
           if ! openssl pkey -in /tmp/apple_apikey.p8 -noout; then
             echo "::error::The AC_APIKEY_P8_BASE64 secret does not decode to a private key. It must be the base64 of the AuthKey .p8 file."
             exit 1
@@ -469,10 +434,10 @@ jobs:
         env:
           APP_PROF_PATH: /tmp/app.provisionprofile
           EXT_PROF_PATH: /tmp/ext.provisionprofile
-          AC_CERTIFICATE_FILE: /tmp/apple_cert.pem
-          AC_PKCS11_LIBRARY: /usr/local/lib/libkmsp11.so
+          AC_CERTIFICATE_FILE: ${{ steps.apple_signing.outputs.certificate-file }}
+          AC_PKCS11_LIBRARY: ${{ steps.apple_signing.outputs.pkcs11-library }}
           AC_PKCS11_KEY_LABEL: ${{ secrets.AC_KMS_KEY }}
-          KMS_PKCS11_CONFIG: /tmp/kmsp11_config.yaml
+          KMS_PKCS11_CONFIG: ${{ steps.apple_signing.outputs.pkcs11-config }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcloud_auth.outputs.credentials_file_path }}
           JSIGN_PATH: /tmp/jsign-6.0.jar
           EV_KEYSTORE: ${{ secrets.EV_KEYSTORE }}
@@ -519,7 +484,9 @@ jobs:
 
       - name: Delete certificate, profiles and notarization key
         if: always()
-        run: rm -f /tmp/{apple_cert.pem,ev_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
+        run: |
+          rm -f /tmp/{ev_cert.pem,app.provisionprofile,ext.provisionprofile,apple_apikey.p8,apple_apikey.json}
+          rm -rf "$RUNNER_TEMP/apple-signing"
 
   package:
     name: Build the installer
@@ -623,54 +590,31 @@ jobs:
           sudo install -m 0755 "$RUNNER_TEMP/rcodesign/rcodesign" /usr/bin/rcodesign
           rcodesign --version
 
-      # Same as in the sign-app job.
-      - name: Setup Cloud KMS PKCS#11 library
-        env:
-          AC_KMS_KEY_RING: ${{ secrets.AC_KMS_KEY_RING }}
-        run: |
-          set -euo pipefail
-          wget -q -O /tmp/libkmsp11.tar.gz https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.9/libkmsp11-1.9-linux-amd64.tar.gz
-          echo "5397f965073cd5d1e2c43e5148f102f31a7c835902f97eb41c7c9c0f1b876a40 /tmp/libkmsp11.tar.gz" | sha256sum -c
-          sudo tar -xzf /tmp/libkmsp11.tar.gz \
-            -C /usr/local/lib \
-            --strip-components=1 \
-            libkmsp11-1.9-linux-amd64/libkmsp11.so
-          rm /tmp/libkmsp11.tar.gz
+      - name: Set up Apple signing
+        id: apple_signing
+        uses: coder/setup-apple-signing-action@ee5b178f59b7ad9c80089dc91a36c45868cddb69 # main 2026-11-19
+        with:
+          certificate-pem: ${{ secrets.AC_INSTALLER_CERTIFICATE_PEM }}
+          key-ring: ${{ secrets.AC_KMS_KEY_RING }}
 
-          # The library requires the config file to be owner-writable only.
-          touch /tmp/kmsp11_config.yaml
-          chmod 600 /tmp/kmsp11_config.yaml
-          cat > /tmp/kmsp11_config.yaml <<EOF
-          ---
-          tokens:
-            - key_ring: "$AC_KMS_KEY_RING"
-          EOF
-
-      - name: Setup and check installer certificate and notarization key
+      - name: Check installer certificate and setup notarization key
         env:
-          AC_INSTALLER_CERTIFICATE_PEM: ${{ secrets.AC_INSTALLER_CERTIFICATE_PEM }}
+          AC_CERTIFICATE_FILE: ${{ steps.apple_signing.outputs.certificate-file }}
           AC_INSTALLER_KMS_KEY: ${{ secrets.AC_INSTALLER_KMS_KEY }}
           AC_APIKEY_P8_BASE64: ${{ secrets.AC_APIKEY_P8_BASE64 }}
         run: |
           set -euo pipefail
-          for name in AC_INSTALLER_CERTIFICATE_PEM AC_INSTALLER_KMS_KEY; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::The $name secret is not set in the signing environment."
-              exit 1
-            fi
-          done
-          touch /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json}
-          chmod 600 /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json}
-          echo "$AC_INSTALLER_CERTIFICATE_PEM" > /tmp/installer_cert.pem
+          if [[ -z "$AC_INSTALLER_KMS_KEY" ]]; then
+            echo "::error::The AC_INSTALLER_KMS_KEY secret is not set in the signing environment."
+            exit 1
+          fi
+          touch /tmp/{apple_apikey.p8,apple_apikey.json}
+          chmod 600 /tmp/{apple_apikey.p8,apple_apikey.json}
           if ! tr -d '[:space:]' <<<"$AC_APIKEY_P8_BASE64" | base64 -d > /tmp/apple_apikey.p8; then
             echo "::error::The AC_APIKEY_P8_BASE64 secret is not valid base64."
             exit 1
           fi
-          if ! subject="$(openssl x509 -in /tmp/installer_cert.pem -noout -subject -serial -enddate)"; then
-            echo "::error::The AC_INSTALLER_CERTIFICATE_PEM secret is not a PEM certificate."
-            exit 1
-          fi
-          echo "$subject"
+          subject="$(openssl x509 -in "$AC_CERTIFICATE_FILE" -noout -subject)"
           if [[ "$subject" != *"Developer ID Installer"* ]]; then
             echo "::error::AC_INSTALLER_CERTIFICATE_PEM is not a Developer ID Installer certificate. An installer cannot be signed with the application certificate."
             exit 1
@@ -699,10 +643,10 @@ jobs:
 
       - name: Sign
         env:
-          AC_CERTIFICATE_FILE: /tmp/installer_cert.pem
-          AC_PKCS11_LIBRARY: /usr/local/lib/libkmsp11.so
+          AC_CERTIFICATE_FILE: ${{ steps.apple_signing.outputs.certificate-file }}
+          AC_PKCS11_LIBRARY: ${{ steps.apple_signing.outputs.pkcs11-library }}
           AC_PKCS11_KEY_LABEL: ${{ secrets.AC_INSTALLER_KMS_KEY }}
-          KMS_PKCS11_CONFIG: /tmp/kmsp11_config.yaml
+          KMS_PKCS11_CONFIG: ${{ steps.apple_signing.outputs.pkcs11-config }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcloud_auth.outputs.credentials_file_path }}
         run: |
           set -euo pipefail
@@ -741,7 +685,9 @@ jobs:
 
       - name: Delete certificate and notarization key
         if: always()
-        run: rm -f /tmp/{installer_cert.pem,apple_apikey.p8,apple_apikey.json,kmsp11_config.yaml}
+        run: |
+          rm -f /tmp/{apple_apikey.p8,apple_apikey.json}
+          rm -rf "$RUNNER_TEMP/apple-signing"
 
   # Sparkle, the app's updater, only accepts an installer whose Ed25519 signature verifies
   # against the public key built into the app. The signature covers the file as it is after
