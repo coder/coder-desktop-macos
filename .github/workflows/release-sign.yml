@@ -20,6 +20,7 @@ name: release-sign
 #   package         macOS. Builds the installer.
 #   sign-installer  Linux. Signs the installer with the Developer ID
 #                   Installer key and notarizes it.
+#   attest          Linux. Records which commit and run built the installer.
 #   sign-sparkle    macOS. Signs the installer for Sparkle.
 #   publish         macOS. Publishes the installer.
 #
@@ -688,6 +689,29 @@ jobs:
         run: |
           rm -f /tmp/{apple_apikey.p8,apple_apikey.json}
           rm -rf "$RUNNER_TEMP/apple-signing"
+
+  # Stores a build provenance attestation for the installer: a signed, public record of the
+  # commit and workflow run that produced it. "gh attestation verify" checks an installer
+  # against it. The installer is named by the checksum sign-installer recorded, so nothing is
+  # downloaded here. The job holds no secrets and no other job waits for it.
+  attest:
+    name: Attest the installer
+    needs: sign-installer
+    runs-on: ubuntu-22.04
+    if: >-
+      ${{ !cancelled() && github.repository_owner == 'coder' && !inputs.dryrun &&
+      needs.sign-installer.result == 'success' }}
+    permissions:
+      # To sign the attestation as this workflow run
+      id-token: write
+      # To store it
+      attestations: write
+    steps:
+      - name: Attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: Coder-Desktop.pkg
+          subject-digest: sha256:${{ needs.sign-installer.outputs.sha256 }}
 
   # Sparkle, the app's updater, only accepts an installer whose Ed25519 signature verifies
   # against the public key built into the app. The signature covers the file as it is after

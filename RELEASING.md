@@ -80,6 +80,7 @@ alternate between the two:
 | `sign-app`       | Linux   | Signs the app with the Developer ID Application key, notarizes it |
 | `package`        | macOS   | Builds the installer                                              |
 | `sign-installer` | Linux   | Signs the installer with the Developer ID Installer key, notarizes it |
+| `attest`         | Linux   | Records which commit and run built the installer                  |
 | `sign-sparkle`   | macOS   | Signs the installer for Sparkle                                   |
 | `publish`        | macOS   | Publishes the installer and updates the appcast                   |
 
@@ -96,6 +97,20 @@ Sparkle, the app's updater, has its own signing key, which cannot be kept in
 Cloud KMS. The `sign-sparkle` job signs the finished installer with it, using
 Sparkle's own tool, which only runs on macOS. The job does nothing else, so
 that the key is never next to the tools `publish` downloads.
+
+### Provenance
+
+The `attest` job stores a build provenance attestation for each published
+installer: a signed, public record of the commit and workflow run that
+produced it. To check an installer against it:
+
+```bash
+gh attestation verify Coder-Desktop.pkg --repo coder/coder-desktop-macos \
+  --cert-identity https://github.com/coder/coder-desktop-macos/.github/workflows/release-sign.yml@refs/heads/main
+```
+
+`--cert-identity` only accepts an attestation made by `release-sign.yml` on
+`main`. Dry runs are not attested.
 
 ### Secrets
 
@@ -175,6 +190,11 @@ commit to build, but not the jobs that sign it, and it cannot leave out the
 `approve` job. The first job stops the run unless it is on `main` and the
 commit is on `main`. The jobs come from the newest `main`, while the scripts
 they run come from the released commit.
+
+`release.yml` has to grant every permission those jobs ask for, and a release
+tag uses its own copy of `release.yml`. If a job on `main` has gained a
+permission since the tagged commit, the run fails before any job starts. Tag a
+newer commit instead.
 
 The approval is a job in `release-sign.yml`, so a change to that file on
 `main` could sign without it. What protects against that is the review of
