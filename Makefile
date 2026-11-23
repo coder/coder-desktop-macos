@@ -145,7 +145,7 @@ clean/project:
 
 .PHONY: clean/build
 clean/build:
-	rm -rf build/ release/ $$out
+	rm -rf build/ release/
 
 .PHONY: clean/mutagen
 clean/mutagen:
