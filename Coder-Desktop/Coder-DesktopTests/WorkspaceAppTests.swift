@@ -13,6 +13,10 @@ struct WorkspaceAppTests {
         CoderSession(baseAccessURL: baseAccessURL, dashboardURL: nil, sessionToken: sessionToken)
     }
 
+    private func appsForAgent(_ agent: CoderSDK.WorkspaceAgent) -> [WorkspaceApp] {
+        agentToApps(logger, agent, host, session, workspaceAgentName: "workspace.main")
+    }
+
     @Test
     func createWorkspaceApp_Success() throws {
         let sdkApp = try CoderSDK.WorkspaceApp(
@@ -114,14 +118,17 @@ struct WorkspaceAppTests {
     func displayApps_VSCode() {
         let agent = createMockAgent(displayApps: [.vscode, .web_terminal, .ssh_helper, .port_forwarding_helper])
 
-        let apps = agentToApps(logger, agent, host, session)
+        let apps = appsForAgent(agent)
 
-        #expect(apps.count == 1)
+        #expect(apps.count == 2)
         #expect(!apps[0].confirmBeforeOpening)
         #expect(apps[0].slug == "-vscode")
         #expect(apps[0].displayName == "VS Code Desktop")
         #expect(apps[0].url.absoluteString == "vscode://vscode-remote/ssh-remote+test-workspace.coder.test//home/user")
         #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code.svg")
+        #expect(apps[1].url.absoluteString == "ssh://test-workspace.coder.test")
+        #expect(apps[1].systemImage == "terminal")
+        #expect(apps[1].terminalCommand == "coder --url 'https://coder.example.com' ssh 'workspace.main'")
     }
 
     @Test
@@ -135,9 +142,9 @@ struct WorkspaceAppTests {
             ]
         )
 
-        let apps = agentToApps(logger, agent, host, session)
+        let apps = appsForAgent(agent)
 
-        #expect(apps.count == 1)
+        #expect(apps.count == 2)
         #expect(apps[0].slug == "-vscode-insiders")
         #expect(apps[0].displayName == "VS Code Insiders Desktop")
         #expect(apps[0].icon?.absoluteString == "https://coder.example.com/icon/code-insiders.svg")
@@ -222,7 +229,7 @@ struct WorkspaceAppTests {
         )
 
         let agent = createMockAgent(apps: [sdkApp1, sdkApp2, sdkApp3, sdkApp4], displayApps: [.vscode])
-        let apps = agentToApps(logger, agent, host, session)
+        let apps = appsForAgent(agent)
 
         #expect(apps.count == 3)
         let appSlugs = apps.map(\.slug)
@@ -287,7 +294,7 @@ extension WorkspaceAppTests {
             apps: [externalApp(url + "$SESSION_TOKEN")], display_apps: []
         )
 
-        let apps = agentToApps(logger, agent, host, session)
+        let apps = appsForAgent(agent)
 
         #expect(apps.map(\.url.absoluteString) == [url])
         #expect(apps.map(\.blockedReason) == [nil])
@@ -299,10 +306,47 @@ extension WorkspaceAppTests {
             id: UUID(), expanded_directory: "/home/a b?x=1#y", parent_id: nil, apps: [], display_apps: [.vscode]
         )
 
-        let apps = agentToApps(logger, agent, host, session)
+        let apps = appsForAgent(agent)
 
         #expect(apps.map(\.url.absoluteString) == [
             "vscode://vscode-remote/ssh-remote+test-workspace.coder.test//home/a%20b%3Fx=1%23y",
         ])
+    }
+
+    @Test
+    func commandChatOpensWorkspaceAgentInBrowser() {
+        let chat = CoderSDK.WorkspaceApp(
+            id: UUID(), url: nil, external: false, slug: "chat", display_name: "Chat",
+            command: "start-chat", icon: nil, subdomain: false, subdomain_name: nil
+        )
+        let agent = createMockAgent(apps: [chat])
+
+        let apps = agentToApps(
+            logger, agent, host, session, workspaceAgentName: "my workspace.main"
+        )
+
+        #expect(apps.count == 1)
+        #expect(apps[0].url.absoluteString == "https://coder.example.com/@me/my%20workspace.main/terminal?app=chat")
+        #expect(apps[0].systemImage == "bubble.left.and.bubble.right")
+        #expect(!apps[0].confirmBeforeOpening)
+    }
+
+    @Test
+    func chatIsNotAddedWhenCommandIsMissing() {
+        let chat = CoderSDK.WorkspaceApp(
+            id: UUID(), url: nil, external: false, slug: "chat", display_name: "Chat",
+            command: nil, icon: nil, subdomain: false, subdomain_name: nil
+        )
+
+        #expect(appsForAgent(createMockAgent(apps: [chat])).isEmpty)
+    }
+
+    @Test
+    func coderSSHCommandQuotesShellArguments() {
+        let command = coderSSHCommand(
+            deploymentURL: baseAccessURL, workspaceAgentName: "work'space.main;echo unsafe"
+        )
+
+        #expect(command == "coder --url 'https://coder.example.com' ssh 'work'\\''space.main;echo unsafe'")
     }
 }

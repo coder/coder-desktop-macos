@@ -194,7 +194,10 @@ struct MenuItemView: View {
                     dashboardURL: state.dashboardURL,
                     sessionToken: sessionToken
                 )
-                apps = agentToApps(logger, wsAgent, agent.primaryHost, session)
+                apps = agentToApps(
+                    logger, wsAgent, agent.primaryHost, session,
+                    workspaceAgentName: "\(agent.wsName).\(agent.name)"
+                )
             } else {
                 logger.error("Could not find agent '\(agent.id)' in workspace '\(item.wsName)' resources")
             }
@@ -203,16 +206,15 @@ struct MenuItemView: View {
 }
 
 struct MenuItemCollapsibleView: View {
-    private let defaultVisibleApps = 6
+    private let columns = Array(repeating: GridItem(.fixed(Theme.Size.appIconWidth), spacing: 16), count: 6)
     let apps: [WorkspaceApp]
 
     var body: some View {
-        HStack(spacing: 16) {
-            ForEach(apps.prefix(defaultVisibleApps), id: \.id) { app in
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+            ForEach(apps, id: \.id) { app in
                 WorkspaceAppIcon(app: app)
                     .frame(width: Theme.Size.appIconWidth, height: Theme.Size.appIconHeight)
             }
-            Spacer()
         }
         .padding(.leading, 32)
         .padding(.bottom, 5)

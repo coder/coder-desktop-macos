@@ -161,6 +161,7 @@ targets:
         com.apple.developer.networking.networkextension:
           - packet-tunnel-provider${PTP_SUFFIX}
         com.apple.developer.system-extension.install: true
+        com.apple.security.automation.apple-events: true
         com.apple.security.application-groups:
           - $(TeamIdentifierPrefix)com.coder.Coder-Desktop
         aps-environment: development

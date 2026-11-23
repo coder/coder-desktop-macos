@@ -13,23 +13,27 @@ struct WorkspaceAppIcon: View {
     @State var isPressed = false
 
     var body: some View {
-        WebImage(
-            url: app.icon,
-            context: [.imageThumbnailPixelSize: Theme.Size.appIconSize]
-        ) { $0 }
-            placeholder: {
-                if app.icon != nil {
-                    CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
-                } else {
-                    Image(systemName: "questionmark").frame(
-                        width: Theme.Size.appIconWidth,
-                        height: Theme.Size.appIconHeight
-                    )
-                }
-            }.frame(
-                width: Theme.Size.appIconWidth,
-                height: Theme.Size.appIconHeight
-            ).padding(6)
+        Group {
+            if let systemImage = app.systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18))
+            } else {
+                WebImage(
+                    url: app.icon,
+                    context: [.imageThumbnailPixelSize: Theme.Size.appIconSize]
+                ) { $0 }
+                    placeholder: {
+                        if app.icon != nil {
+                            CircularProgressView(value: nil, strokeWidth: 2, diameter: 10)
+                        } else {
+                            Image(systemName: "questionmark")
+                        }
+                    }
+            }
+        }.frame(
+            width: Theme.Size.appIconWidth,
+            height: Theme.Size.appIconHeight
+        ).padding(6)
             .background(isHovering ? Color.accentColor.opacity(0.8) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .onHover { hovering in isHovering = hovering && app.blockedReason == nil }
@@ -45,6 +49,10 @@ struct WorkspaceAppIcon: View {
                             isPressed = false
                         }
                         guard app.blockedReason == nil else { return }
+                        if let command = app.terminalCommand {
+                            openTerminal(command: command)
+                            return
+                        }
                         let scheme = app.url.scheme?.lowercased() ?? ""
                         if app.confirmBeforeOpening, !state.trustedAppSchemes.contains(scheme) {
                             confirmOpen(scheme: scheme)
@@ -55,6 +63,45 @@ struct WorkspaceAppIcon: View {
             )
             .opacity(app.blockedReason == nil ? 1 : 0.4)
             .help(app.blockedReason.map { reason in "\(app.displayName): \(reason.description)" } ?? app.displayName)
+    }
+
+    private func openTerminal(command: String) {
+        Task {
+            do {
+                try await Task.detached {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                    process.arguments = [
+                        "-e",
+                        """
+                        on run argv
+                            tell application "Terminal"
+                                activate
+                                do script (item 1 of argv)
+                            end tell
+                        end run
+                        """,
+                        command,
+                    ]
+                    let errors = Pipe()
+                    process.standardError = errors
+                    try process.run()
+                    let errorData = errors.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
+                    if process.terminationStatus != 0 {
+                        let message = String(data: errorData, encoding: .utf8) ?? "Could not open Terminal."
+                        throw TerminalLaunchError(message: message)
+                    }
+                }.value
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Could not open Terminal"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .warning
+                dismiss()
+                alert.runModal()
+            }
+        }
     }
 
     /// `.alert` from SwiftUI doesn't play nice when the calling view is in the
@@ -78,6 +125,11 @@ struct WorkspaceAppIcon: View {
     }
 }
 
+private struct TerminalLaunchError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 /// The signed-in deployment that app links are built for.
 struct CoderSession {
     let baseAccessURL: URL
@@ -91,17 +143,24 @@ struct WorkspaceApp {
     let displayName: String
     let url: URL
     let icon: URL?
+    let systemImage: String?
+    let terminalCommand: String?
     /// Set when the link needs a session token but isn't trusted with one.
     let blockedReason: SessionTokenBlockReason?
     let confirmBeforeOpening: Bool
 
     var id: String { slug }
 
-    init(slug: String, displayName: String, url: URL, icon: URL?) {
+    init(
+        slug: String, displayName: String, url: URL, icon: URL?,
+        systemImage: String? = nil, terminalCommand: String? = nil
+    ) {
         self.slug = slug
         self.displayName = displayName
         self.url = url
         self.icon = icon
+        self.systemImage = systemImage
+        self.terminalCommand = terminalCommand
         blockedReason = nil
         confirmBeforeOpening = false
     }
@@ -111,6 +170,8 @@ struct WorkspaceApp {
         session: CoderSession
     ) throws(WorkspaceAppError) {
         slug = original.slug
+        systemImage = nil
+        terminalCommand = nil
         // Same behaviour as the web UI
         displayName = original.display_name ?? original.slug
 
@@ -195,9 +256,13 @@ func agentToApps(
     _ logger: Logger,
     _ agent: CoderSDK.WorkspaceAgent,
     _ host: String,
-    _ session: CoderSession
+    _ session: CoderSession,
+    workspaceAgentName: String
 ) -> [WorkspaceApp] {
     let workspaceApps = agent.apps.compactMap { app in
+        if app.slug == "chat", !app.external, let command = app.command, !command.isEmpty {
+            return chatCommandApp(app, session: session, workspaceAgentName: workspaceAgentName)
+        }
         var app = app
         // Dev container apps never get a token. coderd removes the placeholder
         // since coder/coder#31262, but older servers still send it.
@@ -226,6 +291,14 @@ func agentToApps(
                 baseIconURL: session.baseAccessURL,
                 path: agent.expanded_directory
             )
+        case .ssh_helper:
+            guard let terminal = terminalDisplayApp(
+                host: host, session: session, workspaceAgentName: workspaceAgentName
+            ) else {
+                logger.error("Could not create SSH URL for \(host)")
+                return nil
+            }
+            return terminal
         default:
             logger.info("Skipping DisplayApp '\(displayApp.rawValue)' for \(host)")
             return nil
@@ -233,6 +306,48 @@ func agentToApps(
     }
 
     return displayApps + workspaceApps
+}
+
+private func chatCommandApp(
+    _ app: CoderSDK.WorkspaceApp, session: CoderSession, workspaceAgentName: String
+) -> WorkspaceApp {
+    var components = URLComponents(
+        url: session.baseAccessURL
+            .appending(path: "@me")
+            .appending(path: workspaceAgentName)
+            .appending(path: "terminal"),
+        resolvingAgainstBaseURL: false
+    )!
+    components.queryItems = [URLQueryItem(name: "app", value: app.slug)]
+    return WorkspaceApp(
+        slug: app.slug,
+        displayName: app.display_name ?? "Chat",
+        url: components.url!,
+        icon: nil,
+        systemImage: "bubble.left.and.bubble.right"
+    )
+}
+
+private func terminalDisplayApp(host: String, session: CoderSession, workspaceAgentName: String) -> WorkspaceApp? {
+    var components = URLComponents()
+    components.scheme = "ssh"
+    components.host = host
+    guard let url = components.url else { return nil }
+    return WorkspaceApp(
+        slug: "-terminal",
+        displayName: "Open terminal",
+        url: url,
+        icon: nil,
+        systemImage: "terminal",
+        terminalCommand: coderSSHCommand(deploymentURL: session.baseAccessURL, workspaceAgentName: workspaceAgentName)
+    )
+}
+
+func coderSSHCommand(deploymentURL: URL, workspaceAgentName: String) -> String {
+    func shellQuote(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+    return "coder --url \(shellQuote(deploymentURL.absoluteString)) ssh \(shellQuote(workspaceAgentName))"
 }
 
 func vscodeDisplayApp(hostname: String, baseIconURL: URL, path: String? = nil) -> WorkspaceApp {

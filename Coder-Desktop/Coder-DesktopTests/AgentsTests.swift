@@ -119,5 +119,18 @@ struct AgentsTests {
                 #expect(throws: Never.self) { try view.find(text: "offline.coder") }
             }
         }
+
+        @Test
+        func allWorkspaceAppsRemainVisible() throws {
+            let apps = (1 ... 8).map { index in
+                WorkspaceApp(
+                    slug: "app-\(index)", displayName: "App \(index)",
+                    url: URL(string: "https://coder.example.com")!, icon: nil
+                )
+            }
+            let view = MenuItemCollapsibleView(apps: apps).environmentObject(state)
+
+            #expect(try view.inspect().find(ViewType.ForEach.self).count == 8)
+        }
     }
 }

@@ -12,6 +12,8 @@
   <true/>
   <key>com.apple.developer.team-identifier</key>
   <string>4399GN35BJ</string>
+  <key>com.apple.security.automation.apple-events</key>
+  <true/>
   <key>com.apple.security.application-groups</key>
   <array>
     <string>4399GN35BJ.com.coder.Coder-Desktop</string>
