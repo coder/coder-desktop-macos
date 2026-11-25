@@ -1,5 +1,5 @@
 {
-  "originHash" : "48f972bcc686a7bd649fc1387554ecfff0e7f61053fc589b96325eaca30f4e9e",
+  "originHash" : "693f9bd0b6c60c7238065c1fd09dcdc510f5dc2036aee025cd610b890e0a287d",
   "pins" : [
     {
       "identity" : "fluid-menu-bar-extra",
@@ -11,12 +11,30 @@
       }
     },
     {
-      "identity" : "grpc-swift",
+      "identity" : "grpc-swift-2",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/grpc/grpc-swift",
+      "location" : "https://github.com/grpc/grpc-swift-2",
       "state" : {
-        "revision" : "8c5e99d0255c373e0330730d191a3423c57373fb",
-        "version" : "1.24.2"
+        "revision" : "e31eb485c4575e0dbed3d1925e24084f755ac6e8",
+        "version" : "2.4.4"
+      }
+    },
+    {
+      "identity" : "grpc-swift-nio-transport",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/grpc/grpc-swift-nio-transport",
+      "state" : {
+        "revision" : "9765a256477383b9d441f20952118b75104304e8",
+        "version" : "2.11.0"
+      }
+    },
+    {
+      "identity" : "grpc-swift-protobuf",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/grpc/grpc-swift-protobuf",
+      "state" : {
+        "revision" : "83f5cdb2f8b4c7b57ed9419c6f4f6380b683500e",
+        "version" : "2.5.0"
       }
     },
     {
@@ -59,8 +77,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SDWebImage/SDWebImageSVGCoder",
       "state" : {
-        "revision" : "950167445ab703740569869c8b7510efc9d09a26",
-        "version" : "1.7.0"
+        "revision" : "85b5d58ad02c207c496fa34426dc6560d6ae32f0",
+        "version" : "1.8.0"
       }
     },
     {
@@ -68,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SDWebImage/SDWebImageSwiftUI",
       "state" : {
-        "revision" : "451c6dfd5ecec2cf626d1d9ca81c2d4a60355172",
-        "version" : "3.1.3"
+        "revision" : "0e331457ca9af2f0b08bcaa138a91ffb907b004f",
+        "version" : "3.1.4"
       }
     },
     {
@@ -95,8 +113,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jamf/Subprocess",
       "state" : {
-        "branch" : "9d67b79",
-        "revision" : "9d67b79215836ae0dfce8b83d45e632c853b6a25"
+        "revision" : "d0dadcca6dad3150918f55f12d8bab6452033872",
+        "version" : "4.0.1"
       }
     },
     {
@@ -266,8 +284,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
-        "revision" : "ebc7251dd5b37f627c93698e4374084d98409633",
-        "version" : "1.28.2"
+        "revision" : "3d537cb81aef272a03cb3be815439e9bf0eb3bd3",
+        "version" : "1.39.0"
       }
     },
     {
@@ -302,8 +320,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-url-routing",
       "state" : {
-        "branch" : "09b155d",
-        "revision" : "09b155ddb2a6d09a9adbc7bac50d7d9f75d03e9d"
+        "revision" : "40c7b325bd60f37cf8c200992af4177b548d5c3d",
+        "version" : "0.7.0"
       }
     },
     {

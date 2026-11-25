@@ -1,4 +1,5 @@
 import SwiftProtobuf
+import VPNProto
 
 public extension Speaker where SendMsg == Vpn_ManagerMessage, RecvMsg == Vpn_TunnelMessage {
     /// Asks the tunnel to rediscover network paths after system wake.

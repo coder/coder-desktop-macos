@@ -109,7 +109,6 @@ Here are some useful `make` commands for working with the project:
 - `make lint`: Lint Swift files using SwiftLint.
 - `make test`: Run all tests using `xcodebuild`.
 - `make clean`: Clean the Xcode project.
-- `make proto`: Generate Swift files from protobufs.
 - `make lockfile`: Update `Package.resolved` after changing packages.
 - `make help`: Display all available `make` commands with descriptions.
 

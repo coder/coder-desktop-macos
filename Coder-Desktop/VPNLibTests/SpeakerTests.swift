@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import VPNLib
+import VPNProto
 
 @Suite(.timeLimit(.minutes(1)))
 struct SpeakerTests {

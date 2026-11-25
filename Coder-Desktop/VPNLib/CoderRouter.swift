@@ -1,3 +1,4 @@
+import CasePaths
 import Foundation
 import URLRouting
 
@@ -7,11 +8,16 @@ public struct CoderRouter: ParserPrinter {
     public init() {}
 
     public var body: some ParserPrinter<URLRequestData, CoderRoute> {
-        Route(.case(CoderRoute.open(workspace:agent:route:))) {
+        Route(.case(\CoderRoute.Cases.open)) {
             Scheme("coder")
-            // v0/open/ws/<workspace>/agent/<agent>/<openType>
-            Path { "v0"; "open"; "ws"; Parse(.string); "agent"; Parse(.string) }
-            openRouter
+            Parse(.convert(
+                apply: { (workspace: $0, agent: $1, route: $2) },
+                unapply: { ($0.workspace, $0.agent, $0.route) }
+            )) {
+                // v0/open/ws/<workspace>/agent/<agent>/<openType>
+                Path { "v0"; "open"; "ws"; Parse(.string); "agent"; Parse(.string) }
+                openRouter
+            }
         }
     }
 
@@ -74,6 +80,7 @@ public enum OpenError: Error {
     public var localizedDescription: String { description }
 }
 
+@CasePathable
 public enum CoderRoute: Equatable, Sendable {
     case open(workspace: String, agent: String, route: OpenRoute)
 }
